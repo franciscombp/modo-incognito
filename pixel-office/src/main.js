@@ -18,7 +18,8 @@ scene.background = new THREE.Color(0x1a1c22);
 scene.fog = new THREE.Fog(0x1a1c22, 55, 110);
 
 const aspect = window.innerWidth / window.innerHeight;
-const { camera, frustumSize } = createIsoCamera(aspect);
+const { camera, frustumSize, offset } = createIsoCamera(aspect);
+const cameraTarget = new THREE.Vector3(0, 0, 0);
 
 // -------- Lighting: bright, flat, high-key fill so the isometric read
 // stays legible like the reference art (no moody shadows). --------
@@ -41,7 +42,9 @@ scene.add(key);
 
 buildOffice(scene);
 
-const player = new Player({ footprint: [-15, 15, -12, 9] });
+// Scene-space bounds roughly matching the building footprint, so the
+// player can roam the whole floor (entrance side is +z, back wall -z).
+const player = new Player({ footprint: [-15, 15, -9.3, 13 ] });
 scene.add(player.sprite);
 
 // -------- Zoom only: rotation is locked so the view always matches the
@@ -65,10 +68,26 @@ function onResize() {
 }
 window.addEventListener("resize", onResize);
 
+// -------- Camera follow: pan smoothly toward the player while keeping the
+// fixed isometric angle/rotation intact — only position translates. --------
+function updateCamera() {
+  cameraTarget.lerp(
+    new THREE.Vector3(player.sprite.position.x, 0, player.sprite.position.z),
+    0.06
+  );
+  camera.position.set(
+    cameraTarget.x + offset.x,
+    offset.y,
+    cameraTarget.z + offset.z
+  );
+  camera.lookAt(cameraTarget);
+}
+
 const clock = new THREE.Clock();
 function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
   player.update(dt);
+  updateCamera();
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
 }
