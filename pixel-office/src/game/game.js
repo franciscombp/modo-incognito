@@ -16,6 +16,10 @@ const DECAY_IDLE = 12;
 const SEEN_WHILE_HUNTED_RATE = 16;
 const INTERACT_RADIUS = 1.5 * S;
 const DISTRACTION_EFFECT_DURATION = 7;
+// A hiding spot is a one-shot breather, not a safe room: once you have used
+// it, it needs to cool off before it hides you again.
+const HIDE_MAX_USE = 6; // seconds of cover before the spot burns out
+const HIDE_COOLDOWN = 14;
 
 // Scoring. The fun is in *how* you slack off, not just whether you finish, so
 // the score rewards nerve: doing a forbidden thing with the boss breathing
@@ -102,6 +106,9 @@ export class Game {
     this.message = null;
     this.currentArea = null;
     this.talkCooldowns = new Map();
+    this.hideState = hidingSpots.map(() => ({ cooldownLeft: 0, usedFor: 0 }));
+    // Bound once so the per-frame snapshot never allocates a new closure.
+    this._hidingCharge = (i) => this.hidingCharge(i);
 
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
@@ -142,7 +149,7 @@ export class Game {
     const pos = this.player.position;
     this.currentArea = areaAt(pos.x, pos.z) ?? nearestArea(pos.x, pos.z).area;
 
-    this.player.isHiding = hidingSpots.some((h) => Math.hypot(h.x - pos.x, h.z - pos.z) < h.r);
+    this.player.isHiding = this._updateHiding(dt, pos);
 
     const holdingE = this.player.keys.has("e");
     const holdingF = this.player.keys.has("f");
@@ -184,17 +191,19 @@ export class Game {
     this.talkCooldowns.forEach((left, id) => {
       if (left > 0) this.talkCooldowns.set(id, Math.max(0, left - dt));
     });
+    // Colleagues and on-duty sidekicks are all people you can walk up to.
+    const talkable = [...this.npcs, ...this.minions.filter((m) => m.cast)];
     this.nearNpc =
-      this.npcs.find(
+      talkable.find(
         (n) =>
           n.cast &&
-          (this.talkCooldowns.get(n.id) ?? 0) <= 0 &&
+          (this.talkCooldowns.get(n.id ?? n.cast) ?? 0) <= 0 &&
           Math.hypot(n.position.x - pos.x, n.position.z - pos.z) < INTERACT_RADIUS * 1.3
       ) ?? null;
 
     if (holdingE && !this._prevInteractKey && this.nearNpc && !this.nearStation) {
       const npc = this.nearNpc;
-      this.talkCooldowns.set(npc.id, npc.talkCooldown ?? 40);
+      this.talkCooldowns.set(npc.id ?? npc.cast, npc.talkCooldown ?? 40);
       this.onTalk?.(npc);
     } else if (holdingE && !this._prevInteractKey && this.nearDistraction && !this.nearStation) {
       const target = { x: this.nearDistraction.x, z: this.nearDistraction.z };
@@ -310,6 +319,49 @@ export class Game {
     this.perk = null;
   }
 
+  /**
+   * Cover with a duty cycle. Sitting inside a spot drains it; once drained it
+   * stops hiding you and has to recharge, so the answer to being chased can
+   * never be "park on the green circle and wait".
+   */
+  _updateHiding(dt, pos) {
+    let hidden = false;
+    hidingSpots.forEach((spot, i) => {
+      const state = this.hideState[i];
+      const inside = Math.hypot(spot.x - pos.x, spot.z - pos.z) < spot.r;
+
+      if (state.cooldownLeft > 0) {
+        state.cooldownLeft = Math.max(0, state.cooldownLeft - dt);
+        if (state.cooldownLeft === 0) state.usedFor = 0;
+        return;
+      }
+
+      if (!inside) {
+        // Recovers slowly while you are away, so short dips stay cheap.
+        state.usedFor = Math.max(0, state.usedFor - dt * 0.6);
+        return;
+      }
+
+      state.usedFor += dt;
+      if (state.usedFor >= HIDE_MAX_USE) {
+        state.cooldownLeft = HIDE_COOLDOWN;
+        this._toast("Ese escondite se quemó. Busca otro.");
+        buzz(30);
+        return;
+      }
+      hidden = true;
+    });
+    return hidden;
+  }
+
+  /** Per-spot readout for the floor markers: 0 = burnt out, 1 = fresh. */
+  hidingCharge(i) {
+    const state = this.hideState[i];
+    if (!state) return 1;
+    if (state.cooldownLeft > 0) return 0;
+    return 1 - state.usedFor / HIDE_MAX_USE;
+  }
+
   /** Standing still in the right spot for a beat reveals a hidden note. */
   _updateEggs(dt) {
     if (!this.onEgg) return;
@@ -423,6 +475,9 @@ export class Game {
         this.boss.position.z - this.player.position.z
       ),
       minionAlert: this.minions.some((m) => m.redAlert),
+      minionPositions: this.minions.map((m) => m.position),
+      hidingCharge: this._hidingCharge,
+      worldScale: S,
       revealBoss: this.revealBossUntil > 0,
       isPretending: this.player.isPretending,
       isHiding: this.player.isHiding,

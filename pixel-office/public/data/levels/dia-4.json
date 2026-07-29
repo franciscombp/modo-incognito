@@ -8,12 +8,12 @@
   "rules": {
     "duration": 230,
     "maxWarnings": 2,
-    "objectives": ["coffee","chat","movie","snack","sleep"],
+    "objectives": ["scroll","sleep","meeting","snack","print","window"],
     "bossSpeedMul": 1.15,
     "visionMul": 1.15,
     "decayMul": 0.8,
     "distractionsOff": true,
-    "targetScore": 2200
+    "targetScore": 2500
   },
   "intro": [
     {

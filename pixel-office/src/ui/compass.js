@@ -1,6 +1,8 @@
 import * as THREE from "three";
 import { WORLD_SCALE as S } from "../scene/config.js";
 
+const WING_LABEL = { sur: "ALA SUR", norte: "ALA NORTE", centro: "CENTRO" };
+
 // "Where am I supposed to go?" solved on screen.
 //
 // A card names the current task and how far it is; a marker tracks it — pinned
@@ -16,6 +18,7 @@ export function createCompass(root, camera) {
   layer.className = "compass-layer";
   layer.innerHTML = `
     <div class="compass-card">
+      <span class="compass-here"></span>
       <span class="compass-icon"></span>
       <span class="compass-body">
         <span class="compass-label"></span>
@@ -28,6 +31,7 @@ export function createCompass(root, camera) {
   root.appendChild(layer);
 
   const card = layer.querySelector(".compass-card");
+  const hereEl = layer.querySelector(".compass-here");
   const iconEl = layer.querySelector(".compass-icon");
   const labelEl = layer.querySelector(".compass-label");
   const metaEl = layer.querySelector(".compass-meta");
@@ -50,11 +54,20 @@ export function createCompass(root, camera) {
     const pz = state.playerPos.z;
     const distance = Math.hypot(target.x - px, target.z - pz) / S;
 
+    // "Estás aquí" rides on the same card, so there is one place to look
+    // instead of two strips fighting for the bottom of the screen.
+    const area = state.area;
+    hereEl.textContent = area
+      ? `${WING_LABEL[area.wing] ?? "PISO 7"} · ${area.name}`
+      : "PISO 7";
+
     iconEl.textContent = target.icon ?? "•";
     labelEl.textContent = target.label;
+    // La tecla ya la dice el cartel que flota sobre el objeto; aquí basta
+    // con avisar de que estás encima.
     metaEl.textContent =
       state.nearStation && state.nearStation.id === target.id
-        ? "MANTÉN USAR"
+        ? "EN CURSO"
         : `${Math.round(distance)} m`;
 
     // How exposed this task is right now: the boss's distance to the target,

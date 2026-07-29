@@ -52,7 +52,7 @@ npm run format:data    # reordena los JSON de data/ para que sigan legibles
 | Inspeccionar el plano | M | botón 🗺️ |
 | Zoom | rueda | pellizco o ＋ / － |
 | Orbitar la cámara | clic derecho + arrastrar | dos dedos |
-| Hablar con un compañero | E | botón **USAR** |
+| Hablar con alguien | E | botón **USAR** |
 | Pausa | Esc | botón ⏸ |
 
 ## Contenido en JSON
@@ -97,6 +97,9 @@ varias escenas que se van alternando, con opciones que hacen algo de verdad:
 - **Enriquetta** — chapter del amor. El chisme puntúa; también se ofrece a
   entretener al jefe durante cuarenta minutos.
 
+Manu, César y Enriquetta son **amigos tuyos**. Los secuaces no lo son, pero
+también puedes hablarles: según lo que elijas te cubren o te delatan.
+
 Los **secuaces** (`minions` en `characters.json`) no te atrapan: te delatan.
 Si te ven haciendo algo prohibido llaman al jefe a ese punto y te suben la
 sospecha. Cada uno vigila distinto — **Chispita** corre por todo el piso con
@@ -121,10 +124,26 @@ las persecuciones cruzan la planta entera.
 
 ## Saber qué hacer
 
-Una tarjeta abajo nombra la tarea activa y a cuántos metros está; un marcador
-la sigue —fijado sobre ella si está en pantalla, como flecha en el borde si
-no— y una barra avisa de lo expuesta que está esa tarea según lo cerca que
-ande el jefe. Rojo significa que ir ahora es mala idea.
+Tres capas que no compiten entre sí:
+
+- **Sobre el objeto**: al acercarte a una tarea, una distracción o un
+  compañero aparece un cartel flotante anclado a él, con la tecla a pulsar y
+  una barra que se llena mientras mantienes. Nunca hay que adivinar a cuál de
+  las cosas de delante se refiere el texto.
+- **Tarjeta de tarea** (abajo a la derecha): dónde estás, cuál es la tarea
+  activa, a cuántos metros, y una barra de riesgo que se pone roja según lo
+  cerca que ande el jefe **de esa tarea**. Un marcador la sigue: fijado sobre
+  ella si está en pantalla, como flecha en el borde si no.
+- **Radar** (abajo a la izquierda): plano del piso con tu posición, la del
+  jefe —que late cuando te está cazando—, la de sus secuaces, las tareas
+  pendientes y los escondites cargados. Con la distancia al jefe en metros,
+  así que el zoom nunca te deja a ciegas.
+
+## Escondites con recarga
+
+Los círculos verdes te ocultan, pero se gastan: unos segundos dentro y el
+escondite se quema y tarda en recargarse. Mientras tanto se apaga en el suelo
+y en el radar. Quedarse parado en uno no es una estrategia.
 
 ## Cámara ajustable
 
