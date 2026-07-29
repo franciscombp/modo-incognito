@@ -197,6 +197,17 @@ export function createDialogue(root) {
     optionsEl.innerHTML = "";
     optionsEl.classList.add("hidden");
     optionButtons = [];
+
+    // Steven el Daddy narrator mode: display in narrator element instead of dialogue box
+    if (node.narrator || node.speaker === "Steven el Daddy") {
+      hideNarrator(); // Clear any previous narrator message
+      await new Promise(resolve => setTimeout(resolve, 100)); // Brief delay for visibility
+      showNarrator(resolve(node.text, ctx));
+      await waitForAdvance();
+      hideNarrator();
+      return;
+    }
+
     const speaker = resolve(node.speaker, ctx) ?? "";
     speakerText.textContent = speaker;
     speakerEl.classList.toggle("hidden", !speaker);
