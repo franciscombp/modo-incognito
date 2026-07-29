@@ -45,6 +45,7 @@ export function createHud(root) {
 
   const centerCol = el("div", "hud-center", topBar);
   const dayChip = el("div", "hud-day-chip", centerCol);
+  const heatStars = el("div", "heat-stars", centerCol);
   const suspicionWrap = el("div", "hud-panel hud-suspicion", centerCol);
   const susTitleRow = el("div", "hud-panel-title", suspicionWrap);
   susTitleRow.innerHTML = `<span class="hud-title-icon">👁️</span> SOSPECHA`;
@@ -151,6 +152,12 @@ export function createHud(root) {
 
     const doneCount = state.objectives.filter((o) => o.done).length;
     objectivesCount.textContent = `${doneCount}/${state.objectives.length}`;
+
+    if (state.maxHeat != null) {
+      heatStars.innerHTML = Array.from({ length: state.maxHeat }, (_, i) =>
+        i < state.heat ? '<span class="lit">★</span>' : '<span class="off">★</span>'
+      ).join("");
+    }
 
     scoreValue.textContent = state.score.toLocaleString("es");
     const comboOn = state.combo > 1;

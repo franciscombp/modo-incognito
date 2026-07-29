@@ -357,13 +357,18 @@ async function boot() {
 
   function updateLabels() {
     const overview = !view.isFollowing;
+    // Por defecto solo quedan los hitos de navegación (salas, baños,
+    // ascensores, cafetería): la barra de tarea activa ya dice en qué mesa
+    // estás, así que repetirlo flotando sobre cada una era ruido. El ajuste
+    // "Rótulos de zona" reactiva también las mesas de trabajo.
     const labelsOn = getSettings().showLabels;
     roomLabels.forEach((label) => {
       const priority = label.userData.priority ?? 2;
       let t;
-      if (!labelsOn && !inspectMode) t = 0;
-      else if (inspectMode || priority === 1) t = 1;
+      if (inspectMode) t = 1;
+      else if (priority === 1) t = 1;
       else if (priority >= 3) t = 0;
+      else if (!labelsOn) t = 0;
       else if (overview) t = 1;
       else {
         const d = Math.hypot(

@@ -5,6 +5,7 @@ import {
   locationEggs,
   nearestArea,
   areaAt,
+  AREA_KINDS,
 } from "../scene/floorplan.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { BOSS_STATES } from "../entities/boss.js";
@@ -20,6 +21,26 @@ const DISTRACTION_EFFECT_DURATION = 7;
 // it, it needs to cool off before it hides you again.
 const HIDE_MAX_USE = 6; // seconds of cover before the spot burns out
 const HIDE_COOLDOWN = 14;
+
+// Nivel de búsqueda, al estilo de las estrellas de GTA. Sube con la sospecha
+// y endurece al jefe: ve más lejos, camina más rápido y a partir del nivel 2
+// deja de fiarse de la ronda y va derecho a tu zona.
+const HEAT_THRESHOLDS = [12, 34, 58, 80];
+const HEAT_TUNING = [
+  { vision: 1, speed: 1, huntEvery: Infinity },
+  { vision: 1.08, speed: 1.05, huntEvery: Infinity },
+  { vision: 1.18, speed: 1.12, huntEvery: 14 },
+  { vision: 1.3, speed: 1.2, huntEvery: 9 },
+  { vision: 1.45, speed: 1.3, huntEvery: 6 },
+];
+
+// Fingir que trabajas solo cuela donde hay un puesto de trabajo. En mitad
+// del pasillo o en el baño no engañas a nadie.
+const WORK_KINDS = new Set([AREA_KINDS.OPEN_OFFICE, AREA_KINDS.MEETING]);
+const PRETEND_OUT_OF_PLACE = 0.25; // fracción del alivio si finges donde no toca
+
+// Los secuaces no esperan a que les hables: te abordan.
+const MINION_APPROACH = 3.4 * S;
 
 // Scoring. The fun is in *how* you slack off, not just whether you finish, so
 // the score rewards nerve: doing a forbidden thing with the boss breathing
@@ -89,6 +110,9 @@ export class Game {
     this.perk = null;
     this.perkLeft = 0;
     this.revealBossUntil = 0;
+    this.heat = 0;
+    this.inWorkspace = false;
+    this._huntTimer = 0;
 
     const wanted = this.rules.objectives;
     this.objectives = activityStations
@@ -155,6 +179,9 @@ export class Game {
     const holdingF = this.player.keys.has("f");
     this.player.isPretending = holdingF;
 
+    // ¿Estás en un sitio donde fingir que trabajas resulta creíble?
+    this.inWorkspace = !!(this.currentArea && WORK_KINDS.has(this.currentArea.kind));
+
     this.nearStation =
       this.objectives.find(
         (s) => !s.done && Math.hypot(s.x - pos.x, s.z - pos.z) < INTERACT_RADIUS
@@ -191,13 +218,12 @@ export class Game {
     this.talkCooldowns.forEach((left, id) => {
       if (left > 0) this.talkCooldowns.set(id, Math.max(0, left - dt));
     });
-    // Colleagues and on-duty sidekicks are all people you can walk up to.
-    const talkable = [...this.npcs, ...this.minions.filter((m) => m.cast)];
+    // A los amigos les hablas tú; los secuaces te abordan solos (más abajo).
     this.nearNpc =
-      talkable.find(
+      this.npcs.find(
         (n) =>
           n.cast &&
-          (this.talkCooldowns.get(n.id ?? n.cast) ?? 0) <= 0 &&
+          (this.talkCooldowns.get(n.id) ?? 0) <= 0 &&
           Math.hypot(n.position.x - pos.x, n.position.z - pos.z) < INTERACT_RADIUS * 1.3
       ) ?? null;
 
@@ -219,6 +245,7 @@ export class Game {
 
     this.boss.update(dt, this.player, this.npcs);
     this.minions.forEach((m) => m.update(dt, this.player, this.npcs));
+    this._updateMinionApproach();
     this._updateEggs(dt);
 
     // ---- Suspicion ----
@@ -234,11 +261,19 @@ export class Game {
       this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + rate * dt);
     } else if (this.boss.state === BOSS_STATES.CHASE && this.boss.playerVisible) {
       this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + SEEN_WHILE_HUNTED_RATE * dt);
-    } else if (this.player.isHiding || this.player.isPretending) {
+    } else if (this.player.isHiding) {
       this.suspicion = Math.max(0, this.suspicion - DECAY_HIDDEN_OR_PRETENDING * decay * dt);
+    } else if (this.player.isPretending) {
+      const credible = this.inWorkspace ? 1 : PRETEND_OUT_OF_PLACE;
+      this.suspicion = Math.max(
+        0,
+        this.suspicion - DECAY_HIDDEN_OR_PRETENDING * credible * decay * dt
+      );
     } else {
       this.suspicion = Math.max(0, this.suspicion - DECAY_IDLE * decay * dt);
     }
+
+    this._updateHeat(dt);
 
     const caught =
       this._caughtCooldown <= 0 &&
@@ -317,6 +352,53 @@ export class Game {
   _clearPerk() {
     if (this.perk === "caffeine") this.player.speedMul = 1;
     this.perk = null;
+  }
+
+  /**
+   * Nivel de búsqueda. Traduce la sospecha en presión real: cuanto más alto,
+   * más lejos ve el jefe, más rápido anda y más a menudo abandona la ronda
+   * para venir derecho a por ti.
+   */
+  _updateHeat(dt) {
+    const level = HEAT_THRESHOLDS.filter((t) => this.suspicion >= t).length;
+    if (level !== this.heat) {
+      if (level > this.heat) {
+        buzz([20, 30, 20]);
+        this._toast(`Nivel de búsqueda ${level}`);
+      }
+      this.heat = level;
+    }
+
+    const tuning = HEAT_TUNING[this.heat];
+    const base = this.boss.dayTuning ?? { vision: this.boss.baseVisionRange, speedMul: 1 };
+    this.boss.visionRange = base.vision * tuning.vision;
+    const mul = base.speedMul * tuning.speed;
+    this.boss.speed = this.boss.baseSpeeds.patrol * mul;
+    this.boss.investigateSpeed = this.boss.baseSpeeds.investigate * mul;
+    this.boss.chaseSpeed = this.boss.baseSpeeds.chase * mul;
+    this.boss.searchSpeed = this.boss.baseSpeeds.search * mul;
+
+    // A partir del nivel 2, "alguien le ha dicho por dónde andas".
+    this._huntTimer -= dt;
+    if (this._huntTimer <= 0 && Number.isFinite(tuning.huntEvery)) {
+      this._huntTimer = tuning.huntEvery;
+      if (!this.player.isHiding) {
+        this.boss.distract({ x: this.player.position.x, z: this.player.position.z }, 8);
+      }
+    }
+  }
+
+  /** Los secuaces te paran ellos: no hace falta pulsar nada. */
+  _updateMinionApproach() {
+    if (!this.onTalk) return;
+    const pos = this.player.position;
+    for (const m of this.minions) {
+      if (!m.cast || (this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
+      if (Math.hypot(m.position.x - pos.x, m.position.z - pos.z) > MINION_APPROACH) continue;
+      this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
+      this.onTalk(m, { unsolicited: true });
+      return;
+    }
   }
 
   /**
@@ -474,6 +556,9 @@ export class Game {
         this.boss.position.x - this.player.position.x,
         this.boss.position.z - this.player.position.z
       ),
+      heat: this.heat,
+      maxHeat: HEAT_THRESHOLDS.length,
+      inWorkspace: this.inWorkspace,
       minionAlert: this.minions.some((m) => m.redAlert),
       minionPositions: this.minions.map((m) => m.position),
       hidingCharge: this._hidingCharge,

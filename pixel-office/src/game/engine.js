@@ -4,8 +4,7 @@ import { createDialogue } from "./dialogue.js";
 import { createSave } from "./save.js";
 import { applyTheme } from "./themes.js";
 import { createMenus, rankFor } from "../ui/menus.js";
-import { createCompass } from "../ui/compass.js";
-import { createRadar } from "../ui/radar.js";
+import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import {
   spawn,
@@ -42,8 +41,7 @@ export function createEngine({
   onPopup = null,
 }) {
   const hud = createHud(app);
-  const compass = createCompass(app, camera.camera);
-  const radar = createRadar(app);
+  const guides = createGuides(app, camera.camera);
   const worldPrompt = createWorldPrompt(app, camera.camera, {
     isTouch: matchMedia("(pointer: coarse)").matches,
   });
@@ -105,6 +103,10 @@ export function createEngine({
     boss.chaseSpeed = boss.baseSpeeds.chase * mul;
     boss.searchSpeed = boss.baseSpeeds.search * mul;
     boss.visionRange = boss.baseVisionRange * (rules.visionMul ?? 1);
+    // El nivel de búsqueda (game.js) multiplica desde esta base, no desde el
+    // valor absoluto — así el ajuste por sospecha se suma al del día, no lo
+    // reemplaza.
+    boss.dayTuning = { vision: boss.baseVisionRange * (rules.visionMul ?? 1), speedMul: mul };
 
     // He drifts toward wherever the day's tasks are, so no wing is ever a
     // safe corner to farm quietly.
@@ -390,8 +392,7 @@ export function createEngine({
     game?.update(dt);
     // Reuse the frame state the HUD just rendered instead of rebuilding it.
     const live = game && !menus.isOpen ? game.lastSnapshot : null;
-    compass.update(live);
-    radar.update(live, dt);
+    guides.update(live);
     worldPrompt.update(dialogue.isOpen ? null : live);
   }
 
@@ -399,8 +400,7 @@ export function createEngine({
     hud,
     dialogue,
     menus,
-    compass,
-    radar,
+    guides,
     save,
     start: () => openTitle(),
     startDay,
