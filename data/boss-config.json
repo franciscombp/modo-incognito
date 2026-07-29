@@ -1,0 +1,31 @@
+{
+  "suspicion": {
+    "max": 100,
+    "seenOutOfPlaceRate": 8,
+    "seenOutOfPlaceHighHeatRate": 18,
+    "seenDoingActivityRate": 20,
+    "decayHiddenOrPretending": 45,
+    "decayIdle": 12,
+    "pretendImmuneThreshold": 30,
+    "captureThreshold": 90,
+    "fastCaptureDelay": 0.5
+  },
+  "boss": {
+    "approachSpeedSlow": 2,
+    "approachSpeedFast": 5,
+    "suspicionThresholdFastApproach": 90,
+    "reportingCooldown": 8,
+    "alertDistance": 8,
+    "alertDuration": 3
+  },
+  "gameplay": {
+    "dayDuration": 600,
+    "elevatorOpenTime": "17:30",
+    "elevatorLastChance": "19:00",
+    "objectivesRequiredToExit": true,
+    "pretendWorkRequiredToExit": false,
+    "pretendWorkSpeedsUpTime": 1.2,
+    "warningsCap": 3,
+    "warningPersistence": true
+  }
+}
