@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { createIsoCamera, resizeIsoCamera, overviewZoom, overviewTarget } from "./scene/camera.js";
+import { createTopDownCamera, resizeTopDownCamera, overviewZoom, overviewTarget } from "./scene/camera.js";
 import { buildOffice } from "./scene/builder.js";
 import { createCollisionWorld } from "./scene/collision.js";
 import * as floorplan from "./scene/floorplan.js";
@@ -31,7 +31,7 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0c0d11);
 
 const aspect = window.innerWidth / window.innerHeight;
-const { camera, frustumSize, offset } = createIsoCamera(aspect);
+const { camera, frustumSize } = createTopDownCamera(aspect);
 const cameraTarget = overviewTarget();
 
 // -------- Lighting: bright, flat, high-key fill so the pixel textures read
@@ -129,18 +129,18 @@ async function boot() {
     const w = window.innerWidth;
     const h = window.innerHeight;
     renderer.setSize(w, h);
-    resizeIsoCamera(camera, frustumSize, w / h);
+    resizeTopDownCamera(camera, frustumSize, w / h);
     applyZoom(zoom, w / h);
   });
 
-  // -------- Camera: fixed angle always; only the centre point moves. -----
+  // -------- Camera: straight down, following the player or framed on overview -----
   const overview = overviewTarget();
   const desired = new THREE.Vector3();
   function updateCamera() {
     if (follow) desired.set(player.position.x, 0, player.position.z);
     else desired.copy(overview);
     cameraTarget.lerp(desired, follow ? 0.08 : 0.05);
-    camera.position.set(cameraTarget.x + offset.x, offset.y, cameraTarget.z + offset.z);
+    camera.position.set(cameraTarget.x, 40, cameraTarget.z);
     camera.lookAt(cameraTarget);
   }
 
