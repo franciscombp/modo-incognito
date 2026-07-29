@@ -23,6 +23,10 @@ const report = await page.evaluate(async () => {
   game.setPaused(false);
   // Skip the prologue/intro dialogue instantly rather than clicking through.
   engine.dialogue.close?.();
+  // These checks force-update the game in a tight synchronous loop; an
+  // unsolicited minion approach would call setPaused(true) mid-loop and
+  // freeze every assertion after it on an unanswered dialogue.
+  game.minions.forEach((m) => m.setActive(false));
 
   const fp = window.__floorplan;
   const out = {};
@@ -72,12 +76,41 @@ const report = await page.evaluate(async () => {
   await new Promise((r) => setTimeout(r, 50));
   const gameK = engine.game;
   gameK.setPaused(false);
+  gameK.minions.forEach((m) => m.setActive(false));
   gameK.suspicion = 999; // try to force it, explore mode should zero it next frame
   gameK.boss.catches = () => true;
   gameK.boss.isHunting = true;
   gameK.update(1 / 30);
   out.exploreIgnoresSuspicion = gameK.suspicion === 0 && gameK.warnings === 0;
   save.setCharacter(null);
+
+  // ---- Seen idle: the boss watching you do nothing must raise suspicion ----
+  // This was the reported bug — before the fix, redAlert (and so any
+  // suspicion gain) required an in-progress forbidden activity, so standing
+  // in his cone doing nothing never moved the meter at all.
+  engine.startDay(0);
+  await new Promise((r) => setTimeout(r, 50));
+  const game2 = engine.game;
+  game2.setPaused(false);
+  game2.minions.forEach((m) => m.setActive(false));
+  game2.player.position.x = fp.spawn.x;
+  game2.player.position.z = fp.spawn.z;
+  game2.player.isDoingActivity = false;
+  game2.player.keys.delete("f");
+  game2.suspicion = 20;
+  game2.boss.state = "PATROL";
+  // update() recomputes playerVisible/redAlert from real raycasting every
+  // frame (the boss is nowhere near spawn); stub it so "seen, doing nothing"
+  // holds for the whole loop without having to stage a real sightline.
+  const origUpdateVision = game2.boss._updateVision.bind(game2.boss);
+  game2.boss._updateVision = () => {
+    game2.boss.playerVisible = true;
+    game2.boss.redAlert = false;
+  };
+  const before2 = game2.suspicion;
+  for (let i = 0; i < 30; i++) game2.update(1 / 30);
+  out.seenIdleRaisesSuspicion = game2.suspicion > before2;
+  game2.boss._updateVision = origUpdateVision;
 
   return out;
 });
@@ -90,6 +123,7 @@ const checks = [
   ["immuneUnder30", "pretending under 30% suspicion is immune to a catch"],
   ["catchableOver30", "pretending over 30% suspicion can still be caught"],
   ["exploreIgnoresSuspicion", "Kiara's explore mode ignores suspicion/warnings"],
+  ["seenIdleRaisesSuspicion", "boss watching you do nothing still raises suspicion"],
 ];
 let ok = true;
 for (const [key, label] of checks) {

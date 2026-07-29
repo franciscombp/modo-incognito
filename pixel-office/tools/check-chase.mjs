@@ -34,6 +34,10 @@ const log = await page.evaluate(async () => {
   const game = engine.game;
   game.setPaused(false);
   document.querySelector(".vn-layer")?.classList.add("hidden");
+  // This test is about the boss, not the sidekicks: an on-duty minion could
+  // walk up and start an unsolicited chat, which pauses the level and would
+  // otherwise stall every assertion below on a dialogue nobody answers.
+  game.minions.forEach((m) => m.setActive(false));
 
   // A clear stretch of the front corridor, boss looking east at the player.
   const S = window.__floorplan.WORLD_SCALE;

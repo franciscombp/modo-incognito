@@ -6,13 +6,16 @@
   "scene": "piso7",
   "theme": "morning",
   "rules": {
-    "duration": 210,
+    "duration": 240,
     "maxWarnings": 3,
-    "objectives": ["coffee","chat","print"],
+    "objectives": ["coffee","chat","print","window"],
     "bossSpeedMul": 0.85,
     "visionMul": 0.9,
-    "targetScore": 600
+    "targetScore": 850
   },
+  "minions": [
+    {"id":"crispo","route":"centro"}
+  ],
   "intro": [
     {
       "speaker": "Recepción",
@@ -46,13 +49,28 @@
       "speaker": "Jefe",
       "portrait": "🕴️",
       "text": "Perfecto. Te estaré observando… de forma completamente normal."
+    },
+    {
+      "speaker": "Jefe",
+      "portrait": "🕴️",
+      "text": "Ah, y ese de ahí es Crispo. No te preocupes por él. Bueno, un poco sí."
+    },
+    {
+      "speaker": "Tú",
+      "portrait": "🙂",
+      "text": "Genial. Un jefe y un vigía. Día uno y ya tengo público."
     }
   ],
   "outroWin": [
     {
       "speaker": "Tú",
       "portrait": "😌",
-      "text": "Café tomado, chisme recolectado. Día uno: productividad cero, moral intacta."
+      "text": "Café tomado, chisme recolectado, ventana admirada. Día uno: productividad cero, moral intacta."
+    },
+    {
+      "speaker": "Jefe",
+      "portrait": "🕴️",
+      "text": "Mañana te toca conocer a más gente del piso. Que descanses… si es que puedes."
     }
   ],
   "outroLose": [
