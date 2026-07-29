@@ -2,6 +2,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 html,
@@ -11,6 +12,7 @@ body {
   background: #0a0a0d;
   overflow: hidden;
   font-family: "Segoe UI", system-ui, sans-serif;
+  overscroll-behavior: none;
 }
 
 #app {
@@ -24,40 +26,63 @@ body {
   width: 100%;
   height: 100%;
   image-rendering: pixelated;
+  touch-action: none;
 }
 
 #hint {
   position: absolute;
   left: 12px;
   bottom: 10px;
-  color: #cfd3da;
-  font-size: 12px;
+  color: #9096a3;
+  font-size: 11px;
   letter-spacing: 0.02em;
   background: rgba(10, 10, 13, 0.55);
-  padding: 6px 10px;
+  padding: 5px 10px;
   border-radius: 6px;
   pointer-events: none;
   user-select: none;
   z-index: 5;
 }
 
-/* ---------------- Game HUD ---------------- */
+body.touch-device #hint {
+  display: none;
+}
+
+/* ================= Game HUD ================= */
 
 .hud-root {
   position: absolute;
   inset: 0;
   pointer-events: none;
   user-select: none;
-  color: #f2f1ec;
+  color: #f5f4ef;
   font-family: "Segoe UI", system-ui, sans-serif;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.hud-panel {
+  background: linear-gradient(180deg, rgba(26, 28, 36, 0.97), rgba(14, 15, 20, 0.97));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(4px);
 }
 
 .hud-panel-title {
-  font-size: 10px;
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
   letter-spacing: 0.12em;
-  opacity: 0.7;
-  margin-bottom: 4px;
+  color: #c9cdd8;
+  margin-bottom: 6px;
+}
+
+.hud-title-icon {
+  font-size: 13px;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.5));
 }
 
 .hud-topbar {
@@ -73,100 +98,169 @@ body {
 
 .hud-objectives,
 .hud-timer {
-  background: rgba(12, 13, 16, 0.68);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 8px 12px;
-  min-width: 150px;
+  padding: 10px 14px;
+  min-width: 160px;
+}
+
+.hud-objectives::before {
+  content: "BANCA DIGITAL · PISO 7";
+  display: block;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #8b5cf6;
+  margin-bottom: 4px;
 }
 
 .hud-objectives-list {
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  font-size: 12px;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 600;
 }
 
 .hud-objective {
-  opacity: 0.9;
+  display: grid;
+  grid-template-columns: 6px 18px 1fr;
+  align-items: center;
+  gap: 6px;
+  opacity: 0.95;
   white-space: nowrap;
 }
 
+.hud-objective-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: 0 0 5px currentColor;
+}
+
+.hud-objective-icon {
+  font-size: 13px;
+  text-align: center;
+}
+
+.hud-objective-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .hud-objective.done {
-  opacity: 0.5;
+  opacity: 0.45;
+}
+
+.hud-objective.done .hud-objective-label {
   text-decoration: line-through;
+}
+
+.hud-objective.done .hud-objective-icon {
   color: #7fdca0;
 }
 
 .hud-objective-bar {
-  height: 3px;
+  grid-column: 2 / span 2;
+  height: 4px;
   width: 100%;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.14);
   border-radius: 2px;
-  margin-top: 2px;
+  margin-top: 1px;
   overflow: hidden;
 }
 
 .hud-objective-bar-fill {
   height: 100%;
-  background: #e0722c;
+  border-radius: 2px;
+  transition: width 0.1s linear;
 }
 
 .hud-center {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
 }
 
 .hud-suspicion {
-  background: rgba(12, 13, 16, 0.68);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 8px;
-  padding: 8px 14px;
-  min-width: 260px;
+  padding: 10px 18px 12px;
+  min-width: 280px;
   text-align: center;
 }
 
 .hud-suspicion-track {
+  position: relative;
   width: 100%;
-  height: 10px;
-  border-radius: 5px;
+  height: 12px;
+  border-radius: 6px;
   background: rgba(255, 255, 255, 0.12);
   overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .hud-suspicion-fill {
+  position: relative;
   height: 100%;
   width: 0%;
-  background: #f2c744;
-  transition: width 0.1s linear, background-color 0.2s;
+  background: linear-gradient(90deg, #6fbf73, #f2c744);
+  transition: width 0.12s linear, background 0.25s;
+  overflow: hidden;
 }
 
 .hud-suspicion-fill.danger {
-  background: #e0722c;
+  background: linear-gradient(90deg, #f2c744, #e0722c);
 }
 
 .hud-suspicion-fill.hot {
-  background: #e6483f;
+  background: linear-gradient(90deg, #e0722c, #e6483f);
+}
+
+.hud-suspicion-glint {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  width: 40%;
+  transform: translateX(-150%);
+}
+
+.hud-suspicion-glint.pulse {
+  animation: hud-glint 0.9s ease-in-out infinite;
+}
+
+@keyframes hud-glint {
+  0% {
+    transform: translateX(-150%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
 }
 
 .hud-warnings {
   display: flex;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .hud-warning-pip {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  background: transparent;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid rgba(230, 72, 63, 0.4);
+  background: rgba(230, 72, 63, 0.08);
+  color: rgba(230, 72, 63, 0.4);
+  font-size: 11px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
 }
 
 .hud-warning-pip.lit {
   background: #e6483f;
-  border-color: #e6483f;
+  border-color: #ff8078;
+  color: #fff;
+  box-shadow: 0 0 8px rgba(230, 72, 63, 0.8);
 }
 
 .hud-timer {
@@ -174,28 +268,62 @@ body {
 }
 
 .hud-timer-value {
-  font-size: 22px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
   font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
 .hud-timer-value.danger {
   color: #e6483f;
+  animation: hud-timer-pulse 1s ease-in-out infinite;
+}
+
+@keyframes hud-timer-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.hud-timer-track {
+  margin-top: 6px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.hud-timer-fill {
+  height: 100%;
+  width: 100%;
+  background: #5b9bd5;
+  margin-left: auto;
+  transition: width 1s linear;
+}
+
+.hud-timer-fill.danger {
+  background: #e6483f;
 }
 
 .hud-toast {
   position: absolute;
-  top: 74px;
+  top: 110px;
   left: 50%;
   transform: translateX(-50%) translateY(-6px);
-  background: rgba(12, 13, 16, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  padding: 6px 14px;
+  background: linear-gradient(180deg, rgba(38, 30, 12, 0.95), rgba(20, 16, 6, 0.95));
+  border: 1px solid rgba(242, 199, 68, 0.4);
+  padding: 7px 16px;
   border-radius: 999px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
+  color: #ffe9a8;
   opacity: 0;
   transition: opacity 0.2s, transform 0.2s;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
 }
 
 .hud-toast.visible {
@@ -205,17 +333,17 @@ body {
 
 .hud-status-badge {
   position: absolute;
-  top: 100px;
+  top: 148px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(230, 72, 63, 0.15);
-  border: 1px solid rgba(230, 72, 63, 0.4);
-  color: #ffb4ae;
-  padding: 3px 10px;
+  background: rgba(230, 72, 63, 0.18);
+  border: 1px solid rgba(230, 72, 63, 0.45);
+  color: #ffcac6;
+  padding: 4px 12px;
   border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
   opacity: 0;
   transition: opacity 0.2s;
   white-space: nowrap;
@@ -226,23 +354,28 @@ body {
 }
 
 .hud-status-badge.alert {
-  background: rgba(230, 72, 63, 0.35);
+  background: rgba(230, 72, 63, 0.4);
+  animation: hud-timer-pulse 0.6s ease-in-out infinite;
 }
 
 .hud-prompt {
   position: absolute;
-  bottom: 46px;
+  bottom: 64px;
   left: 50%;
   transform: translateX(-50%) translateY(6px);
-  background: rgba(12, 13, 16, 0.85);
-  border: 1px solid rgba(242, 199, 68, 0.5);
-  color: #f2c744;
-  padding: 6px 14px;
-  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(28, 30, 38, 0.95), rgba(16, 17, 22, 0.95));
+  border: 1px solid rgba(242, 199, 68, 0.55);
+  color: #ffe9a8;
+  padding: 8px 16px 8px 10px;
+  border-radius: 999px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   opacity: 0;
   transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
 }
 
 .hud-prompt.visible {
@@ -250,14 +383,89 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
+.hud-prompt-icon {
+  font-size: 16px;
+}
+
+.hud-prompt-ring {
+  --p: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: conic-gradient(#f2c744 calc(var(--p) * 360deg), rgba(255, 255, 255, 0.18) 0);
+  display: grid;
+  place-items: center;
+}
+
+.hud-prompt.prompt-tap .hud-prompt-ring {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.hud-prompt-ring-fill {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #16171c;
+}
+
+.hud-legend {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  display: flex;
+  gap: 12px;
+  background: rgba(12, 13, 16, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #c9cdd8;
+  letter-spacing: 0.02em;
+}
+
+.hud-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.hud-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.hud-legend-you {
+  background: #7fdca0;
+}
+
+.hud-legend-boss {
+  background: #22252c;
+  border: 1px solid #888;
+}
+
+.hud-legend-hide {
+  background: #4caf6a;
+  border-radius: 50%;
+}
+
+.hud-legend-distract {
+  background: #f2c744;
+  transform: rotate(45deg);
+}
+
 .hud-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(5, 5, 8, 0.78);
+  background: radial-gradient(circle at 50% 40%, rgba(30, 20, 45, 0.85), rgba(5, 5, 8, 0.92));
   display: flex;
   align-items: center;
   justify-content: center;
   transition: opacity 0.3s;
+  pointer-events: auto;
 }
 
 .hud-overlay.hidden {
@@ -266,16 +474,22 @@ body {
 }
 
 .hud-overlay-card {
-  background: #16171c;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  padding: 28px 36px;
-  max-width: 380px;
+  background: linear-gradient(180deg, #1c1e26, #131419);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 16px;
+  padding: 32px 40px;
+  max-width: 400px;
   text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.hud-overlay-icon {
+  font-size: 48px;
+  margin-bottom: 8px;
 }
 
 .hud-overlay-title {
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 800;
   margin-bottom: 10px;
 }
@@ -289,7 +503,214 @@ body {
 }
 
 .hud-overlay-body {
-  font-size: 13px;
+  font-size: 13.5px;
   line-height: 1.5;
   opacity: 0.85;
+  margin-bottom: 20px;
+}
+
+.hud-overlay-btn {
+  background: linear-gradient(180deg, #8b5cf6, #6d3fd6);
+  border: none;
+  color: #fff;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  padding: 10px 28px;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+}
+
+.hud-overlay-btn:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 720px) {
+  .hud-topbar {
+    flex-wrap: wrap;
+    gap: 6px;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+  .hud-panel {
+    border-radius: 8px;
+  }
+  .hud-panel-title {
+    font-size: 9px;
+    margin-bottom: 3px;
+  }
+  .hud-objectives {
+    order: 1;
+    flex: 1 1 56%;
+    max-width: 58%;
+    min-width: 0;
+    padding: 7px 9px;
+  }
+  .hud-objectives::before {
+    display: none;
+  }
+  .hud-objectives-list {
+    font-size: 10.5px;
+    gap: 3px;
+  }
+  .hud-objective {
+    grid-template-columns: 5px 14px 1fr;
+  }
+  .hud-objective-icon {
+    font-size: 11px;
+  }
+  .hud-timer {
+    order: 2;
+    flex: 1 1 38%;
+    max-width: 40%;
+    min-width: 0;
+    padding: 7px 10px;
+  }
+  .hud-timer-value {
+    font-size: 19px;
+  }
+  .hud-center {
+    order: 3;
+    width: 100%;
+  }
+  .hud-suspicion {
+    min-width: 0;
+    width: 100%;
+    padding: 7px 12px 9px;
+  }
+  .hud-legend {
+    left: 8px;
+    right: auto;
+    bottom: auto;
+    top: 8px;
+    transform: translateY(-200%);
+    opacity: 0;
+    pointer-events: none;
+  }
+  /* Anchored to the bottom on phones instead of below the (variable-height)
+     stacked top bar, so they never collide with it. */
+  .hud-toast {
+    top: auto;
+    bottom: 208px;
+    max-width: 88vw;
+    font-size: 12px;
+  }
+  .hud-status-badge {
+    top: auto;
+    bottom: 176px;
+    font-size: 10px;
+  }
+  .hud-prompt {
+    bottom: 190px;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape) {
+  .hud-toast {
+    bottom: 96px;
+  }
+  .hud-status-badge {
+    bottom: 66px;
+  }
+  .hud-prompt {
+    bottom: 84px;
+  }
+}
+
+/* ================= Touch controls ================= */
+
+.touch-controls {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+  z-index: 20;
+}
+
+body.touch-device .touch-controls {
+  display: block;
+}
+
+.touch-stick-base {
+  position: absolute;
+  left: 26px;
+  bottom: 26px;
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.14), rgba(20, 21, 26, 0.55));
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.touch-stick-thumb {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 52px;
+  height: 52px;
+  margin: -26px 0 0 -26px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, rgba(139, 92, 246, 0.9), rgba(109, 63, 214, 0.9));
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transition: transform 0.05s linear;
+}
+
+.touch-actions {
+  position: absolute;
+  right: 20px;
+  bottom: 26px;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  pointer-events: none;
+}
+
+.touch-btn {
+  pointer-events: auto;
+  touch-action: none;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  user-select: none;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.4);
+}
+
+.touch-btn-icon {
+  font-size: 19px;
+  line-height: 1;
+}
+
+.touch-btn-interact {
+  background: radial-gradient(circle at 35% 30%, #ffe27a, #d9a441);
+  color: #2a1f04;
+}
+
+.touch-btn-pretend {
+  background: radial-gradient(circle at 35% 30%, #7fb8ea, #3d7ab5);
+  margin-bottom: 22px;
+}
+
+.touch-btn.active {
+  transform: scale(0.9);
+  filter: brightness(1.15);
+}
+
+@media (min-width: 900px) and (pointer: fine) {
+  .touch-controls {
+    display: none !important;
+  }
 }

@@ -8,6 +8,7 @@ import { NPC } from "./entities/npc.js";
 import { Boss } from "./entities/boss.js";
 import { createHud } from "./game/hud.js";
 import { Game } from "./game/game.js";
+import { createTouchControls } from "./game/touchControls.js";
 
 const canvas = document.getElementById("scene");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -62,16 +63,56 @@ scene.add(boss.cone);
 
 const hud = createHud(document.getElementById("app"));
 const game = new Game({ player, boss, npcs, hud });
+createTouchControls(player, document.getElementById("app"));
 
 // -------- Zoom only: rotation is locked so the view always matches the
-// reference isometric angle. --------
+// reference isometric angle. Mouse wheel on desktop, pinch on touch. --------
 let zoom = 1;
+function applyZoom(next) {
+  zoom = THREE.MathUtils.clamp(next, 0.55, 1.8);
+  camera.zoom = zoom;
+  camera.updateProjectionMatrix();
+}
 window.addEventListener(
   "wheel",
   (e) => {
-    zoom = THREE.MathUtils.clamp(zoom - e.deltaY * 0.001, 0.55, 1.8);
-    camera.zoom = zoom;
-    camera.updateProjectionMatrix();
+    applyZoom(zoom - e.deltaY * 0.001);
+  },
+  { passive: true }
+);
+
+let pinchStartDist = null;
+let pinchStartZoom = 1;
+canvas.addEventListener(
+  "touchstart",
+  (e) => {
+    if (e.touches.length === 2) {
+      pinchStartDist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      pinchStartZoom = zoom;
+    }
+  },
+  { passive: true }
+);
+canvas.addEventListener(
+  "touchmove",
+  (e) => {
+    if (e.touches.length === 2 && pinchStartDist) {
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      applyZoom(pinchStartZoom * (dist / pinchStartDist));
+    }
+  },
+  { passive: true }
+);
+canvas.addEventListener(
+  "touchend",
+  (e) => {
+    if (e.touches.length < 2) pinchStartDist = null;
   },
   { passive: true }
 );

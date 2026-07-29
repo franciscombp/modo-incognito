@@ -8,19 +8,12 @@ import {
   hidingSpots,
   distractions,
   activityStations,
+  ACTIVITY_COLORS,
 } from "./floorplan.js";
 import { createLabel } from "./labels.js";
 
 const GLASS_WALL_H = 1.5;
 const PERIMETER_WALL_H = 1.6;
-
-const ACTIVITY_COLORS = {
-  coffee: 0xd9a441,
-  chat: 0xf2c744,
-  sleep: 0x5b9bd5,
-  snack: 0x6fbf73,
-  movie: 0xd9463b,
-};
 
 // `world` is the collision world (see collision.js) — every solid piece of
 // furniture/wall registers itself there as it's built, so the level layout
@@ -154,8 +147,17 @@ function buildRoom(room, world) {
 
   let label = null;
   if (room.label) {
-    label = createLabel(room.label, { accent: `#${room.accent.toString(16).padStart(6, "0")}` }, 0.6);
-    label.position.set(0, 1.8, 0);
+    label = createLabel(
+      room.label,
+      {
+        accent: `#${room.accent.toString(16).padStart(6, "0")}`,
+        solid: room.pill === "solid",
+        dark: !!room.dark,
+        icon: room.icon ?? "",
+      },
+      0.62
+    );
+    label.position.set(0, 1.85, 0);
     label.userData.homeX = worldX;
     label.userData.homeZ = worldZ;
     group.add(label);

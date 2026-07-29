@@ -22,36 +22,36 @@ export const ROOM_TYPES = {
 // (x, z) is the room's center; (w, d) are width (x) and depth (z).
 export const rooms = [
   // ---- Top wing (back of the floor) ----
-  { id: "canales_top", label: "CANALES", type: ROOM_TYPES.OPEN_PLAN, x: -9, z: 7.5, w: 8, d: 4, accent: 0x8b5cf6, deskRows: 2, deskCols: 4 },
-  { id: "sala2", label: "SALA 2", type: ROOM_TYPES.MEETING, x: -2.6, z: 7.5, w: 4.2, d: 4, accent: 0x5b9bd5 },
-  { id: "banca_digital", label: "BANCA DIGITAL", type: ROOM_TYPES.LOUNGE, x: 1.8, z: 7.5, w: 4.4, d: 4, accent: 0xf2c744 },
-  { id: "sala3", label: "SALA 3", type: ROOM_TYPES.MEETING, x: 6.2, z: 7.5, w: 4.2, d: 4, accent: 0x5b9bd5 },
-  { id: "cafe_power", label: "CAFÉ POWER", type: ROOM_TYPES.SOCIAL, x: 10.6, z: 7.5, w: 4.6, d: 4, accent: 0xd9a441 },
+  { id: "canales_top", label: "CANALES", type: ROOM_TYPES.OPEN_PLAN, x: -9, z: 7.5, w: 8, d: 4, accent: 0x8b5cf6, deskRows: 2, deskCols: 4, pill: "solid", icon: "👥" },
+  { id: "sala2", label: "SALA 2", type: ROOM_TYPES.MEETING, x: -2.6, z: 7.5, w: 4.2, d: 4, accent: 0x5b9bd5, icon: "📅" },
+  { id: "banca_digital", label: "BANCA DIGITAL", type: ROOM_TYPES.LOUNGE, x: 1.8, z: 7.5, w: 4.4, d: 4, accent: 0xf2c744, pill: "solid", dark: true, icon: "📦" },
+  { id: "sala3", label: "SALA 3", type: ROOM_TYPES.MEETING, x: 6.2, z: 7.5, w: 4.2, d: 4, accent: 0x5b9bd5, icon: "📅" },
+  { id: "cafe_power", label: "CAFÉ POWER", type: ROOM_TYPES.SOCIAL, x: 10.6, z: 7.5, w: 4.6, d: 4, accent: 0xd9a441, pill: "solid", dark: true, icon: "☕" },
 
   // ---- Upper-mid wing ----
-  { id: "sala1", label: "SALA 1", type: ROOM_TYPES.MEETING, x: -12.6, z: 3.4, w: 3.4, d: 4.2, accent: 0x5b9bd5 },
+  { id: "sala1", label: "SALA 1", type: ROOM_TYPES.MEETING, x: -12.6, z: 3.4, w: 3.4, d: 4.2, accent: 0x5b9bd5, icon: "📅" },
   { id: "breakout_left", label: "", type: ROOM_TYPES.LOUNGE, x: -8.4, z: 3.2, w: 5, d: 4.2, accent: 0x9b7bb0 },
-  { id: "segmentos", label: "SEGMENTOS", type: ROOM_TYPES.OPEN_PLAN, x: 6.4, z: 3.2, w: 7.2, d: 4.4, accent: 0xe0722c, deskRows: 2, deskCols: 4 },
-  { id: "sala4", label: "SALA 4", type: ROOM_TYPES.MEETING, x: 12.6, z: 6, w: 3.6, d: 3.6, accent: 0x5b9bd5 },
-  { id: "sala5_top", label: "SALA 5", type: ROOM_TYPES.MEETING, x: 12.6, z: 1.8, w: 3.6, d: 3.6, accent: 0x5b9bd5 },
+  { id: "segmentos", label: "SEGMENTOS", type: ROOM_TYPES.OPEN_PLAN, x: 6.4, z: 3.2, w: 7.2, d: 4.4, accent: 0xe0722c, deskRows: 2, deskCols: 4, pill: "solid", icon: "👥" },
+  { id: "sala4", label: "SALA 4", type: ROOM_TYPES.MEETING, x: 12.6, z: 6, w: 3.6, d: 3.6, accent: 0x5b9bd5, icon: "📅" },
+  { id: "sala5_top", label: "SALA 5", type: ROOM_TYPES.MEETING, x: 12.6, z: 1.8, w: 3.6, d: 3.6, accent: 0x5b9bd5, icon: "📅" },
 
   // ---- Center ----
-  { id: "multiproposito", label: "ÁREA MULTIPROPÓSITO", type: ROOM_TYPES.MULTIPURPOSE, x: -0.9, z: -0.6, w: 8.6, d: 6.6, accent: 0x6d5a8a },
+  { id: "multiproposito", label: "ÁREA MULTIPROPÓSITO", type: ROOM_TYPES.MULTIPURPOSE, x: -0.9, z: -0.6, w: 8.6, d: 6.6, accent: 0x6d5a8a, icon: "🎮" },
 
   // ---- Lower-mid wing ----
-  { id: "canales_bottom", label: "CANALES", type: ROOM_TYPES.OPEN_PLAN, x: -9, z: -0.8, w: 8, d: 4.6, accent: 0x8b5cf6, deskRows: 2, deskCols: 4 },
-  { id: "gestion_interacciones", label: "GESTIÓN DE\nINTERACCIONES", type: ROOM_TYPES.OPEN_PLAN, x: 6.4, z: -1.2, w: 7.2, d: 4.6, accent: 0xe0722c, deskRows: 2, deskCols: 4 },
-  { id: "sala5_bottom", label: "SALA 5", type: ROOM_TYPES.MEETING, x: 12.6, z: -1.6, w: 3.6, d: 3.8, accent: 0x5b9bd5 },
+  { id: "canales_bottom", label: "CANALES", type: ROOM_TYPES.OPEN_PLAN, x: -9, z: -0.8, w: 8, d: 4.6, accent: 0x8b5cf6, deskRows: 2, deskCols: 4, pill: "solid", icon: "👥" },
+  { id: "gestion_interacciones", label: "GESTIÓN DE\nINTERACCIONES", type: ROOM_TYPES.OPEN_PLAN, x: 6.4, z: -1.2, w: 7.2, d: 4.6, accent: 0xe0722c, deskRows: 2, deskCols: 4, pill: "solid", icon: "👥" },
+  { id: "sala5_bottom", label: "SALA 5", type: ROOM_TYPES.MEETING, x: 12.6, z: -1.6, w: 3.6, d: 3.8, accent: 0x5b9bd5, icon: "📅" },
 
   // ---- Lower wing ----
-  { id: "canales_low", label: "CANALES", type: ROOM_TYPES.OPEN_PLAN, x: -9, z: -5, w: 8, d: 4, accent: 0x8b5cf6, deskRows: 2, deskCols: 4 },
-  { id: "estrategia", label: "ESTRATEGIA\nINTERACCIONES /\nMKT ANALYTICS", type: ROOM_TYPES.MEETING, x: -0.6, z: -5.6, w: 5.2, d: 3.6, accent: 0x3a3f4a },
-  { id: "adtech", label: "ADTECH", type: ROOM_TYPES.OPEN_PLAN, x: 6.4, z: -5.6, w: 7.2, d: 3.8, accent: 0xd9463b, deskRows: 2, deskCols: 4 },
+  { id: "canales_low", label: "CANALES", type: ROOM_TYPES.OPEN_PLAN, x: -9, z: -5, w: 8, d: 4, accent: 0x8b5cf6, deskRows: 2, deskCols: 4, pill: "solid", icon: "👥" },
+  { id: "estrategia", label: "ESTRATEGIA\nINTERACCIONES /\nMKT ANALYTICS", type: ROOM_TYPES.MEETING, x: -0.6, z: -5.6, w: 5.2, d: 3.6, accent: 0x3a3f4a, icon: "📅" },
+  { id: "adtech", label: "ADTECH", type: ROOM_TYPES.OPEN_PLAN, x: 6.4, z: -5.6, w: 7.2, d: 3.8, accent: 0xd9463b, deskRows: 2, deskCols: 4, pill: "solid", icon: "📊" },
 
   // ---- Front / lobby ----
-  { id: "banos_a", label: "BAÑOS", type: ROOM_TYPES.UTILITY, x: -4.6, z: -8.4, w: 3.2, d: 3, accent: 0x3d4552 },
-  { id: "elevadores", label: "ELEVADORES", type: ROOM_TYPES.UTILITY, x: -0.6, z: -8.6, w: 3.6, d: 2.8, accent: 0x2b2f38 },
-  { id: "banos_b", label: "BAÑOS", type: ROOM_TYPES.UTILITY, x: 4, z: -8.4, w: 3.2, d: 3, accent: 0x3d4552 },
+  { id: "banos_a", label: "BAÑOS", type: ROOM_TYPES.UTILITY, x: -4.6, z: -8.4, w: 3.2, d: 3, accent: 0x3d4552, icon: "🚻" },
+  { id: "elevadores", label: "ELEVADORES", type: ROOM_TYPES.UTILITY, x: -0.6, z: -8.6, w: 3.6, d: 2.8, accent: 0x2b2f38, icon: "🚪" },
+  { id: "banos_b", label: "BAÑOS", type: ROOM_TYPES.UTILITY, x: 4, z: -8.4, w: 3.2, d: 3, accent: 0x3d4552, icon: "🚻" },
   { id: "lobby", label: "", type: ROOM_TYPES.CIRCULATION, x: -0.6, z: -10.6, w: 5.4, d: 2.4, accent: 0x2a2d33 },
 ];
 
@@ -116,12 +116,22 @@ export const patrolRoute = [
 // suspicion gained per second while performing the activity in the boss's
 // (red) cone; `time` is seconds of holding E needed to complete it once.
 export const activityStations = [
-  { id: "coffee", label: "Tomar café", type: "coffee", x: 9.3, z: -6.1, risk: "low", riskRate: 14, time: 3 },
-  { id: "chat", label: "Conversar con colegas", type: "chat", x: -8.2, z: -2.9, risk: "medium", riskRate: 22, time: 5, npc: true },
-  { id: "sleep", label: "Dormir en el escritorio", type: "sleep", x: -11.4, z: 4.4, risk: "high", riskRate: 36, time: 2.5 },
-  { id: "snack", label: "Desayunar a escondidas", type: "snack", x: -11.4, z: 1.0, risk: "medium", riskRate: 22, time: 4 },
-  { id: "movie", label: "Ver películas", type: "movie", x: 1.8, z: -6.4, risk: "high", riskRate: 36, time: 6 },
+  { id: "coffee", label: "Tomar café", type: "coffee", icon: "☕", x: 9.3, z: -6.1, risk: "low", riskRate: 14, time: 3 },
+  { id: "chat", label: "Conversar con colegas", type: "chat", icon: "💬", x: -8.2, z: -2.9, risk: "medium", riskRate: 22, time: 5, npc: true },
+  { id: "sleep", label: "Dormir en el escritorio", type: "sleep", icon: "😴", x: -11.4, z: 4.4, risk: "high", riskRate: 36, time: 2.5 },
+  { id: "snack", label: "Desayunar a escondidas", type: "snack", icon: "🍪", x: -11.4, z: 1.0, risk: "medium", riskRate: 22, time: 4 },
+  { id: "movie", label: "Ver películas", type: "movie", icon: "🎬", x: 1.8, z: -6.4, risk: "high", riskRate: 36, time: 6 },
 ];
+
+// Shared color-per-activity-type map so the 3D floor markers and the HUD
+// checklist read as the same palette.
+export const ACTIVITY_COLORS = {
+  coffee: 0xd9a441,
+  chat: 0xf2c744,
+  sleep: 0x5b9bd5,
+  snack: 0x6fbf73,
+  movie: 0xd9463b,
+};
 
 // "ESCONDITE" — matches the green-shield legend icon from the reference
 // image. Standing inside one hides the player from the boss outright.

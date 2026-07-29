@@ -2,35 +2,81 @@ import * as THREE from "three";
 
 // Cheap billboard text label rendered onto a canvas texture, so we can tag
 // rooms without pulling in a font/CSS-renderer dependency yet.
-export function createLabel(text, { bg = "#1c1e24", fg = "#f4f1ea", accent = "#8b5cf6" } = {}, scaleMul = 1) {
+//
+// Two visual styles, matching the reference image:
+//  - "solid": a bold color-filled pill for team/department areas (Canales,
+//    Segmentos, AdTech...), optionally with a dark instead of light label.
+//  - default: a dark pill with a colored accent bar, used for meeting
+//    rooms / utility spaces (Sala 2, Baños, Elevadores...).
+export function createLabel(
+  text,
+  { bg = "#1c1e24", fg = "#f4f1ea", accent = "#8b5cf6", solid = false, dark = false, icon = "" } = {},
+  scaleMul = 1
+) {
   const lines = text.split("\n");
-  const padding = 18;
-  const fontSize = 26;
-  const lineHeight = fontSize * 1.15;
+  const padding = 20;
+  const fontSize = 27;
+  const lineHeight = fontSize * 1.18;
+  const iconSize = fontSize * 1.15;
 
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
-  ctx.font = `700 ${fontSize}px 'Segoe UI', sans-serif`;
+  ctx.font = `800 ${fontSize}px 'Segoe UI', sans-serif`;
 
   const textWidth = Math.max(...lines.map((l) => ctx.measureText(l).width));
-  canvas.width = Math.ceil(textWidth + padding * 2);
+  const iconGap = icon ? iconSize + 10 : 0;
+  canvas.width = Math.ceil(textWidth + padding * 2 + iconGap);
   canvas.height = Math.ceil(lineHeight * lines.length + padding * 1.4);
 
-  ctx.font = `700 ${fontSize}px 'Segoe UI', sans-serif`;
-  ctx.textBaseline = "middle";
-  ctx.textAlign = "center";
+  const fillColor = solid ? accent : bg;
+  const textColor = solid ? (dark ? "#241a06" : "#ffffff") : fg;
 
-  roundRect(ctx, 0, 0, canvas.width, canvas.height, 10);
-  ctx.fillStyle = bg;
+  roundRect(ctx, 0, 0, canvas.width, canvas.height, 12);
+  ctx.fillStyle = fillColor;
   ctx.fill();
 
-  ctx.fillStyle = accent;
-  ctx.fillRect(0, 0, 6, canvas.height);
+  // Subtle 3D "pill button" shading: a lighter top sliver and darker
+  // bottom sliver instead of a flat fill.
+  ctx.save();
+  roundRect(ctx, 0, 0, canvas.width, canvas.height, 12);
+  ctx.clip();
+  const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  grad.addColorStop(0, "rgba(255,255,255,0.22)");
+  grad.addColorStop(0.18, "rgba(255,255,255,0)");
+  grad.addColorStop(0.85, "rgba(0,0,0,0)");
+  grad.addColorStop(1, "rgba(0,0,0,0.28)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
 
-  ctx.fillStyle = fg;
+  if (!solid) {
+    ctx.fillStyle = accent;
+    ctx.fillRect(0, 0, 6, canvas.height);
+  }
+
+  // Crisp outline for legibility against any floor color behind it.
+  ctx.strokeStyle = solid ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.55)";
+  ctx.lineWidth = 2;
+  roundRect(ctx, 1, 1, canvas.width - 2, canvas.height - 2, 11);
+  ctx.stroke();
+
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  ctx.font = `800 ${fontSize}px 'Segoe UI', sans-serif`;
+  ctx.fillStyle = textColor;
+  ctx.shadowColor = "rgba(0,0,0,0.35)";
+  ctx.shadowBlur = 3;
+  const textCenterX = canvas.width / 2 + iconGap / 2 + 3;
   lines.forEach((line, i) => {
-    ctx.fillText(line, canvas.width / 2 + 4, padding * 0.9 + lineHeight * (i + 0.5));
+    ctx.fillText(line, textCenterX, padding * 0.9 + lineHeight * (i + 0.5));
   });
+  ctx.shadowBlur = 0;
+
+  if (icon) {
+    ctx.font = `${iconSize}px 'Segoe UI Emoji', 'Segoe UI', sans-serif`;
+    ctx.textAlign = "left";
+    ctx.fillText(icon, padding - 4, canvas.height / 2 + 1);
+  }
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
