@@ -11,6 +11,7 @@ import { HudManager } from "./ui/hudManager.js";
 import { LabelManager, LABEL_MODES } from "./ui/labelManager.js";
 import { Game } from "./game/game.js";
 import { createTouchControls } from "./game/touchControls.js";
+import { debugScene } from "./debug.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 const sheetUrl = (name) => `${BASE}sprites/${name}.png`;
@@ -61,6 +62,19 @@ scene.add(keyLight);
 // World and collision setup
 const world = createCollisionWorld();
 const { floorGeometry, labelTargets } = buildOfficeArchitecture(scene, world, floorData);
+
+// Test cube to verify rendering
+const testCubeGeo = new THREE.BoxGeometry(2, 2, 2);
+const testCubeMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+const testCube = new THREE.Mesh(testCubeGeo, testCubeMat);
+testCube.position.set(0, 2, 0);
+testCube.castShadow = true;
+scene.add(testCube);
+console.log("Test cube added at (0, 2, 0)");
+
+// Debug scene setup
+debugScene(scene, camera, cameraState);
+console.log("FloorData:", { openAreas: floorData.openAreas?.length, rooms: floorData.rooms?.length, walls: floorData.walls?.length });
 
 // UI managers
 const hud = new HudManager(app);

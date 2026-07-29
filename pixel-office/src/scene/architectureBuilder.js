@@ -107,11 +107,27 @@ export function buildOfficeArchitecture(scene, world, data) {
     areaFloor.position.y = 0.01;
     areaFloor.receiveShadow = true;
     areaGroup.add(areaFloor);
+    floorGeometry.push(areaFloor);
+
+    // Visible base for areas
+    const baseBoundaryGeo = new THREE.BoxGeometry(area.width, 0.1, area.depth);
+    const baseBoundaryMat = new THREE.MeshStandardMaterial({
+      color: 0xcccccc,
+      roughness: 0.5
+    });
+    const baseBoundary = new THREE.Mesh(baseBoundaryGeo, baseBoundaryMat);
+    baseBoundary.position.y = 0.05;
+    baseBoundary.castShadow = true;
+    baseBoundary.receiveShadow = true;
+    areaGroup.add(baseBoundary);
+    floorGeometry.push(baseBoundary);
 
     // Furniture
     const furniture = generateAllFurniture([area]);
     areaGroup.add(furniture);
-    floorGeometry.push(...furniture.children);
+    if (furniture.children) {
+      floorGeometry.push(...furniture.children);
+    }
 
     workspaceGroup.add(areaGroup);
 

@@ -131,7 +131,7 @@ function createDistributedLayout(group, capacity, groups) {
 
 export function generateFurnitureForArea(areaData) {
   const furnitureGroup = new THREE.Group();
-  furnitureGroup.position.set(areaData.x, 0, areaData.z);
+  // Don't position here - parent area group will handle positioning
   furnitureGroup.userData = {
     areaId: areaData.id,
     areaName: areaData.name,
