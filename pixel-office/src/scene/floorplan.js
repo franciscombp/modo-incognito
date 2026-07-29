@@ -71,3 +71,81 @@ export const footprint = [
 ];
 
 export const entrance = { x: -0.6, z: -12, w: 3, label: "ENTRADA" };
+
+// ---------------------------------------------------------------------
+// Gameplay data — expressed directly in *scene* space (x, z), i.e. what
+// the player/boss/npc entities actually use: +z points toward the
+// entrance/front, -z toward the back wing. Equivalent to (room.x,
+// -room.z) for any room above. Kept separate from the room list because
+// none of this needs to travel through the builder's local room groups.
+// ---------------------------------------------------------------------
+
+// Cover props scattered through the open-plan areas — they block the
+// boss's line of sight just like a desk or cubicle wall would.
+export const plants = [
+  { x: -5.0, z: -6.4 },
+  { x: -5.0, z: -1.2 },
+  { x: -5.0, z: 3.0 },
+  { x: -5.0, z: 7.2 },
+  { x: 3.6, z: -6.4 },
+  { x: 3.6, z: -1.2 },
+  { x: 3.6, z: 3.0 },
+  { x: 3.6, z: 7.2 },
+  { x: -0.9, z: -3.6 },
+  { x: -0.9, z: 4.6 },
+  { x: -12.4, z: -0.2 },
+  { x: 10.4, z: -0.4 },
+];
+
+// Loop the boss patrols, weaving through the open bullpens so it passes
+// close to every activity station. Rotation between waypoints doubles as
+// "el cono gira al patrullar".
+export const patrolRoute = [
+  { x: -0.6, z: -6.4 },
+  { x: -9.0, z: 0.8 },
+  { x: -9.0, z: 5.0 },
+  { x: -0.6, z: 5.9 },
+  { x: 6.4, z: 5.6 },
+  { x: 6.4, z: 1.2 },
+  { x: 6.4, z: -3.2 },
+  { x: 1.8, z: -6.4 },
+  { x: 9.4, z: -6.2 },
+];
+
+// The five "actividades prohibidas" from the design doc. riskRate is the
+// suspicion gained per second while performing the activity in the boss's
+// (red) cone; `time` is seconds of holding E needed to complete it once.
+export const activityStations = [
+  { id: "coffee", label: "Tomar café", type: "coffee", x: 9.3, z: -6.1, risk: "low", riskRate: 14, time: 3 },
+  { id: "chat", label: "Conversar con colegas", type: "chat", x: -8.2, z: -2.9, risk: "medium", riskRate: 22, time: 5, npc: true },
+  { id: "sleep", label: "Dormir en el escritorio", type: "sleep", x: -11.4, z: 4.4, risk: "high", riskRate: 36, time: 2.5 },
+  { id: "snack", label: "Desayunar a escondidas", type: "snack", x: -11.4, z: 1.0, risk: "medium", riskRate: 22, time: 4 },
+  { id: "movie", label: "Ver películas", type: "movie", x: 1.8, z: -6.4, risk: "high", riskRate: 36, time: 6 },
+];
+
+// "ESCONDITE" — matches the green-shield legend icon from the reference
+// image. Standing inside one hides the player from the boss outright.
+export const hidingSpots = [
+  { x: -10.6, z: -2.0, r: 1.15 },
+  { x: -3.4, z: 2.4, r: 1.15 },
+  { x: 9.2, z: 4.1, r: 1.15 },
+  { x: 11.2, z: -1.3, r: 1.15 },
+  { x: 11.2, z: 2.6, r: 1.15 },
+];
+
+// "DISTRACCIÓN" — the yellow-star legend icon. A tap of E near one pulls
+// the boss off its patrol to go investigate for a while.
+export const distractions = [
+  { id: "spill", label: "Derramar café", x: -5.6, z: -6.6, radius: 1.1, cooldown: 8 },
+  { id: "volume", label: "Subir volumen", x: -2.0, z: 1.7, radius: 1.1, cooldown: 8 },
+  { id: "printer", label: "Activar impresora", x: -2.4, z: 4.3, radius: 1.1, cooldown: 8 },
+];
+
+// Background coworkers: mostly idle set-dressing, but they also block the
+// boss's line of sight and one of them anchors the "chat" activity.
+export const npcs = [
+  { id: "chat_partner", x: -8.0, z: -3.3, color: 0xf2c744 },
+  { id: "canales_worker_1", x: -9.6, z: -6.6, color: 0xe0722c },
+  { id: "segmentos_worker", x: 6.0, z: -2.4, color: 0x5b9bd5 },
+  { id: "adtech_worker", x: 7.0, z: 6.2, color: 0xd9463b },
+];
