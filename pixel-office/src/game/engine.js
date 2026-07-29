@@ -477,6 +477,9 @@ export function createEngine({
     get inLevel() {
       return inLevel;
     },
+    get currentCharacterId() {
+      return save.characterId;
+    },
     dispose() {
       window.removeEventListener("keydown", onKey);
       dialogue.dispose();
