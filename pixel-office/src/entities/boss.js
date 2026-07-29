@@ -197,6 +197,12 @@ export class Boss {
     this.active = active;
     this.sprite.object.visible = active;
     this.cone.visible = active;
+    if (!active) {
+      // Stale readings from the instant before going off duty must not keep
+      // counting: an inactive watcher does not see anyone.
+      this.playerVisible = false;
+      this.redAlert = false;
+    }
   }
 
   /** Called by Game after a warning, so he gives up and goes back to work. */
