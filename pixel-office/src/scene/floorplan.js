@@ -38,6 +38,7 @@ export let patrolRoute = [];
 export let routes = {};
 export let activityStations = [];
 export let hidingSpots = [];
+export let safeSpots = [];
 export let distractions = [];
 export let npcs = [];
 export let locationEggs = [];
@@ -55,6 +56,7 @@ export function setActiveScene(prepared) {
   routes = prepared.routes ?? {};
   activityStations = prepared.activityStations;
   hidingSpots = prepared.hidingSpots;
+  safeSpots = prepared.safeSpots ?? [];
   distractions = prepared.distractions;
   npcs = prepared.npcs;
   locationEggs = prepared.locationEggs;

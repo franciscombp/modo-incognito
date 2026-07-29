@@ -38,7 +38,7 @@
       "portrait": "💘",
       "color": "#ff9ad5",
       "sheet": "npc2",
-      "blurb": "Amiga tuya. Chapter del amor: sabe quién sale con quién antes que ellos.",
+      "blurb": "Amiga tuya. Chapter del amor: vive por y para el chisme romántico de la tribu.",
       "friend": true
     },
     "jefe": {"name":"Jefe","portrait":"🕴️","color":"#e6483f","sheet":"boss"},
@@ -65,6 +65,22 @@
       "sheet": "npc4",
       "friend": false,
       "blurb": "Secuaz del jefe. Casi no camina y abarca medio pasillo con la mirada."
+    },
+    "giuli": {
+      "name": "Giuli",
+      "portrait": "🧑‍🎨",
+      "color": "#ffcf7a",
+      "sheet": "npc3",
+      "friend": true,
+      "blurb": "Finge que trabaja mejor que nadie. Farmear con ella da puntos, pero el reloj corre más rápido a su lado."
+    },
+    "fran_npc": {
+      "name": "Fran",
+      "portrait": "🕵️‍♂️",
+      "color": "#a8e05f",
+      "sheet": "npc4",
+      "friend": true,
+      "blurb": "Dora la criticona. Hablar con él te calma, aunque a veces te toca esperar turno para los objetivos."
     }
   },
   "encounters": {
@@ -195,7 +211,7 @@
           {
             "speaker": "Enriquetta",
             "portrait": "💘",
-            "text": "Ven, ven. ¿Tú sabías lo de Contact Center con el de Portales? Porque yo sí."
+            "text": "Amor, ven, ven. ¿Ya supiste lo de Contact Center con el de Portales? Porque yo sí, y es PRECIOSO."
           },
           {
             "prompt": "Te tiene agarrada del brazo. Esto va a durar.",
@@ -203,15 +219,19 @@
             "options": [
               {
                 "label": "«Cuéntamelo TODO.»",
-                "reply": "Cuéntamelo todo, Enriquetta.",
+                "reply": "Cuéntamelo todo, Enriquetta, con lujo de detalle.",
                 "effect": "score+",
                 "then": [
                   {
                     "speaker": "Enriquetta",
                     "portrait": "💘",
-                    "text": "Se mandan reuniones de 15 minutos sin agenda. QUINCE MINUTOS. SIN AGENDA."
+                    "text": "Se mandan reuniones de 15 minutos sin agenda. QUINCE MINUTOS. SIN AGENDA. Eso es amor del bueno."
                   },
-                  {"speaker":"Tú","portrait":"😮","text":"Eso en esta empresa es prácticamente una boda."}
+                  {
+                    "speaker": "Tú",
+                    "portrait": "😮",
+                    "text": "En esta empresa, quince minutos sin agenda es prácticamente una pedida de mano."
+                  }
                 ]
               },
               {
@@ -222,7 +242,7 @@
                   {
                     "speaker": "Enriquetta",
                     "portrait": "💘",
-                    "text": "Tranquila, yo lo distraigo. Le pregunto por su boda. Tarda cuarenta minutos."
+                    "text": "Tranquila, corazón, yo lo distraigo. Le pregunto por su boda. Se le ilumina la cara, tarda cuarenta minutos."
                   }
                 ]
               }
@@ -233,14 +253,14 @@
           {
             "speaker": "Enriquetta",
             "portrait": "💘",
-            "text": "El chapter del amor tiene un tablero Kanban. En «en progreso» hay cuatro personas."
+            "text": "El chapter del amor tiene un tablero Kanban. En «en progreso» hay cuatro corazones latiendo a la vez."
           }
         ],
         [
           {
             "speaker": "Enriquetta",
             "portrait": "💘",
-            "text": "A ti te vi hablando mucho con la cafetera. No juzgo. Documento."
+            "text": "A ti te vi hablando mucho con la cafetera. No juzgo, mi amor. Documento con cariño."
           }
         ]
       ]
@@ -274,7 +294,7 @@
               {
                 "label": "«¿Y tú? Llevas media hora corriendo.»",
                 "reply": "¿Y tú? Llevas media hora corriendo sin hacer nada.",
-                "effect": "suspicion+",
+                "effect": "chispita-report",
                 "then": [
                   {
                     "speaker": "Chispita",
@@ -380,6 +400,83 @@
             "speaker": "Crispo",
             "portrait": "🥨",
             "text": "Llevo la cuenta de todo el mundo. En papel. El papel no se cae como el sistema."
+          }
+        ]
+      ]
+    },
+    "giuli": {
+      "cooldown": 30,
+      "scenes": [
+        [
+          {
+            "speaker": "Giuli",
+            "portrait": "🧑‍🎨",
+            "text": "Llevo dos horas con esta pose de «estoy pensando en el layout». Es mentira. Estoy pensando en el almuerzo."
+          },
+          {
+            "prompt": "Te invita a fingir junto a ella un rato.",
+            "portrait": "🧑‍🎨",
+            "options": [
+              {
+                "label": "«Me apunto.»",
+                "reply": "Me apunto. Finjamos juntas.",
+                "effect": "score+",
+                "then": [
+                  {
+                    "speaker": "Giuli",
+                    "portrait": "🧑‍🎨",
+                    "text": "Perfecto. Eso sí, el reloj no perdona: fingir bien hace que el día vuele.",
+                    "effect": "time+"
+                  }
+                ]
+              },
+              {"label":"«Ahora no, voy justa de tiempo.»","reply":"Ahora no, Giuli, voy justa de tiempo."}
+            ]
+          }
+        ],
+        [
+          {
+            "speaker": "Giuli",
+            "portrait": "🧑‍🎨",
+            "text": "Dato curioso: si finges lo suficientemente bien, hasta el reloj de la oficina te cree."
+          }
+        ]
+      ]
+    },
+    "fran_npc": {
+      "cooldown": 35,
+      "scenes": [
+        [
+          {
+            "speaker": "Fran",
+            "portrait": "🕵️‍♂️",
+            "text": "Dora la criticona reporta: hoy el jefe amaneció de mal humor. Camina distinto."
+          },
+          {
+            "prompt": "Te ofrece hablar un rato para que se te baje la sospecha.",
+            "portrait": "🕵️‍♂️",
+            "options": [
+              {
+                "label": "«Cuéntame más.»",
+                "reply": "Cuéntame más, Fran.",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "Fran",
+                    "portrait": "🕵️‍♂️",
+                    "text": "Ojo: si no hay sospecha rondando, puede que esté yo mismo ocupando algún objetivo. Ten paciencia."
+                  }
+                ]
+              },
+              {"label":"«Luego, Fran.»","reply":"Luego, Fran, ahora no puedo."}
+            ]
+          }
+        ],
+        [
+          {
+            "speaker": "Fran",
+            "portrait": "🕵️‍♂️",
+            "text": "Con antigüedad uno aprende: nunca corras delante del jefe. Camina rápido, eso sí."
           }
         ]
       ]

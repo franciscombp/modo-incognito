@@ -27,6 +27,7 @@ const report = await page.evaluate(() => {
   const targets = [
     ...fp.activityStations.map((s) => ({ kind: "actividad", name: s.label, x: s.x, z: s.z })),
     ...fp.hidingSpots.map((h, i) => ({ kind: "escondite", name: `#${i + 1}`, x: h.x, z: h.z })),
+    ...fp.safeSpots.map((s) => ({ kind: "lugar seguro", name: s.label ?? s.id, x: s.x, z: s.z })),
     ...fp.distractions.map((d) => ({ kind: "distracción", name: d.label, x: d.x, z: d.z })),
     ...fp.patrolRoute.map((p, i) => ({ kind: "patrulla", name: `wp${i}`, x: p.x, z: p.z })),
     ...fp.areas

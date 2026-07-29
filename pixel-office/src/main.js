@@ -64,7 +64,7 @@ async function boot() {
   setActiveScene(data.scenes.get(firstLevel.scene));
 
   const world = createCollisionWorld();
-  const { roomLabels, markerGroup, hidingMarkers } = buildOffice(scene, world);
+  const { roomLabels, markerGroup, hidingMarkers, safeSpotMarkers } = buildOffice(scene, world);
   const navmesh = buildNavmesh(world, { radius: 0.3 * S });
 
   // Pull every authored point onto walkable floor. A waypoint buried in a
@@ -81,6 +81,7 @@ async function boot() {
   snapInPlace(floorplan.activityStations);
   snapInPlace(floorplan.distractions);
   snapInPlace(floorplan.hidingSpots);
+  snapInPlace(floorplan.safeSpots);
 
   const aspect = window.innerWidth / window.innerHeight;
   const view = new DioramaCamera(aspect);
@@ -185,6 +186,7 @@ async function boot() {
     codeEggs: data.codeEggs,
     manifest: data.manifest,
     dialogues: data.dialogues,
+    modes: data.modes,
     minions,
     onPopup: (p) => popups.spawn(p),
   });
@@ -408,6 +410,21 @@ async function boot() {
     });
   }
 
+  // Los lugares seguros gastan su carga del día y no se recuperan hasta
+  // mañana: cuando se acaban se quedan grises, sin parpadeo de "ya vuelve".
+  const SAFE_READY = new THREE.Color(0x4a9de0);
+  const SAFE_SPENT = new THREE.Color(0x555f6e);
+  function updateSafeSpotMarkers() {
+    const game = engine.game;
+    if (!game || !safeSpotMarkers) return;
+    safeSpotMarkers.forEach((ring, i) => {
+      const charge = game.safeSpotCharge(i);
+      ring.material.color.copy(SAFE_SPENT).lerp(SAFE_READY, charge);
+      ring.material.opacity = 0.22 + charge * 0.63;
+      ring.scale.setScalar(0.82 + charge * 0.18);
+    });
+  }
+
   const bobbingMeshes = [];
   scene.traverse((obj) => {
     if (obj.userData && obj.userData.bob) bobbingMeshes.push(obj);
@@ -436,6 +453,7 @@ async function boot() {
 
     watchPerformance(dt);
     updateHidingMarkers();
+    updateSafeSpotMarkers();
     updateLabels();
     view.update(dt, player.position);
     popups.update(dt);
