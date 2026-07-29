@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { CharacterSprite } from "./sprite.js";
+import { facingFromGround } from "../scene/iso.js";
 
 export const BOSS_STATES = {
   PATROL: "PATROL",
@@ -11,17 +12,10 @@ export const BOSS_STATES = {
 const { PATROL, INVESTIGATE, CHASE, SEARCH } = BOSS_STATES;
 
 // Rotation (about Y) that points the cone's local -Z forward axis along
-// world-space direction (dirX, dirZ).
+// world-space direction (dirX, dirZ). Derived analytically rather than via
+// Object3D.lookAt, which produced inconsistent Euler extraction for some directions.
 function facingRotationY(dirX, dirZ) {
   return Math.atan2(-dirX, -dirZ);
-}
-
-// Convert direction vector to cardinal facing string
-function cardinalFacing(dx, dz) {
-  if (Math.abs(dx) > Math.abs(dz)) {
-    return dx > 0 ? "east" : "west";
-  }
-  return dz > 0 ? "south" : "north";
 }
 
 function buildConeGeometry(range, halfAngle, segments = 24) {
@@ -148,7 +142,7 @@ export class Boss {
       if (len > 0.001) this.facingDir = { x: dx / len, z: dz / len };
     }
 
-    this.sprite.setFacing(cardinalFacing(this.facingDir.x, this.facingDir.z));
+    this.sprite.setFacing(facingFromGround(this.facingDir.x, this.facingDir.z, "south"));
     this.sprite.setMoving(!!dir);
     this.sprite.setPosition(this.position.x, this.position.z);
     this.sprite.update(dt);
