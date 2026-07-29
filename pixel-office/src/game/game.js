@@ -2,6 +2,7 @@ import {
   activityStations,
   distractions,
   hidingSpots,
+  safeSpots,
   locationEggs,
   nearestArea,
   areaAt,
@@ -38,9 +39,20 @@ const HEAT_TUNING = [
 // del pasillo o en el baño no engañas a nadie.
 const WORK_KINDS = new Set([AREA_KINDS.OPEN_OFFICE, AREA_KINDS.MEETING]);
 const PRETEND_OUT_OF_PLACE = 0.25; // fracción del alivio si finges donde no toca
+// Fingiendo con poca sospecha no te aborda nadie: por debajo del umbral eres
+// intocable. Por encima, "si estabas con más, valiste".
+const PRETEND_IMMUNE_THRESHOLD = 30;
 
 // Los secuaces no esperan a que les hables: te abordan.
 const MINION_APPROACH = 3.4 * S;
+
+// Washo casi no anda, pero mientras estés en su mira te pesan las piernas.
+const WASHO_SLOW_MUL = 0.55;
+
+// Un lugar seguro no es un escondite infinito: tiene un cupo de segundos al
+// día y, agotado, se apaga hasta la jornada siguiente (no se recarga como los
+// escondites).
+const SAFE_SPOT_BUDGET = 25;
 
 // Scoring. The fun is in *how* you slack off, not just whether you finish, so
 // the score rewards nerve: doing a forbidden thing with the boss breathing
@@ -61,6 +73,10 @@ const DEFAULT_RULES = {
   decayMul: 1,
   distractionsOff: false,
   targetScore: 1000,
+  // Personaje elegido (modes.json), fusionado sobre las reglas del día.
+  minionSuspicionMul: 1,
+  explore: false, // Kiara: ya renunció, nada le afecta
+  pretendAlways: false,
 };
 
 /**
@@ -109,9 +125,11 @@ export class Game {
     this.comboLeft = 0;
     this.perk = null;
     this.perkLeft = 0;
+    this._perkSpeedMul = 1; // perks (café); se combina con la lentitud de Washo
     this.revealBossUntil = 0;
     this.heat = 0;
     this.inWorkspace = false;
+    this.inSafeSpot = false;
     this._huntTimer = 0;
 
     const wanted = this.rules.objectives;
@@ -133,6 +151,8 @@ export class Game {
     this.hideState = hidingSpots.map(() => ({ cooldownLeft: 0, usedFor: 0 }));
     // Bound once so the per-frame snapshot never allocates a new closure.
     this._hidingCharge = (i) => this.hidingCharge(i);
+    this.safeSpotState = safeSpots.map(() => ({ left: SAFE_SPOT_BUDGET, spent: false }));
+    this._safeSpotCharge = (i) => this.safeSpotCharge(i);
 
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
@@ -174,6 +194,7 @@ export class Game {
     this.currentArea = areaAt(pos.x, pos.z) ?? nearestArea(pos.x, pos.z).area;
 
     this.player.isHiding = this._updateHiding(dt, pos);
+    this.inSafeSpot = this._updateSafeSpot(dt, pos);
 
     const holdingE = this.player.keys.has("e");
     const holdingF = this.player.keys.has("f");
@@ -247,43 +268,67 @@ export class Game {
     this.minions.forEach((m) => m.update(dt, this.player, this.npcs));
     this._updateMinionApproach();
     this._updateEggs(dt);
+    this._updateSpeedMul();
 
     // ---- Suspicion ----
-    // A minion catching you counts too, at a gentler rate: they tell on you,
-    // they don't drag you to HR themselves.
-    const spotted = this.minions.some((m) => m.redAlert);
-    const decay = this.rules.decayMul;
-    if (spotted && !this.boss.redAlert) {
-      this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + 12 * dt);
-    }
-    if (this.boss.redAlert) {
-      const rate = this.nearStation?.riskRate ?? 20;
-      this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + rate * dt);
-    } else if (this.boss.state === BOSS_STATES.CHASE && this.boss.playerVisible) {
-      this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + SEEN_WHILE_HUNTED_RATE * dt);
-    } else if (this.player.isHiding) {
-      this.suspicion = Math.max(0, this.suspicion - DECAY_HIDDEN_OR_PRETENDING * decay * dt);
-    } else if (this.player.isPretending) {
-      const credible = this.inWorkspace ? 1 : PRETEND_OUT_OF_PLACE;
-      this.suspicion = Math.max(
-        0,
-        this.suspicion - DECAY_HIDDEN_OR_PRETENDING * credible * decay * dt
-      );
+    if (this.rules.explore) {
+      // Kiara ya renunció: nada de esto le afecta.
+      this.suspicion = 0;
+    } else if (this.inSafeSpot) {
+      // Bebedero / baño / tu propia mesa: el jefe puede verte ahí y no cuenta.
+      this.suspicion = Math.max(0, this.suspicion - DECAY_IDLE * this.rules.decayMul * dt);
     } else {
-      this.suspicion = Math.max(0, this.suspicion - DECAY_IDLE * decay * dt);
+      // A minion catching you counts too, at a gentler rate: they tell on you,
+      // they don't drag you to HR themselves.
+      const spotted = this.minions.some((m) => m.redAlert);
+      const decay = this.rules.decayMul;
+      if (spotted && !this.boss.redAlert) {
+        this.suspicion = Math.min(
+          SUSPICION_MAX,
+          this.suspicion + 12 * this.rules.minionSuspicionMul * dt
+        );
+      }
+      if (this.boss.redAlert) {
+        const rate = this.nearStation?.riskRate ?? 20;
+        this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + rate * dt);
+      } else if (this.boss.state === BOSS_STATES.CHASE && this.boss.playerVisible) {
+        this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + SEEN_WHILE_HUNTED_RATE * dt);
+      } else if (this.player.isHiding) {
+        this.suspicion = Math.max(0, this.suspicion - DECAY_HIDDEN_OR_PRETENDING * decay * dt);
+      } else if (this.player.isPretending) {
+        const credible = this.inWorkspace ? 1 : PRETEND_OUT_OF_PLACE;
+        this.suspicion = Math.max(
+          0,
+          this.suspicion - DECAY_HIDDEN_OR_PRETENDING * credible * decay * dt
+        );
+      } else {
+        this.suspicion = Math.max(0, this.suspicion - DECAY_IDLE * decay * dt);
+      }
     }
 
     this._updateHeat(dt);
 
+    // Fingiendo con poca sospecha eres intocable; con mucha, "si estabas con
+    // más, valiste". Un escondite o un lugar seguro también te cubren.
+    const pretendImmune =
+      this.player.isPretending &&
+      (this.rules.pretendAlways || this.suspicion < PRETEND_IMMUNE_THRESHOLD);
     const caught =
+      !this.rules.explore &&
       this._caughtCooldown <= 0 &&
       this.boss.isHunting &&
       !this.player.isHiding &&
+      !this.inSafeSpot &&
+      !pretendImmune &&
       this.boss.catches(pos, this.player.radius);
 
-    if (this.suspicion >= SUSPICION_MAX || caught) this._warn();
+    // La amonestación llega cuando el jefe te aborda de verdad, no en cuanto
+    // el medidor toca el tope: al 100% ya viene a por ti con toda su furia
+    // (nivel de búsqueda 4), así que el encuentro no tarda, pero es el
+    // encuentro el que cuenta.
+    if (caught) this._warn();
 
-    if (!this.gameOver) {
+    if (!this.gameOver && !this.rules.explore) {
       if (this.objectives.every((o) => o.done)) this._finish(true);
       else if (this.timeLeft <= 0) this._finish(false);
     }
@@ -344,14 +389,26 @@ export class Game {
     this.perk = perk;
     this.perkLeft = PERK_DURATION;
     if (perk === "caffeine") {
-      this.player.speedMul = 1.35;
+      this._perkSpeedMul = 1.35;
       this._toast("☕ Cafeína: +35% de velocidad");
     }
   }
 
   _clearPerk() {
-    if (this.perk === "caffeine") this.player.speedMul = 1;
+    if (this.perk === "caffeine") this._perkSpeedMul = 1;
     this.perk = null;
+  }
+
+  /**
+   * La velocidad del jugador combina el perk activo (café) con la lentitud
+   * que impone Washo mientras te tiene en la mira — ninguno de los dos debe
+   * pisar al otro, así que se recalculan juntos cada frame en vez de que cada
+   * efecto escriba `speedMul` por su cuenta.
+   */
+  _updateSpeedMul() {
+    const washo = this.minions.find((m) => m.cast === "washo");
+    const slowed = washo && washo.playerVisible ? WASHO_SLOW_MUL : 1;
+    this.player.speedMul = this._perkSpeedMul * slowed;
   }
 
   /**
@@ -444,6 +501,37 @@ export class Game {
     return 1 - state.usedFor / HIDE_MAX_USE;
   }
 
+  /**
+   * Lugares seguros: bebedero, baño, tu propia mesa. El jefe puede verte ahí
+   * sin que suba la sospecha, pero tienen un cupo de segundos al día — no un
+   * enfriamiento como los escondites — y una vez gastado no vuelve hasta
+   * mañana.
+   */
+  _updateSafeSpot(dt, pos) {
+    let active = false;
+    safeSpots.forEach((spot, i) => {
+      const state = this.safeSpotState[i];
+      if (state.spent) return;
+      const inside = Math.hypot(spot.x - pos.x, spot.z - pos.z) < spot.radius;
+      if (!inside) return;
+      active = true;
+      state.left = Math.max(0, state.left - dt);
+      if (state.left === 0) {
+        state.spent = true;
+        this._toast(`${spot.label ?? "Lugar seguro"}: gastaste tu tiempo ahí hoy.`);
+      }
+    });
+    return active;
+  }
+
+  /** Per-spot readout for the floor markers: 0 = agotado, 1 = intacto. */
+  safeSpotCharge(i) {
+    const state = this.safeSpotState[i];
+    if (!state) return 1;
+    if (state.spent) return 0;
+    return state.left / SAFE_SPOT_BUDGET;
+  }
+
   /** Standing still in the right spot for a beat reveals a hidden note. */
   _updateEggs(dt) {
     if (!this.onEgg) return;
@@ -462,6 +550,7 @@ export class Game {
   }
 
   _warn() {
+    if (this.rules.explore) return; // ya renunció, nada le afecta
     this.warnings += 1;
     this.suspicion = 0;
     this._caughtCooldown = 3;
@@ -522,8 +611,41 @@ export class Game {
         this.revealBossUntil = 12;
         this._toast("Sabes dónde está el jefe");
         break;
+      case "time+":
+        // Farmear con Giuli finge tan bien que hasta el reloj se lo cree:
+        // el turno avanza de golpe.
+        this.timeLeft = Math.max(0, this.timeLeft - 45);
+        this._toast("El reloj corre más rápido…");
+        break;
+      case "chispita-report":
+        this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + 30);
+        this._chispitaReport();
+        break;
       default:
         break;
+    }
+  }
+
+  /**
+   * Chispita no te atrapa, te delata. El jefe no siempre le hace caso, y si
+   * al final resulta que era una falsa alarma (aún no habías cumplido ningún
+   * objetivo, o te abordó mientras fingías que trabajabas), se harta de ella
+   * y la encierra en una sala de reuniones el resto del día.
+   */
+  _chispitaReport() {
+    const chispita = this.minions.find((m) => m.cast === "chispita");
+    if (Math.random() < 0.45) {
+      this._toast("Chispita corre a avisar al jefe… que pasa de ella.");
+      return;
+    }
+    const objectivesStarted = this.objectives.some((o) => o.done);
+    const falseAlarm = !objectivesStarted || this.player.isPretending;
+    if (falseAlarm && chispita) {
+      chispita.setActive(false);
+      this._toast("El jefe se harta de falsas alarmas: encierra a Chispita en una sala. Hoy no molesta más.");
+    } else {
+      this.boss.distract({ x: this.player.position.x, z: this.player.position.z }, 10);
+      this._toast("¡Chispita avisó al jefe! Viene para acá.");
     }
   }
 
@@ -562,6 +684,8 @@ export class Game {
       minionAlert: this.minions.some((m) => m.redAlert),
       minionPositions: this.minions.map((m) => m.position),
       hidingCharge: this._hidingCharge,
+      safeSpotCharge: this._safeSpotCharge,
+      inSafeSpot: this.inSafeSpot,
       worldScale: S,
       revealBoss: this.revealBossUntil > 0,
       isPretending: this.player.isPretending,

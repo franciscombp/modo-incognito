@@ -8,6 +8,7 @@ import {
   AREA_KINDS,
   plants,
   hidingSpots,
+  safeSpots,
   distractions,
   activityStations,
   ACTIVITY_COLORS,
@@ -91,6 +92,7 @@ export function buildOffice(scene, world) {
     activityMarkers: markers.activityMarkers,
     distractionMarkers: markers.distractionMarkers,
     hidingMarkers: markers.hidingMarkers,
+    safeSpotMarkers: markers.safeSpotMarkers,
   };
 }
 
@@ -560,6 +562,24 @@ function buildGameplayMarkers() {
     return ring;
   });
 
+  // Lugares seguros: mismo trato que los escondites (un anillo cada uno, no
+  // fusionado) porque cada uno se agota por su cuenta y hay que poder atenuar
+  // el suyo sin tocar los demás. Azul para no confundirlos con los verdes.
+  const safeSpotMarkers = safeSpots.map(({ x, z, radius }, i) => {
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x4a9de0,
+      transparent: true,
+      opacity: 0.85,
+      toneMapped: false,
+    });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(radius * 0.72, radius * 0.9, 22), mat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(x, 0.16 * S, z);
+    ring.userData.spotIndex = i;
+    group.add(ring);
+    return ring;
+  });
+
   const starMat = new THREE.MeshBasicMaterial({ color: 0xf2c744, toneMapped: false });
   const distractionMarkers = distractions.map(({ x, z }) => {
     const star = new THREE.Mesh(new THREE.OctahedronGeometry(0.24 * S, 0), starMat);
@@ -591,7 +611,7 @@ function buildGameplayMarkers() {
     return ring;
   });
 
-  return { group, distractionMarkers, activityMarkers, hidingMarkers };
+  return { group, distractionMarkers, activityMarkers, hidingMarkers, safeSpotMarkers };
 }
 
 export { getTexture };
