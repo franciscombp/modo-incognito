@@ -2,7 +2,7 @@ import * as THREE from "three";
 
 // Cheap billboard text label rendered onto a canvas texture, so we can tag
 // rooms without pulling in a font/CSS-renderer dependency yet.
-export function createLabel(text, { bg = "#1c1e24", fg = "#f4f1ea", accent = "#8b5cf6" } = {}) {
+export function createLabel(text, { bg = "#1c1e24", fg = "#f4f1ea", accent = "#8b5cf6" } = {}, scaleMul = 1) {
   const lines = text.split("\n");
   const padding = 18;
   const fontSize = 26;
@@ -37,7 +37,7 @@ export function createLabel(text, { bg = "#1c1e24", fg = "#f4f1ea", accent = "#8
 
   const material = new THREE.SpriteMaterial({ map: texture, depthTest: true, transparent: true });
   const sprite = new THREE.Sprite(material);
-  const scale = 0.028;
+  const scale = 0.028 * scaleMul;
   sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
   return sprite;
 }

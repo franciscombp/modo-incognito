@@ -1,7 +1,13 @@
 import * as THREE from "three";
 import { createIsoCamera, resizeIsoCamera } from "./scene/camera.js";
 import { buildOffice } from "./scene/builder.js";
+import { createCollisionWorld } from "./scene/collision.js";
+import { patrolRoute, npcs as npcData } from "./scene/floorplan.js";
 import { Player } from "./entities/player.js";
+import { NPC } from "./entities/npc.js";
+import { Boss } from "./entities/boss.js";
+import { createHud } from "./game/hud.js";
+import { Game } from "./game/game.js";
 
 const canvas = document.getElementById("scene");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -40,12 +46,22 @@ key.shadow.camera.far = 80;
 key.shadow.bias = -0.0015;
 scene.add(key);
 
-buildOffice(scene);
+// -------- World: office structure + collision/vision-blocking geometry --------
+const world = createCollisionWorld();
+const { roomLabels } = buildOffice(scene, world);
 
-// Scene-space bounds roughly matching the building footprint, so the
-// player can roam the whole floor (entrance side is +z, back wall -z).
-const player = new Player({ footprint: [-15, 15, -9.3, 13 ] });
+const player = new Player({ x: -0.6, z: 12.6 });
 scene.add(player.sprite);
+
+const npcs = npcData.map((data) => new NPC(data));
+npcs.forEach((npc) => scene.add(npc.sprite));
+
+const boss = new Boss({ world, route: patrolRoute });
+scene.add(boss.sprite);
+scene.add(boss.cone);
+
+const hud = createHud(document.getElementById("app"));
+const game = new Game({ player, boss, npcs, hud });
 
 // -------- Zoom only: rotation is locked so the view always matches the
 // reference isometric angle. --------
@@ -71,22 +87,47 @@ window.addEventListener("resize", onResize);
 // -------- Camera follow: pan smoothly toward the player while keeping the
 // fixed isometric angle/rotation intact — only position translates. --------
 function updateCamera() {
-  cameraTarget.lerp(
-    new THREE.Vector3(player.sprite.position.x, 0, player.sprite.position.z),
-    0.06
-  );
-  camera.position.set(
-    cameraTarget.x + offset.x,
-    offset.y,
-    cameraTarget.z + offset.z
-  );
+  cameraTarget.lerp(new THREE.Vector3(player.position.x, 0, player.position.z), 0.06);
+  camera.position.set(cameraTarget.x + offset.x, offset.y, cameraTarget.z + offset.z);
   camera.lookAt(cameraTarget);
 }
+
+// Room labels are only distracting clutter from afar — fade them in as the
+// player actually approaches that part of the office, "automatic" instead
+// of a wall of always-on signage.
+const LABEL_FADE_NEAR = 6;
+const LABEL_FADE_FAR = 11;
+function updateLabelFade() {
+  roomLabels.forEach((label) => {
+    const d = Math.hypot(label.userData.homeX - player.position.x, label.userData.homeZ - player.position.z);
+    const t = THREE.MathUtils.clamp((LABEL_FADE_FAR - d) / (LABEL_FADE_FAR - LABEL_FADE_NEAR), 0, 1);
+    label.material.opacity = t;
+    label.visible = t > 0.02;
+  });
+}
+
+// Gentle bob animation for the hiding/distraction icon markers.
+const bobbingMeshes = [];
+scene.traverse((obj) => {
+  if (obj.userData && obj.userData.bob) bobbingMeshes.push(obj);
+});
 
 const clock = new THREE.Clock();
 function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
-  player.update(dt);
+  const t = clock.elapsedTime;
+
+  player.update(dt, world);
+  npcs.forEach((npc) => npc.update(t));
+  game.update(dt);
+
+  bobbingMeshes.forEach((m) => {
+    const b = m.userData.bob;
+    m.position.y = b.base + Math.sin(t * b.speed + b.offset) * b.amp;
+    m.rotation.y = t * 0.6 + b.offset;
+  });
+
+  updateLabelFade();
   updateCamera();
   renderer.render(scene, camera);
   requestAnimationFrame(animate);
