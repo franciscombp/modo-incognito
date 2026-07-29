@@ -1083,3 +1083,809 @@ body.inspect-mode .touch-util:last-child {
     margin-top: 4px;
   }
 }
+
+/* =====================================================================
+   Pixel-art + glass shell: menus, boot screen, score popups.
+   The look is "modern pixel art": chunky stepped borders and hard shadows
+   from the pixel era, over the frosted translucent panels of a current UI.
+   ===================================================================== */
+
+:root {
+  --px-ink: #0b0c12;
+  --px-paper: #f3f1ea;
+  --px-violet: #8b5cf6;
+  --px-violet-dim: #5b34b8;
+  --px-cyan: #45e0d0;
+  --px-lime: #a8e05f;
+  --px-gold: #f2c744;
+  --px-rose: #ff6b81;
+  --px-glass: rgba(18, 20, 30, 0.72);
+  --px-glass-hi: rgba(255, 255, 255, 0.14);
+  --px-font: "Segoe UI", system-ui, sans-serif;
+  --px-mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+}
+
+/* Stepped, hard-edged frame: no border-radius anywhere in the menu shell,
+   plus a two-tone offset shadow, which is what reads as "pixel art". */
+.px-frame {
+  background: var(--px-glass);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.6),
+    0 6px 0 0 rgba(0, 0, 0, 0.35),
+    0 18px 48px rgba(0, 0, 0, 0.5),
+    inset 0 2px 0 var(--px-glass-hi);
+}
+
+/* ---------------- Boot ---------------- */
+
+#boot {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 18px;
+  background: radial-gradient(circle at 50% 40%, #1b1733, #08080d 70%);
+  color: var(--px-paper);
+  font-family: var(--px-font);
+}
+
+.boot-mark {
+  font-size: clamp(28px, 7vw, 54px);
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  line-height: 1.05;
+  text-align: center;
+  color: var(--px-paper);
+  text-shadow: 4px 4px 0 var(--px-violet-dim), 8px 8px 0 rgba(0, 0, 0, 0.5);
+}
+
+.boot-bar {
+  width: min(260px, 60vw);
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.boot-bar span {
+  display: block;
+  height: 100%;
+  width: 40%;
+  background: linear-gradient(90deg, var(--px-violet), var(--px-cyan));
+  animation: boot-slide 1.1s linear infinite;
+}
+
+@keyframes boot-slide {
+  from { transform: translateX(-110%); }
+  to { transform: translateX(260%); }
+}
+
+.boot-note,
+.boot-error {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9aa2b1;
+}
+
+.boot-error {
+  text-transform: none;
+  letter-spacing: 0;
+  color: #ff8b8b;
+  font-size: 14px;
+  line-height: 1.6;
+  text-align: center;
+  padding: 24px;
+  max-width: 42ch;
+}
+
+/* ---------------- Menu shell ---------------- */
+
+.px-menu {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  font-family: var(--px-font);
+  color: var(--px-paper);
+  padding: max(16px, env(safe-area-inset-top, 0px)) 16px
+    max(16px, env(safe-area-inset-bottom, 0px));
+}
+
+.px-menu.hidden {
+  display: none;
+}
+
+.px-menu-scrim {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 35%, rgba(30, 22, 55, 0.72), rgba(5, 5, 9, 0.9));
+}
+
+.px-menu-stage {
+  position: relative;
+  width: min(720px, 100%);
+  max-height: 100%;
+  display: grid;
+}
+
+.px-screen {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 26px 26px 22px;
+  max-height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  background: var(--px-glass);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.6),
+    0 8px 0 0 rgba(0, 0, 0, 0.3),
+    0 24px 60px rgba(0, 0, 0, 0.55),
+    inset 0 2px 0 var(--px-glass-hi);
+}
+
+.px-screen.hidden {
+  display: none;
+}
+
+.px-screen-title {
+  align-items: center;
+  text-align: center;
+}
+
+.px-screen-title-text {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--px-cyan);
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.px-logo {
+  display: grid;
+  gap: 6px;
+  margin: 10px 0 4px;
+}
+
+.px-logo-main {
+  font-size: clamp(30px, 8vw, 58px);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  line-height: 1;
+  text-shadow: 4px 4px 0 var(--px-violet-dim), 8px 8px 0 rgba(0, 0, 0, 0.55);
+}
+
+.px-logo-sub {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--px-gold);
+}
+
+.px-title-foot {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: #98a0b0;
+}
+
+.px-menu-list {
+  display: grid;
+  gap: 10px;
+  width: min(320px, 100%);
+  margin: 0 auto;
+}
+
+/* ---------------- Buttons ---------------- */
+
+.px-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 18px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--px-paper);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.07);
+  border: 2px solid rgba(255, 255, 255, 0.26);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 4px 0 0 rgba(0, 0, 0, 0.45);
+  transition: transform 0.06s, background 0.15s, border-color 0.15s;
+}
+
+.px-btn:hover {
+  background: rgba(139, 92, 246, 0.28);
+  border-color: rgba(139, 92, 246, 0.85);
+}
+
+.px-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 1px 0 0 rgba(0, 0, 0, 0.45);
+}
+
+.px-btn.hidden {
+  display: none;
+}
+
+.px-btn-primary {
+  background: linear-gradient(180deg, var(--px-violet), var(--px-violet-dim));
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.px-btn-primary:hover {
+  background: linear-gradient(180deg, #9d75ff, #6a45d6);
+}
+
+.px-btn-icon {
+  font-size: 15px;
+  color: var(--px-cyan);
+}
+
+.px-btn-primary .px-btn-icon {
+  color: #fff;
+}
+
+/* ---------------- Day select ---------------- */
+
+.px-day-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+.px-day {
+  position: relative;
+  display: grid;
+  gap: 3px;
+  padding: 14px 14px 12px;
+  text-align: left;
+  font: inherit;
+  color: var(--px-paper);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5), 0 4px 0 0 rgba(0, 0, 0, 0.4);
+  transition: transform 0.06s, border-color 0.15s, background 0.15s;
+}
+
+.px-day:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.24);
+  border-color: rgba(139, 92, 246, 0.8);
+}
+
+.px-day:active:not(:disabled) {
+  transform: translateY(3px);
+}
+
+.px-day.locked {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.px-day.done {
+  border-color: rgba(168, 224, 95, 0.6);
+}
+
+.px-day-num {
+  font-family: var(--px-mono);
+  font-size: 22px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--px-cyan);
+}
+
+.px-day.done .px-day-num {
+  color: var(--px-lime);
+}
+
+.px-day-name {
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.px-day-sub {
+  font-size: 11px;
+  color: #98a0b0;
+  line-height: 1.35;
+}
+
+.px-day-best {
+  margin-top: 4px;
+  font-family: var(--px-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--px-gold);
+}
+
+.px-screen-foot {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.px-screen-foot .px-btn {
+  min-width: 160px;
+}
+
+/* ---------------- Settings ---------------- */
+
+.px-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.px-tab {
+  flex: 1;
+  padding: 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9aa2b1;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.px-tab.active {
+  color: var(--px-ink);
+  background: var(--px-cyan);
+  border-color: #fff;
+}
+
+.px-pane {
+  display: grid;
+  gap: 14px;
+}
+
+.px-pane.hidden {
+  display: none;
+}
+
+.px-opt {
+  display: grid;
+  gap: 6px;
+}
+
+.px-opt-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.px-opt-label {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.px-opt-value {
+  font-family: var(--px-mono);
+  font-size: 12px;
+  color: var(--px-cyan);
+}
+
+.px-opt-hint {
+  font-size: 11px;
+  color: #8b93a3;
+}
+
+.px-switch {
+  justify-self: start;
+  min-width: 74px;
+  padding: 8px 14px;
+  font: inherit;
+  font-family: var(--px-mono);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: #9aa2b1;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.px-switch.on {
+  color: var(--px-ink);
+  background: var(--px-lime);
+  border-color: #fff;
+}
+
+/* Chunky, square-thumbed sliders to match the pixel frame. */
+.cam-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5);
+  cursor: pointer;
+}
+
+.cam-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 22px;
+  background: var(--px-cyan);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+.cam-slider::-moz-range-thumb {
+  width: 18px;
+  height: 22px;
+  border-radius: 0;
+  background: var(--px-cyan);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6);
+}
+
+/* ---------------- Camera workbench ---------------- */
+
+.cam-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.cam-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 12px 18px;
+}
+
+.cam-row {
+  display: grid;
+  gap: 5px;
+}
+
+.cam-row-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.cam-value {
+  font-family: var(--px-mono);
+  color: var(--px-gold);
+}
+
+.cam-hint {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #98a0b0;
+}
+
+.cam-hint code,
+.px-help kbd {
+  font-family: var(--px-mono);
+  font-size: 11px;
+  padding: 1px 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.cam-code {
+  font-family: var(--px-mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--px-lime);
+  background: rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(255, 255, 255, 0.14);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.5);
+  padding: 12px 14px;
+  overflow-x: auto;
+  user-select: text;
+}
+
+.cam-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.cam-actions .px-btn {
+  flex: 1 1 160px;
+}
+
+/* ---------------- Help ---------------- */
+
+.px-help {
+  font-size: 13px;
+  line-height: 1.65;
+  color: #d6dae3;
+  display: grid;
+  gap: 10px;
+}
+
+.px-help ul {
+  display: grid;
+  gap: 6px;
+  padding-left: 18px;
+}
+
+.px-help b {
+  color: var(--px-paper);
+}
+
+.px-pause-info {
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: var(--px-gold);
+}
+
+/* ---------------- Score popups ---------------- */
+
+.px-popups {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 12;
+  overflow: hidden;
+}
+
+.px-pop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  justify-items: center;
+  font-family: var(--px-mono);
+  font-weight: 900;
+  white-space: nowrap;
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.75);
+}
+
+.px-pop-main {
+  font-size: 20px;
+  color: var(--px-lime);
+}
+
+.px-pop-sub {
+  font-size: 12px;
+  color: var(--px-gold);
+}
+
+.px-pop-nerve .px-pop-main {
+  font-size: 24px;
+  color: var(--px-rose);
+}
+
+.px-pop-minor .px-pop-main {
+  font-size: 15px;
+  color: var(--px-cyan);
+}
+
+/* ---------------- HUD additions ---------------- */
+
+.hud-root.hidden {
+  display: none;
+}
+
+.hud-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.hud-score-value {
+  font-family: var(--px-mono);
+  font-size: 21px;
+  font-weight: 900;
+  color: var(--px-paper);
+  text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
+}
+
+.hud-combo {
+  position: relative;
+  display: none;
+  padding: 3px 9px;
+  font-family: var(--px-mono);
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--px-ink);
+  background: var(--px-gold);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+.hud-combo.on {
+  display: inline-block;
+}
+
+.hud-combo-bar {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.55);
+  transition: width 0.15s linear;
+}
+
+.hud-combo-text {
+  position: relative;
+}
+
+.hud-perk {
+  display: none;
+  margin-bottom: 6px;
+  padding: 3px 10px;
+  font-family: var(--px-mono);
+  font-size: 11px;
+  font-weight: 800;
+  color: #2a1f04;
+  background: linear-gradient(90deg, var(--px-gold) calc(var(--p, 1) * 100%), rgba(242, 199, 68, 0.25) 0);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55);
+}
+
+.hud-perk.visible {
+  display: inline-block;
+}
+
+.hud-overlay-card {
+  border-radius: 0;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.6),
+    0 8px 0 0 rgba(0, 0, 0, 0.3),
+    0 24px 60px rgba(0, 0, 0, 0.55);
+  background: var(--px-glass);
+  backdrop-filter: blur(14px) saturate(1.3);
+  -webkit-backdrop-filter: blur(14px) saturate(1.3);
+}
+
+.hud-overlay-score {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  margin-bottom: 14px;
+}
+
+.hud-result-score {
+  display: grid;
+  gap: 5px;
+  justify-items: center;
+  width: 100%;
+}
+
+.hud-result-points {
+  font-family: var(--px-mono);
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--px-gold);
+}
+
+.hud-result-track {
+  width: min(240px, 80%);
+  height: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.hud-result-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--px-violet), var(--px-cyan));
+}
+
+.hud-result-target {
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  color: #98a0b0;
+}
+
+.hud-rank {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+}
+
+.hud-rank-letter {
+  font-family: var(--px-mono);
+  font-size: 46px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--px-cyan);
+  text-shadow: 4px 4px 0 rgba(0, 0, 0, 0.6);
+}
+
+.hud-rank.rank-S .hud-rank-letter { color: var(--px-gold); }
+.hud-rank.rank-A .hud-rank-letter { color: var(--px-lime); }
+.hud-rank.rank-B .hud-rank-letter { color: var(--px-cyan); }
+.hud-rank.rank-C .hud-rank-letter { color: #b9bfcc; }
+.hud-rank.rank-D .hud-rank-letter { color: var(--px-rose); }
+
+.hud-rank-blurb {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #98a0b0;
+}
+
+.hud-overlay-btn {
+  border-radius: 0;
+  border: 2px solid rgba(255, 255, 255, 0.26);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.55), 0 4px 0 0 rgba(0, 0, 0, 0.45);
+  letter-spacing: 0.1em;
+}
+
+.hud-overlay-btn:active {
+  transform: translateY(3px);
+}
+
+/* Menus own the screen: the game HUD and the touch pads step aside. */
+body.menu-open .hud-root,
+body.menu-open .touch-controls,
+body.menu-open #hint,
+body.menu-open .px-popups {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ---------------- Mobile ---------------- */
+
+@media (max-width: 720px) {
+  .px-screen {
+    padding: 18px 16px 16px;
+    gap: 12px;
+  }
+  .px-menu-stage {
+    width: 100%;
+  }
+  .px-day-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .px-day {
+    padding: 10px;
+  }
+  .px-day-name {
+    font-size: 11.5px;
+  }
+  .px-day-sub {
+    display: none;
+  }
+  .cam-grid {
+    grid-template-columns: 1fr;
+  }
+  .hud-score-value {
+    font-size: 17px;
+  }
+  .px-pop-main {
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape) {
+  .px-logo-main {
+    font-size: 30px;
+  }
+  .px-menu-list {
+    grid-template-columns: 1fr 1fr;
+  }
+  .px-screen {
+    padding: 12px 14px;
+  }
+}

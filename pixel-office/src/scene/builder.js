@@ -49,6 +49,7 @@ export function buildOffice(scene, world) {
   return {
     group,
     roomLabels,
+    markerGroup: markers.group,
     activityMarkers: markers.activityMarkers,
     distractionMarkers: markers.distractionMarkers,
   };
@@ -182,7 +183,7 @@ function buildArea(area, world) {
         dark: true,
         icon: iconFor(area),
       },
-      0.5
+      0.62
     );
     label.position.set(0, (solid ? CORE_H : GLASS_WALL_H) + 0.7 * S, 0);
     label.userData.homeX = area.x;

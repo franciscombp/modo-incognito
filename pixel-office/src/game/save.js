@@ -9,6 +9,7 @@ const EMPTY = {
   eggs: [],
   flags: {},
   bestTimes: {},
+  bestScores: {},
 };
 
 function read() {
@@ -43,11 +44,24 @@ export function createSave() {
       state.dayIndex = i;
       write(state);
     },
-    completeDay(dayId, seconds) {
+    completeDay(dayId, { seconds, score } = {}) {
       if (!state.completedDays.includes(dayId)) state.completedDays.push(dayId);
-      const prev = state.bestTimes[dayId];
-      if (prev == null || seconds < prev) state.bestTimes[dayId] = seconds;
+      if (seconds != null) {
+        const prev = state.bestTimes[dayId];
+        if (prev == null || seconds < prev) state.bestTimes[dayId] = seconds;
+      }
+      if (score != null) {
+        const prev = state.bestScores[dayId];
+        if (prev == null || score > prev) state.bestScores[dayId] = score;
+      }
       write(state);
+    },
+    recordScore(dayId, score) {
+      const prev = state.bestScores[dayId];
+      if (prev == null || score > prev) {
+        state.bestScores[dayId] = score;
+        write(state);
+      }
     },
     hasCompleted(dayId) {
       return state.completedDays.includes(dayId);
@@ -69,7 +83,7 @@ export function createSave() {
       return state.flags[name];
     },
     reset() {
-      state = { ...EMPTY, completedDays: [], eggs: [], flags: {}, bestTimes: {} };
+      state = { ...EMPTY, completedDays: [], eggs: [], flags: {}, bestTimes: {}, bestScores: {} };
       write(state);
     },
   };

@@ -1,0 +1,41 @@
+{
+  "id": "dia-5",
+  "number": 5,
+  "title": "Viernes · Evaluación de desempeño",
+  "subtitle": "Todo o nada. Él ya sospecha.",
+  "scene": "piso7",
+  "theme": "dusk",
+  "rules": {
+    "duration": 220,
+    "maxWarnings": 1,
+    "objectives": ["coffee", "chat", "movie", "snack", "sleep"],
+    "bossSpeedMul": 1.25,
+    "visionMul": 1.25,
+    "decayMul": 0.72,
+    "targetScore": 3000
+  },
+  "intro": [
+    { "speaker": "Jefe", "portrait": "🕴️", "mood": "angry", "text": "Llevo toda la semana observándote. Hoy firmo tu evaluación." },
+    {
+      "prompt": "Última palabra antes de que empiece la jornada.",
+      "portrait": "🕴️",
+      "options": [
+        {
+          "label": "«Estoy en modo incógnito.»",
+          "reply": "Estoy en modo incógnito, jefe.",
+          "flag": "declaracion",
+          "then": [
+            { "speaker": "Jefe", "portrait": "🕴️", "mood": "angry", "text": "…¿Eso qué significa?" },
+            { "speaker": "Tú", "portrait": "😏", "text": "Que no me va a ver." }
+          ]
+        },
+        { "label": "Sonreír y no decir nada", "reply": "…", "flag": "silencio" }
+      ]
+    }
+  ],
+  "outroWin": [
+    { "speaker": "Jefe", "portrait": "🕴️", "text": "Semana impecable. No te vi ni una vez fuera de tu puesto. Te asciendo." },
+    { "speaker": "Tú", "portrait": "🏆", "text": "Exactamente. No me vio ni una vez." }
+  ],
+  "outroLose": [{ "speaker": "Jefe", "portrait": "🕴️", "mood": "angry", "text": "Recursos Humanos te espera. Trae la credencial." }]
+}

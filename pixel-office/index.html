@@ -8,15 +8,24 @@
     />
     <link rel="icon" type="image/png" href="./favicon.png" />
     <meta name="theme-color" content="#0a0a0d" />
+    <meta
+      name="description"
+      content="Modo Incógnito: sobrevive la jornada en el piso 7 sin trabajar y sin que el jefe te vea."
+    />
     <title>Modo Incógnito · Tribu Canales Piso 7</title>
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <div id="app">
       <canvas id="scene"></canvas>
+      <div id="boot">
+        <div class="boot-mark">MODO<br />INCÓGNITO</div>
+        <div class="boot-bar"><span></span></div>
+        <div class="boot-note">Cargando el piso 7…</div>
+      </div>
       <div id="hint">
-        WASD: mover · E: interactuar / distraer · F: fingir trabajar · M: inspeccionar plano ·
-        Rueda: zoom
+        WASD: mover · E: usar / distraer · F: fingir · M: plano · Esc: pausa · Rueda: zoom ·
+        Clic derecho: orbitar
       </div>
     </div>
     <script type="module" src="/src/main.js"></script>

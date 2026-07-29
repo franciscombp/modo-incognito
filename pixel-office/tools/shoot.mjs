@@ -6,7 +6,7 @@
 import { chromium } from "playwright";
 import { mkdir } from "node:fs/promises";
 
-const url = process.argv[2] ?? "http://localhost:4173/modo-incognito/";
+const url = process.argv[2] ?? "http://localhost:4173/";
 const outDir = process.argv[3] ?? "shots";
 await mkdir(outDir, { recursive: true });
 
@@ -37,7 +37,18 @@ for (const vp of VIEWPORTS) {
   await page.goto(url, { waitUntil: "networkidle" });
   await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
 
-  // Click through the intro dialogue so the shot shows the actual floor.
+  // Start a run from the title menu, then click through the intro dialogue,
+  // so the shot shows the actual floor rather than a menu.
+  // "Continuar" is hidden on a fresh save, so take the first visible entry.
+  for (const btn of await page.$$(".px-screen[data-screen='title'] .px-btn")) {
+    if (await btn.isVisible()) {
+      await btn.click();
+      await page.waitForTimeout(500);
+      break;
+    }
+  }
+
+
   for (let i = 0; i < 24; i++) {
     const open = await page.evaluate(() => !!document.querySelector(".vn-layer:not(.hidden)"));
     if (!open) break;

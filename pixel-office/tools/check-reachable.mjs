@@ -6,7 +6,7 @@
 // Usage: node tools/check-reachable.mjs [url]
 import { chromium } from "playwright";
 
-const url = process.argv[2] ?? "http://localhost:4173/modo-incognito/";
+const url = process.argv[2] ?? "http://localhost:4173/";
 
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium" });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });

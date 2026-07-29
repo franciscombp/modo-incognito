@@ -1,0 +1,31 @@
+{
+  "id": "dia-4",
+  "number": 4,
+  "title": "Jueves · Modo incógnito",
+  "subtitle": "Se cayeron las distracciones. Solo quedan las paredes.",
+  "scene": "piso7",
+  "theme": "dusk",
+  "rules": {
+    "duration": 230,
+    "maxWarnings": 2,
+    "objectives": ["coffee", "chat", "movie", "snack", "sleep"],
+    "bossSpeedMul": 1.15,
+    "visionMul": 1.15,
+    "decayMul": 0.8,
+    "distractionsOff": true,
+    "targetScore": 2200
+  },
+  "intro": [
+    { "speaker": "Sistemas", "portrait": "🖨️", "text": "Aviso: impresora, cafetera y televisor en mantenimiento. Sin trucos hoy." },
+    {
+      "prompt": "Sin distracciones disponibles, ¿cómo lo juegas?",
+      "portrait": "🤔",
+      "options": [
+        { "label": "Pegada a las paredes", "reply": "Pegada a las paredes y a las plantas.", "flag": "sigilo" },
+        { "label": "A toda velocidad", "reply": "A toda velocidad. Que me alcance si puede.", "flag": "temeraria" }
+      ]
+    }
+  ],
+  "outroWin": [{ "speaker": "Tú", "portrait": "🫥", "text": "Cinco actividades prohibidas, cero pruebas. Modo incógnito activado." }],
+  "outroLose": [{ "speaker": "Jefe", "portrait": "🕴️", "mood": "angry", "text": "Sin impresora que culpar, ¿eh?" }]
+}

@@ -1,26 +1,37 @@
 import * as THREE from "three";
-import { CAMERA_PRESET } from "./config.js";
+import { subscribeCameraSettings } from "./cameraSettings.js";
 
 // Screen<->ground conversions for the oblique diorama camera.
 //
-// The camera orbits the target at a fixed yaw/pitch, so the mapping between
-// "up on the screen" and "away in the world" is a plain rotation by the yaw.
-// Deriving it from CAMERA_PRESET (instead of hard-coding a 45deg isometric)
-// means retuning the camera angle never desyncs the controls from the view.
+// The camera orbits its target at a yaw/pitch the player can retune live, so
+// the mapping between "up on the screen" and "away in the world" is a plain
+// rotation by the current yaw. Deriving it from the live settings — instead
+// of a hard-coded 45deg isometric — means turning the camera can never leave
+// the controls pointing somewhere else than the view.
 
-const YAW = THREE.MathUtils.degToRad(CAMERA_PRESET.yawDeg);
-const PITCH = THREE.MathUtils.degToRad(CAMERA_PRESET.pitchDeg);
+let cosY = 1;
+let sinY = 0;
+let viewSlope = 1;
+let dir = new THREE.Vector3(0, 1, 0);
 
-const COS_Y = Math.cos(YAW);
-const SIN_Y = Math.sin(YAW);
+subscribeCameraSettings((s) => {
+  const yaw = THREE.MathUtils.degToRad(s.yawDeg);
+  const pitch = THREE.MathUtils.degToRad(s.pitchDeg);
+  cosY = Math.cos(yaw);
+  sinY = Math.sin(yaw);
+  viewSlope = Math.sin(pitch);
+  const horizontal = Math.cos(pitch);
+  dir = new THREE.Vector3(sinY * horizontal, Math.sin(pitch), cosY * horizontal);
+});
 
 /** Vertical foreshortening of the ground plane, used for sprite facing. */
-export const VIEW_SLOPE = Math.sin(PITCH);
+export function viewSlopeNow() {
+  return viewSlope;
+}
 
 /** Unit offset from the look-at point to the camera, before distance. */
 export function cameraDirection() {
-  const horizontal = Math.cos(PITCH);
-  return new THREE.Vector3(SIN_Y * horizontal, Math.sin(PITCH), COS_Y * horizontal);
+  return dir;
 }
 
 /**
@@ -29,8 +40,8 @@ export function cameraDirection() {
  */
 export function groundToScreen(dx, dz) {
   return {
-    right: dx * COS_Y - dz * SIN_Y,
-    up: (-dx * SIN_Y - dz * COS_Y) * VIEW_SLOPE,
+    right: dx * cosY - dz * sinY,
+    up: (-dx * sinY - dz * cosY) * viewSlope,
   };
 }
 
@@ -42,8 +53,8 @@ export function groundToScreen(dx, dz) {
  */
 export function screenToGround(right, up) {
   return {
-    dx: right * COS_Y - up * SIN_Y,
-    dz: -right * SIN_Y - up * COS_Y,
+    dx: right * cosY - up * sinY,
+    dz: -right * sinY - up * cosY,
   };
 }
 
