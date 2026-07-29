@@ -11,6 +11,9 @@ export class Player {
     this.radius = radius;
     this.position = { x, z };
     this.keys = new Set();
+    // Set by the on-screen joystick on touch devices; keyboard input is
+    // ignored while this has any magnitude.
+    this.touchAxis = { x: 0, z: 0 };
 
     this.isHiding = false;
     this.isPretending = false;
@@ -50,13 +53,19 @@ export class Player {
   update(dt, world) {
     let dx = 0;
     let dz = 0;
-    if (this.keys.has("w") || this.keys.has("arrowup")) dz -= 1;
-    if (this.keys.has("s") || this.keys.has("arrowdown")) dz += 1;
-    if (this.keys.has("a") || this.keys.has("arrowleft")) dx -= 1;
-    if (this.keys.has("d") || this.keys.has("arrowright")) dx += 1;
+    const touchLen = Math.hypot(this.touchAxis.x, this.touchAxis.z);
+    if (touchLen > 0.08) {
+      dx = this.touchAxis.x;
+      dz = this.touchAxis.z;
+    } else {
+      if (this.keys.has("w") || this.keys.has("arrowup")) dz -= 1;
+      if (this.keys.has("s") || this.keys.has("arrowdown")) dz += 1;
+      if (this.keys.has("a") || this.keys.has("arrowleft")) dx -= 1;
+      if (this.keys.has("d") || this.keys.has("arrowright")) dx += 1;
+    }
 
     if (dx !== 0 || dz !== 0) {
-      const len = Math.hypot(dx, dz);
+      const len = Math.max(Math.hypot(dx, dz), 1);
       const speedMul = this.isPretending ? 0.5 : 1;
       this.position.x += (dx / len) * this.speed * speedMul * dt;
       this.position.z += (dz / len) * this.speed * speedMul * dt;
