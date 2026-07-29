@@ -86,6 +86,10 @@ const DEFAULT_RULES = {
   pretendAlways: false,
 };
 
+// El tiempo pasa más rápido cuando aparentas trabajo: ganas puntos saliendo
+// antes pero necesitas pasar tiempo fingiendo para bajar sospecha.
+const PRETEND_TIME_SPEED = 1.5; // 50% más rápido cuando finges
+
 /**
  * One workday. Owns the suspicion meter, the forbidden activities, scoring,
  * hiding/pretending, distractions and the win/lose conditions. Everything
@@ -184,7 +188,9 @@ export class Game {
       return;
     }
 
-    this.timeLeft = Math.max(0, this.timeLeft - dt);
+    // El tiempo pasa más rápido cuando finges trabajo
+    const effectiveDt = dt * (this.player.isPretending ? PRETEND_TIME_SPEED : 1);
+    this.timeLeft = Math.max(0, this.timeLeft - effectiveDt);
     if (this._caughtCooldown > 0) this._caughtCooldown -= dt;
 
     if (this.revealBossUntil > 0) this.revealBossUntil -= dt;
