@@ -8,7 +8,7 @@ import { chromium } from "playwright";
 const url = process.argv[2] ?? "http://localhost:4173/modo-incognito/";
 
 const browser = await chromium.launch({
-  executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+  executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium",
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
 const errors = [];
@@ -18,14 +18,20 @@ await page.goto(url, { waitUntil: "networkidle" });
 await page.waitForFunction(() => !!window.__game, null, { timeout: 15000 });
 
 const log = await page.evaluate(async () => {
-  const { boss, player, game, world } = window.__game;
+  const { boss, player, engine, world } = window.__game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const out = {};
 
-  // A clear stretch of the lobby corridor, boss looking east at the player.
-  const bx = -6.5;
-  const px = -3.0;
-  const z = 7.6;
+  // The intro scene freezes the level; drop straight into play for the test.
+  const game = engine.game;
+  game.setPaused(false);
+  document.querySelector(".vn-layer")?.classList.add("hidden");
+
+  // A clear stretch of the front corridor, boss looking east at the player.
+  const S = window.__floorplan.WORLD_SCALE;
+  const bx = 0 * S;
+  const px = 3.4 * S;
+  const z = 10.8 * S;
   out.sightLineClear = !world.lineBlocked({ x: bx, z }, { x: px, z }, []);
 
   player.position.x = px;
@@ -39,7 +45,8 @@ const log = await page.evaluate(async () => {
   boss.state = "PATROL";
 
   // Put a forbidden activity right where she is standing.
-  const station = game.objectives.find((o) => o.id === "movie");
+  // Day 1 only enables a couple of activities, so take whichever is first.
+  const station = game.objectives[0];
   station.x = px;
   station.z = z;
   station.done = false;
@@ -74,7 +81,8 @@ const log = await page.evaluate(async () => {
   player.isHiding = false;
   boss.resetToPatrol();
   await sleep(80);
-  out.distractAccepted = boss.distract({ x: -5.6, z: -6.6 }, 5);
+  const spot = window.__floorplan.distractions[0];
+  out.distractAccepted = boss.distract({ x: spot.x, z: spot.z }, 5);
   await sleep(150);
   out.stateAfterDistract = boss.state;
 

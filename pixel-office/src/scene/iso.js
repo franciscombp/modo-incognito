@@ -1,46 +1,49 @@
 import * as THREE from "three";
+import { CAMERA_PRESET } from "./config.js";
 
-// Shared constants for the fixed isometric projection.
+// Screen<->ground conversions for the oblique diorama camera.
 //
-// ISO_SLOPE is measured straight off the reference art: along its outer
-// walls the silhouette drops ~6px for every 10px of horizontal travel, so
-// a world-axis-aligned edge projects at slope 0.6. For an orthographic
-// camera at 45deg azimuth that slope equals sin(elevation), which pins the
-// camera elevation at ~36.9deg — noticeably flatter than the near-top-down
-// angle the scene used before.
-export const ISO_SLOPE = 0.6;
-export const ISO_ELEVATION = Math.asin(ISO_SLOPE);
+// The camera orbits the target at a fixed yaw/pitch, so the mapping between
+// "up on the screen" and "away in the world" is a plain rotation by the yaw.
+// Deriving it from CAMERA_PRESET (instead of hard-coding a 45deg isometric)
+// means retuning the camera angle never desyncs the controls from the view.
 
-// Camera offset direction (unit length) for azimuth 45deg at that elevation.
-export const ISO_DIR = new THREE.Vector3(
-  Math.cos(ISO_ELEVATION) / Math.SQRT2,
-  Math.sin(ISO_ELEVATION),
-  Math.cos(ISO_ELEVATION) / Math.SQRT2
-);
+const YAW = THREE.MathUtils.degToRad(CAMERA_PRESET.yawDeg);
+const PITCH = THREE.MathUtils.degToRad(CAMERA_PRESET.pitchDeg);
 
-const INV_SQRT2 = 1 / Math.SQRT2;
+const COS_Y = Math.cos(YAW);
+const SIN_Y = Math.sin(YAW);
+
+/** Vertical foreshortening of the ground plane, used for sprite facing. */
+export const VIEW_SLOPE = Math.sin(PITCH);
+
+/** Unit offset from the look-at point to the camera, before distance. */
+export function cameraDirection() {
+  const horizontal = Math.cos(PITCH);
+  return new THREE.Vector3(SIN_Y * horizontal, Math.sin(PITCH), COS_Y * horizontal);
+}
 
 /**
  * Project a ground-plane vector into screen space (right, up).
- * Used both for picking a sprite's facing row and for camera framing.
+ * Used for camera framing and for picking a sprite's facing row.
  */
 export function groundToScreen(dx, dz) {
   return {
-    right: (dx - dz) * INV_SQRT2,
-    up: -(dx + dz) * INV_SQRT2 * ISO_SLOPE,
+    right: dx * COS_Y - dz * SIN_Y,
+    up: (-dx * SIN_Y - dz * COS_Y) * VIEW_SLOPE,
   };
 }
 
 /**
  * Convert screen-relative input (right/up, as from WASD or a joystick) into
  * a world ground direction. Without this, "up" on the keyboard would send
- * the character diagonally across the isometric view, which is the classic
- * thing that makes iso games feel broken to steer.
+ * the character diagonally across the oblique view, which is the classic
+ * thing that makes 3/4-view games feel broken to steer.
  */
 export function screenToGround(right, up) {
   return {
-    dx: (right - up) * INV_SQRT2,
-    dz: (-right - up) * INV_SQRT2,
+    dx: right * COS_Y - up * SIN_Y,
+    dz: -right * SIN_Y - up * COS_Y,
   };
 }
 

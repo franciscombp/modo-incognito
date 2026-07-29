@@ -1,0 +1,192 @@
+// Visual-novel layer: typewriter dialogue boxes with optional branching
+// choices. Scenes are plain data (see src/content/), so writing new story
+// beats never means touching engine code.
+//
+// A scene is an array of nodes:
+//   { speaker, portrait, text, mood }            -> a line of dialogue
+//   { prompt, options: [{ label, reply, flag, then }] } -> a choice
+// `then` is a nested array of nodes, so a branch is just another scene.
+
+const ADVANCE_KEYS = new Set([" ", "enter", "e"]);
+
+export function createDialogue(root) {
+  const layer = document.createElement("div");
+  layer.className = "vn-layer hidden";
+  layer.innerHTML = `
+    <div class="vn-scrim"></div>
+    <div class="vn-box" role="dialog" aria-live="polite">
+      <div class="vn-portrait"><span class="vn-portrait-emoji"></span></div>
+      <div class="vn-body">
+        <div class="vn-speaker"></div>
+        <div class="vn-text"></div>
+        <div class="vn-options"></div>
+        <div class="vn-hint">▼ toca o pulsa espacio</div>
+      </div>
+    </div>
+  `;
+  root.appendChild(layer);
+
+  const box = layer.querySelector(".vn-box");
+  const portrait = layer.querySelector(".vn-portrait");
+  const portraitEmoji = layer.querySelector(".vn-portrait-emoji");
+  const speakerEl = layer.querySelector(".vn-speaker");
+  const textEl = layer.querySelector(".vn-text");
+  const optionsEl = layer.querySelector(".vn-options");
+  const hintEl = layer.querySelector(".vn-hint");
+
+  let typingTimer = null;
+  let typingResolve = null;
+  let typingFull = "";
+  let awaiting = null; // resolve fn for "advance"
+  let active = false;
+
+  function type(text) {
+    return new Promise((resolve) => {
+      typingFull = text;
+      typingResolve = resolve;
+      textEl.textContent = "";
+      let i = 0;
+      const step = () => {
+        i += 1;
+        textEl.textContent = text.slice(0, i);
+        if (i >= text.length) {
+          typingTimer = null;
+          typingResolve = null;
+          resolve();
+          return;
+        }
+        typingTimer = setTimeout(step, 18);
+      };
+      typingTimer = setTimeout(step, 18);
+    });
+  }
+
+  /** First tap skips the typewriter; the second one advances the line. */
+  function finishTyping() {
+    if (!typingTimer) return false;
+    clearTimeout(typingTimer);
+    typingTimer = null;
+    textEl.textContent = typingFull;
+    const resolve = typingResolve;
+    typingResolve = null;
+    resolve?.();
+    return true;
+  }
+
+  function waitForAdvance() {
+    hintEl.classList.remove("hidden");
+    return new Promise((resolve) => {
+      awaiting = resolve;
+    });
+  }
+
+  function advance() {
+    if (!active) return;
+    if (finishTyping()) return;
+    if (awaiting) {
+      const resolve = awaiting;
+      awaiting = null;
+      hintEl.classList.add("hidden");
+      resolve();
+    }
+  }
+
+  const onKey = (e) => {
+    if (!active) return;
+    if (ADVANCE_KEYS.has(e.key.toLowerCase())) {
+      e.preventDefault();
+      advance();
+    }
+  };
+  window.addEventListener("keydown", onKey);
+  layer.addEventListener("pointerdown", (e) => {
+    // Clicks on an option button must not double as "advance".
+    if (e.target.closest(".vn-option")) return;
+    advance();
+  });
+
+  async function playLine(node, ctx) {
+    optionsEl.innerHTML = "";
+    optionsEl.classList.add("hidden");
+    const speaker = resolve(node.speaker, ctx) ?? "";
+    speakerEl.textContent = speaker;
+    speakerEl.classList.toggle("hidden", !speaker);
+    portraitEmoji.textContent = node.portrait ?? "🗨️";
+    portrait.dataset.mood = node.mood ?? "neutral";
+    box.dataset.mood = node.mood ?? "neutral";
+    await type(resolve(node.text, ctx));
+    await waitForAdvance();
+  }
+
+  function playChoice(node, ctx) {
+    return new Promise(async (resolve_) => {
+      speakerEl.textContent = resolve(node.speaker, ctx) ?? "";
+      speakerEl.classList.toggle("hidden", !node.speaker);
+      portraitEmoji.textContent = node.portrait ?? "❓";
+      box.dataset.mood = node.mood ?? "neutral";
+      await type(resolve(node.prompt, ctx));
+
+      hintEl.classList.add("hidden");
+      optionsEl.innerHTML = "";
+      optionsEl.classList.remove("hidden");
+      node.options.forEach((opt) => {
+        const btn = document.createElement("button");
+        btn.className = "vn-option";
+        btn.type = "button";
+        btn.textContent = opt.label;
+        btn.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          optionsEl.innerHTML = "";
+          optionsEl.classList.add("hidden");
+          if (opt.flag) ctx.setFlag?.(opt.flag, true);
+          opt.effect?.(ctx);
+          if (opt.reply) {
+            await playLine({ speaker: opt.replySpeaker ?? "Tú", portrait: "🙂", text: opt.reply }, ctx);
+          }
+          if (opt.then) await playNodes(opt.then, ctx);
+          resolve_(opt);
+        });
+        optionsEl.appendChild(btn);
+      });
+    });
+  }
+
+  function resolve(value, ctx) {
+    return typeof value === "function" ? value(ctx) : value;
+  }
+
+  async function playNodes(nodes, ctx) {
+    for (const node of nodes) {
+      if (node.when && !node.when(ctx)) continue;
+      if (node.options) await playChoice(node, ctx);
+      else await playLine(node, ctx);
+    }
+  }
+
+  /** Runs a scene to completion. Resolves once the last node is dismissed. */
+  async function play(nodes, ctx = {}) {
+    if (!nodes || !nodes.length) return;
+    active = true;
+    layer.classList.remove("hidden");
+    document.body.classList.add("vn-open");
+    try {
+      await playNodes(nodes, ctx);
+    } finally {
+      active = false;
+      layer.classList.add("hidden");
+      document.body.classList.remove("vn-open");
+      optionsEl.innerHTML = "";
+    }
+  }
+
+  return {
+    play,
+    get isOpen() {
+      return active;
+    },
+    dispose() {
+      window.removeEventListener("keydown", onKey);
+      layer.remove();
+    },
+  };
+}

@@ -1,12 +1,13 @@
 import { CharacterSprite } from "./sprite.js";
 import { screenToGround, facingFromGround } from "../scene/iso.js";
+import { WORLD_SCALE as S } from "../scene/config.js";
 
 // The protagonist. Input is interpreted in *screen* space and then rotated
 // into world space, so W/A/S/D (and the joystick) move her up/left/down/right
 // as seen on screen rather than diagonally across the isometric view.
 export class Player {
-  constructor(sheet, { x = 0, z = 12.6, radius = 0.26, height = 1.45 } = {}) {
-    this.speed = 4.4;
+  constructor(sheet, { x = 0, z = 12.6, radius = 0.26 * S, height = 1.45 * S, speed = 4.4 } = {}) {
+    this.speed = speed * S;
     this.radius = radius;
     this.position = { x, z };
     this.keys = new Set();
