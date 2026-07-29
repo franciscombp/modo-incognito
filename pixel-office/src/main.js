@@ -3,21 +3,26 @@ import { DioramaCamera } from "./scene/camera.js";
 import { buildOffice } from "./scene/builder.js";
 import { createCollisionWorld } from "./scene/collision.js";
 import { buildNavmesh } from "./scene/navmesh.js";
+import { PixelPipeline } from "./scene/pixelPipeline.js";
 import { WORLD_SCALE as S } from "./scene/config.js";
 import * as floorplan from "./scene/floorplan.js";
-import { patrolRoute, npcs as npcData, spawn } from "./scene/floorplan.js";
+import { setActiveScene } from "./scene/floorplan.js";
+import { loadGameData } from "./data/loader.js";
 import { Player } from "./entities/player.js";
 import { NPC } from "./entities/npc.js";
 import { Boss } from "./entities/boss.js";
 import { loadSheet } from "./entities/sprite.js";
 import { createEngine } from "./game/engine.js";
 import { createTouchControls } from "./game/touchControls.js";
+import { getSettings, subscribeSettings } from "./game/settings.js";
+import { createPopups } from "./ui/popups.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 const sheetUrl = (name) => `${BASE}sprites/${name}.png`;
 
 const canvas = document.getElementById("scene");
 const app = document.getElementById("app");
+const boot0 = document.getElementById("boot");
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -30,10 +35,6 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x9fb4c9);
-
-const aspect = window.innerWidth / window.innerHeight;
-const view = new DioramaCamera(aspect);
-const camera = view.camera;
 
 // -------- Lighting: bright, flat fill so the flat art reads cleanly, plus
 // one soft key light for diorama depth. The day theme re-tints these. -----
@@ -55,36 +56,71 @@ key.shadow.camera.far = 220 * S;
 key.shadow.bias = -0.0018;
 scene.add(key);
 
-// -------- World --------
-const world = createCollisionWorld();
-const { roomLabels } = buildOffice(scene, world);
-const navmesh = buildNavmesh(world, { radius: 0.3 * S });
-
 async function boot() {
-  const [employeeSheet, bossSheet, ...npcSheets] = await Promise.all([
-    loadSheet(sheetUrl("employee")),
-    loadSheet(sheetUrl("boss")),
-    loadSheet(sheetUrl("npc1")),
-    loadSheet(sheetUrl("npc2")),
-    loadSheet(sheetUrl("npc3")),
-    loadSheet(sheetUrl("npc4")),
-  ]);
-  const npcSheetByName = {
-    npc1: npcSheets[0],
-    npc2: npcSheets[1],
-    npc3: npcSheets[2],
-    npc4: npcSheets[3],
-  };
+  // ---- Content: everything the game is made of comes from public/data ----
+  const data = await loadGameData();
+  const firstLevel = data.levels[0];
+  setActiveScene(data.scenes.get(firstLevel.scene));
 
-  const player = new Player(employeeSheet, { x: spawn.x, z: spawn.z });
+  const world = createCollisionWorld();
+  const { roomLabels, markerGroup } = buildOffice(scene, world);
+  const navmesh = buildNavmesh(world, { radius: 0.3 * S });
+
+  const aspect = window.innerWidth / window.innerHeight;
+  const view = new DioramaCamera(aspect);
+  const camera = view.camera;
+
+  const pixels = new PixelPipeline(renderer, {
+    pixelSize: getSettings().pixelSize,
+    levels: getSettings().colorLevels,
+  });
+  pixels.setSize(window.innerWidth, window.innerHeight);
+
+  // ---- Characters, straight from data/characters.json ----
+  const chars = data.characters;
+  const needed = new Set([
+    chars.player.sheet,
+    chars.boss.sheet,
+    ...floorplan.npcs.map((n) => n.sheet),
+  ]);
+  const sheets = new Map();
+  await Promise.all(
+    [...needed].map(async (name) => sheets.set(name, await loadSheet(sheetUrl(name))))
+  );
+
+  const player = new Player(sheets.get(chars.player.sheet), {
+    x: floorplan.spawn.x,
+    z: floorplan.spawn.z,
+    radius: chars.player.radius,
+    height: chars.player.height,
+    speed: chars.player.speed,
+  });
   scene.add(player.object3D);
 
-  const npcs = npcData.map((data) => new NPC(npcSheetByName[data.sheet] ?? npcSheets[0], data));
+  const npcs = floorplan.npcs.map((data_) => {
+    const def = chars.npcs[data_.sheet] ?? {};
+    return new NPC(sheets.get(def.sheet ?? data_.sheet) ?? sheets.values().next().value, {
+      ...data_,
+      radius: def.radius,
+      height: def.height,
+    });
+  });
   npcs.forEach((npc) => scene.add(npc.object3D));
 
-  const boss = new Boss(bossSheet, { world, route: patrolRoute, navmesh });
+  const boss = new Boss(sheets.get(chars.boss.sheet), {
+    world,
+    route: floorplan.patrolRoute,
+    navmesh,
+    radius: chars.boss.radius,
+    height: chars.boss.height,
+    speeds: chars.boss.speeds,
+    visionRange: chars.boss.visionRange,
+    visionHalfAngleDeg: chars.boss.visionHalfAngleDeg,
+  });
   scene.add(boss.object3D);
   scene.add(boss.cone);
+
+  const popups = createPopups(app, camera);
 
   const engine = createEngine({
     app,
@@ -95,12 +131,13 @@ async function boot() {
     boss,
     npcs,
     camera: view,
+    levels: data.levels,
+    codeEggs: data.codeEggs,
+    manifest: data.manifest,
+    onPopup: (p) => popups.spawn(p),
   });
 
   // -------- Labels: three tiers, so the diorama never drowns in signage ----
-  // 1 = landmarks (salas, cafetería, baños, ascensores): always on
-  // 2 = work zones: when the player is close, in the overview, or inspecting
-  // 3 = service detail: inspect mode only
   let inspectMode = false;
   function toggleInspect() {
     inspectMode = !inspectMode;
@@ -110,27 +147,57 @@ async function boot() {
   createTouchControls(player, app, {
     onZoom: (delta) => view.zoomBy(delta),
     onInspect: toggleInspect,
+    onPause: () => engine.openPause(),
   });
 
-  // -------- Camera input --------
+  // -------- Camera input: zoom (wheel/pinch) and orbit (right-drag / 2 fingers)
   window.addEventListener(
     "wheel",
     (e) => {
-      if (engine.dialogue.isOpen) return;
+      if (engine.dialogue.isOpen || engine.menus.isOpen) return;
       view.zoomBy(-e.deltaY * 0.0012);
     },
     { passive: true }
   );
 
+  let orbitPointer = null;
+  let orbitLast = { x: 0, y: 0 };
+  canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  canvas.addEventListener("pointerdown", (e) => {
+    if (e.button !== 2 || engine.menus.isOpen) return;
+    orbitPointer = e.pointerId;
+    orbitLast = { x: e.clientX, y: e.clientY };
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (e.pointerId !== orbitPointer) return;
+    view.orbitBy((e.clientX - orbitLast.x) * 0.25, -(e.clientY - orbitLast.y) * 0.2);
+    orbitLast = { x: e.clientX, y: e.clientY };
+  });
+  const endOrbit = (e) => {
+    if (e.pointerId === orbitPointer) orbitPointer = null;
+  };
+  canvas.addEventListener("pointerup", endOrbit);
+  canvas.addEventListener("pointercancel", endOrbit);
+
+  // Two-finger drag orbits, two-finger pinch zooms — both from the same
+  // gesture, decided by whether the fingers move together or apart.
   let pinchStartDist = null;
   let pinchStartFraming = 0;
-  const pinchDistance = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  let twoFingerCentre = null;
+  const touchDist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const touchCentre = (t) => ({
+    x: (t[0].clientX + t[1].clientX) / 2,
+    y: (t[0].clientY + t[1].clientY) / 2,
+  });
+
   canvas.addEventListener(
     "touchstart",
     (e) => {
       if (e.touches.length === 2) {
-        pinchStartDist = pinchDistance(e.touches);
+        pinchStartDist = touchDist(e.touches);
         pinchStartFraming = view.framing;
+        twoFingerCentre = touchCentre(e.touches);
       }
     },
     { passive: true }
@@ -138,10 +205,17 @@ async function boot() {
   canvas.addEventListener(
     "touchmove",
     (e) => {
-      if (e.touches.length === 2 && pinchStartDist) {
-        const ratio = pinchDistance(e.touches) / pinchStartDist;
-        view.setFraming(pinchStartFraming + (ratio - 1) * 0.9);
+      if (e.touches.length !== 2 || !pinchStartDist) return;
+      const dist = touchDist(e.touches);
+      const centre = touchCentre(e.touches);
+      const spread = Math.abs(dist / pinchStartDist - 1);
+      const drag = Math.hypot(centre.x - twoFingerCentre.x, centre.y - twoFingerCentre.y);
+      if (spread * 400 > drag) {
+        view.setFraming(pinchStartFraming + (dist / pinchStartDist - 1) * 0.9);
+      } else {
+        view.orbitBy((centre.x - twoFingerCentre.x) * 0.3, -(centre.y - twoFingerCentre.y) * 0.25);
       }
+      twoFingerCentre = centre;
     },
     { passive: true }
   );
@@ -153,15 +227,25 @@ async function boot() {
     { passive: true }
   );
 
-  window.addEventListener("resize", () => {
+  function resize() {
     const w = window.innerWidth;
     const h = window.innerHeight;
     renderer.setSize(w, h);
+    pixels.setSize(w, h);
     view.setAspect(w / h);
-  });
+  }
+  window.addEventListener("resize", resize);
 
   window.addEventListener("keydown", (e) => {
-    if (e.key.toLowerCase() === "m" && !engine.dialogue.isOpen) toggleInspect();
+    if (e.key.toLowerCase() === "m" && !engine.dialogue.isOpen && !engine.menus.isOpen) {
+      toggleInspect();
+    }
+  });
+
+  subscribeSettings((s) => {
+    pixels.setPixelSize(s.pixelSize);
+    pixels.setLevels(s.colorLevels);
+    if (markerGroup) markerGroup.visible = s.showMarkers;
   });
 
   const LABEL_NEAR = 7 * S;
@@ -174,10 +258,12 @@ async function boot() {
 
   function updateLabels() {
     const overview = !view.isFollowing;
+    const labelsOn = getSettings().showLabels;
     roomLabels.forEach((label) => {
       const priority = label.userData.priority ?? 2;
       let t;
-      if (inspectMode || priority === 1) t = 1;
+      if (!labelsOn && !inspectMode) t = 0;
+      else if (inspectMode || priority === 1) t = 1;
       else if (priority >= 3) t = 0;
       else if (overview) t = 1;
       else {
@@ -208,8 +294,7 @@ async function boot() {
     if (obj.userData && obj.userData.bob) bobbingMeshes.push(obj);
   });
 
-  // Don't await: the story beat runs while the render loop is already going,
-  // otherwise the first frame only appears after the intro is dismissed.
+  boot0?.remove();
   engine.start();
 
   let last = performance.now();
@@ -218,8 +303,7 @@ async function boot() {
     last = now;
     const t = now / 1000;
 
-    const frozen = engine.isPaused;
-    if (!frozen) {
+    if (!engine.isPaused) {
       player.update(dt, world);
       npcs.forEach((npc) => npc.update(dt, t));
     }
@@ -233,21 +317,21 @@ async function boot() {
 
     updateLabels();
     view.update(dt, player.position);
-    renderer.render(scene, camera);
+    popups.update(dt);
+    pixels.render(scene, camera);
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);
 
   // Exposed for the automated checks in tools/.
-  window.__game = { world, navmesh, player, boss, engine, camera, scene, view };
+  window.__game = { world, navmesh, player, boss, engine, camera, scene, view, pixels, data };
   window.__floorplan = floorplan;
 }
 
 boot().catch((err) => {
   console.error(err);
   const msg = document.createElement("div");
-  msg.style.cssText =
-    "position:absolute;inset:0;display:grid;place-items:center;color:#e6483f;font:14px sans-serif;text-align:center;padding:24px";
-  msg.textContent = `No se pudo iniciar el juego: ${err.message ?? err}`;
-  app.appendChild(msg);
+  msg.className = "boot-error";
+  msg.innerHTML = `<b>No se pudo iniciar el juego</b><br>${err.message ?? err}`;
+  (boot0 ?? app).replaceChildren(msg);
 });

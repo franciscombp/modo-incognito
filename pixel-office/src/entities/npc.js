@@ -5,14 +5,14 @@ import { WORLD_SCALE as S } from "../scene/config.js";
 // line of sight and one of them anchors the "conversar con colegas" activity.
 // A few wander a short beat so the floor doesn't look frozen.
 export class NPC {
-  constructor(sheet, { id, x, z, radius = 0.28 * S, facing = "south", sway = 0 } = {}) {
+  constructor(sheet, { id, x, z, radius = 0.28 * S, height = 1.4 * S, facing = "south", sway = 0 } = {}) {
     this.id = id;
     this.position = { x, z };
     this.home = { x, z };
     this.radius = radius;
     this.sway = sway * S;
 
-    this.sprite = new CharacterSprite(sheet, { height: 1.4 * S });
+    this.sprite = new CharacterSprite(sheet, { height });
     this.sprite.setFacing(facing);
     this.sprite.setPosition(x, z);
     this._phase = Math.random() * Math.PI * 2;

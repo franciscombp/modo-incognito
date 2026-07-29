@@ -1,0 +1,23 @@
+{
+  "id": "dia-3",
+  "number": 3,
+  "title": "Miércoles · Comité de seguimiento",
+  "subtitle": "El jefe anda nervioso: hay reunión de tribu.",
+  "scene": "piso7",
+  "theme": "overcast",
+  "rules": {
+    "duration": 240,
+    "maxWarnings": 2,
+    "objectives": ["coffee", "chat", "movie", "snack"],
+    "bossSpeedMul": 1.1,
+    "visionMul": 1.12,
+    "decayMul": 0.85,
+    "targetScore": 1600
+  },
+  "intro": [
+    { "speaker": "Jefe", "portrait": "🕴️", "mood": "tense", "text": "Hoy pasa el comité. Quiero ver a todo el mundo en su puesto. TODO el mundo." },
+    { "speaker": "Tú", "portrait": "😬", "text": "Traducción: hoy camina más rápido y mira más lejos." }
+  ],
+  "outroWin": [{ "speaker": "Tú", "portrait": "😎", "text": "Vi media película en el auditorio durante el comité. Nadie lo sabrá." }],
+  "outroLose": [{ "speaker": "Jefe", "portrait": "🕴️", "mood": "angry", "text": "¡Justo hoy! ¡JUSTO HOY!" }]
+}

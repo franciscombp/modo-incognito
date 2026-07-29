@@ -41,7 +41,19 @@ function buildConeGeometry(range, halfAngle, segments = 24) {
  * distraction pulls him away from whatever he was doing.
  */
 export class Boss {
-  constructor(sheet, { world, route, navmesh = null, radius = 0.3 * S, speedMul = 1 }) {
+  // Like the player: `speeds`, `radius`, `height` and `visionRange` arrive
+  // already scaled to world units from data/characters.json.
+  constructor(sheet, {
+    world,
+    route,
+    navmesh = null,
+    radius = 0.3 * S,
+    height = 1.55 * S,
+    speeds = {},
+    visionRange = 7.5 * S,
+    visionHalfAngleDeg = 30,
+    speedMul = 1,
+  }) {
     this.world = world;
     this.navmesh = navmesh;
     this.route = route;
@@ -57,10 +69,16 @@ export class Boss {
     this._repathTimer = 0;
 
     this.state = PATROL;
-    this.speed = 2.4 * S * speedMul;
-    this.investigateSpeed = 3.2 * S * speedMul;
-    this.chaseSpeed = 4.9 * S * speedMul; // faster than the player, so cover matters
-    this.searchSpeed = 3.0 * S * speedMul;
+    this.baseSpeeds = {
+      patrol: speeds.patrol ?? 2.4 * S,
+      investigate: speeds.investigate ?? 3.2 * S,
+      chase: speeds.chase ?? 4.9 * S, // faster than the player, so cover matters
+      search: speeds.search ?? 3.0 * S,
+    };
+    this.speed = this.baseSpeeds.patrol * speedMul;
+    this.investigateSpeed = this.baseSpeeds.investigate * speedMul;
+    this.chaseSpeed = this.baseSpeeds.chase * speedMul;
+    this.searchSpeed = this.baseSpeeds.search * speedMul;
 
     this.investigateTarget = null;
     this.investigateTimer = 0;
@@ -69,13 +87,14 @@ export class Boss {
     this.loseSightTimer = 0;
     this.lastSeenPlayerPos = null;
 
-    this.visionRange = 7.5 * S;
-    this.halfAngle = THREE.MathUtils.degToRad(30);
+    this.baseVisionRange = visionRange;
+    this.visionRange = visionRange;
+    this.halfAngle = THREE.MathUtils.degToRad(visionHalfAngleDeg);
 
     this.playerVisible = false;
     this.redAlert = false;
 
-    this.sprite = new CharacterSprite(sheet, { height: 1.55 * S });
+    this.sprite = new CharacterSprite(sheet, { height });
     this.sprite.setPosition(this.position.x, this.position.z);
 
     const geometry = buildConeGeometry(this.visionRange, this.halfAngle);

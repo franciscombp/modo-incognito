@@ -2,12 +2,13 @@ import {
   activityStations,
   distractions,
   hidingSpots,
+  locationEggs,
   nearestArea,
   areaAt,
 } from "../scene/floorplan.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { BOSS_STATES } from "../entities/boss.js";
-import { locationEggs } from "../content/easterEggs.js";
+import { buzz } from "./settings.js";
 
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
@@ -16,25 +17,38 @@ const SEEN_WHILE_HUNTED_RATE = 16;
 const INTERACT_RADIUS = 1.5 * S;
 const DISTRACTION_EFFECT_DURATION = 7;
 
+// Scoring. The fun is in *how* you slack off, not just whether you finish, so
+// the score rewards nerve: doing a forbidden thing with the boss breathing
+// down your neck is worth several times doing it in an empty wing, and
+// chaining activities without a warning stacks a multiplier.
+const COMBO_WINDOW = 22; // seconds to chain the next activity
+const COMBO_STEP = 0.5; // +0.5x per link
+const COMBO_MAX = 4;
+const NERVE_NEAR = 11 * S; // boss this close = "nerve" bonus
+const NERVE_BONUS = 0.8;
+const SEEN_NERVE_BONUS = 1.4; // ...and in his cone, which is madness
+const PERK_DURATION = 15;
+
 const DEFAULT_RULES = {
   duration: 240,
   maxWarnings: 3,
   objectives: null, // null = every forbidden activity
   decayMul: 1,
   distractionsOff: false,
+  targetScore: 1000,
 };
 
 /**
- * One workday. Owns the suspicion meter, the forbidden activities,
+ * One workday. Owns the suspicion meter, the forbidden activities, scoring,
  * hiding/pretending, distractions and the win/lose conditions. Everything
  * else (rendering, input capture, boss movement, story) lives elsewhere and
  * is only read/poked from here.
  *
- * All the knobs a day can change live in `rules`, so the campaign in
- * src/content/days.js can escalate difficulty without touching this file.
+ * All the knobs a day can change live in `rules`, which come straight from
+ * the level's JSON — so the campaign escalates without touching this file.
  */
 export class Game {
-  constructor({ player, boss, npcs, hud, rules = {}, onFinish = null, onEgg = null }) {
+  constructor({ player, boss, npcs, hud, rules = {}, onFinish = null, onEgg = null, onPopup = null }) {
     this.player = player;
     this.boss = boss;
     this.npcs = npcs;
@@ -42,6 +56,7 @@ export class Game {
     this.rules = { ...DEFAULT_RULES, ...rules };
     this.onFinish = onFinish;
     this.onEgg = onEgg;
+    this.onPopup = onPopup;
 
     this.suspicion = 0;
     this.warnings = 0;
@@ -50,6 +65,12 @@ export class Game {
     this.win = false;
     this.paused = false;
     this._finished = false;
+
+    this.score = 0;
+    this.combo = 1;
+    this.comboLeft = 0;
+    this.perk = null;
+    this.perkLeft = 0;
 
     const wanted = this.rules.objectives;
     this.objectives = activityStations
@@ -71,7 +92,7 @@ export class Game {
     this._foundEggs = new Set();
   }
 
-  /** Story beats freeze the world without tearing the level down. */
+  /** Story beats and menus freeze the world without tearing the level down. */
   setPaused(paused) {
     this.paused = paused;
     if (paused) {
@@ -91,12 +112,19 @@ export class Game {
     this.timeLeft = Math.max(0, this.timeLeft - dt);
     if (this._caughtCooldown > 0) this._caughtCooldown -= dt;
 
+    if (this.comboLeft > 0) {
+      this.comboLeft = Math.max(0, this.comboLeft - dt);
+      if (this.comboLeft === 0) this.combo = 1;
+    }
+    if (this.perkLeft > 0) {
+      this.perkLeft = Math.max(0, this.perkLeft - dt);
+      if (this.perkLeft === 0) this._clearPerk();
+    }
+
     const pos = this.player.position;
     this.currentArea = areaAt(pos.x, pos.z) ?? nearestArea(pos.x, pos.z).area;
 
-    this.player.isHiding = hidingSpots.some(
-      (h) => Math.hypot(h.x - pos.x, h.z - pos.z) < h.r
-    );
+    this.player.isHiding = hidingSpots.some((h) => Math.hypot(h.x - pos.x, h.z - pos.z) < h.r);
 
     const holdingE = this.player.keys.has("e");
     const holdingF = this.player.keys.has("f");
@@ -112,7 +140,7 @@ export class Game {
       this.nearStation.progress = Math.min(this.nearStation.time, this.nearStation.progress + dt);
       if (this.nearStation.progress >= this.nearStation.time && !this.nearStation.done) {
         this.nearStation.done = true;
-        this._toast(`Completado: ${this.nearStation.label}`);
+        this._completeActivity(this.nearStation);
       }
     } else {
       this.player.isDoingActivity = false;
@@ -131,6 +159,7 @@ export class Game {
       if (this.boss.distract(target, DISTRACTION_EFFECT_DURATION)) {
         this.nearDistraction.cooldownLeft = this.nearDistraction.cooldown;
         this._toast(`Distracción: ${this.nearDistraction.label}`);
+        this._award(40, "Distracción", this.player.position);
       } else {
         this._toast("¡Ya te vio! Una distracción no lo detiene ahora.");
       }
@@ -174,6 +203,64 @@ export class Game {
     this.hud.render(this._snapshot());
   }
 
+  // ---------------------------------------------------------------- scoring
+  _completeActivity(station) {
+    const distToBoss = Math.hypot(
+      this.boss.position.x - this.player.position.x,
+      this.boss.position.z - this.player.position.z
+    );
+
+    let nerve = 0;
+    let nerveLabel = "";
+    if (this.boss.playerVisible) {
+      nerve = SEEN_NERVE_BONUS;
+      nerveLabel = " · ¡EN SUS NARICES!";
+    } else if (distToBoss < NERVE_NEAR) {
+      nerve = NERVE_BONUS;
+      nerveLabel = " · con el jefe cerca";
+    }
+
+    const base = station.points ?? 120;
+    const gained = Math.round(base * (this.combo + nerve));
+    this.score += gained;
+
+    this.combo = Math.min(COMBO_MAX, this.combo + COMBO_STEP);
+    this.comboLeft = COMBO_WINDOW;
+
+    if (station.perk) this._applyPerk(station.perk);
+
+    buzz([12, 40, 18]);
+    this._toast(`${station.label} ✔${nerveLabel}`);
+    this.onPopup?.({
+      text: `+${gained}`,
+      sub: this.combo > 1 ? `x${this.combo.toFixed(1)}` : "",
+      x: station.x,
+      z: station.z,
+      kind: nerve ? "nerve" : "score",
+    });
+  }
+
+  _award(points, label, at) {
+    const gained = Math.round(points * this.combo);
+    this.score += gained;
+    this.onPopup?.({ text: `+${gained}`, sub: label, x: at.x, z: at.z, kind: "minor" });
+  }
+
+  _applyPerk(perk) {
+    this._clearPerk();
+    this.perk = perk;
+    this.perkLeft = PERK_DURATION;
+    if (perk === "caffeine") {
+      this.player.speedMul = 1.35;
+      this._toast("☕ Cafeína: +35% de velocidad");
+    }
+  }
+
+  _clearPerk() {
+    if (this.perk === "caffeine") this.player.speedMul = 1;
+    this.perk = null;
+  }
+
   /** Standing still in the right spot for a beat reveals a hidden note. */
   _updateEggs(dt) {
     if (!this.onEgg) return;
@@ -185,6 +272,7 @@ export class Game {
       this._eggDwell.set(egg.id, Math.max(0, dwell));
       if (dwell >= egg.dwell) {
         this._foundEggs.add(egg.id);
+        this.score += 250;
         this.onEgg(egg);
       }
     }
@@ -194,7 +282,10 @@ export class Game {
     this.warnings += 1;
     this.suspicion = 0;
     this._caughtCooldown = 3;
+    this.combo = 1;
+    this.comboLeft = 0;
     this.boss.resetToPatrol();
+    buzz([40, 60, 40]);
 
     if (this.warnings >= this.rules.maxWarnings) {
       this._toast("Última advertencia: despedida.");
@@ -209,12 +300,21 @@ export class Game {
     this._finished = true;
     this.gameOver = true;
     this.win = win;
+    this._clearPerk();
+
+    // Finishing early is worth something: the clock you didn't need is a
+    // bonus, so speed and nerve both pay off.
+    if (win) this.score += Math.round(this.timeLeft * 4);
+
     this.onFinish?.({
       win,
+      score: this.score,
+      targetScore: this.rules.targetScore,
       warnings: this.warnings,
       timeLeft: this.timeLeft,
       elapsed: this.rules.duration - this.timeLeft,
       objectives: this.objectives,
+      eggsFound: this._foundEggs.size,
     });
   }
 
@@ -241,6 +341,14 @@ export class Game {
       win: this.win,
       message: this.message,
       area: this.currentArea,
+      score: this.score,
+      combo: this.combo,
+      comboLeft: this.comboLeft,
+      comboWindow: COMBO_WINDOW,
+      perk: this.perk,
+      perkLeft: this.perkLeft,
+      perkDuration: PERK_DURATION,
+      targetScore: this.rules.targetScore,
     };
   }
 }

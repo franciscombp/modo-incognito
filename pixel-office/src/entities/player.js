@@ -6,13 +6,16 @@ import { WORLD_SCALE as S } from "../scene/config.js";
 // into world space, so W/A/S/D (and the joystick) move her up/left/down/right
 // as seen on screen rather than diagonally across the isometric view.
 export class Player {
-  constructor(sheet, { x = 0, z = 12.6, radius = 0.26 * S, height = 1.45 * S, speed = 4.4 } = {}) {
-    this.speed = speed * S;
+  // Sizes and speeds arrive already in world units (the data loader scales
+  // them by WORLD_SCALE), so nothing is multiplied twice.
+  constructor(sheet, { x = 0, z = 12.6, radius = 0.26 * S, height = 1.45 * S, speed = 4.4 * S } = {}) {
+    this.speed = speed;
     this.radius = radius;
     this.position = { x, z };
     this.keys = new Set();
     this.touchAxis = { x: 0, z: 0 };
 
+    this.speedMul = 1; // perks (coffee) scale this
     this.isHiding = false;
     this.isPretending = false;
     this.isDoingActivity = false;
@@ -60,7 +63,7 @@ export class Player {
     if (magnitude > 0.001) {
       const { dx, dz } = screenToGround(right, up);
       const len = Math.hypot(dx, dz) || 1;
-      const speedMul = this.isPretending ? 0.45 : 1;
+      const speedMul = (this.isPretending ? 0.45 : 1) * this.speedMul;
       const step = this.speed * speedMul * magnitude * dt;
       this.position.x += (dx / len) * step;
       this.position.z += (dz / len) * step;

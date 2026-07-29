@@ -5,7 +5,7 @@
 // Usage: node tools/check-chase.mjs [url]
 import { chromium } from "playwright";
 
-const url = process.argv[2] ?? "http://localhost:4173/modo-incognito/";
+const url = process.argv[2] ?? "http://localhost:4173/";
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium",
@@ -15,7 +15,15 @@ const errors = [];
 page.on("pageerror", (e) => errors.push(String(e)));
 
 await page.goto(url, { waitUntil: "networkidle" });
-await page.waitForFunction(() => !!window.__game, null, { timeout: 15000 });
+await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
+
+// The title menu is up on boot; start day 1 before poking at the AI.
+// Note the braces: startDay's promise only settles once the intro dialogue
+// is dismissed, and returning it here would hang the test forever.
+await page.evaluate(() => {
+  window.__game.engine.startDay(0);
+});
+await page.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 10000 });
 
 const log = await page.evaluate(async () => {
   const { boss, player, engine, world } = window.__game;

@@ -46,6 +46,12 @@ export function createHud(root) {
 
   const centerCol = el("div", "hud-center", topBar);
   const dayChip = el("div", "hud-day-chip", centerCol);
+  const scoreRow = el("div", "hud-score", centerCol);
+  const scoreValue = el("span", "hud-score-value", scoreRow);
+  const comboChip = el("span", "hud-combo", scoreRow);
+  const comboBar = el("span", "hud-combo-bar", comboChip);
+  const comboText = el("span", "hud-combo-text", comboChip);
+  const perkChip = el("div", "hud-perk", centerCol);
   const suspicionWrap = el("div", "hud-panel hud-suspicion", centerCol);
   const susTitleRow = el("div", "hud-panel-title", suspicionWrap);
   susTitleRow.innerHTML = `<span class="hud-title-icon">👁️</span> SOSPECHA`;
@@ -84,6 +90,7 @@ export function createHud(root) {
   const overlayCard = el("div", "hud-overlay-card", overlay);
   const overlayIcon = el("div", "hud-overlay-icon", overlayCard);
   const overlayTitle = el("div", "hud-overlay-title", overlayCard);
+  const overlayScore = el("div", "hud-overlay-score", overlayCard);
   const overlayBody = el("div", "hud-overlay-body", overlayCard);
   const overlayActions = el("div", "hud-overlay-actions", overlayCard);
 
@@ -93,12 +100,35 @@ export function createHud(root) {
     dayChip.textContent = `DÍA ${day.number} · ${day.title.toUpperCase()}`;
   }
 
+  /** Toggles the whole in-game HUD, e.g. while a menu is up. */
+  function setVisible(visible) {
+    hud.classList.toggle("hidden", !visible);
+  }
+
   /** Shown between days; `actions` are [{ label, primary, onClick }]. */
-  function showResult({ icon, title, body, win, actions }) {
+  function showResult({ icon, title, body, win, actions, rank, score, target }) {
     overlayIcon.textContent = icon;
     overlayTitle.textContent = title;
     overlayTitle.classList.toggle("win", !!win);
     overlayTitle.classList.toggle("lose", !win);
+
+    overlayScore.innerHTML = "";
+    if (score != null) {
+      const box = el("div", "hud-result-score", overlayScore);
+      el("span", "hud-result-points", box, `${score.toLocaleString("es")} pts`);
+      if (target) {
+        const track = el("div", "hud-result-track", box);
+        const fill = el("div", "hud-result-fill", track);
+        fill.style.width = `${Math.min(100, Math.round((score / target) * 100))}%`;
+        el("span", "hud-result-target", box, `objetivo ${target.toLocaleString("es")}`);
+      }
+    }
+    if (rank) {
+      const badge = el("div", `hud-rank rank-${rank.label}`, overlayScore);
+      el("span", "hud-rank-letter", badge, rank.label);
+      el("span", "hud-rank-blurb", badge, rank.blurb);
+    }
+
     overlayBody.textContent = body;
     overlayActions.innerHTML = "";
     actions.forEach((action) => {
@@ -123,6 +153,20 @@ export function createHud(root) {
         pip.textContent = "!";
         return pip;
       });
+    }
+
+    scoreValue.textContent = state.score.toLocaleString("es");
+    const comboOn = state.combo > 1;
+    comboChip.classList.toggle("on", comboOn);
+    comboText.textContent = `x${state.combo.toFixed(1)}`;
+    comboBar.style.width = comboOn
+      ? `${Math.round((state.comboLeft / state.comboWindow) * 100)}%`
+      : "0%";
+
+    perkChip.classList.toggle("visible", !!state.perk);
+    if (state.perk) {
+      perkChip.textContent = `☕ CAFEÍNA ${Math.ceil(state.perkLeft)}s`;
+      perkChip.style.setProperty("--p", state.perkLeft / state.perkDuration);
     }
 
     const pct = Math.round((state.suspicion / state.suspicionMax) * 100);
@@ -205,5 +249,5 @@ export function createHud(root) {
     }
   }
 
-  return { render, setDay, showResult, hideResult };
+  return { render, setDay, setVisible, showResult, hideResult, root: hud };
 }

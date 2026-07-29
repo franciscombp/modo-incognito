@@ -11,7 +11,10 @@
     "check:reachable": "node tools/check-reachable.mjs",
     "check:chase": "node tools/check-chase.mjs",
     "check": "npm run check:reachable && npm run check:chase",
-    "check:visual": "node tools/shoot.mjs"
+    "check:visual": "node tools/shoot.mjs",
+    "sync:root": "node tools/sync-root.mjs",
+    "build:pages": "npm run build && npm run sync:root",
+    "check:menus": "node tools/shoot-menus.mjs"
   },
   "license": "ISC",
   "dependencies": {

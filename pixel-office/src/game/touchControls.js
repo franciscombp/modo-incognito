@@ -6,7 +6,9 @@
 // The stick is "floating": touching anywhere in the left half of the screen
 // drops the base under your thumb, which is what makes this playable
 // one-handed on a phone instead of forcing you to hunt for a fixed circle.
-export function createTouchControls(player, root, { onZoom, onInspect } = {}) {
+import { buzz } from "./settings.js";
+
+export function createTouchControls(player, root, { onZoom, onInspect, onPause } = {}) {
   const isTouch =
     "ontouchstart" in window ||
     navigator.maxTouchPoints > 0 ||
@@ -86,6 +88,7 @@ export function createTouchControls(player, root, { onZoom, onInspect } = {}) {
       e.preventDefault();
       player.keys.add(gameKey);
       btn.classList.add("active");
+      buzz(8);
     };
     const release = () => {
       player.keys.delete(gameKey);
@@ -116,6 +119,7 @@ export function createTouchControls(player, root, { onZoom, onInspect } = {}) {
     btn.setAttribute("aria-label", title);
     btn.addEventListener("click", (e) => {
       e.preventDefault();
+      buzz(8);
       onTap();
     });
     utils.appendChild(btn);
@@ -127,6 +131,7 @@ export function createTouchControls(player, root, { onZoom, onInspect } = {}) {
     makeTapButton("－", "Alejar", () => onZoom(-0.18));
   }
   if (onInspect) makeTapButton("🗺️", "Inspeccionar plano", onInspect);
+  if (onPause) makeTapButton("⏸", "Pausa", onPause);
 
   return { isTouch };
 }
