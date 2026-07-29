@@ -1,12 +1,38 @@
 import * as THREE from "three";
+import { ISO_DIR, groundToScreen } from "./iso.js";
 import { footprint } from "./floorplan.js";
 
-// Classic top-down orthographic camera looking straight down, like a 2D RPG.
-// No rotation, just vertical movement and zoom.
+// Isometric camera at 45° azimuth, measuring ~36.9° elevation from reference art.
+// The angle never changes — only zoom and target position move.
 
 const FRUSTUM = 24; // vertical world units at zoom 1
+const DISTANCE = 60; // far enough nothing clips; orthographic so scale unaffected
 
-export function createTopDownCamera(aspect) {
+/** Screen-space bounding box of the whole floor for framing. */
+function floorScreenExtents() {
+  let minR = Infinity;
+  let maxR = -Infinity;
+  let minU = Infinity;
+  let maxU = -Infinity;
+
+  for (const [x, z] of footprint) {
+    const { right, up } = groundToScreen(x, -z);
+    minR = Math.min(minR, right);
+    maxR = Math.max(maxR, right);
+    minU = Math.min(minU, up);
+    maxU = Math.max(maxU, up);
+  }
+
+  // Headroom for labels and floating elements
+  return {
+    width: maxR - minR,
+    height: maxU - minU + 3,
+    centerX: (minR + maxR) / 2,
+    centerY: (minU + maxU) / 2,
+  };
+}
+
+export function createIsoCamera(aspect) {
   const camera = new THREE.OrthographicCamera(
     (-FRUSTUM * aspect) / 2,
     (FRUSTUM * aspect) / 2,
@@ -16,15 +42,15 @@ export function createTopDownCamera(aspect) {
     400
   );
 
-  // Position high above the floor, looking straight down
-  camera.position.set(0, 40, 0);
+  const offset = ISO_DIR.clone().multiplyScalar(DISTANCE);
+  camera.position.copy(offset);
   camera.lookAt(0, 0, 0);
   camera.updateProjectionMatrix();
 
-  return { camera, frustumSize: FRUSTUM };
+  return { camera, frustumSize: FRUSTUM, offset };
 }
 
-export function resizeTopDownCamera(camera, frustumSize, aspect) {
+export function resizeIsoCamera(camera, frustumSize, aspect) {
   camera.left = (-frustumSize * aspect) / 2;
   camera.right = (frustumSize * aspect) / 2;
   camera.top = frustumSize / 2;
@@ -32,39 +58,21 @@ export function resizeTopDownCamera(camera, frustumSize, aspect) {
   camera.updateProjectionMatrix();
 }
 
-/** Calculate world-space bounding box of the floor. */
-function floorBounds() {
-  let minX = Infinity;
-  let maxX = -Infinity;
-  let minZ = Infinity;
-  let maxZ = -Infinity;
-
-  for (const [x, z] of footprint) {
-    minX = Math.min(minX, x);
-    maxX = Math.max(maxX, x);
-    minZ = Math.min(minZ, z);
-    maxZ = Math.max(maxZ, z);
-  }
-
-  return {
-    width: maxX - minX,
-    height: maxZ - minZ,
-    centerX: (minX + maxX) / 2,
-    centerZ: (minZ + maxZ) / 2,
-  };
-}
-
 /**
- * Zoom at which the entire floor fits on screen. Below this the camera
- * stays on the building; above it the view is tighter, so it follows the player.
+ * Zoom at which entire floor fits on screen. Below this, camera stays
+ * parked; above it, view is tighter and follows the player.
  */
 export function overviewZoom(aspect) {
-  const b = floorBounds();
-  return Math.min((FRUSTUM * aspect) / b.width, FRUSTUM / b.height);
+  const e = floorScreenExtents();
+  return Math.min((FRUSTUM * aspect) / e.width, FRUSTUM / e.height);
 }
 
-/** World-space point the overview should be centred on. */
+/** World-space point the overview should center on. */
 export function overviewTarget() {
-  const b = floorBounds();
-  return new THREE.Vector3(b.centerX, 0, b.centerZ);
+  const e = floorScreenExtents();
+  // Invert groundToScreen: right = (x - z)/√2, up = -(x + z)*slope/√2
+  const r2 = Math.SQRT2;
+  const a = e.centerX * r2; // x - z
+  const b = (-e.centerY * r2) / 0.6; // x + z
+  return new THREE.Vector3((a + b) / 2, 0, (b - a) / 2);
 }

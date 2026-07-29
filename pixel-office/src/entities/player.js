@@ -1,6 +1,8 @@
 import { CharacterSprite } from "./sprite.js";
+import { screenToGround, facingFromGround } from "../scene/iso.js";
 
-// Top-down RPG player. Cardinal direction movement (up/down/left/right).
+// Isometric player. Input is screen-relative (W/A/S/D move up/left/down/right on screen),
+// then rotated into world-space so movement reads naturally in the isometric view.
 export class Player {
   constructor(sheet, { x = 0, z = 12.6, radius = 0.26, height = 1.45 } = {}) {
     this.speed = 4.4;
@@ -31,39 +33,35 @@ export class Player {
     return this.sprite.object;
   }
 
-  /** Read input as cardinal directions. */
+  /** Screen-space input (WASD moves up/left/down/right as seen on screen). */
   _readInput() {
     const tx = this.touchAxis.x;
     const tz = this.touchAxis.z;
     if (Math.hypot(tx, tz) > 0.08) {
-      return { dx: tx, dz: -tz };
+      return { right: tx, up: -tz };
     }
-    let dx = 0;
-    let dz = 0;
-    if (this.keys.has("w") || this.keys.has("arrowup")) dz -= 1;
-    if (this.keys.has("s") || this.keys.has("arrowdown")) dz += 1;
-    if (this.keys.has("a") || this.keys.has("arrowleft")) dx -= 1;
-    if (this.keys.has("d") || this.keys.has("arrowright")) dx += 1;
-    return { dx, dz };
+    let right = 0;
+    let up = 0;
+    if (this.keys.has("w") || this.keys.has("arrowup")) up += 1;
+    if (this.keys.has("s") || this.keys.has("arrowdown")) up -= 1;
+    if (this.keys.has("a") || this.keys.has("arrowleft")) right -= 1;
+    if (this.keys.has("d") || this.keys.has("arrowright")) right += 1;
+    return { right, up };
   }
 
   update(dt, world) {
-    const { dx, dz } = this._readInput();
-    const magnitude = Math.min(Math.hypot(dx, dz), 1);
+    const { right, up } = this._readInput();
+    const magnitude = Math.min(Math.hypot(right, up), 1);
     let moving = false;
 
     if (magnitude > 0.001) {
+      const { dx, dz } = screenToGround(right, up);
+      const len = Math.hypot(dx, dz) || 1;
       const speedMul = this.isPretending ? 0.45 : 1;
       const step = this.speed * speedMul * magnitude * dt;
-      this.position.x += dx * step;
-      this.position.z += dz * step;
-
-      // Update facing based on movement direction
-      if (Math.abs(dx) > Math.abs(dz)) {
-        this.facing = dx > 0 ? "east" : "west";
-      } else {
-        this.facing = dz > 0 ? "south" : "north";
-      }
+      this.position.x += (dx / len) * step;
+      this.position.z += (dz / len) * step;
+      this.facing = facingFromGround(dx, dz, this.facing);
       moving = true;
     }
 
