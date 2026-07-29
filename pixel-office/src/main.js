@@ -36,28 +36,33 @@ const aspect = window.innerWidth / window.innerHeight;
 const cameraState = createDioramaCamera(aspect);
 const { camera } = cameraState;
 
-// Diorama fog effect
-scene.fog = new THREE.Fog(0x1a1a2e, 50, 150);
+// Diorama fog effect - softer
+scene.fog = new THREE.Fog(0x2a2a3e, 60, 200);
 
-// Lighting optimized for diorama style
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+// Lighting optimized for diorama style - BRIGHT for visibility
+const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
 scene.add(ambientLight);
 
-const hemisphereLight = new THREE.HemisphereLight(0xdfe8ff, 0x50493a, 0.7);
+const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x808080, 1.0);
 scene.add(hemisphereLight);
 
-// Key light for depth
-const keyLight = new THREE.DirectionalLight(0xfff2d6, 1.2);
-keyLight.position.set(28, 26, 18);
+// Key light for depth - STRONG
+const keyLight = new THREE.DirectionalLight(0xffffff, 1.8);
+keyLight.position.set(28, 30, 20);
 keyLight.castShadow = true;
 keyLight.shadow.mapSize.set(2048, 2048);
-keyLight.shadow.camera.left = -30;
-keyLight.shadow.camera.right = 30;
-keyLight.shadow.camera.top = 30;
-keyLight.shadow.camera.bottom = -30;
-keyLight.shadow.camera.far = 100;
-keyLight.shadow.bias = -0.002;
+keyLight.shadow.camera.left = -40;
+keyLight.shadow.camera.right = 40;
+keyLight.shadow.camera.top = 40;
+keyLight.shadow.camera.bottom = -40;
+keyLight.shadow.camera.far = 150;
+keyLight.shadow.bias = -0.001;
 scene.add(keyLight);
+
+// Fill light for balance
+const fillLight = new THREE.DirectionalLight(0xffffff, 0.8);
+fillLight.position.set(-20, 20, -10);
+scene.add(fillLight);
 
 // World and collision setup
 const world = createCollisionWorld();
