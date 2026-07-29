@@ -81,6 +81,12 @@
       "sheet": "npc4",
       "friend": true,
       "blurb": "Dora la criticona. Hablar con él te calma, aunque a veces te toca esperar turno para los objetivos."
+    },
+    "steven_el_daddy": {
+      "name": "Steven el Daddy",
+      "portrait": "📞",
+      "color": "#ff6b9d",
+      "blurb": "Narrador. Habla desde el call center, guiándote a través del día."
     }
   },
   "encounters": {
