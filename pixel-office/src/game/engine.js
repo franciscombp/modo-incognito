@@ -37,6 +37,7 @@ export function createEngine({
   codeEggs = [],
   manifest = {},
   dialogues = { cast: {}, encounters: {}, barks: {} },
+  modes = {},
   minions = new Map(),
   onPopup = null,
 }) {
@@ -95,18 +96,39 @@ export function createEngine({
     watcher.onSpot = onMinionSpot;
   });
 
+  /** El personaje elegido en la pantalla de selección (modes.json). */
+  function currentMode() {
+    return modes[save.characterId] ?? modes.fran ?? null;
+  }
+
+  /**
+   * Las reglas del día se fusionan con las del personaje elegido: lo que el
+   * personaje no toca queda tal cual está en el nivel (ver modes.json).
+   */
+  function mergedRules(day) {
+    const modeRules = currentMode()?.rules ?? {};
+    const rules = { ...day.rules };
+    if (modeRules.maxWarnings != null) rules.maxWarnings = modeRules.maxWarnings;
+    if (modeRules.explore) rules.explore = true;
+    if (modeRules.pretendAlways) rules.pretendAlways = true;
+    rules.minionSuspicionMul = (day.rules?.minionSuspicionMul ?? 1) * (modeRules.minionSuspicionMul ?? 1);
+    return rules;
+  }
+
   function applyBossTuning() {
     const rules = levels[dayIndex].rules ?? {};
-    const mul = (rules.bossSpeedMul ?? 1) * bossSpeedBonus;
+    const modeRules = currentMode()?.rules ?? {};
+    const mul = (rules.bossSpeedMul ?? 1) * (modeRules.bossSpeedMul ?? 1) * bossSpeedBonus;
     boss.speed = boss.baseSpeeds.patrol * mul;
     boss.investigateSpeed = boss.baseSpeeds.investigate * mul;
     boss.chaseSpeed = boss.baseSpeeds.chase * mul;
     boss.searchSpeed = boss.baseSpeeds.search * mul;
-    boss.visionRange = boss.baseVisionRange * (rules.visionMul ?? 1);
+    const visionMul = (rules.visionMul ?? 1) * (modeRules.visionMul ?? 1);
+    boss.visionRange = boss.baseVisionRange * visionMul;
     // El nivel de búsqueda (game.js) multiplica desde esta base, no desde el
-    // valor absoluto — así el ajuste por sospecha se suma al del día, no lo
-    // reemplaza.
-    boss.dayTuning = { vision: boss.baseVisionRange * (rules.visionMul ?? 1), speedMul: mul };
+    // valor absoluto — así el ajuste por sospecha se suma al del día y al del
+    // personaje, no los reemplaza.
+    boss.dayTuning = { vision: boss.baseVisionRange * visionMul, speedMul: mul };
 
     // He drifts toward wherever the day's tasks are, so no wing is ever a
     // safe corner to farm quietly.
@@ -121,6 +143,7 @@ export function createEngine({
   const menus = createMenus(app, {
     levels,
     save,
+    modes,
     title: manifest.title ?? "Modo Incógnito",
     subtitle: manifest.subtitle ?? "",
     actions: {
@@ -128,6 +151,7 @@ export function createEngine({
       resume: () => resumeFromMenu(),
       restart: () => startDay(dayIndex),
       toTitle: () => openTitle(),
+      selectCharacter: (id) => save.setCharacter(id),
     },
   });
 
@@ -265,7 +289,7 @@ export function createEngine({
       npcs,
       minions: onDuty,
       hud,
-      rules: day.rules,
+      rules: mergedRules(day),
       onFinish: (result) => finishDay(day, result),
       onEgg: (egg) => triggerEgg(egg),
       onPopup,
@@ -279,6 +303,15 @@ export function createEngine({
     prologueChoice = null;
     if (day.prologue) {
       const nodes = [...(day.prologue.intro ?? [])];
+      if (save.hadWarningYesterday) {
+        // Una amonestación se nota al día siguiente: nunca te toca el
+        // ascensor vacío.
+        nodes.unshift({
+          speaker: "Recepción",
+          portrait: "🛎️",
+          text: "El ascensor viene lleno otra vez. Después de lo de ayer, ya ni te guardan hueco.",
+        });
+      }
       if (day.prologue.choice) nodes.push(day.prologue.choice);
       await dialogue.play(nodes, ctx);
       applyPrologue(day);
@@ -347,6 +380,7 @@ export function createEngine({
 
   async function finishDay(day, result) {
     inLevel = false;
+    save.setHadWarningYesterday(result.warnings > 0);
     const target = result.targetScore ?? 1000;
     const rank = rankFor(result.score, target);
     if (result.win) save.completeDay(day.id, { seconds: Math.round(result.elapsed), score: result.score });

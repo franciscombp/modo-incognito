@@ -55,6 +55,7 @@ export function prepareScene(raw) {
     ),
     activityStations: (raw.activities ?? []).map(pt),
     hidingSpots: (raw.hidingSpots ?? []).map((h) => ({ ...pt(h), r: (h.r ?? 1.3) * S })),
+    safeSpots: (raw.safeSpots ?? []).map((s) => ({ ...pt(s), radius: (s.radius ?? 1.3) * S })),
     distractions: (raw.distractions ?? []).map((d) => ({ ...pt(d), radius: (d.radius ?? 1.2) * S })),
     npcs: (raw.npcs ?? []).map(pt),
     locationEggs: (raw.eggs ?? []).map((e) => ({ ...pt(e), radius: (e.radius ?? 2) * S })),
@@ -91,9 +92,10 @@ function prepareCharacters(raw) {
 export async function loadGameData() {
   const manifest = await getJSON("manifest.json");
 
-  const [charactersRaw, dialoguesRaw, sceneList, levelList] = await Promise.all([
+  const [charactersRaw, dialoguesRaw, modesRaw, sceneList, levelList] = await Promise.all([
     getJSON(manifest.characters ?? "characters.json"),
     getJSON(manifest.dialogues ?? "dialogues.json").catch(() => ({ cast: {}, encounters: {}, barks: {} })),
+    getJSON(manifest.modes ?? "modes.json").catch(() => ({ characters: {} })),
     Promise.all((manifest.scenes ?? []).map((id) => getJSON(`scenes/${id}.json`))),
     Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
   ]);
@@ -123,6 +125,7 @@ export async function loadGameData() {
       barks: dialoguesRaw.barks ?? {},
     },
     characters: prepareCharacters(charactersRaw),
+    modes: modesRaw.characters ?? {},
     scenes,
     levels,
     codeEggs: manifest.codeEggs ?? [],

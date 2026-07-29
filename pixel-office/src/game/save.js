@@ -10,6 +10,8 @@ const EMPTY = {
   flags: {},
   bestTimes: {},
   bestScores: {},
+  characterId: null,
+  hadWarningYesterday: false,
 };
 
 function read() {
@@ -42,6 +44,20 @@ export function createSave() {
     },
     setDayIndex(i) {
       state.dayIndex = i;
+      write(state);
+    },
+    get characterId() {
+      return state.characterId;
+    },
+    setCharacter(id) {
+      state.characterId = id;
+      write(state);
+    },
+    get hadWarningYesterday() {
+      return !!state.hadWarningYesterday;
+    },
+    setHadWarningYesterday(value) {
+      state.hadWarningYesterday = !!value;
       write(state);
     },
     completeDay(dayId, { seconds, score } = {}) {

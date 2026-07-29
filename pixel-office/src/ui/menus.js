@@ -44,7 +44,7 @@ export function rankFor(score, target) {
  * @param {object} opts.save     progress store (see game/save.js)
  * @param {object} opts.actions  { play(index), resume(), restart(), toTitle() }
  */
-export function createMenus(root, { levels, save, actions, title = "Modo Incógnito", subtitle = "" }) {
+export function createMenus(root, { levels, save, actions, modes = {}, title = "Modo Incógnito", subtitle = "" }) {
   const layer = el("div", "px-menu hidden", root);
   const scrim = el("div", "px-menu-scrim", layer);
   const stage = el("div", "px-menu-stage", layer);
@@ -81,8 +81,16 @@ export function createMenus(root, { levels, save, actions, title = "Modo Incógn
     },
   });
   button(titleMenu, "Elegir día", { icon: "▦", onClick: () => show("days") });
+  button(titleMenu, "Personaje", {
+    icon: "🕵️",
+    onClick: () => {
+      renderCharacters();
+      show("characters");
+    },
+  });
   button(titleMenu, "Ajustes", { icon: "⚙", onClick: () => show("settings") });
   button(titleMenu, "Cómo se juega", { icon: "?", onClick: () => show("help") });
+  const charBadge = el("div", "px-title-char", titleScreen);
   const titleFoot = el("div", "px-title-foot", titleScreen);
 
   // ---------------- Day select ----------------
@@ -113,6 +121,55 @@ export function createMenus(root, { levels, save, actions, title = "Modo Incógn
         actions.play(i);
       });
     });
+  }
+
+  // ---------------- Character select ----------------
+  const charScreen = makeScreen("characters");
+  el("h2", "px-screen-title-text", charScreen, "Elige tu personaje");
+  const charGrid = el("div", "px-day-grid px-char-grid", charScreen);
+  button(el("div", "px-screen-foot", charScreen), "Volver", {
+    onClick: () => show(previousScreen ?? "title"),
+  });
+
+  function renderCharacters() {
+    charGrid.innerHTML = "";
+    Object.entries(modes).forEach(([id, mode]) => {
+      const locked = mode.playable === false;
+      const active = save.characterId === id || (!save.characterId && id === "fran");
+      const card = el(
+        "button",
+        `px-day px-char${locked ? " locked" : ""}${active ? " done" : ""}`,
+        charGrid
+      );
+      card.type = "button";
+      card.disabled = locked;
+      el("span", "px-day-num", card, mode.portrait ?? "🙂");
+      el(
+        "span",
+        "px-day-name",
+        card,
+        mode.alias ? `${mode.name} · "${mode.alias}"` : mode.name
+      );
+      el("span", "px-day-sub", card, locked ? mode.lockedReason ?? "Bloqueado" : mode.blurb ?? "");
+      if (!locked && mode.difficulty) {
+        el("span", "px-day-best", card, `Modo ${mode.difficulty}`);
+      }
+      card.addEventListener("click", () => {
+        if (locked) return;
+        buzz(10);
+        actions.selectCharacter(id);
+        renderCharBadge();
+        renderCharacters();
+        show(previousScreen ?? "title");
+      });
+    });
+  }
+
+  function renderCharBadge() {
+    const mode = modes[save.characterId] ?? modes.fran;
+    charBadge.textContent = mode
+      ? `Jugando como ${mode.name}${mode.alias ? ` "${mode.alias}"` : ""}`
+      : "";
   }
 
   // ---------------- Settings ----------------
@@ -260,6 +317,7 @@ export function createMenus(root, { levels, save, actions, title = "Modo Incógn
     close,
     openTitle(progress) {
       renderDays();
+      renderCharBadge();
       continueBtn.classList.toggle("hidden", !progress.hasProgress);
       titleFoot.textContent = progress.summary;
       show("title");

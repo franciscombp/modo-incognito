@@ -621,7 +621,17 @@
     {"id":"segmentos_worker","x":-25,"z":-3.2,"sheet":"npc4","facing":"south","sway":0.4},
     {"id":"foundation_worker","x":17.4,"z":1.4,"sheet":"npc2","facing":"north","sway":0.5},
     {"id":"experiencia_worker","x":38.6,"z":-3.6,"sheet":"npc1","facing":"south","sway":0.4},
-    {"id":"enrolamiento_worker","x":28.4,"z":6.8,"sheet":"npc3","facing":"north","sway":0.45}
+    {"id":"enrolamiento_worker","x":28.4,"z":6.8,"sheet":"npc3","facing":"north","sway":0.45},
+    {"id":"giuli_npc","x":-1.5,"z":2,"sheet":"npc3","facing":"south","sway":0.4,"cast":"giuli"},
+    {
+      "id": "fran_npc_body",
+      "x": 9,
+      "z": 2.4,
+      "sheet": "npc4",
+      "facing": "north",
+      "sway": 0.4,
+      "cast": "fran_npc"
+    }
   ],
   "eggs": [
     {
@@ -740,5 +750,10 @@
       {"x":4,"z":3.4},
       {"x":-1,"z":3.4}
     ]
-  }
+  },
+  "safeSpots": [
+    {"id":"bebedero","label":"Bebedero","icon":"🚰","x":-1,"z":9.6,"radius":1.3},
+    {"id":"banos_sur_puerta","label":"Baño","icon":"🚻","x":-10.5,"z":-2.6,"radius":1.3},
+    {"id":"mesa_equipo","label":"Tu mesa","icon":"🪑","x":-20.5,"z":2.4,"radius":1.6}
+  ]
 }
