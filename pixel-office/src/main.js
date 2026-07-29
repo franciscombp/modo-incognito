@@ -247,14 +247,22 @@ window.__game = { world, camera, scene, labelManager, hud };
 window.__floorplan = floorData;
 
 async function boot() {
-  const [employeeSheet, bossSheet, ...npcSheets] = await Promise.all([
-    loadSheet(sheetUrl("employee")),
-    loadSheet(sheetUrl("boss")),
-    loadSheet(sheetUrl("npc1")),
-    loadSheet(sheetUrl("npc2")),
-    loadSheet(sheetUrl("npc3")),
-    loadSheet(sheetUrl("npc4"))
-  ]);
+  try {
+    console.log("Boot starting, sprite URLs:", {
+      employee: sheetUrl("employee"),
+      boss: sheetUrl("boss"),
+      npc1: sheetUrl("npc1")
+    });
+
+    const [employeeSheet, bossSheet, ...npcSheets] = await Promise.all([
+      loadSheet(sheetUrl("employee")),
+      loadSheet(sheetUrl("boss")),
+      loadSheet(sheetUrl("npc1")),
+      loadSheet(sheetUrl("npc2")),
+      loadSheet(sheetUrl("npc3")),
+      loadSheet(sheetUrl("npc4"))
+    ]);
+    console.log("Sprites loaded successfully");
   const npcSheetByName = {
     npc1: npcSheets[0],
     npc2: npcSheets[1],
@@ -285,6 +293,11 @@ async function boot() {
   window.__game.player = player;
   window.__game.boss = boss;
   window.__game.game = game;
+  console.log("Boot complete! Game is ready.");
+  } catch (err) {
+    console.error("Boot failed:", err);
+    throw err;
+  }
 }
 
 boot().catch((err) => {
