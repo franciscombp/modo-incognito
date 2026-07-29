@@ -11,6 +11,7 @@ import { loadSheet } from "./entities/sprite.js";
 import { createHud } from "./game/hud.js";
 import { Game } from "./game/game.js";
 import { createTouchControls } from "./game/touchControls.js";
+import { CameraController } from "./scene/cameraController.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 const sheetUrl = (name) => `${BASE}sprites/${name}.png`;
@@ -31,8 +32,20 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0c0d11);
 
 const aspect = window.innerWidth / window.innerHeight;
-const { camera, frustumSize, offset } = createIsoCamera(aspect);
-const cameraTarget = overviewTarget();
+
+// Use perspective camera for tilt adjustment
+const camera = new THREE.PerspectiveCamera(45, aspect, 0.1, 200);
+camera.position.set(20, 20, 30);
+camera.lookAt(0, 0, 0);
+
+const cameraTarget = new THREE.Vector3(0, 0, 0);
+const cameraController = new CameraController(camera, {
+  fov: 45,
+  distance: 35,
+  pitchDeg: 30,
+  yawDeg: -45,
+  heightOffset: 0
+});
 
 // -------- Lighting: bright, flat, high-key fill so the pixel textures read
 // cleanly, with one soft key light for isometric depth. --------
@@ -56,16 +69,13 @@ const world = createCollisionWorld();
 const { roomLabels } = buildOffice(scene, world);
 
 let zoom = 1;
-let follow = false;
+let follow = true; // Always follow in perspective mode
 
 function applyZoom(next, aspectRatio = window.innerWidth / window.innerHeight) {
-  const fit = overviewZoom(aspectRatio);
-  zoom = THREE.MathUtils.clamp(next, fit * 0.9, 2.6);
-  camera.zoom = zoom;
+  zoom = THREE.MathUtils.clamp(next, 0.5, 2.6);
+  camera.fov = 45 / zoom;
   camera.updateProjectionMatrix();
-  // Once the view is tighter than the whole floor there is nothing to frame
-  // statically any more, so hand the camera over to the player.
-  follow = zoom > fit * 1.06;
+  follow = true; // Always follow in perspective mode
 }
 
 async function boot() {
@@ -93,9 +103,8 @@ async function boot() {
   const game = new Game({ player, boss, npcs, hud });
   createTouchControls(player, app);
 
-  // Start framed on the whole floor like the reference image; narrow screens
-  // can't show it usefully, so those start following the player instead.
-  applyZoom(aspect >= 1.15 ? overviewZoom(aspect) : 1.35, aspect);
+  // Perspective camera always follows the player
+  // applyZoom(aspect >= 1.15 ? overviewZoom(aspect) : 1.35, aspect);
 
   window.addEventListener("wheel", (e) => applyZoom(zoom - e.deltaY * 0.0012), { passive: true });
 
@@ -129,8 +138,8 @@ async function boot() {
     const w = window.innerWidth;
     const h = window.innerHeight;
     renderer.setSize(w, h);
-    resizeIsoCamera(camera, frustumSize, w / h);
-    applyZoom(zoom, w / h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
   });
 
   // -------- Camera: fixed angle always; only the centre point moves. -----
