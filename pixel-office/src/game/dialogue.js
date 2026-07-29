@@ -51,6 +51,16 @@ export function createDialogue(root) {
   const optionsEl = layer.querySelector(".vn-options");
   const hintEl = layer.querySelector(".vn-hint");
 
+  // Steven el Daddy narrator element
+  const narratorEl = document.createElement("div");
+  narratorEl.className = "vn-narrator hidden";
+  narratorEl.innerHTML = `
+    <div class="vn-narrator-title"><span class="vn-narrator-icon">📞</span>Steven el Daddy</div>
+    <div class="vn-narrator-text"></div>
+  `;
+  layer.appendChild(narratorEl);
+  const narratorText = narratorEl.querySelector(".vn-narrator-text");
+
   /** Retrato: sprite del personaje si lo tenemos, si no el emoji de siempre. */
   function setPortrait(node) {
     if (node.sheet) {
@@ -63,6 +73,17 @@ export function createDialogue(root) {
       portraitEmoji.classList.remove("hidden");
       portraitEmoji.textContent = node.portrait ?? "🗨️";
     }
+  }
+
+  /** Mostrar narrador Steven el Daddy con mensaje. */
+  function showNarrator(text) {
+    narratorText.textContent = text;
+    narratorEl.classList.remove("hidden");
+  }
+
+  /** Ocultar narrador. */
+  function hideNarrator() {
+    narratorEl.classList.add("hidden");
   }
 
   let optionButtons = [];
@@ -260,6 +281,8 @@ export function createDialogue(root) {
 
   return {
     play,
+    showNarrator,
+    hideNarrator,
     get isOpen() {
       return active;
     },
