@@ -187,6 +187,8 @@ async function boot() {
     manifest: data.manifest,
     dialogues: data.dialogues,
     modes: data.modes,
+    playerSheet: chars.player.sheet,
+    playerName: chars.player.name ?? "Tú",
     minions,
     onPopup: (p) => popups.spawn(p),
   });

@@ -38,6 +38,8 @@ export function createEngine({
   manifest = {},
   dialogues = { cast: {}, encounters: {}, barks: {} },
   modes = {},
+  playerSheet = "employee",
+  playerName = "Tú",
   minions = new Map(),
   onPopup = null,
 }) {
@@ -50,6 +52,32 @@ export function createEngine({
   const save = createSave();
 
   const eggIds = [...locationEggs.map((e) => e.id), ...codeEggs.map((e) => e.id)];
+
+  // El retrato del diálogo prefiere el sprite del personaje al emoji: busca
+  // la hoja por el nombre del hablante, o por su `speaker` si coincide con
+  // algún nombre conocido del reparto (jefe, secuaces, npcs con historia).
+  const nameToSheet = new Map(
+    Object.values(dialogues.cast)
+      .filter((c) => c.name && c.sheet)
+      .map((c) => [c.name, c.sheet])
+  );
+  nameToSheet.set(playerName, playerSheet);
+  nameToSheet.set("Tú", playerSheet);
+  function withSprites(nodes) {
+    if (!nodes) return nodes;
+    return nodes.map((node) => {
+      const sheet =
+        node.sheet ?? (typeof node.speaker === "string" ? nameToSheet.get(node.speaker) : undefined);
+      const options = node.options
+        ? node.options.map((opt) => (opt.then ? { ...opt, then: withSprites(opt.then) } : opt))
+        : undefined;
+      return {
+        ...node,
+        ...(sheet ? { sheet } : {}),
+        ...(options ? { options } : {}),
+      };
+    });
+  }
 
   let dayIndex = Math.min(save.dayIndex, levels.length - 1);
   let game = null;
@@ -213,14 +241,14 @@ export function createEngine({
     if (egg.perk) PERKS[egg.perk]?.();
     await withPause(() =>
       dialogue.play(
-        [
+        withSprites([
           ...(egg.scene ?? []),
           {
             speaker: "Secreto encontrado",
             portrait: "🥚",
             text: `Llevas ${save.state.eggs.length} de ${eggIds.length}. +250 puntos.`,
           },
-        ],
+        ]),
         ctx
       )
     );
@@ -313,11 +341,11 @@ export function createEngine({
         });
       }
       if (day.prologue.choice) nodes.push(day.prologue.choice);
-      await dialogue.play(nodes, ctx);
+      await dialogue.play(withSprites(nodes), ctx);
       applyPrologue(day);
     }
 
-    await dialogue.play(day.intro ?? [], ctx);
+    await dialogue.play(withSprites(day.intro ?? []), ctx);
     if (!menuPaused) game.setPaused(false);
   }
 
@@ -372,7 +400,7 @@ export function createEngine({
     const persona = dialogues.cast[npc.cast];
     await withPause(() =>
       dialogue.play(
-        scene.map((node) => ({ color: persona?.color, ...node })),
+        withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
         ctx
       )
     );
@@ -386,7 +414,7 @@ export function createEngine({
     if (result.win) save.completeDay(day.id, { seconds: Math.round(result.elapsed), score: result.score });
     else save.recordScore(day.id, result.score);
 
-    await dialogue.play((result.win ? day.outroWin : day.outroLose) ?? [], ctx);
+    await dialogue.play(withSprites((result.win ? day.outroWin : day.outroLose) ?? []), ctx);
 
     const isLast = dayIndex >= levels.length - 1;
     const done = result.objectives.filter((o) => o.done).length;

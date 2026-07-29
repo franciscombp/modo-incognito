@@ -299,6 +299,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
     layer.classList.remove("hidden");
     document.body.classList.add("menu-open");
     layer.dataset.screen = name;
+    focusFirst();
   }
 
   function close() {
@@ -310,6 +311,53 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
   scrim.addEventListener("click", () => {
     // Only the pause screen is dismissible by tapping outside.
     if (currentScreen === "pause") actions.resume();
+  });
+
+  // ---------------- Teclado ----------------
+  // Todo el menú se maneja sin ratón: flechas (o WASD) mueven el foco entre
+  // los controles de la pantalla visible, y espacio/enter/E selecciona —
+  // Enter y espacio ya activan un <button> por su cuenta, así que solo hace
+  // falta añadir E encima.
+  const FOCUSABLE = "button:not(:disabled), .px-chip, input[type='range']";
+
+  function focusables() {
+    const screen = screens[currentScreen];
+    if (!screen) return [];
+    return [...screen.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null);
+  }
+
+  function focusFirst() {
+    const [first] = focusables();
+    first?.focus();
+  }
+
+  function moveFocus(delta) {
+    const items = focusables();
+    if (!items.length) return;
+    const at = items.indexOf(document.activeElement);
+    const next = items[(((at < 0 ? 0 : at) + delta) % items.length + items.length) % items.length];
+    next.focus();
+  }
+
+  window.addEventListener("keydown", (e) => {
+    if (layer.classList.contains("hidden")) return;
+    const key = e.key.toLowerCase();
+    const onSlider = document.activeElement?.tagName === "INPUT";
+
+    if (!onSlider && (key === "arrowdown" || key === "s" || key === "arrowright" || key === "d")) {
+      e.preventDefault();
+      moveFocus(1);
+      return;
+    }
+    if (!onSlider && (key === "arrowup" || key === "w" || key === "arrowleft" || key === "a")) {
+      e.preventDefault();
+      moveFocus(-1);
+      return;
+    }
+    if (key === "e" && document.activeElement && document.activeElement !== document.body) {
+      e.preventDefault();
+      document.activeElement.click();
+    }
   });
 
   return {

@@ -8,6 +8,14 @@
 // `then` is a nested array of nodes, so a branch is just another scene.
 
 const ADVANCE_KEYS = new Set([" ", "enter", "e"]);
+const NEXT_KEYS = new Set(["arrowdown", "s", "tab"]);
+const PREV_KEYS = new Set(["arrowup", "w"]);
+
+const BASE = import.meta.env.BASE_URL ?? "/";
+const spriteUrl = (name) => `${BASE}sprites/${name}.png`;
+// Cada hoja es una rejilla de 4x4 (128x176 px, marcos de 32x44): fila 0 es la
+// cara sur y columna 0 es el fotograma de reposo — el retrato usa justo esa
+// esquina, ampliada x4 sin interpolar (ver .vn-portrait-sprite en style.css).
 
 export function createDialogue(root) {
   const layer = document.createElement("div");
@@ -19,7 +27,10 @@ export function createDialogue(root) {
     <div class="vn-scrim"></div>
     <div class="vn-bar vn-bar-top"></div>
     <div class="vn-dock">
-      <div class="vn-portrait"><span class="vn-portrait-emoji"></span></div>
+      <div class="vn-portrait">
+        <span class="vn-portrait-emoji"></span>
+        <span class="vn-portrait-sprite hidden"></span>
+      </div>
       <div class="vn-box" role="dialog" aria-live="polite">
         <div class="vn-speaker"><span class="vn-speaker-text"></span></div>
         <div class="vn-text"></div>
@@ -33,11 +44,35 @@ export function createDialogue(root) {
   const box = layer.querySelector(".vn-box");
   const portrait = layer.querySelector(".vn-portrait");
   const portraitEmoji = layer.querySelector(".vn-portrait-emoji");
+  const portraitSprite = layer.querySelector(".vn-portrait-sprite");
   const speakerEl = layer.querySelector(".vn-speaker");
   const speakerText = layer.querySelector(".vn-speaker-text");
   const textEl = layer.querySelector(".vn-text");
   const optionsEl = layer.querySelector(".vn-options");
   const hintEl = layer.querySelector(".vn-hint");
+
+  /** Retrato: sprite del personaje si lo tenemos, si no el emoji de siempre. */
+  function setPortrait(node) {
+    if (node.sheet) {
+      portraitSprite.style.backgroundImage = `url(${spriteUrl(node.sheet)})`;
+      portraitSprite.style.backgroundPosition = "0 0";
+      portraitSprite.classList.remove("hidden");
+      portraitEmoji.classList.add("hidden");
+    } else {
+      portraitSprite.classList.add("hidden");
+      portraitEmoji.classList.remove("hidden");
+      portraitEmoji.textContent = node.portrait ?? "🗨️";
+    }
+  }
+
+  let optionButtons = [];
+  let optionIndex = 0;
+
+  function focusOption(i) {
+    if (!optionButtons.length) return;
+    optionIndex = ((i % optionButtons.length) + optionButtons.length) % optionButtons.length;
+    optionButtons.forEach((b, idx) => b.classList.toggle("focused", idx === optionIndex));
+  }
 
   let typingTimer = null;
   let typingResolve = null;
@@ -98,7 +133,33 @@ export function createDialogue(root) {
 
   const onKey = (e) => {
     if (!active) return;
-    if (ADVANCE_KEYS.has(e.key.toLowerCase())) {
+    const key = e.key.toLowerCase();
+    // Con opciones en pantalla el teclado navega entre ellas en vez de
+    // avanzar la línea: flechas (o W/S) mueven el foco, espacio/enter/E elige.
+    if (optionButtons.length) {
+      if (NEXT_KEYS.has(key)) {
+        e.preventDefault();
+        focusOption(optionIndex + 1);
+        return;
+      }
+      if (PREV_KEYS.has(key)) {
+        e.preventDefault();
+        focusOption(optionIndex - 1);
+        return;
+      }
+      if (ADVANCE_KEYS.has(key)) {
+        e.preventDefault();
+        optionButtons[optionIndex]?.click();
+        return;
+      }
+      const asDigit = Number(key);
+      if (Number.isInteger(asDigit) && asDigit >= 1 && asDigit <= optionButtons.length) {
+        e.preventDefault();
+        optionButtons[asDigit - 1]?.click();
+      }
+      return;
+    }
+    if (ADVANCE_KEYS.has(key)) {
       e.preventDefault();
       advance();
     }
@@ -114,10 +175,11 @@ export function createDialogue(root) {
     if (typeof node.effect === "string") ctx.applyEffect?.(node.effect);
     optionsEl.innerHTML = "";
     optionsEl.classList.add("hidden");
+    optionButtons = [];
     const speaker = resolve(node.speaker, ctx) ?? "";
     speakerText.textContent = speaker;
     speakerEl.classList.toggle("hidden", !speaker);
-    portraitEmoji.textContent = node.portrait ?? "🗨️";
+    setPortrait(node);
     portrait.dataset.mood = node.mood ?? "neutral";
     box.dataset.mood = node.mood ?? "neutral";
     if (node.color) layer.style.setProperty("--vn-accent", node.color);
@@ -129,7 +191,7 @@ export function createDialogue(root) {
     return new Promise(async (resolve_) => {
       speakerText.textContent = resolve(node.speaker, ctx) ?? "";
       speakerEl.classList.toggle("hidden", !node.speaker);
-      portraitEmoji.textContent = node.portrait ?? "❓";
+      setPortrait(node);
       box.dataset.mood = node.mood ?? "neutral";
       await type(resolve(node.prompt, ctx));
 
@@ -145,19 +207,25 @@ export function createDialogue(root) {
           e.stopPropagation();
           optionsEl.innerHTML = "";
           optionsEl.classList.add("hidden");
+          optionButtons = [];
           if (opt.flag) ctx.setFlag?.(opt.flag, true);
           // Effects arrive from JSON as strings; the engine maps them to
           // gameplay. A function is still accepted for code-defined scenes.
           if (typeof opt.effect === "function") opt.effect(ctx);
           else if (opt.effect) ctx.applyEffect?.(opt.effect);
           if (opt.reply) {
-            await playLine({ speaker: opt.replySpeaker ?? "Tú", portrait: "🙂", text: opt.reply }, ctx);
+            await playLine(
+              { speaker: opt.replySpeaker ?? "Tú", portrait: "🙂", sheet: opt.replySheet ?? "employee", text: opt.reply },
+              ctx
+            );
           }
           if (opt.then) await playNodes(opt.then, ctx);
           resolve_(opt);
         });
         optionsEl.appendChild(btn);
       });
+      optionButtons = [...optionsEl.querySelectorAll(".vn-option")];
+      focusOption(0);
     });
   }
 
@@ -186,6 +254,7 @@ export function createDialogue(root) {
       layer.classList.add("hidden");
       document.body.classList.remove("vn-open");
       optionsEl.innerHTML = "";
+      optionButtons = [];
     }
   }
 
