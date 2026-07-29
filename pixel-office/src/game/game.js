@@ -48,10 +48,23 @@ const DEFAULT_RULES = {
  * the level's JSON — so the campaign escalates without touching this file.
  */
 export class Game {
-  constructor({ player, boss, npcs, hud, rules = {}, onFinish = null, onEgg = null, onPopup = null }) {
+  constructor({
+    player,
+    boss,
+    npcs,
+    minions = [],
+    hud,
+    rules = {},
+    onFinish = null,
+    onEgg = null,
+    onPopup = null,
+    onTalk = null,
+  }) {
     this.player = player;
     this.boss = boss;
     this.npcs = npcs;
+    this.minions = minions;
+    this.onTalk = onTalk;
     this.hud = hud;
     this.rules = { ...DEFAULT_RULES, ...rules };
     this.onFinish = onFinish;
@@ -71,6 +84,7 @@ export class Game {
     this.comboLeft = 0;
     this.perk = null;
     this.perkLeft = 0;
+    this.revealBossUntil = 0;
 
     const wanted = this.rules.objectives;
     this.objectives = activityStations
@@ -83,8 +97,11 @@ export class Game {
 
     this.nearStation = null;
     this.nearDistraction = null;
+    this.nearNpc = null;
+    this.focusStation = null;
     this.message = null;
     this.currentArea = null;
+    this.talkCooldowns = new Map();
 
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
@@ -112,6 +129,7 @@ export class Game {
     this.timeLeft = Math.max(0, this.timeLeft - dt);
     if (this._caughtCooldown > 0) this._caughtCooldown -= dt;
 
+    if (this.revealBossUntil > 0) this.revealBossUntil -= dt;
     if (this.comboLeft > 0) {
       this.comboLeft = Math.max(0, this.comboLeft - dt);
       if (this.comboLeft === 0) this.combo = 1;
@@ -135,6 +153,15 @@ export class Game {
         (s) => !s.done && Math.hypot(s.x - pos.x, s.z - pos.z) < INTERACT_RADIUS
       ) ?? null;
 
+    // The compass always points at the closest thing still to do, so you are
+    // never left wondering where the next task is.
+    this.focusStation = this.objectives
+      .filter((s) => !s.done)
+      .reduce((best, s) => {
+        const d = Math.hypot(s.x - pos.x, s.z - pos.z);
+        return !best || d < best._d ? Object.assign(s, { _d: d }) : best;
+      }, null);
+
     if (this.nearStation && holdingE && !holdingF) {
       this.player.isDoingActivity = true;
       this.nearStation.progress = Math.min(this.nearStation.time, this.nearStation.progress + dt);
@@ -154,7 +181,22 @@ export class Game {
         (d) => d.cooldownLeft <= 0 && Math.hypot(d.x - pos.x, d.z - pos.z) < INTERACT_RADIUS
       ) ?? null;
 
-    if (holdingE && !this._prevInteractKey && this.nearDistraction && !this.nearStation) {
+    this.talkCooldowns.forEach((left, id) => {
+      if (left > 0) this.talkCooldowns.set(id, Math.max(0, left - dt));
+    });
+    this.nearNpc =
+      this.npcs.find(
+        (n) =>
+          n.cast &&
+          (this.talkCooldowns.get(n.id) ?? 0) <= 0 &&
+          Math.hypot(n.position.x - pos.x, n.position.z - pos.z) < INTERACT_RADIUS * 1.3
+      ) ?? null;
+
+    if (holdingE && !this._prevInteractKey && this.nearNpc && !this.nearStation) {
+      const npc = this.nearNpc;
+      this.talkCooldowns.set(npc.id, npc.talkCooldown ?? 40);
+      this.onTalk?.(npc);
+    } else if (holdingE && !this._prevInteractKey && this.nearDistraction && !this.nearStation) {
       const target = { x: this.nearDistraction.x, z: this.nearDistraction.z };
       if (this.boss.distract(target, DISTRACTION_EFFECT_DURATION)) {
         this.nearDistraction.cooldownLeft = this.nearDistraction.cooldown;
@@ -167,10 +209,17 @@ export class Game {
     this._prevInteractKey = holdingE;
 
     this.boss.update(dt, this.player, this.npcs);
+    this.minions.forEach((m) => m.update(dt, this.player, this.npcs));
     this._updateEggs(dt);
 
     // ---- Suspicion ----
+    // A minion catching you counts too, at a gentler rate: they tell on you,
+    // they don't drag you to HR themselves.
+    const spotted = this.minions.some((m) => m.redAlert);
     const decay = this.rules.decayMul;
+    if (spotted && !this.boss.redAlert) {
+      this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + 12 * dt);
+    }
     if (this.boss.redAlert) {
       const rate = this.nearStation?.riskRate ?? 20;
       this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + rate * dt);
@@ -318,12 +367,44 @@ export class Game {
     });
   }
 
+  /** Effects that dialogue options in the JSON are allowed to trigger. */
+  applyEffect(name) {
+    switch (name) {
+      case "suspicion-":
+        this.suspicion = Math.max(0, this.suspicion - 45);
+        this._toast("La sospecha baja");
+        break;
+      case "suspicion+":
+        this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + 30);
+        this._toast("Alguien levantó la voz…");
+        break;
+      case "score+":
+        this._award(120, "Buena conversación", this.player.position);
+        break;
+      case "speed+":
+        this._applyPerk("caffeine");
+        break;
+      case "reveal-boss":
+        this.revealBossUntil = 12;
+        this._toast("Sabes dónde está el jefe");
+        break;
+      default:
+        break;
+    }
+  }
+
   _toast(text) {
     this.message = { text, timer: 2.6 };
   }
 
+  /**
+   * The HUD, the compass and the debug tools all read the same frame state.
+   * It is cached rather than rebuilt per consumer: this runs every frame and
+   * allocating several objects per frame is exactly the kind of garbage that
+   * shows up as stutter on a tablet.
+   */
   _snapshot() {
-    return {
+    this.lastSnapshot = {
       suspicion: this.suspicion,
       suspicionMax: SUSPICION_MAX,
       warnings: this.warnings,
@@ -333,6 +414,16 @@ export class Game {
       objectives: this.objectives,
       nearStation: this.nearStation,
       nearDistraction: this.nearDistraction,
+      nearNpc: this.nearNpc,
+      focusStation: this.focusStation,
+      playerPos: this.player.position,
+      bossPos: this.boss.position,
+      bossDistance: Math.hypot(
+        this.boss.position.x - this.player.position.x,
+        this.boss.position.z - this.player.position.z
+      ),
+      minionAlert: this.minions.some((m) => m.redAlert),
+      revealBoss: this.revealBossUntil > 0,
       isPretending: this.player.isPretending,
       isHiding: this.player.isHiding,
       redAlert: this.boss.redAlert,
@@ -350,5 +441,6 @@ export class Game {
       perkDuration: PERK_DURATION,
       targetScore: this.rules.targetScore,
     };
+    return this.lastSnapshot;
   }
 }

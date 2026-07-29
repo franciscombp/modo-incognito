@@ -157,6 +157,14 @@ export function createMenus(root, { levels, save, actions, title = "Modo Incógn
       input.max = def.max;
       input.step = def.step;
       input.addEventListener("input", () => setSettings({ [key]: Number(input.value) }));
+    } else if (def.type === "choice") {
+      input = el("div", "px-choice", row);
+      def.options.forEach((option) => {
+        const chip = el("button", "px-chip", input, option.toUpperCase());
+        chip.type = "button";
+        chip.dataset.value = option;
+        chip.addEventListener("click", () => setSettings({ [key]: option }));
+      });
     } else {
       input = el("button", "px-switch", row);
       input.type = "button";
@@ -171,6 +179,11 @@ export function createMenus(root, { levels, save, actions, title = "Modo Incógn
       if (def.type === "range") {
         if (document.activeElement !== input) input.value = s[key];
         readout.textContent = String(s[key]);
+      } else if (def.type === "choice") {
+        input
+          .querySelectorAll(".px-chip")
+          .forEach((chip) => chip.classList.toggle("on", chip.dataset.value === s[key]));
+        readout.textContent = "";
       } else {
         input.classList.toggle("on", s[key]);
         input.textContent = s[key] ? "SÍ" : "NO";

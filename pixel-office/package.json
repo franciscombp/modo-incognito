@@ -14,7 +14,8 @@
     "check:visual": "node tools/shoot.mjs",
     "sync:root": "node tools/sync-root.mjs",
     "build:pages": "npm run build && npm run sync:root",
-    "check:menus": "node tools/shoot-menus.mjs"
+    "check:menus": "node tools/shoot-menus.mjs",
+    "format:data": "node tools/format-data.mjs"
   },
   "license": "ISC",
   "dependencies": {

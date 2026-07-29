@@ -9,18 +9,42 @@
   "subtitle": "Tribu Canales · Piso 7",
   "characters": "characters.json",
   "scenes": ["piso7"],
-  "levels": ["dia-1", "dia-2", "dia-3", "dia-4", "dia-5"],
+  "levels": ["dia-1","dia-2","dia-3","dia-4","dia-5"],
   "codeEggs": [
     {
       "id": "egg_konami",
-      "keys": ["arrowup", "arrowup", "arrowdown", "arrowdown", "arrowleft", "arrowright", "arrowleft", "arrowright", "b", "a"],
+      "keys": [
+        "arrowup",
+        "arrowup",
+        "arrowdown",
+        "arrowdown",
+        "arrowleft",
+        "arrowright",
+        "arrowleft",
+        "arrowright",
+        "b",
+        "a"
+      ],
       "perk": "slowBoss",
-      "scene": [{ "speaker": "???", "portrait": "🎮", "text": "Has despertado el modo leyenda. El jefe no sabrá por qué hoy caminas tan segura." }]
+      "scene": [
+        {
+          "speaker": "???",
+          "portrait": "🎮",
+          "text": "Has despertado el modo leyenda. El jefe no sabrá por qué hoy caminas tan segura."
+        }
+      ]
     },
     {
       "id": "egg_nomina",
-      "keys": ["n", "o", "m", "i", "n", "a"],
-      "scene": [{ "speaker": "Sistema", "portrait": "💸", "text": "Consulta de nómina denegada. Vuelva a intentarlo el día 30, como todos." }]
+      "keys": ["n","o","m","i","n","a"],
+      "scene": [
+        {
+          "speaker": "Sistema",
+          "portrait": "💸",
+          "text": "Consulta de nómina denegada. Vuelva a intentarlo el día 30, como todos."
+        }
+      ]
     }
-  ]
+  ],
+  "dialogues": "dialogues.json"
 }

@@ -68,10 +68,13 @@ const log = await page.evaluate(async () => {
 
   const d0 = Math.hypot(boss.position.x - player.position.x, boss.position.z - player.position.z);
   const s0 = game.suspicion;
-  await sleep(700);
+  // Sample the meter early: give the chase a full second and he reaches her,
+  // which resets suspicion to zero as a warning and hides the rise.
+  await sleep(250);
+  out.suspicionRose = game.suspicion > s0;
+  await sleep(450);
   const d1 = Math.hypot(boss.position.x - player.position.x, boss.position.z - player.position.z);
   out.closedDistance = +(d0 - d1).toFixed(2);
-  out.suspicionRose = game.suspicion > s0;
 
   // Pretending to work must break the red alert even in plain sight.
   player.keys.add("f");
@@ -80,10 +83,17 @@ const log = await page.evaluate(async () => {
   player.keys.delete("f");
   player.keys.delete("e");
 
-  // Hiding breaks line of sight: he should give up the direct chase and search.
-  player.isHiding = true;
-  await sleep(1800);
+  // Losing her must end the direct pursuit. `isHiding` is recomputed from the
+  // hiding spots every frame, so the test moves her out of range instead —
+  // otherwise the flag is overwritten and the boss keeps seeing her.
+  player.position.x = px + 40 * S;
+  // Generous: headless throttles frames, and the boss only accumulates
+  // "lost sight" time on frames that actually run.
+  await sleep(3000);
   out.stateWhenHidden = boss.state;
+  out.gameOverWhenHidden = game.gameOver;
+  out.loseSightTimer = +boss.loseSightTimer.toFixed(2);
+  out.warningsSoFar = game.warnings;
 
   // A distraction pulls him off patrol.
   player.isHiding = false;

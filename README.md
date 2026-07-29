@@ -11,6 +11,23 @@ funciona con cualquiera de las dos configuraciones de *Settings → Pages*:
 **GitHub Actions** (recomendada) o **Deploy from a branch → main / (root)**.
 Antes fallaba porque, sin `index.html` en la raíz, Pages renderiza el README.
 
+## Jugar en local sin npm
+
+En una máquina con hardening donde no puedes instalar nada, basta el Python
+del sistema:
+
+```bash
+python3 serve.py          # http://localhost:8000
+python3 serve.py 9000     # otro puerto
+```
+
+Sirve la raíz del repo, que ya trae el juego compilado. **Para editar
+contenido no hace falta compilar**: toca `data/*.json` o `sprites/*.png` y
+recarga el navegador. Solo los cambios en `pixel-office/src/` piden un build.
+
+Abrir `index.html` con doble clic no funciona: el navegador bloquea los
+módulos y la carga de los JSON desde `file://`. Por eso el servidor.
+
 ## Desarrollo
 
 ```bash
@@ -22,6 +39,7 @@ npm run check          # navmesh + IA del jefe (Playwright)
 npm run check:visual   # capturas del juego a shots/
 npm run check:menus    # capturas de los menús a shots/
 npm run build:pages    # build + copia a la raíz del repo
+npm run format:data    # reordena los JSON de data/ para que sigan legibles
 ```
 
 ## Controles
@@ -34,6 +52,7 @@ npm run build:pages    # build + copia a la raíz del repo
 | Inspeccionar el plano | M | botón 🗺️ |
 | Zoom | rueda | pellizco o ＋ / － |
 | Orbitar la cámara | clic derecho + arrastrar | dos dedos |
+| Hablar con un compañero | E | botón **USAR** |
 | Pausa | Esc | botón ⏸ |
 
 ## Contenido en JSON
@@ -48,7 +67,9 @@ public/data/
   characters.json        jugador, jefe y NPC: sprite, tamaño, velocidad, visión
   scenes/piso7.json      EL PLANO: perímetro, zonas, pasillos, props, patrulla,
                          actividades, escondites, distracciones, NPC, secretos
-  levels/dia-1.json …    reglas del día + diálogos de novela visual
+  dialogues.json         el reparto y qué dice cada uno al hablarle
+  levels/dia-1.json …    reglas del día, prólogo del ascensor, secuaces
+                         de turno y diálogos de novela visual
 ```
 
 Las coordenadas del plano están en **unidades de plano** (≈ un puesto de
@@ -65,6 +86,46 @@ la mesa grande con sus sillas, la moqueta de color y el rótulo:
 `elevator`. Un archivo con JSON inválido falla con el nombre del archivo en
 pantalla, nunca con una pantalla en negro.
 
+## Personajes
+
+`dialogues.json` define el reparto y sus conversaciones. Cada compañero tiene
+varias escenas que se van alternando, con opciones que hacen algo de verdad:
+
+- **Manu de la suerte** — te calma la sospecha o te dice dónde anda el jefe.
+- **César** — el malcriadito. Dale la razón y se pone a escribir correos
+  (y deja de mirarte); llévale la contraria y grita llamando al jefe.
+- **Enriquetta** — chapter del amor. El chisme puntúa; también se ofrece a
+  entretener al jefe durante cuarenta minutos.
+
+Los **secuaces** (`minions` en `characters.json`) no te atrapan: te delatan.
+Si te ven haciendo algo prohibido llaman al jefe a ese punto y te suben la
+sospecha. Cada uno vigila distinto — **Chispita** corre por todo el piso con
+cono corto, **Washo** apenas se mueve pero te ve desde el otro extremo del
+ala, y **Crispo** está casi quieto abarcando medio pasillo. Cada día elige
+cuáles salen y por qué ronda, en su JSON:
+
+```json
+"minions": [{ "id": "chispita", "route": "sur" }, { "id": "washo", "route": "norte" }]
+```
+
+## La jornada
+
+Cada día abre en la **fila del ascensor**, en planta baja. Puedes esperar
+(pierdes minutos de jornada), subir por las escaleras (llegas entera pero
+lenta un rato) o colarte (ganas tiempo, con riesgo de empezar ya con una
+advertencia). Se edita en `prologue` dentro del JSON del día.
+
+Después sales al pasillo de ascensores, con el ala sur a un lado y la norte
+al otro. El piso es continuo a propósito: el jefe ronda por todas partes y
+las persecuciones cruzan la planta entera.
+
+## Saber qué hacer
+
+Una tarjeta abajo nombra la tarea activa y a cuántos metros está; un marcador
+la sigue —fijado sobre ella si está en pantalla, como flecha en el borde si
+no— y una barra avisa de lo expuesta que está esa tarea según lo cerca que
+ande el jefe. Rojo significa que ir ahora es mala idea.
+
 ## Cámara ajustable
 
 La perspectiva no está fijada: **Ajustes → Cámara** tiene deslizadores para
@@ -80,6 +141,23 @@ El 3D existe para resolver colisiones, oclusión y navegación; lo que se ve es
 cercano, con cuantización de color: el resultado es pixel art con perspectiva.
 El grosor del píxel y los niveles de color se ajustan en **Ajustes → Juego**.
 
+Las paredes exteriores son de vidrio: con esta cámara un muro opaco se traga
+a quien camina por el borde del piso, y perder de vista al jefe o a la
+jugadora ahí era lo más frustrante del build anterior.
+
+## Rendimiento
+
+El piso tiene ~250 sillas y 25 mesas. Construido de forma ingenua eran más de
+mil mallas, y eso hacía que las tabletas se arrastraran hasta perder el
+contexto WebGL. Ahora el mobiliario repetido va por `InstancedMesh` y la
+geometría estática se fusiona por material: la escena queda en unas 40 mallas
+y 4 mallas instanciadas.
+
+Encima hay un ajuste de **calidad** (auto/alto/medio/bajo) que controla
+sombras, resolución del mapa de sombras y `pixelRatio`. En «auto» arranca en
+medio si detecta un dispositivo táctil o con poca memoria, y un vigilante de
+fotogramas lo baja solo si no se sostiene la fluidez.
+
 ## Arquitectura
 
 ```
@@ -87,7 +165,7 @@ src/
   scene/
     config.js      WORLD_SCALE y CAMERA_PRESET: los dos únicos mandos globales
     floorplan.js   el plano como datos (zonas, capacidad, color, pasillos…)
-    furniture.js   capacidad -> una mesa grande + N sillas alrededor
+    furniture.js   capacidad -> una mesa grande + N sillas (instanciadas)
     builder.js     construye la maqueta y registra los colliders
     camera.js      cámara perspectiva oblicua tipo diorama
     cameraSettings.js  parámetros de cámara en vivo + exportador de preset
@@ -98,6 +176,7 @@ src/
   ui/
     menus.js       título, elegir día, ajustes, ayuda y pausa
     cameraPanel.js el banco de pruebas de la cámara
+    compass.js     tarjeta de tarea activa + marcador de destino
     popups.js      números de puntuación flotantes
   game/
     engine.js      bucle de campaña: menú -> día -> escena -> nivel -> escena
@@ -119,6 +198,10 @@ src/
 - **Una zona nueva**: añade una fila a `areas` en el JSON de la escena.
 - **Un secreto**: añade una entrada a `eggs` (por ubicación, en la escena) o a
   `codeEggs` (por teclado, en el manifiesto).
+- **Un personaje o una conversación**: `dialogues.json`. Enlaza el NPC de la
+  escena con `"cast": "<id>"`.
+- **Un secuaz**: perfil en `characters.json` → `minions`, y súbelo al día que
+  quieras con `"minions": [{ "id": "...", "route": "..." }]`.
 
 ## Puntuación
 

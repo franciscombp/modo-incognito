@@ -4,7 +4,8 @@ import { createDialogue } from "./dialogue.js";
 import { createSave } from "./save.js";
 import { applyTheme } from "./themes.js";
 import { createMenus, rankFor } from "../ui/menus.js";
-import { spawn, patrolRoute, locationEggs } from "../scene/floorplan.js";
+import { createCompass } from "../ui/compass.js";
+import { spawn, patrolRoute, routes, locationEggs } from "../scene/floorplan.js";
 
 /**
  * Campaign engine. Owns the flow — title menu, story beat, play the level,
@@ -28,9 +29,12 @@ export function createEngine({
   levels,
   codeEggs = [],
   manifest = {},
+  dialogues = { cast: {}, encounters: {}, barks: {} },
+  minions = new Map(),
   onPopup = null,
 }) {
   const hud = createHud(app);
+  const compass = createCompass(app, camera.camera);
   const dialogue = createDialogue(app);
   const save = createSave();
 
@@ -45,7 +49,24 @@ export function createEngine({
   const ctx = {
     setFlag: (name, value) => save.setFlag(name, value),
     getFlag: (name) => save.getFlag(name),
+    // Dialogue options in the JSON name their effect as a string; route it to
+    // whichever system owns it.
+    applyEffect: (name) => {
+      if (PROLOGUE_EFFECTS[name]) {
+        prologueChoice = name;
+        return;
+      }
+      game?.applyEffect(name);
+    },
   };
+
+  // The lift queue that opens each day. Each option trades time for risk.
+  const PROLOGUE_EFFECTS = {
+    wait: { timeDelta: -25, toast: "Llegaste con la fila. Menos jornada por delante." },
+    stairs: { timeDelta: 0, tired: true, toast: "Siete pisos. Llegas entera pero lenta." },
+    cut: { timeDelta: 15, risky: true, toast: "Te colaste. A ver si nadie lo comenta." },
+  };
+  let prologueChoice = null;
 
   const PERKS = {
     // Konami reward: the boss walks like it is 4:55pm for the rest of the day.
@@ -54,6 +75,15 @@ export function createEngine({
       applyBossTuning();
     },
   };
+
+  /** A sidekick spotting you sends the real boss to that spot. */
+  function onMinionSpot(watcher, at) {
+    boss.distract(at, 6);
+    game?._toast(`${watcher.name} te delató`);
+  }
+  minions.forEach((watcher) => {
+    watcher.onSpot = onMinionSpot;
+  });
 
   function applyBossTuning() {
     const rules = levels[dayIndex].rules ?? {};
@@ -205,21 +235,86 @@ export function createEngine({
     resetEntities();
     applyBossTuning();
 
+    const onDuty = configureMinions(day);
+
     game = new Game({
       player,
       boss,
       npcs,
+      minions: onDuty,
       hud,
       rules: day.rules,
       onFinish: (result) => finishDay(day, result),
       onEgg: (egg) => triggerEgg(egg),
       onPopup,
+      onTalk: (npc) => talkTo(npc),
     });
     game.setPaused(true);
 
     camera.setFraming(camera.camera.aspect >= 1.15 ? 0.35 : 0.8);
+
+    // The lift queue first, then the day proper.
+    prologueChoice = null;
+    if (day.prologue) {
+      const nodes = [...(day.prologue.intro ?? [])];
+      if (day.prologue.choice) nodes.push(day.prologue.choice);
+      await dialogue.play(nodes, ctx);
+      applyPrologue(day);
+    }
+
     await dialogue.play(day.intro ?? [], ctx);
     if (!menuPaused) game.setPaused(false);
+  }
+
+  /** Turns the lift-queue choice into a real handicap for the day. */
+  function applyPrologue(day) {
+    const outcome = PROLOGUE_EFFECTS[prologueChoice];
+    if (!game || !outcome) return;
+
+    game.timeLeft = Math.max(60, game.timeLeft + outcome.timeDelta);
+    if (outcome.tired) {
+      player.speedMul = 0.85;
+      setTimeout(() => {
+        if (player.speedMul === 0.85) player.speedMul = 1;
+      }, 30000);
+    }
+    if (outcome.risky && Math.random() < 0.35) {
+      game.warnings = 1;
+      game._toast("Te vieron colarte: advertencia 1");
+    } else {
+      game._toast(outcome.toast);
+    }
+  }
+
+  /** Which sidekicks are on duty today, and on which round. */
+  function configureMinions(day) {
+    const onDuty = [];
+    minions.forEach((watcher) => watcher.setActive(false));
+    (day.minions ?? []).forEach((def) => {
+      const watcher = minions.get(def.id);
+      if (!watcher) return;
+      const route = routes[def.route] ?? routes.jefe ?? patrolRoute;
+      watcher.setRoute(route);
+      watcher.setActive(true);
+      onDuty.push(watcher);
+    });
+    return onDuty;
+  }
+
+  /** A colleague you walked up to and pressed USAR on. */
+  async function talkTo(npc) {
+    const encounter = dialogues.encounters[npc.cast];
+    if (!encounter?.scenes?.length) return;
+    const seen = save.getFlag(`talk:${npc.cast}`) ?? 0;
+    save.setFlag(`talk:${npc.cast}`, seen + 1);
+    const scene = encounter.scenes[seen % encounter.scenes.length];
+    const persona = dialogues.cast[npc.cast];
+    await withPause(() =>
+      dialogue.play(
+        scene.map((node) => ({ color: persona?.color, ...node })),
+        ctx
+      )
+    );
   }
 
   async function finishDay(day, result) {
@@ -267,12 +362,15 @@ export function createEngine({
 
   function update(dt) {
     game?.update(dt);
+    // Reuse the frame state the HUD just rendered instead of rebuilding it.
+    compass.update(game && !menus.isOpen ? game.lastSnapshot : null);
   }
 
   return {
     hud,
     dialogue,
     menus,
+    compass,
     save,
     start: () => openTitle(),
     startDay,

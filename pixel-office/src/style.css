@@ -1889,3 +1889,650 @@ body.menu-open .px-popups {
     padding: 12px 14px;
   }
 }
+
+/* =====================================================================
+   PASE CYBERPUNK-PIXEL
+   Rehace el HUD de partida, la caja de diálogo y la brújula de objetivos
+   con una sola gramática: cortes en diagonal, borde de neón, rejilla de
+   escaneado y tipografía monoespaciada. Va al final del archivo a
+   propósito: sobrescribe el HUD anterior sin tener que borrarlo.
+   ===================================================================== */
+
+:root {
+  --cy-bg: rgba(9, 11, 20, 0.82);
+  --cy-bg-solid: #0a0d18;
+  --cy-line: rgba(69, 224, 208, 0.55);
+  --cy-cyan: #45e0d0;
+  --cy-magenta: #ff4ecd;
+  --cy-amber: #f2c744;
+  --cy-red: #ff4d5e;
+  --cy-text: #e8f3ff;
+  --cy-dim: #7d8ba5;
+  --cy-cut: 10px;
+}
+
+/* Corte en las esquinas: la silueta angulada del género, sin imágenes. */
+.hud-panel,
+.hud-location,
+.compass-card,
+.hud-overlay-card {
+  clip-path: polygon(
+    var(--cy-cut) 0,
+    100% 0,
+    100% calc(100% - var(--cy-cut)),
+    calc(100% - var(--cy-cut)) 100%,
+    0 100%,
+    0 var(--cy-cut)
+  );
+}
+
+.hud-root {
+  font-family: var(--px-mono);
+  color: var(--cy-text);
+}
+
+.hud-panel {
+  background:
+    repeating-linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.035) 0 1px,
+      transparent 1px 3px
+    ),
+    linear-gradient(180deg, rgba(16, 22, 38, 0.92), rgba(8, 10, 18, 0.94));
+  border: 1px solid var(--cy-line);
+  border-radius: 0;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.8),
+    0 0 18px rgba(69, 224, 208, 0.14),
+    inset 0 0 24px rgba(69, 224, 208, 0.06);
+  backdrop-filter: blur(6px);
+}
+
+.hud-panel-title {
+  font-family: var(--px-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.24em;
+  color: var(--cy-cyan);
+  text-shadow: 0 0 8px rgba(69, 224, 208, 0.5);
+}
+
+.hud-objectives::before {
+  content: "▚ TRIBU CANALES // PISO 7";
+  color: var(--cy-magenta);
+  letter-spacing: 0.16em;
+}
+
+.hud-objectives-list {
+  font-family: var(--px-mono);
+  font-size: 11.5px;
+}
+
+.hud-objective-dot {
+  border-radius: 0;
+  width: 5px;
+  height: 10px;
+}
+
+.hud-objective.done .hud-objective-icon {
+  color: var(--cy-cyan);
+}
+
+.hud-day-chip {
+  border-radius: 0;
+  font-family: var(--px-mono);
+  background: rgba(255, 78, 205, 0.16);
+  border: 1px solid rgba(255, 78, 205, 0.6);
+  color: #ffd2f2;
+  text-shadow: 0 0 8px rgba(255, 78, 205, 0.6);
+}
+
+.hud-suspicion-track,
+.hud-timer-track,
+.hud-objective-bar {
+  border-radius: 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.hud-suspicion-fill {
+  background: linear-gradient(90deg, var(--cy-cyan), var(--cy-amber));
+  box-shadow: 0 0 12px rgba(69, 224, 208, 0.6);
+}
+
+.hud-suspicion-fill.danger {
+  background: linear-gradient(90deg, var(--cy-amber), #ff8a3d);
+}
+
+.hud-suspicion-fill.hot {
+  background: linear-gradient(90deg, #ff8a3d, var(--cy-red));
+  box-shadow: 0 0 16px rgba(255, 77, 94, 0.75);
+}
+
+.hud-warning-pip {
+  border-radius: 0;
+  border-color: rgba(255, 77, 94, 0.45);
+}
+
+.hud-warning-pip.lit {
+  background: var(--cy-red);
+  border-color: #ffb3bb;
+  box-shadow: 0 0 12px rgba(255, 77, 94, 0.9);
+}
+
+.hud-timer-value {
+  font-family: var(--px-mono);
+  letter-spacing: 0.04em;
+  text-shadow: 0 0 10px rgba(69, 224, 208, 0.45);
+}
+
+.hud-timer-fill {
+  background: var(--cy-cyan);
+  box-shadow: 0 0 10px rgba(69, 224, 208, 0.6);
+}
+
+.hud-location {
+  background: linear-gradient(180deg, rgba(16, 22, 38, 0.94), rgba(8, 10, 18, 0.94));
+  border: 1px solid var(--cy-line);
+  border-radius: 0;
+  font-family: var(--px-mono);
+  box-shadow: 0 0 16px rgba(69, 224, 208, 0.16);
+}
+
+.hud-loc-wing {
+  border-radius: 0;
+  color: #06121a;
+}
+
+.hud-toast,
+.hud-status-badge,
+.hud-prompt {
+  border-radius: 0;
+  font-family: var(--px-mono);
+  letter-spacing: 0.04em;
+}
+
+.hud-toast {
+  background: linear-gradient(180deg, rgba(20, 12, 30, 0.95), rgba(8, 6, 14, 0.95));
+  border: 1px solid rgba(255, 78, 205, 0.6);
+  color: #ffd2f2;
+  box-shadow: 0 0 18px rgba(255, 78, 205, 0.25);
+}
+
+.hud-prompt {
+  background: linear-gradient(180deg, rgba(10, 24, 30, 0.95), rgba(6, 12, 18, 0.95));
+  border: 1px solid var(--cy-cyan);
+  color: #ccfff9;
+  box-shadow: 0 0 20px rgba(69, 224, 208, 0.3);
+}
+
+.hud-legend {
+  border-radius: 0;
+  font-family: var(--px-mono);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(9, 11, 20, 0.72);
+}
+
+.hud-legend-swatch {
+  border-radius: 0;
+}
+
+/* ---------------- Brújula de objetivos ---------------- */
+
+.compass-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 11;
+  opacity: 0;
+  transition: opacity 0.2s;
+  overflow: hidden;
+}
+
+.compass-layer.visible {
+  opacity: 1;
+}
+
+.compass-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, 0);
+  top: auto;
+  bottom: 78px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "icon body" "risk risk";
+  align-items: center;
+  gap: 4px 10px;
+  min-width: 210px;
+  max-width: min(86vw, 340px);
+  padding: 8px 14px 6px 12px;
+  font-family: var(--px-mono);
+  background: linear-gradient(180deg, rgba(16, 22, 38, 0.94), rgba(8, 10, 18, 0.95));
+  border: 1px solid var(--cy-line);
+  box-shadow: 0 0 20px rgba(69, 224, 208, 0.2);
+}
+
+.compass-card.warm {
+  border-color: rgba(242, 199, 68, 0.7);
+  box-shadow: 0 0 20px rgba(242, 199, 68, 0.24);
+}
+
+.compass-card.hot {
+  border-color: var(--cy-red);
+  box-shadow: 0 0 24px rgba(255, 77, 94, 0.4);
+  animation: cy-alarm 0.7s ease-in-out infinite;
+}
+
+@keyframes cy-alarm {
+  0%, 100% { box-shadow: 0 0 24px rgba(255, 77, 94, 0.4); }
+  50% { box-shadow: 0 0 34px rgba(255, 77, 94, 0.75); }
+}
+
+.compass-icon {
+  grid-area: icon;
+  font-size: 20px;
+}
+
+.compass-body {
+  grid-area: body;
+  display: grid;
+  min-width: 0;
+}
+
+.compass-label {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--cy-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compass-meta {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--cy-cyan);
+}
+
+.compass-card.hot .compass-meta {
+  color: var(--cy-red);
+}
+
+.compass-risk {
+  grid-area: risk;
+  display: block;
+  height: 3px;
+  margin-top: 4px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.compass-risk i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cy-cyan), var(--cy-red));
+  transition: width 0.2s linear;
+}
+
+.compass-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-family: var(--px-mono);
+  color: var(--cy-cyan);
+  text-shadow: 0 0 10px rgba(69, 224, 208, 0.8), 2px 2px 0 rgba(0, 0, 0, 0.7);
+  will-change: transform;
+}
+
+.compass-arrow {
+  font-size: 18px;
+  line-height: 1;
+  opacity: 0.9;
+}
+
+.compass-marker:not(.edge) .compass-arrow {
+  font-size: 13px;
+  animation: cy-bob 1.2s ease-in-out infinite;
+}
+
+@keyframes cy-bob {
+  0%, 100% { transform: translateY(0) rotate(180deg); }
+  50% { transform: translateY(-5px) rotate(180deg); }
+}
+
+.compass-dist {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.compass-card.hot ~ .compass-marker {
+  color: var(--cy-red);
+  text-shadow: 0 0 10px rgba(255, 77, 94, 0.9), 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+/* ---------------- Diálogo protagonista ---------------- */
+
+.vn-layer {
+  --vn-accent: var(--cy-cyan);
+  display: block;
+  padding: 0;
+}
+
+.vn-scrim {
+  background: linear-gradient(180deg, rgba(4, 6, 12, 0) 45%, rgba(4, 6, 12, 0.86) 100%);
+}
+
+/* Barras de cine: la escena se estrecha y la conversación manda. */
+.vn-bar-top {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 8vh;
+  background: linear-gradient(180deg, rgba(4, 6, 12, 0.95), rgba(4, 6, 12, 0));
+}
+
+.vn-dock {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+  padding: 0 clamp(12px, 5vw, 64px) calc(18px + env(safe-area-inset-bottom, 0px));
+}
+
+.vn-portrait {
+  position: absolute;
+  left: clamp(12px, 5vw, 64px);
+  bottom: calc(100% - 108px);
+  width: 116px;
+  height: 116px;
+  border-radius: 0;
+  display: grid;
+  place-items: center;
+  font-size: 60px;
+  background: linear-gradient(180deg, rgba(20, 28, 48, 0.96), rgba(8, 10, 18, 0.96));
+  border: 2px solid var(--vn-accent);
+  box-shadow: 0 0 28px rgba(69, 224, 208, 0.35), 0 10px 0 rgba(0, 0, 0, 0.4);
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  z-index: 2;
+}
+
+.vn-portrait[data-mood="angry"] {
+  border-color: var(--cy-red);
+  box-shadow: 0 0 28px rgba(255, 77, 94, 0.5), 0 10px 0 rgba(0, 0, 0, 0.4);
+  animation: cy-shake 0.5s ease-in-out infinite;
+}
+
+@keyframes cy-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
+}
+
+/* No clip-path here on purpose: the name tab hangs above the top edge and a
+   clip would cut it off. The angled look comes from the corner notch below. */
+.vn-box {
+  position: relative;
+  width: 100%;
+  display: block;
+  padding: 34px 22px 16px 152px;
+  border: 1px solid var(--vn-accent);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, rgba(14, 20, 36, 0.96), rgba(6, 8, 16, 0.97));
+  box-shadow: 0 0 34px rgba(69, 224, 208, 0.18), inset 0 0 40px rgba(69, 224, 208, 0.05);
+  animation: vn-rise 0.2s ease-out;
+}
+
+.vn-box[data-mood="angry"] {
+  border-color: var(--cy-red);
+  box-shadow: 0 0 34px rgba(255, 77, 94, 0.28);
+}
+
+/* Pestaña con el nombre montada sobre el borde superior de la caja. */
+.vn-speaker {
+  position: absolute;
+  top: -1px;
+  left: 152px;
+  transform: translateY(-100%);
+  padding: 5px 16px 4px;
+  font-family: var(--px-mono);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #06121a;
+  background: var(--vn-accent);
+  clip-path: polygon(0 0, 100% 0, calc(100% - 10px) 100%, 0 100%);
+  margin: 0;
+}
+
+.vn-box[data-mood="angry"] .vn-speaker {
+  background: var(--cy-red);
+  color: #fff;
+}
+
+.vn-text {
+  font-family: var(--px-mono);
+  font-size: 15px;
+  line-height: 1.65;
+  min-height: 3.3em;
+  color: var(--cy-text);
+}
+
+.vn-options {
+  margin-top: 14px;
+  gap: 8px;
+}
+
+.vn-option {
+  font-family: var(--px-mono);
+  font-size: 13.5px;
+  border-radius: 0;
+  border: 1px solid var(--vn-accent);
+  background: rgba(69, 224, 208, 0.1);
+  color: var(--cy-text);
+  padding: 12px 16px;
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
+  transition: background 0.12s, transform 0.06s;
+}
+
+.vn-option::before {
+  content: "▸ ";
+  color: var(--vn-accent);
+}
+
+.vn-option:hover,
+.vn-option:active {
+  background: rgba(69, 224, 208, 0.28);
+  transform: translateX(3px);
+}
+
+.vn-hint {
+  position: absolute;
+  right: 16px;
+  bottom: 8px;
+  margin: 0;
+  font-size: 14px;
+  color: var(--vn-accent);
+}
+
+/* ---------------- Menús: mismo lenguaje ---------------- */
+
+.px-screen,
+.px-btn,
+.px-day,
+.px-tab,
+.px-switch,
+.px-chip {
+  font-family: var(--px-mono);
+}
+
+.px-screen {
+  border-color: var(--cy-line);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.8),
+    0 0 40px rgba(69, 224, 208, 0.16),
+    inset 0 0 60px rgba(69, 224, 208, 0.05);
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 255, 255, 0.025) 0 1px, transparent 1px 3px),
+    var(--cy-bg);
+}
+
+.px-logo-main {
+  text-shadow: 3px 0 0 var(--cy-magenta), -3px 0 0 var(--cy-cyan), 0 6px 0 rgba(0, 0, 0, 0.6);
+}
+
+.px-logo-sub {
+  color: var(--cy-cyan);
+}
+
+.px-btn:hover {
+  background: rgba(69, 224, 208, 0.2);
+  border-color: var(--cy-cyan);
+}
+
+.px-btn-icon {
+  color: var(--cy-magenta);
+}
+
+.px-choice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.px-chip {
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--cy-dim);
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.px-chip.on {
+  color: #06121a;
+  background: var(--cy-cyan);
+  border-color: #fff;
+}
+
+/* ---------------- Móvil ---------------- */
+
+/* Nada de zoom por doble toque ni scroll accidental en iOS. */
+html,
+body,
+#app {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+#app,
+.touch-controls,
+.px-popups,
+.compass-layer {
+  touch-action: none;
+}
+
+/* La tarjeta de fin de día tiene que poder tocarse: el joystick ocupa medio
+   móvil y se comía todos los taps. */
+body.overlay-open .touch-controls,
+body.overlay-open .compass-layer,
+body.overlay-open .px-popups,
+body.overlay-open #hint {
+  display: none !important;
+}
+
+body.vn-open .touch-stick-zone,
+body.menu-open .touch-stick-zone {
+  pointer-events: none;
+}
+
+body.vn-open .compass-layer {
+  opacity: 0;
+}
+
+@media (max-width: 720px) {
+  .vn-portrait {
+    width: 78px;
+    height: 78px;
+    font-size: 40px;
+    bottom: calc(100% - 74px);
+  }
+  .vn-box {
+    padding: 26px 14px 14px 98px;
+  }
+  .vn-speaker {
+    left: 98px;
+    font-size: 9.5px;
+    padding: 4px 12px 3px;
+  }
+  .vn-text {
+    font-size: 13.5px;
+    line-height: 1.55;
+    min-height: 3.6em;
+  }
+  .vn-option {
+    font-size: 12.5px;
+    padding: 11px 12px;
+  }
+  .vn-bar-top {
+    height: 5vh;
+  }
+  .compass-card {
+    bottom: calc(196px + env(safe-area-inset-bottom, 0px));
+    min-width: 0;
+    padding: 6px 10px 5px 9px;
+  }
+  .compass-label {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape) {
+  .compass-card {
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+  }
+  .vn-portrait {
+    width: 60px;
+    height: 60px;
+    font-size: 30px;
+    bottom: calc(100% - 58px);
+  }
+  .vn-box {
+    padding: 22px 14px 12px 78px;
+  }
+  .vn-speaker {
+    left: 78px;
+  }
+  .vn-text {
+    min-height: 2.6em;
+  }
+}
+
+/* El bloque central del HUD creció (día + puntuación + sospecha); baja los
+   avisos para que no se solapen con él. */
+.hud-toast {
+  top: 176px;
+}
+
+.hud-status-badge {
+  top: 214px;
+}
+
+@media (max-width: 720px) {
+  .hud-toast {
+    top: auto;
+  }
+}

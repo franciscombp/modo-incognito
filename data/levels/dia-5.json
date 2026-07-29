@@ -8,14 +8,19 @@
   "rules": {
     "duration": 220,
     "maxWarnings": 1,
-    "objectives": ["coffee", "chat", "movie", "snack", "sleep"],
+    "objectives": ["coffee","chat","movie","snack","sleep"],
     "bossSpeedMul": 1.25,
     "visionMul": 1.25,
     "decayMul": 0.72,
     "targetScore": 3000
   },
   "intro": [
-    { "speaker": "Jefe", "portrait": "🕴️", "mood": "angry", "text": "Llevo toda la semana observándote. Hoy firmo tu evaluación." },
+    {
+      "speaker": "Jefe",
+      "portrait": "🕴️",
+      "mood": "angry",
+      "text": "Llevo toda la semana observándote. Hoy firmo tu evaluación."
+    },
     {
       "prompt": "Última palabra antes de que empiece la jornada.",
       "portrait": "🕴️",
@@ -25,17 +30,58 @@
           "reply": "Estoy en modo incógnito, jefe.",
           "flag": "declaracion",
           "then": [
-            { "speaker": "Jefe", "portrait": "🕴️", "mood": "angry", "text": "…¿Eso qué significa?" },
-            { "speaker": "Tú", "portrait": "😏", "text": "Que no me va a ver." }
+            {"speaker":"Jefe","portrait":"🕴️","mood":"angry","text":"…¿Eso qué significa?"},
+            {"speaker":"Tú","portrait":"😏","text":"Que no me va a ver."}
           ]
         },
-        { "label": "Sonreír y no decir nada", "reply": "…", "flag": "silencio" }
+        {"label":"Sonreír y no decir nada","reply":"…","flag":"silencio"}
       ]
     }
   ],
   "outroWin": [
-    { "speaker": "Jefe", "portrait": "🕴️", "text": "Semana impecable. No te vi ni una vez fuera de tu puesto. Te asciendo." },
-    { "speaker": "Tú", "portrait": "🏆", "text": "Exactamente. No me vio ni una vez." }
+    {
+      "speaker": "Jefe",
+      "portrait": "🕴️",
+      "text": "Semana impecable. No te vi ni una vez fuera de tu puesto. Te asciendo."
+    },
+    {"speaker":"Tú","portrait":"🏆","text":"Exactamente. No me vio ni una vez."}
   ],
-  "outroLose": [{ "speaker": "Jefe", "portrait": "🕴️", "mood": "angry", "text": "Recursos Humanos te espera. Trae la credencial." }]
+  "outroLose": [
+    {
+      "speaker": "Jefe",
+      "portrait": "🕴️",
+      "mood": "angry",
+      "text": "Recursos Humanos te espera. Trae la credencial."
+    }
+  ],
+  "prologue": {
+    "kind": "elevator",
+    "title": "Planta baja · 9:00",
+    "intro": [
+      {
+        "speaker": "Narrador",
+        "portrait": "🛗",
+        "text": "Viernes. La fila entera te mira. Alguien murmura «esa es la de la evaluación»."
+      },
+      {"speaker":"Tú","portrait":"😤","text":"Que miren. Hoy no me ve nadie."}
+    ],
+    "choice": {
+      "prompt": "Último día. ¿Cómo entras?",
+      "portrait": "🛗",
+      "options": [
+        {"label":"Con la fila, como todos","reply":"Con la fila. Como todos.","effect":"wait"},
+        {"label":"Escaleras, a paso vivo","reply":"Escaleras. A paso vivo.","effect":"stairs"},
+        {
+          "label": "Entrar detrás del jefe",
+          "reply": "Entro justo detrás de él. Punto ciego.",
+          "effect": "cut"
+        }
+      ]
+    }
+  },
+  "minions": [
+    {"id":"chispita","route":"sur"},
+    {"id":"washo","route":"norte"},
+    {"id":"crispo","route":"centro"}
+  ]
 }

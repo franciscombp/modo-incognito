@@ -1,60 +1,146 @@
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { WORLD_SCALE as S } from "./config.js";
 import { texturedMaterial } from "./textures.js";
 
 // Every work zone on the blueprint prints a seat count (7, 10, 12, 14...).
 // This module turns that single number into ONE big white table with that
-// many chairs around it — never a scatter of separate little desks, which is
-// the look the reference blueprint and the brief both ask for.
+// many chairs around it — never a scatter of separate little desks.
+//
+// PERFORMANCE: the floor holds ~250 chairs and ~25 tables. Built naively that
+// is well over a thousand meshes, which is what made mid-range tablets crawl
+// and then drop the WebGL context. So nothing here creates meshes directly:
+// it records transforms into a registry, and the registry emits a handful of
+// InstancedMeshes plus one merged geometry per material at the end. Draw calls
+// end up in the dozens instead of the thousands.
 
 const TABLE_H = 0.74 * S;
 const TOP_T = 0.07 * S;
 const CHAIR_GAP = 0.5 * S; // clear distance from the table edge to a chair
 const CHAIR_R = 0.22 * S;
 
-let sharedMats = null;
-function mats() {
-  if (!sharedMats) {
-    sharedMats = {
-      top: new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 0.45, metalness: 0.02 }),
-      edge: new THREE.MeshStandardMaterial({ color: 0xdad6cc, roughness: 0.6 }),
-      leg: new THREE.MeshStandardMaterial({ color: 0x9aa0a8, roughness: 0.35, metalness: 0.5 }),
-      seat: texturedMaterial("fabricDark", { roughness: 0.8 }),
-      screen: new THREE.MeshStandardMaterial({
-        color: 0x1b1e24,
-        emissive: 0x2f6f96,
-        emissiveIntensity: 0.75,
-      }),
-    };
-  }
-  return sharedMats;
+// ---------------------------------------------------------------- geometry
+// One geometry per repeated part, built once and reused by every instance.
+
+function chairBodyGeometry() {
+  const seat = new THREE.CylinderGeometry(CHAIR_R, CHAIR_R * 0.92, 0.1 * S, 8);
+  seat.translate(0, 0.44 * S, 0);
+  const back = new THREE.BoxGeometry(CHAIR_R * 1.8, 0.34 * S, 0.07 * S);
+  back.translate(0, 0.66 * S, CHAIR_R * 0.85);
+  return mergeGeometries([seat, back], false);
 }
 
-/** A low-poly task chair: seat puck, backrest, single column, star base. */
-function createChair(angleY) {
-  const m = mats();
-  const chair = new THREE.Group();
+function chairStandGeometry() {
+  const column = new THREE.CylinderGeometry(0.045 * S, 0.045 * S, 0.36 * S, 6);
+  column.translate(0, 0.22 * S, 0);
+  const base = new THREE.CylinderGeometry(CHAIR_R * 0.95, CHAIR_R * 0.95, 0.05 * S, 8);
+  base.translate(0, 0.04 * S, 0);
+  return mergeGeometries([column, base], false);
+}
 
-  const seat = new THREE.Mesh(new THREE.CylinderGeometry(CHAIR_R, CHAIR_R * 0.92, 0.1 * S, 10), m.seat);
-  seat.position.y = 0.44 * S;
-  seat.castShadow = true;
-  chair.add(seat);
+let shared = null;
+function sharedAssets() {
+  if (!shared) {
+    shared = {
+      chairBody: chairBodyGeometry(),
+      chairStand: chairStandGeometry(),
+      monitor: new THREE.BoxGeometry(0.34 * S, 0.24 * S, 0.04 * S),
+      stool: new THREE.CylinderGeometry(0.17 * S, 0.17 * S, 0.45 * S, 8),
+      materials: {
+        top: new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 0.45, metalness: 0.02 }),
+        edge: new THREE.MeshStandardMaterial({ color: 0xdad6cc, roughness: 0.6 }),
+        leg: new THREE.MeshStandardMaterial({ color: 0x9aa0a8, roughness: 0.35, metalness: 0.5 }),
+        seat: texturedMaterial("fabricDark", { roughness: 0.8 }),
+        screen: new THREE.MeshStandardMaterial({
+          color: 0x1b1e24,
+          emissive: 0x2f6f96,
+          emissiveIntensity: 0.75,
+        }),
+      },
+    };
+  }
+  return shared;
+}
 
-  const back = new THREE.Mesh(new THREE.BoxGeometry(CHAIR_R * 1.8, 0.34 * S, 0.07 * S), m.seat);
-  back.position.set(0, 0.66 * S, CHAIR_R * 0.85);
-  back.castShadow = true;
-  chair.add(back);
+// ---------------------------------------------------------------- registry
 
-  const column = new THREE.Mesh(new THREE.CylinderGeometry(0.045 * S, 0.045 * S, 0.36 * S, 6), m.leg);
-  column.position.y = 0.22 * S;
-  chair.add(column);
+const _m = new THREE.Matrix4();
+const _pos = new THREE.Vector3();
+const _quat = new THREE.Quaternion();
+const _scale = new THREE.Vector3(1, 1, 1);
+const _euler = new THREE.Euler();
 
-  const base = new THREE.Mesh(new THREE.CylinderGeometry(CHAIR_R * 0.95, CHAIR_R * 0.95, 0.05 * S, 8), m.leg);
-  base.position.y = 0.04 * S;
-  chair.add(base);
+function transform(x, y, z, rotY = 0) {
+  _pos.set(x, y, z);
+  _euler.set(0, rotY, 0);
+  _quat.setFromEuler(_euler);
+  return _m.compose(_pos, _quat, _scale).clone();
+}
 
-  chair.rotation.y = angleY;
-  return chair;
+/**
+ * Collects furniture placements across the whole floor, then emits them as a
+ * few instanced/merged meshes. Everything is in world space, so a zone just
+ * passes its own origin in.
+ */
+export function createFurnitureRegistry() {
+  const chairs = [];
+  const monitors = [];
+  const stools = [];
+  const slabs = { top: [], edge: [], leg: [] };
+
+  return {
+    addChair(x, z, rotY) {
+      chairs.push(transform(x, 0, z, rotY));
+    },
+    addMonitor(x, y, z, rotY) {
+      monitors.push(transform(x, y, z, rotY));
+    },
+    addStool(x, z) {
+      stools.push(transform(x, 0.23 * S, z));
+    },
+    /** A static box that will be merged into the shared slab geometry. */
+    addSlab(kind, geometry, x, y, z, rotY = 0) {
+      geometry.applyMatrix4(transform(x, y, z, rotY));
+      slabs[kind].push(geometry);
+    },
+
+    build() {
+      const group = new THREE.Group();
+      group.name = "furniture";
+      const a = sharedAssets();
+
+      const instanced = (geometry, material, list) => {
+        if (!list.length) return;
+        const mesh = new THREE.InstancedMesh(geometry, material, list.length);
+        list.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
+        mesh.instanceMatrix.needsUpdate = true;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        // Instanced meshes share one bounding volume, and this one spans the
+        // whole floor — culling it per-instance is not possible, so skip the
+        // test entirely rather than pay for a useless check.
+        mesh.frustumCulled = false;
+        group.add(mesh);
+      };
+
+      instanced(a.chairBody, a.materials.seat, chairs);
+      instanced(a.chairStand, a.materials.leg, chairs);
+      instanced(a.monitor, a.materials.screen, monitors);
+      instanced(a.stool, a.materials.seat, stools);
+
+      for (const [kind, list] of Object.entries(slabs)) {
+        if (!list.length) continue;
+        const merged = mergeGeometries(list, false);
+        const mesh = new THREE.Mesh(merged, a.materials[kind]);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        group.add(mesh);
+        list.forEach((g) => g.dispose());
+      }
+
+      return group;
+    },
+  };
 }
 
 /**
@@ -65,86 +151,77 @@ function createChair(angleY) {
 export function seatDistribution(capacity, longLen, shortLen) {
   if (capacity <= 0) return { long: 0, short: 0, extra: 0 };
   const share = longLen / (longLen + shortLen);
-  let perLong = Math.max(1, Math.round((capacity * share) / 2));
-  let perShort = Math.floor((capacity - perLong * 2) / 2);
-  if (perShort < 0) perShort = 0;
-  let placed = perLong * 2 + perShort * 2;
+  const perLong = Math.max(1, Math.round((capacity * share) / 2));
+  const perShort = Math.max(0, Math.floor((capacity - perLong * 2) / 2));
   // Any leftover (odd counts) goes to a long side so the table never looks
   // lopsided across its short ends.
-  return { long: perLong, short: perShort, extra: capacity - placed };
+  return { long: perLong, short: perShort, extra: capacity - (perLong * 2 + perShort * 2) };
 }
 
 /**
- * One big table sized to the zone, with `capacity` chairs around it.
- * Returns the mesh group plus the footprint the collision world should use.
+ * Places one big table with `capacity` chairs around it, centred on
+ * (originX, originZ). Returns the footprint the collision world should use.
  */
-export function createSeatedTable({
-  width,
-  depth,
-  capacity,
-  shape = "rect",
-  monitors = true,
-}) {
-  const group = new THREE.Group();
-  const m = mats();
-
+export function placeSeatedTable(
+  registry,
+  { originX, originZ, width, depth, capacity, shape = "rect", monitors = true }
+) {
   // Leave room for the chair ring plus a walkway on every side.
   const margin = (CHAIR_GAP + CHAIR_R * 2 + 0.35 * S) * 2;
-  let tw = Math.max(1.4 * S, width - margin);
-  let td = Math.max(1.0 * S, depth - margin);
+  const tw = Math.max(1.4 * S, width - margin);
+  const td = Math.max(1.0 * S, depth - margin);
 
   if (shape === "round") {
     const r = Math.min(tw, td) / 2;
-    const top = new THREE.Mesh(new THREE.CylinderGeometry(r, r, TOP_T, 20), m.top);
-    top.position.y = TABLE_H;
-    top.castShadow = true;
-    top.receiveShadow = true;
-    group.add(top);
-
-    const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.09 * S, 0.22 * S, TABLE_H, 10), m.leg);
-    pedestal.position.y = TABLE_H / 2;
-    group.add(pedestal);
+    registry.addSlab("top", new THREE.CylinderGeometry(r, r, TOP_T, 20), originX, TABLE_H, originZ);
+    registry.addSlab(
+      "leg",
+      new THREE.CylinderGeometry(0.09 * S, 0.22 * S, TABLE_H, 10),
+      originX,
+      TABLE_H / 2,
+      originZ
+    );
 
     const ringR = r + CHAIR_GAP + CHAIR_R;
     for (let i = 0; i < capacity; i++) {
-      const a = (i / capacity) * Math.PI * 2;
-      const chair = createChair(a + Math.PI);
-      chair.position.set(Math.sin(a) * ringR, 0, Math.cos(a) * ringR);
-      group.add(chair);
+      const angle = (i / capacity) * Math.PI * 2;
+      registry.addChair(
+        originX + Math.sin(angle) * ringR,
+        originZ + Math.cos(angle) * ringR,
+        angle + Math.PI
+      );
     }
-    return { group, collider: { w: r * 2, d: r * 2 } };
+    return { w: r * 2, d: r * 2 };
   }
 
   const alongX = tw >= td;
   const longLen = alongX ? tw : td;
   const shortLen = alongX ? td : tw;
 
-  // Table top: a single slab, with a thin darker edge band so it reads as a
-  // solid piece of furniture rather than a floating plane.
-  const top = new THREE.Mesh(new THREE.BoxGeometry(tw, TOP_T, td), m.top);
-  top.position.y = TABLE_H;
-  top.castShadow = true;
-  top.receiveShadow = true;
-  group.add(top);
-
-  const skirt = new THREE.Mesh(new THREE.BoxGeometry(tw * 0.97, 0.08 * S, td * 0.94), m.edge);
-  skirt.position.y = TABLE_H - TOP_T;
-  group.add(skirt);
+  registry.addSlab("top", new THREE.BoxGeometry(tw, TOP_T, td), originX, TABLE_H, originZ);
+  registry.addSlab(
+    "edge",
+    new THREE.BoxGeometry(tw * 0.97, 0.08 * S, td * 0.94),
+    originX,
+    TABLE_H - TOP_T,
+    originZ
+  );
 
   // Trestle legs, one pair per ~2.5 units of length.
   const pairs = Math.max(2, Math.round(longLen / (2.5 * S)));
   for (let i = 0; i < pairs; i++) {
     const t = pairs === 1 ? 0.5 : i / (pairs - 1);
     const along = (t - 0.5) * longLen * 0.86;
-    [-1, 1].forEach((side) => {
-      const leg = new THREE.Mesh(
-        new THREE.BoxGeometry(0.09 * S, TABLE_H - TOP_T, 0.09 * S),
-        m.leg
-      );
+    for (const side of [-1, 1]) {
       const across = side * shortLen * 0.38;
-      leg.position.set(alongX ? along : across, (TABLE_H - TOP_T) / 2, alongX ? across : along);
-      group.add(leg);
-    });
+      registry.addSlab(
+        "leg",
+        new THREE.BoxGeometry(0.09 * S, TABLE_H - TOP_T, 0.09 * S),
+        originX + (alongX ? along : across),
+        (TABLE_H - TOP_T) / 2,
+        originZ + (alongX ? across : along)
+      );
+    }
   }
 
   const { long, short, extra } = seatDistribution(capacity, longLen, shortLen);
@@ -152,29 +229,22 @@ export function createSeatedTable({
   const shortOffset = longLen / 2 + CHAIR_GAP + CHAIR_R;
 
   const place = (px, pz, facing) => {
-    const chair = createChair(facing);
-    chair.position.set(px, 0, pz);
-    group.add(chair);
+    registry.addChair(px, pz, facing);
     if (monitors) {
       // A slim monitor on the table in front of each seat sells "puesto de
       // trabajo" without cluttering the silhouette.
-      const screen = new THREE.Mesh(
-        new THREE.BoxGeometry(0.34 * S, 0.24 * S, 0.04 * S),
-        mats().screen
-      );
       const inward = 0.34 * S;
-      screen.position.set(
+      registry.addMonitor(
         px - Math.sin(facing + Math.PI) * inward,
         TABLE_H + 0.16 * S,
-        pz - Math.cos(facing + Math.PI) * inward
+        pz - Math.cos(facing + Math.PI) * inward,
+        facing
       );
-      screen.rotation.y = facing;
-      group.add(screen);
     }
   };
 
   let leftover = extra;
-  [-1, 1].forEach((side) => {
+  for (const side of [-1, 1]) {
     const count = long + (leftover-- > 0 ? 1 : 0);
     for (let i = 0; i < count; i++) {
       const t = (i + 0.5) / count - 0.5;
@@ -188,9 +258,9 @@ export function createSeatedTable({
         : side > 0
         ? -Math.PI / 2
         : Math.PI / 2;
-      place(alongX ? along : across, alongX ? across : along, facing);
+      place(originX + (alongX ? along : across), originZ + (alongX ? across : along), facing);
     }
-  });
+  }
 
   for (let s = 0; s < 2 && short > 0; s++) {
     const side = s === 0 ? -1 : 1;
@@ -205,39 +275,32 @@ export function createSeatedTable({
         : side > 0
         ? Math.PI
         : 0;
-      place(alongX ? along : across, alongX ? across : along, facing);
+      place(originX + (alongX ? along : across), originZ + (alongX ? across : along), facing);
     }
   }
 
-  return { group, collider: { w: tw, d: td } };
+  return { w: tw, d: td };
 }
 
 /** Small round bistro table with stools — cafetería dressing. */
-export function createBistroTable(seats = 4) {
-  const group = new THREE.Group();
-  const m = mats();
+export function placeBistroTable(registry, { originX, originZ, seats = 4 }) {
   const r = 0.45 * S;
-
-  const top = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.06 * S, 14), m.top);
-  top.position.y = 0.72 * S;
-  top.castShadow = true;
-  group.add(top);
-
-  const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.06 * S, 0.18 * S, 0.72 * S, 8), m.leg);
-  stem.position.y = 0.36 * S;
-  group.add(stem);
-
+  registry.addSlab("top", new THREE.CylinderGeometry(r, r, 0.06 * S, 14), originX, 0.72 * S, originZ);
+  registry.addSlab(
+    "leg",
+    new THREE.CylinderGeometry(0.06 * S, 0.18 * S, 0.72 * S, 8),
+    originX,
+    0.36 * S,
+    originZ
+  );
   for (let i = 0; i < seats; i++) {
-    const a = (i / seats) * Math.PI * 2;
-    const stool = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.17 * S, 0.17 * S, 0.45 * S, 8),
-      m.seat
+    const angle = (i / seats) * Math.PI * 2;
+    registry.addStool(
+      originX + Math.sin(angle) * (r + 0.42 * S),
+      originZ + Math.cos(angle) * (r + 0.42 * S)
     );
-    stool.position.set(Math.sin(a) * (r + 0.42 * S), 0.23 * S, Math.cos(a) * (r + 0.42 * S));
-    stool.castShadow = true;
-    group.add(stool);
   }
-  return { group, collider: { w: r * 2, d: r * 2 } };
+  return { w: r * 2, d: r * 2 };
 }
 
-export { TABLE_H, createChair };
+export { TABLE_H };

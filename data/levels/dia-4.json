@@ -8,7 +8,7 @@
   "rules": {
     "duration": 230,
     "maxWarnings": 2,
-    "objectives": ["coffee", "chat", "movie", "snack", "sleep"],
+    "objectives": ["coffee","chat","movie","snack","sleep"],
     "bossSpeedMul": 1.15,
     "visionMul": 1.15,
     "decayMul": 0.8,
@@ -16,16 +16,56 @@
     "targetScore": 2200
   },
   "intro": [
-    { "speaker": "Sistemas", "portrait": "🖨️", "text": "Aviso: impresora, cafetera y televisor en mantenimiento. Sin trucos hoy." },
+    {
+      "speaker": "Sistemas",
+      "portrait": "🖨️",
+      "text": "Aviso: impresora, cafetera y televisor en mantenimiento. Sin trucos hoy."
+    },
     {
       "prompt": "Sin distracciones disponibles, ¿cómo lo juegas?",
       "portrait": "🤔",
       "options": [
-        { "label": "Pegada a las paredes", "reply": "Pegada a las paredes y a las plantas.", "flag": "sigilo" },
-        { "label": "A toda velocidad", "reply": "A toda velocidad. Que me alcance si puede.", "flag": "temeraria" }
+        {"label":"Pegada a las paredes","reply":"Pegada a las paredes y a las plantas.","flag":"sigilo"},
+        {
+          "label": "A toda velocidad",
+          "reply": "A toda velocidad. Que me alcance si puede.",
+          "flag": "temeraria"
+        }
       ]
     }
   ],
-  "outroWin": [{ "speaker": "Tú", "portrait": "🫥", "text": "Cinco actividades prohibidas, cero pruebas. Modo incógnito activado." }],
-  "outroLose": [{ "speaker": "Jefe", "portrait": "🕴️", "mood": "angry", "text": "Sin impresora que culpar, ¿eh?" }]
+  "outroWin": [
+    {
+      "speaker": "Tú",
+      "portrait": "🫥",
+      "text": "Cinco actividades prohibidas, cero pruebas. Modo incógnito activado."
+    }
+  ],
+  "outroLose": [
+    {"speaker":"Jefe","portrait":"🕴️","mood":"angry","text":"Sin impresora que culpar, ¿eh?"}
+  ],
+  "prologue": {
+    "kind": "elevator",
+    "title": "Planta baja · 8:52",
+    "intro": [
+      {
+        "speaker": "Narrador",
+        "portrait": "🛗",
+        "text": "Hoy llegaste temprano a propósito. Hay dos ascensores fuera de servicio."
+      }
+    ],
+    "choice": {
+      "prompt": "Un solo ascensor para todo el edificio.",
+      "portrait": "🛗",
+      "options": [
+        {"label":"Aguantar la fila","reply":"Aguanto. Tengo margen.","effect":"wait"},
+        {"label":"Escaleras","reply":"Escaleras. Llego sudada pero llego.","effect":"stairs"},
+        {"label":"Montacargas del sótano","reply":"El montacargas. Nadie lo vigila.","effect":"cut"}
+      ]
+    }
+  },
+  "minions": [
+    {"id":"chispita","route":"sur"},
+    {"id":"washo","route":"norte"}
+  ]
 }

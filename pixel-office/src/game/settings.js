@@ -4,7 +4,20 @@
 
 const KEY = "modo-incognito:settings:v1";
 
+export const QUALITY_LEVELS = {
+  auto: { label: "Auto" },
+  alto: { label: "Alto", shadows: true, shadowMap: 2048, maxPixelRatio: 2 },
+  medio: { label: "Medio", shadows: true, shadowMap: 1024, maxPixelRatio: 1.5 },
+  bajo: { label: "Bajo", shadows: false, shadowMap: 512, maxPixelRatio: 1 },
+};
+
 export const SETTINGS_SCHEMA = {
+  quality: {
+    label: "Calidad gráfica",
+    type: "choice",
+    options: ["auto", "alto", "medio", "bajo"],
+    hint: "Auto baja sola si el dispositivo no da abasto",
+  },
   pixelSize: {
     label: "Tamaño de píxel",
     type: "range",
@@ -28,6 +41,7 @@ export const SETTINGS_SCHEMA = {
 };
 
 const DEFAULTS = Object.freeze({
+  quality: "auto",
   pixelSize: 2,
   colorLevels: 24,
   showLabels: true,
@@ -42,6 +56,8 @@ function coerce(values) {
     if (def.type === "range") {
       const n = Number(out[k]);
       out[k] = Number.isFinite(n) ? Math.min(def.max, Math.max(def.min, n)) : DEFAULTS[k];
+    } else if (def.type === "choice") {
+      out[k] = def.options.includes(out[k]) ? out[k] : DEFAULTS[k];
     } else {
       out[k] = !!out[k];
     }
@@ -84,6 +100,20 @@ export function subscribeSettings(fn) {
   listeners.add(fn);
   fn(current);
   return () => listeners.delete(fn);
+}
+
+/**
+ * Resolves "auto" against the device. Phones and tablets are the ones that
+ * were stalling, so they start at medium and the frame-rate watchdog in
+ * main.js can drop them further.
+ */
+export function resolveQuality(name = current.quality) {
+  if (name !== "auto") return QUALITY_LEVELS[name] ?? QUALITY_LEVELS.medio;
+  const coarse = matchMedia("(pointer: coarse)").matches;
+  const smallMemory = (navigator.deviceMemory ?? 8) <= 4;
+  const fewCores = (navigator.hardwareConcurrency ?? 8) <= 4;
+  if (coarse || smallMemory || fewCores) return QUALITY_LEVELS.medio;
+  return QUALITY_LEVELS.alto;
 }
 
 /** Short haptic tap, honouring the player's preference and device support. */
