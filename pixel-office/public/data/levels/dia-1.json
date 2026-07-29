@@ -18,6 +18,11 @@
   ],
   "intro": [
     {
+      "speaker": "Steven el Daddy",
+      "narrator": true,
+      "text": "¡Bienvenida a Modo Incógnito! Yo soy Steven el Daddy, tu voz desde el call center. Hoy es tu primer día en la Tribu Canales. Mantén la calma, aparenta estar trabajando, y lograremos que pases desapercibida."
+    },
+    {
       "speaker": "Recepción",
       "portrait": "🛗",
       "text": "Piso 7, Tribu Canales. Tu escritorio está por el ala sur… si es que lo encuentras."

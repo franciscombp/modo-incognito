@@ -200,8 +200,6 @@ export function createDialogue(root) {
 
     // Steven el Daddy narrator mode: display in narrator element instead of dialogue box
     if (node.narrator || node.speaker === "Steven el Daddy") {
-      hideNarrator(); // Clear any previous narrator message
-      await new Promise(resolve => setTimeout(resolve, 100)); // Brief delay for visibility
       showNarrator(resolve(node.text, ctx));
       await waitForAdvance();
       hideNarrator();

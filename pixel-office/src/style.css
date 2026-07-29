@@ -1218,20 +1218,19 @@ body.touch-device #hint {
 /* Steven el Daddy: narrador desde el call center */
 .vn-narrator {
   position: absolute;
-  bottom: 100%;
-  right: 0;
+  bottom: -140px;
+  left: clamp(12px, 5vw, 48px);
   z-index: 41;
-  width: clamp(240px, 28vw, 420px);
-  max-width: 90%;
-  margin-bottom: 16px;
-  padding: 20px;
+  width: auto;
+  max-width: calc(100vw - 60px);
+  padding: 12px 16px;
   border: 2px solid #ff6b9d;
-  background: linear-gradient(135deg, rgba(255, 107, 157, 0.15), rgba(255, 107, 157, 0.08));
-  box-shadow: 0 0 32px rgba(255, 107, 157, 0.25), inset 0 0 40px rgba(255, 107, 157, 0.05);
-  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  background: linear-gradient(180deg, rgba(255, 107, 157, 0.2), rgba(255, 107, 157, 0.1));
+  box-shadow: 0 0 32px rgba(255, 107, 157, 0.3), inset 0 0 40px rgba(255, 107, 157, 0.05);
+  clip-path: polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px);
   font-family: var(--mono);
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: 13px;
+  line-height: 1.5;
   color: #ffb3d9;
   animation: vn-narrator-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
@@ -1249,17 +1248,17 @@ body.touch-device #hint {
 
 .vn-narrator-title {
   font-weight: 900;
-  font-size: 13px;
-  letter-spacing: 0.15em;
+  font-size: 11px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   color: #ff6b9d;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .vn-narrator-icon {
   display: inline-block;
-  margin-right: 6px;
-  font-size: 16px;
+  margin-right: 4px;
+  font-size: 12px;
 }
 
 .vn-narrator.hidden {
