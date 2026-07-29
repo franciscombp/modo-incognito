@@ -13,6 +13,7 @@ import { NPC } from "./entities/npc.js";
 import { Boss } from "./entities/boss.js";
 import { loadSheet } from "./entities/sprite.js";
 import { createEngine } from "./game/engine.js";
+import { createSave } from "./game/save.js";
 import { createTouchControls } from "./game/touchControls.js";
 import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./game/settings.js";
 import { createPopups } from "./ui/popups.js";
@@ -115,17 +116,24 @@ async function boot() {
   });
   scene.add(player.object3D);
 
-  const npcs = floorplan.npcs.map((def) => {
-    const stats = chars.npcs[def.sheet] ?? {};
-    const persona = data.dialogues.cast[def.cast];
-    const sheet = sheets.get(persona?.sheet ?? def.sheet) ?? sheets.values().next().value;
-    const npc = new NPC(sheet, { ...def, radius: stats.radius, height: stats.height });
-    // Named colleagues can be talked to; the rest are set dressing.
-    npc.cast = def.cast ?? null;
-    npc.displayName = persona?.name ?? stats.name ?? "Compañero";
-    npc.talkCooldown = data.dialogues.encounters[def.cast]?.cooldown ?? 40;
-    return npc;
-  });
+  // Exclude NPCs that are the current playable character
+  const save = createSave();
+  const excludedCasts = new Set();
+  if (save.characterId === "giu") excludedCasts.add("giuli");
+
+  const npcs = floorplan.npcs
+    .filter((def) => !excludedCasts.has(def.cast))
+    .map((def) => {
+      const stats = chars.npcs[def.sheet] ?? {};
+      const persona = data.dialogues.cast[def.cast];
+      const sheet = sheets.get(persona?.sheet ?? def.sheet) ?? sheets.values().next().value;
+      const npc = new NPC(sheet, { ...def, radius: stats.radius, height: stats.height });
+      // Named colleagues can be talked to; the rest are set dressing.
+      npc.cast = def.cast ?? null;
+      npc.displayName = persona?.name ?? stats.name ?? "Compañero";
+      npc.talkCooldown = data.dialogues.encounters[def.cast]?.cooldown ?? 40;
+      return npc;
+    });
   npcs.forEach((npc) => scene.add(npc.object3D));
 
   const boss = new Boss(sheets.get(chars.boss.sheet), {
