@@ -1,81 +1,80 @@
-import * as THREE from "three";
+import { CharacterSprite } from "./sprite.js";
+import { screenToGround, facingFromGround } from "../scene/iso.js";
 
-// Placeholder 2D character: a billboard sprite that always faces the
-// camera, exactly the shape real pixel-art sprite sheets will fill in
-// later. Movement collides against the office's collision world, and the
-// entity carries the state flags (hiding / pretending / doing an activity)
-// the boss AI and suspicion meter read every frame.
+// The protagonist. Input is interpreted in *screen* space and then rotated
+// into world space, so W/A/S/D (and the joystick) move her up/left/down/right
+// as seen on screen rather than diagonally across the isometric view.
 export class Player {
-  constructor({ color = 0x7fdca0, x = 0, z = 12.6, radius = 0.32 } = {}) {
-    this.speed = 4.6;
+  constructor(sheet, { x = 0, z = 12.6, radius = 0.26, height = 1.45 } = {}) {
+    this.speed = 4.4;
     this.radius = radius;
     this.position = { x, z };
     this.keys = new Set();
-    // Set by the on-screen joystick on touch devices; keyboard input is
-    // ignored while this has any magnitude.
     this.touchAxis = { x: 0, z: 0 };
 
     this.isHiding = false;
     this.isPretending = false;
     this.isDoingActivity = false;
+    this.facing = "south";
 
-    const canvas = document.createElement("canvas");
-    canvas.width = 64;
-    canvas.height = 96;
-    const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, 64, 96);
-    ctx.fillStyle = "#2b2f38";
-    ctx.beginPath();
-    ctx.ellipse(32, 90, 20, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
-    ctx.fillRect(16, 30, 32, 48);
-    ctx.fillStyle = "#f2caa0";
-    ctx.beginPath();
-    ctx.arc(32, 18, 16, 0, Math.PI * 2);
-    ctx.fill();
+    this.sprite = new CharacterSprite(sheet, { height });
+    this.sprite.setPosition(x, z);
 
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.magFilter = THREE.NearestFilter;
-
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-    this.sprite = new THREE.Sprite(material);
-    this.sprite.scale.set(1.1, 1.65, 1);
-    this.sprite.position.set(x, 0.82, z);
-
-    this._onKeyDown = (e) => this.keys.add(e.key.toLowerCase());
+    this._onKeyDown = (e) => {
+      const k = e.key.toLowerCase();
+      this.keys.add(k);
+      if (["arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(k)) e.preventDefault();
+    };
     this._onKeyUp = (e) => this.keys.delete(e.key.toLowerCase());
     window.addEventListener("keydown", this._onKeyDown);
     window.addEventListener("keyup", this._onKeyUp);
   }
 
-  update(dt, world) {
-    let dx = 0;
-    let dz = 0;
-    const touchLen = Math.hypot(this.touchAxis.x, this.touchAxis.z);
-    if (touchLen > 0.08) {
-      dx = this.touchAxis.x;
-      dz = this.touchAxis.z;
-    } else {
-      if (this.keys.has("w") || this.keys.has("arrowup")) dz -= 1;
-      if (this.keys.has("s") || this.keys.has("arrowdown")) dz += 1;
-      if (this.keys.has("a") || this.keys.has("arrowleft")) dx -= 1;
-      if (this.keys.has("d") || this.keys.has("arrowright")) dx += 1;
-    }
+  get object3D() {
+    return this.sprite.object;
+  }
 
-    if (dx !== 0 || dz !== 0) {
-      const len = Math.max(Math.hypot(dx, dz), 1);
-      const speedMul = this.isPretending ? 0.5 : 1;
-      this.position.x += (dx / len) * this.speed * speedMul * dt;
-      this.position.z += (dz / len) * this.speed * speedMul * dt;
+  /** Screen-space intent, from either the keyboard or the on-screen stick. */
+  _readInput() {
+    const tx = this.touchAxis.x;
+    const tz = this.touchAxis.z;
+    if (Math.hypot(tx, tz) > 0.08) {
+      // Joystick: +z on the pad is "down the screen".
+      return { right: tx, up: -tz };
+    }
+    let right = 0;
+    let up = 0;
+    if (this.keys.has("w") || this.keys.has("arrowup")) up += 1;
+    if (this.keys.has("s") || this.keys.has("arrowdown")) up -= 1;
+    if (this.keys.has("a") || this.keys.has("arrowleft")) right -= 1;
+    if (this.keys.has("d") || this.keys.has("arrowright")) right += 1;
+    return { right, up };
+  }
+
+  update(dt, world) {
+    const { right, up } = this._readInput();
+    const magnitude = Math.min(Math.hypot(right, up), 1);
+    let moving = false;
+
+    if (magnitude > 0.001) {
+      const { dx, dz } = screenToGround(right, up);
+      const len = Math.hypot(dx, dz) || 1;
+      const speedMul = this.isPretending ? 0.45 : 1;
+      const step = this.speed * speedMul * magnitude * dt;
+      this.position.x += (dx / len) * step;
+      this.position.z += (dz / len) * step;
+      this.facing = facingFromGround(dx, dz, this.facing);
+      moving = true;
     }
 
     if (world) world.resolveCircle(this.position, this.radius);
 
-    this.sprite.position.x = this.position.x;
-    this.sprite.position.z = this.position.z;
-    this.sprite.material.color.setScalar(this.isHiding ? 0.55 : 1);
+    // Standing still while "working" still shows the idle pose, not a walk.
+    this.sprite.setFacing(this.facing);
+    this.sprite.setMoving(moving && !this.isPretending);
+    this.sprite.setPosition(this.position.x, this.position.z);
+    this.sprite.setTint(this.isHiding ? 0.6 : 1);
+    this.sprite.update(dt);
   }
 
   dispose() {

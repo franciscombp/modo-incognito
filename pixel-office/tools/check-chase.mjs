@@ -1,0 +1,110 @@
+// Behavioural check for the boss AI: he must spot the player slacking off,
+// break off his patrol to chase her, close the distance, lose her when she
+// hides, and be pullable off-route by a distraction.
+//
+// Usage: node tools/check-chase.mjs [url]
+import { chromium } from "playwright";
+
+const url = process.argv[2] ?? "http://localhost:4173/modo-incognito/";
+
+const browser = await chromium.launch({
+  executablePath: "/opt/pw-browsers/chromium-1194/chrome-linux/chrome",
+});
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+const errors = [];
+page.on("pageerror", (e) => errors.push(String(e)));
+
+await page.goto(url, { waitUntil: "networkidle" });
+await page.waitForFunction(() => !!window.__game, null, { timeout: 15000 });
+
+const log = await page.evaluate(async () => {
+  const { boss, player, game, world } = window.__game;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const out = {};
+
+  // A clear stretch of the lobby corridor, boss looking east at the player.
+  const bx = -6.5;
+  const px = -3.0;
+  const z = 7.6;
+  out.sightLineClear = !world.lineBlocked({ x: bx, z }, { x: px, z }, []);
+
+  player.position.x = px;
+  player.position.z = z;
+  player.isHiding = false;
+  boss.position.x = bx;
+  boss.position.z = z;
+  boss.route = [{ x: bx, z }]; // pin the route so he holds position until he sees her
+  boss.routeIndex = 0;
+  boss.facingDir = { x: 1, z: 0 };
+  boss.state = "PATROL";
+
+  // Put a forbidden activity right where she is standing.
+  const station = game.objectives.find((o) => o.id === "movie");
+  station.x = px;
+  station.z = z;
+  station.done = false;
+  station.progress = 0;
+  player.keys.add("e");
+
+  await sleep(350);
+  out.seesPlayer = boss.playerVisible;
+  out.redAlert = boss.redAlert;
+  out.stateAfterSpotted = boss.state;
+
+  const d0 = Math.hypot(boss.position.x - player.position.x, boss.position.z - player.position.z);
+  const s0 = game.suspicion;
+  await sleep(700);
+  const d1 = Math.hypot(boss.position.x - player.position.x, boss.position.z - player.position.z);
+  out.closedDistance = +(d0 - d1).toFixed(2);
+  out.suspicionRose = game.suspicion > s0;
+
+  // Pretending to work must break the red alert even in plain sight.
+  player.keys.add("f");
+  await sleep(200);
+  out.redAlertWhilePretending = boss.redAlert;
+  player.keys.delete("f");
+  player.keys.delete("e");
+
+  // Hiding breaks line of sight: he should give up the direct chase and search.
+  player.isHiding = true;
+  await sleep(1800);
+  out.stateWhenHidden = boss.state;
+
+  // A distraction pulls him off patrol.
+  player.isHiding = false;
+  boss.resetToPatrol();
+  await sleep(80);
+  out.distractAccepted = boss.distract({ x: -5.6, z: -6.6 }, 5);
+  await sleep(150);
+  out.stateAfterDistract = boss.state;
+
+  return out;
+});
+
+console.log(JSON.stringify(log, null, 1));
+
+const checks = [
+  ["line of sight is clear for the test setup", log.sightLineClear],
+  ["boss sees the player", log.seesPlayer],
+  ["red alert on a forbidden activity", log.redAlert],
+  ["boss switches to CHASE", log.stateAfterSpotted === "CHASE"],
+  ["boss closes the distance", log.closedDistance > 0.3],
+  ["suspicion rises while seen", log.suspicionRose],
+  ["pretending to work clears the red alert", log.redAlertWhilePretending === false],
+  ["boss searches after losing sight", log.stateWhenHidden === "SEARCH" || log.stateWhenHidden === "PATROL"],
+  ["distraction is accepted", log.distractAccepted === true],
+  ["distraction switches to INVESTIGATE", log.stateAfterDistract === "INVESTIGATE"],
+];
+
+let failed = 0;
+for (const [name, ok] of checks) {
+  console.log(`${ok ? "PASS" : "FAIL"}  ${name}`);
+  if (!ok) failed++;
+}
+if (errors.length) {
+  console.log("page errors:");
+  errors.forEach((e) => console.log("  " + e));
+}
+
+await browser.close();
+process.exit(failed || errors.length ? 1 : 0);

@@ -44,9 +44,9 @@ export const rooms = [
   { id: "sala5_bottom", label: "SALA 5", type: ROOM_TYPES.MEETING, x: 12.6, z: -1.6, w: 3.6, d: 3.8, accent: 0x5b9bd5, icon: "📅" },
 
   // ---- Lower wing ----
-  { id: "canales_low", label: "CANALES", type: ROOM_TYPES.OPEN_PLAN, x: -9, z: -5, w: 8, d: 4, accent: 0x8b5cf6, deskRows: 2, deskCols: 4, pill: "solid", icon: "👥" },
-  { id: "estrategia", label: "ESTRATEGIA\nINTERACCIONES /\nMKT ANALYTICS", type: ROOM_TYPES.MEETING, x: -0.6, z: -5.6, w: 5.2, d: 3.6, accent: 0x3a3f4a, icon: "📅" },
-  { id: "adtech", label: "ADTECH", type: ROOM_TYPES.OPEN_PLAN, x: 6.4, z: -5.6, w: 7.2, d: 3.8, accent: 0xd9463b, deskRows: 2, deskCols: 4, pill: "solid", icon: "📊" },
+  { id: "canales_low", label: "CANALES", type: ROOM_TYPES.OPEN_PLAN, x: -9, z: -5, w: 8, d: 3.6, accent: 0x8b5cf6, deskRows: 2, deskCols: 4, pill: "solid", icon: "👥" },
+  { id: "estrategia", label: "ESTRATEGIA\nINTERACCIONES /\nMKT ANALYTICS", type: ROOM_TYPES.MEETING, x: -0.6, z: -5.3, w: 5.2, d: 2.8, accent: 0x3a3f4a, icon: "📅" },
+  { id: "adtech", label: "ADTECH", type: ROOM_TYPES.OPEN_PLAN, x: 6.4, z: -5.1, w: 7.2, d: 3.2, accent: 0xd9463b, deskRows: 2, deskCols: 4, pill: "solid", icon: "📊" },
 
   // ---- Front / lobby ----
   { id: "banos_a", label: "BAÑOS", type: ROOM_TYPES.UTILITY, x: -4.6, z: -8.4, w: 3.2, d: 3, accent: 0x3d4552, icon: "🚻" },
@@ -105,7 +105,7 @@ export const patrolRoute = [
   { x: -9.0, z: 0.8 },
   { x: -9.0, z: 5.0 },
   { x: -0.6, z: 5.9 },
-  { x: 6.4, z: 5.6 },
+  { x: 6.4, z: 5.1 },
   { x: 6.4, z: 1.2 },
   { x: 6.4, z: -3.2 },
   { x: 1.8, z: -6.4 },
@@ -154,8 +154,10 @@ export const distractions = [
 // Background coworkers: mostly idle set-dressing, but they also block the
 // boss's line of sight and one of them anchors the "chat" activity.
 export const npcs = [
-  { id: "chat_partner", x: -8.0, z: -3.3, color: 0xf2c744 },
-  { id: "canales_worker_1", x: -9.6, z: -6.6, color: 0xe0722c },
-  { id: "segmentos_worker", x: 6.0, z: -2.4, color: 0x5b9bd5 },
-  { id: "adtech_worker", x: 7.0, z: 6.2, color: 0xd9463b },
+  { id: "chat_partner", x: -7.6, z: -3.1, sheet: "npc1", facing: "east" },
+  { id: "canales_worker_1", x: -9.6, z: -6.4, sheet: "npc2", facing: "south", sway: 0.5 },
+  { id: "segmentos_worker", x: 6.2, z: -2.2, sheet: "npc3", facing: "south", sway: 0.45 },
+  { id: "adtech_worker", x: 7.0, z: 6.4, sheet: "npc4", facing: "north", sway: 0.5 },
+  { id: "canales_worker_2", x: -9.0, z: 1.0, sheet: "npc3", facing: "south", sway: 0.4 },
+  { id: "gestion_worker", x: 5.4, z: 1.4, sheet: "npc1", facing: "north", sway: 0.4 },
 ];
