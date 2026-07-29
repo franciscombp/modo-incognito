@@ -145,5 +145,18 @@ export function buildNavmesh(world, { radius = 0.4 * S } = {}) {
     return path(from, to) !== null;
   }
 
-  return { path, isWalkable, reachable, cols, rows, cell: CELL };
+  /**
+   * Nearest point a body can actually stand on. Hand-authored JSON puts the
+   * odd waypoint inside a table or a wall, and a patrol target you can never
+   * reach is indistinguishable from a boss who has stopped caring — so every
+   * route is snapped through here at load.
+   */
+  function snap(x, z) {
+    const cell = nearestWalkable(x, z);
+    if (!cell) return { x, z };
+    const { x: wx, z: wz } = toWorld(cell.c, cell.r);
+    return { x: wx, z: wz };
+  }
+
+  return { path, isWalkable, reachable, snap, cols, rows, cell: CELL };
 }

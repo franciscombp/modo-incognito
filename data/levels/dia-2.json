@@ -8,10 +8,10 @@
   "rules": {
     "duration": 240,
     "maxWarnings": 3,
-    "objectives": ["coffee","chat","sleep"],
+    "objectives": ["coffee","stretch","sleep","scroll"],
     "bossSpeedMul": 1,
     "visionMul": 1,
-    "targetScore": 900
+    "targetScore": 1100
   },
   "intro": [
     {

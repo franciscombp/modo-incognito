@@ -79,6 +79,19 @@ export class Boss {
     this._pathTarget = null;
     this._repathTimer = 0;
 
+    // Anti-stall. A waypoint the boss cannot physically reach used to freeze
+    // him against a table for the whole day, which read as "the boss does
+    // nothing". Now: if he stops making progress he gives up on that target.
+    this._stuckTimer = 0;
+    this._lastPos = { x: this.position.x, z: this.position.z };
+    this._waypointTimer = 0;
+
+    // Periodic prowl: he does not only walk his loop, he wanders toward
+    // wherever the slacking is likely to happen.
+    this.prowlTarget = null;
+    this.prowlTimer = 0;
+    this.pointsOfInterest = [];
+
     this.state = PATROL;
     this.baseSpeeds = {
       patrol: speeds.patrol ?? 2.4 * S,
@@ -160,6 +173,13 @@ export class Boss {
     );
   }
 
+  /** Where slacking tends to happen: the boss drifts toward these on patrol. */
+  setPointsOfInterest(points) {
+    this.pointsOfInterest = points;
+    this.prowlTarget = null;
+    this.prowlTimer = 4 + Math.random() * 6;
+  }
+
   /** Swap the patrol loop (levels give minions their own round). */
   setRoute(route, startIndex = 0) {
     this.route = route;
@@ -167,6 +187,8 @@ export class Boss {
     this.position.x = route[this.routeIndex].x;
     this.position.z = route[this.routeIndex].z;
     this._path = null;
+    this._waypointTimer = 0;
+    this._stuckTimer = 0;
     this.resetToPatrol();
   }
 
@@ -198,6 +220,7 @@ export class Boss {
     }
 
     this._advanceState(dt, player);
+    this._updateStuck(dt);
 
     const target = this._pickTarget(player);
     const dir = this._moveToward(dt, this._steer(dt, target));
@@ -263,8 +286,24 @@ export class Boss {
         // Seeing her slacking off is what actually starts the pursuit.
         if (this.redAlert) {
           this.startChase();
-        } else if (this._reached(this.route[this.routeIndex])) {
+          break;
+        }
+        // Even without seeing her he keeps drifting toward wherever people
+        // are most likely to be wasting time, so no corner of the floor is
+        // ever permanently safe.
+        this.prowlTimer -= dt;
+        if (this.prowlTimer <= 0 && this.pointsOfInterest.length) {
+          this.prowlTimer = 14 + Math.random() * 10;
+          this.prowlTarget =
+            this.pointsOfInterest[Math.floor(Math.random() * this.pointsOfInterest.length)];
+        }
+        if (this.prowlTarget && this._reached(this.prowlTarget, 1.6 * S)) this.prowlTarget = null;
+
+        this._waypointTimer += dt;
+        if (this._reached(this.route[this.routeIndex]) || this._waypointTimer > 14) {
           this.routeIndex = (this.routeIndex + 1) % this.route.length;
+          this._waypointTimer = 0;
+          this._path = null;
         }
         break;
       }
@@ -288,6 +327,37 @@ export class Boss {
     this.loseSightTimer = 0;
   }
 
+  /**
+   * If he has barely moved for a while, whatever he is walking at is
+   * unreachable. Drop it and pick something else rather than grinding into a
+   * table until the day ends.
+   */
+  _updateStuck(dt) {
+    const moved = Math.hypot(this.position.x - this._lastPos.x, this.position.z - this._lastPos.z);
+    this._lastPos.x = this.position.x;
+    this._lastPos.z = this.position.z;
+
+    if (moved > 0.02 * S) {
+      this._stuckTimer = 0;
+      return;
+    }
+    this._stuckTimer += dt;
+    if (this._stuckTimer < 1.4) return;
+
+    this._stuckTimer = 0;
+    this._path = null;
+    this._pathTarget = null;
+    this.prowlTarget = null;
+    if (this.state === PATROL) {
+      this.routeIndex = (this.routeIndex + 1) % this.route.length;
+      this._waypointTimer = 0;
+    } else if (this.state === SEARCH) {
+      this._resumeNearestRoutePoint();
+    } else if (this.state === INVESTIGATE) {
+      this.investigateTimer = 0;
+    }
+  }
+
   _pickTarget(player) {
     if (this.state === CHASE) {
       if (!player.isHiding) return { x: player.position.x, z: player.position.z };
@@ -295,7 +365,7 @@ export class Boss {
     }
     if (this.state === SEARCH) return this.searchTarget ?? this.route[this.routeIndex];
     if (this.state === INVESTIGATE) return this.investigateTarget;
-    return this.route[this.routeIndex];
+    return this.prowlTarget ?? this.route[this.routeIndex];
   }
 
   /**

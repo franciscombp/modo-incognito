@@ -3,9 +3,12 @@
     "PERSONAJES Y DIÁLOGOS. Todo editable sin tocar el motor.",
     "",
     "cast: quién es cada personaje (nombre, retrato, color, sprite).",
+    "  · friend: true  -> es de los tuyos; hablarle es seguro.",
+    "  · friend: false -> secuaz del jefe; hablarle también se puede, pero",
+    "    puede salirte caro según lo que elijas.",
     "encounters: qué dice cada uno cuando te acercas y pulsas USAR.",
     "  · scenes es una LISTA de conversaciones; se van usando en orden y",
-    "    luego se repiten, así el mismo compañero no dice siempre lo mismo.",
+    "    luego se repiten, así el mismo personaje no dice siempre lo mismo.",
     "  · cooldown: segundos hasta poder volver a hablarle.",
     "  · Un nodo puede ser línea { speaker, portrait, text, mood } o elección",
     "    { prompt, options: [{ label, reply, flag, effect, then }] }.",
@@ -19,26 +22,50 @@
       "portrait": "🍀",
       "color": "#a8e05f",
       "sheet": "npc1",
-      "blurb": "Siempre le toca el parqueadero cubierto. Nunca le auditan nada."
+      "blurb": "Amigo tuyo. Siempre le toca el parqueadero cubierto y nunca le auditan nada.",
+      "friend": true
     },
     "cesar": {
       "name": "César",
       "portrait": "😤",
       "color": "#ff6b81",
       "sheet": "npc4",
-      "blurb": "El más malcriadito de la tribu. Se queja en tiempo real."
+      "blurb": "Amigo tuyo, el más malcriadito de la tribu. Se queja en tiempo real.",
+      "friend": true
     },
     "enriquetta": {
       "name": "Enriquetta",
       "portrait": "💘",
       "color": "#ff9ad5",
       "sheet": "npc2",
-      "blurb": "Chapter del amor. Sabe quién sale con quién antes que ellos."
+      "blurb": "Amiga tuya. Chapter del amor: sabe quién sale con quién antes que ellos.",
+      "friend": true
     },
     "jefe": {"name":"Jefe","portrait":"🕴️","color":"#e6483f","sheet":"boss"},
-    "chispita": {"name":"Chispita","portrait":"⚡","color":"#f2c744","sheet":"npc3"},
-    "washo": {"name":"Washo","portrait":"🧽","color":"#45e0d0","sheet":"npc2"},
-    "crispo": {"name":"Crispo","portrait":"🥨","color":"#c08457","sheet":"npc4"}
+    "chispita": {
+      "name": "Chispita",
+      "portrait": "⚡",
+      "color": "#f2c744",
+      "sheet": "npc3",
+      "friend": false,
+      "blurb": "Secuaz del jefe. Corre por todo el piso y avisa en cuanto te ve."
+    },
+    "washo": {
+      "name": "Washo",
+      "portrait": "🧽",
+      "color": "#45e0d0",
+      "sheet": "npc2",
+      "friend": false,
+      "blurb": "Secuaz del jefe. Apenas se mueve, pero te ve desde el otro extremo del ala."
+    },
+    "crispo": {
+      "name": "Crispo",
+      "portrait": "🥨",
+      "color": "#c08457",
+      "sheet": "npc4",
+      "friend": false,
+      "blurb": "Secuaz del jefe. Casi no camina y abarca medio pasillo con la mirada."
+    }
   },
   "encounters": {
     "manu": {
@@ -214,6 +241,145 @@
             "speaker": "Enriquetta",
             "portrait": "💘",
             "text": "A ti te vi hablando mucho con la cafetera. No juzgo. Documento."
+          }
+        ]
+      ]
+    },
+    "chispita": {
+      "cooldown": 35,
+      "scenes": [
+        [
+          {
+            "speaker": "Chispita",
+            "portrait": "⚡",
+            "mood": "tense",
+            "text": "¡Ey, ey, ey! ¿Tú no deberías estar en tu puesto ahora mismo?"
+          },
+          {
+            "prompt": "Te tiene fichada. Y le encanta correr a contarlo.",
+            "portrait": "⚡",
+            "options": [
+              {
+                "label": "«Voy de camino, justo iba.»",
+                "reply": "Voy de camino, justo iba.",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "Chispita",
+                    "portrait": "⚡",
+                    "text": "Bueno. Te acompaño. Es que voy para allá igual. Casualidad."
+                  }
+                ]
+              },
+              {
+                "label": "«¿Y tú? Llevas media hora corriendo.»",
+                "reply": "¿Y tú? Llevas media hora corriendo sin hacer nada.",
+                "effect": "suspicion+",
+                "then": [
+                  {
+                    "speaker": "Chispita",
+                    "portrait": "⚡",
+                    "mood": "angry",
+                    "text": "¡YO ESTOY TRABAJANDO! ¡JEFE! ¡JEFE, ESCUCHE LO QUE ME DIJO!"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "speaker": "Chispita",
+            "portrait": "⚡",
+            "text": "Hoy he dado catorce mil pasos. Catorce mil. Y no he hecho ni una tarea."
+          }
+        ]
+      ]
+    },
+    "washo": {
+      "cooldown": 35,
+      "scenes": [
+        [
+          {
+            "speaker": "Washo",
+            "portrait": "🧽",
+            "text": "Desde aquí se ve todo el ala. Todo. Incluida la cafetera."
+          },
+          {
+            "prompt": "No parpadea. Es incómodo.",
+            "portrait": "🧽",
+            "options": [
+              {
+                "label": "«¿Y qué has visto hoy?»",
+                "reply": "¿Y qué has visto hoy, Washo?",
+                "effect": "reveal-boss",
+                "then": [
+                  {
+                    "speaker": "Washo",
+                    "portrait": "🧽",
+                    "text": "Al jefe. Está por allá. Te lo digo por informar, no por ayudarte. Yo no ayudo."
+                  }
+                ]
+              },
+              {"label":"Seguir de largo sin decir nada","reply":"…"}
+            ]
+          }
+        ],
+        [
+          {
+            "speaker": "Washo",
+            "portrait": "🧽",
+            "text": "Yo no acuso a nadie. Yo documento. Es distinto. Legalmente es muy distinto."
+          }
+        ]
+      ]
+    },
+    "crispo": {
+      "cooldown": 35,
+      "scenes": [
+        [
+          {
+            "speaker": "Crispo",
+            "portrait": "🥨",
+            "text": "Esa silla lleva veintidós minutos vacía. La tuya, digo."
+          },
+          {
+            "prompt": "No se ha movido del sitio en todo el día.",
+            "portrait": "🥨",
+            "options": [
+              {
+                "label": "«Estaba en una reunión.»",
+                "reply": "Estaba en una reunión.",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "Crispo",
+                    "portrait": "🥨",
+                    "text": "Mmm. No aparece en el calendario. Pero bueno. Lo anoto como reunión."
+                  }
+                ]
+              },
+              {
+                "label": "«¿Tú te mueves alguna vez?»",
+                "reply": "¿Tú te mueves alguna vez, Crispo?",
+                "effect": "suspicion+",
+                "then": [
+                  {
+                    "speaker": "Crispo",
+                    "portrait": "🥨",
+                    "mood": "angry",
+                    "text": "Yo VIGILO. Vigilar es un puesto. Y ahora te vigilo a ti específicamente."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "speaker": "Crispo",
+            "portrait": "🥨",
+            "text": "Llevo la cuenta de todo el mundo. En papel. El papel no se cae como el sistema."
           }
         ]
       ]

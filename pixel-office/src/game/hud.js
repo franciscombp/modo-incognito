@@ -31,27 +31,20 @@ const WING_LABEL = { sur: "Ala Sur", norte: "Ala Norte", centro: "Centro" };
 export function createHud(root) {
   const hud = el("div", "hud-root", root);
 
-  // ---- Location strip: ala · zona · capacidad · tipo ----
-  const locationBar = el("div", "hud-location", hud);
-  const locWing = el("span", "hud-loc-wing", locationBar);
-  const locName = el("span", "hud-loc-name", locationBar);
-  const locMeta = el("span", "hud-loc-meta", locationBar);
-
+  // Three columns that never share space, so nothing can overlap: tasks on
+  // the left, pressure in the middle, resources on the right. The "where am
+  // I / what do I press" readouts live on the world itself (worldPrompt) and
+  // in the bottom card (compass), not up here.
   const topBar = el("div", "hud-topbar", hud);
 
   const objectivesPanel = el("div", "hud-panel hud-objectives", topBar);
   const objTitleRow = el("div", "hud-panel-title", objectivesPanel);
-  objTitleRow.innerHTML = `<span class="hud-title-icon">🎯</span> OBJETIVOS DE OCIO`;
+  objTitleRow.innerHTML = `<span class="hud-title-icon">🎯</span> OBJETIVOS <span class="hud-objectives-count"></span>`;
+  const objectivesCount = objTitleRow.querySelector(".hud-objectives-count");
   const objectivesList = el("div", "hud-objectives-list", objectivesPanel);
 
   const centerCol = el("div", "hud-center", topBar);
   const dayChip = el("div", "hud-day-chip", centerCol);
-  const scoreRow = el("div", "hud-score", centerCol);
-  const scoreValue = el("span", "hud-score-value", scoreRow);
-  const comboChip = el("span", "hud-combo", scoreRow);
-  const comboBar = el("span", "hud-combo-bar", comboChip);
-  const comboText = el("span", "hud-combo-text", comboChip);
-  const perkChip = el("div", "hud-perk", centerCol);
   const suspicionWrap = el("div", "hud-panel hud-suspicion", centerCol);
   const susTitleRow = el("div", "hud-panel-title", suspicionWrap);
   susTitleRow.innerHTML = `<span class="hud-title-icon">👁️</span> SOSPECHA`;
@@ -60,30 +53,26 @@ export function createHud(root) {
   const suspicionGlint = el("div", "hud-suspicion-glint", suspicionFill);
   const warningsRow = el("div", "hud-warnings", suspicionWrap);
   let warningPips = [];
+  const statusBadge = el("div", "hud-status-badge", centerCol);
+  const toast = el("div", "hud-toast", centerCol);
 
-  const timerPanel = el("div", "hud-panel hud-timer", topBar);
+  const rightCol = el("div", "hud-right", topBar);
+  const timerPanel = el("div", "hud-panel hud-timer", rightCol);
   const timerTitleRow = el("div", "hud-panel-title", timerPanel);
   timerTitleRow.innerHTML = `<span class="hud-title-icon">⏱️</span> JORNADA`;
   const timerValue = el("div", "hud-timer-value", timerPanel);
   const timerTrack = el("div", "hud-timer-track", timerPanel);
   const timerFill = el("div", "hud-timer-fill", timerTrack);
 
-  const toast = el("div", "hud-toast", hud);
-  const statusBadge = el("div", "hud-status-badge", hud);
-
-  const prompt = el("div", "hud-prompt", hud);
-  const promptIcon = el("span", "hud-prompt-icon", prompt);
-  const promptText = el("span", "hud-prompt-text", prompt);
-  const promptRing = el("div", "hud-prompt-ring", prompt);
-  const promptRingFill = el("div", "hud-prompt-ring-fill", promptRing);
-
-  const legend = el("div", "hud-legend", hud);
-  legend.innerHTML = `
-    <div class="hud-legend-item"><span class="hud-legend-swatch hud-legend-you"></span>Tú</div>
-    <div class="hud-legend-item"><span class="hud-legend-swatch hud-legend-boss"></span>Jefe</div>
-    <div class="hud-legend-item"><span class="hud-legend-swatch hud-legend-hide"></span>Escondite</div>
-    <div class="hud-legend-item"><span class="hud-legend-swatch hud-legend-distract"></span>Distracción</div>
-  `;
+  const scorePanel = el("div", "hud-panel hud-scorepanel", rightCol);
+  const scoreTitleRow = el("div", "hud-panel-title", scorePanel);
+  scoreTitleRow.innerHTML = `<span class="hud-title-icon">◆</span> PUNTOS`;
+  const scoreRow = el("div", "hud-score", scorePanel);
+  const scoreValue = el("span", "hud-score-value", scoreRow);
+  const comboChip = el("span", "hud-combo", scoreRow);
+  const comboBar = el("span", "hud-combo-bar", comboChip);
+  const comboText = el("span", "hud-combo-text", comboChip);
+  const perkChip = el("div", "hud-perk", scorePanel);
 
   // ---- End-of-day card ----
   const overlay = el("div", "hud-overlay hidden", hud);
@@ -160,6 +149,9 @@ export function createHud(root) {
       });
     }
 
+    const doneCount = state.objectives.filter((o) => o.done).length;
+    objectivesCount.textContent = `${doneCount}/${state.objectives.length}`;
+
     scoreValue.textContent = state.score.toLocaleString("es");
     const comboOn = state.combo > 1;
     comboChip.classList.toggle("on", comboOn);
@@ -206,20 +198,6 @@ export function createHud(root) {
       }
     });
 
-    // Location strip — the "estás aquí" readout asked for in the brief.
-    const area = state.area;
-    if (area) {
-      locWing.textContent = WING_LABEL[area.wing] ?? "Piso 7";
-      locName.textContent = area.name;
-      const bits = [KIND_LABEL[area.kind] ?? "Zona"];
-      if (area.capacity > 0) bits.push(`${area.capacity} sillas`);
-      locMeta.textContent = bits.join(" · ");
-      locationBar.style.setProperty("--zone-color", area.color ?? "#d9d9d9");
-      locationBar.classList.add("visible");
-    } else {
-      locationBar.classList.remove("visible");
-    }
-
     if (state.message) {
       toast.textContent = state.message.text;
       toast.classList.add("visible");
@@ -237,26 +215,6 @@ export function createHud(root) {
     statusBadge.classList.toggle("visible", statusBits.length > 0);
     statusBadge.classList.toggle("alert", state.bossState === "CHASE");
 
-    if (state.nearNpc) {
-      promptIcon.textContent = "💬";
-      promptText.textContent = `Toca E: hablar con ${state.nearNpc.displayName}`;
-      promptRingFill.style.setProperty("--p", 0);
-      prompt.classList.add("visible", "prompt-tap");
-    } else if (state.nearStation) {
-      const s = state.nearStation;
-      promptIcon.textContent = s.icon ?? "•";
-      promptText.textContent = `Mantén E: ${s.label}`;
-      promptRingFill.style.setProperty("--p", s.progress / s.time);
-      prompt.classList.add("visible");
-      prompt.classList.remove("prompt-tap");
-    } else if (state.nearDistraction) {
-      promptIcon.textContent = "⭐";
-      promptText.textContent = `Toca E: ${state.nearDistraction.label}`;
-      promptRingFill.style.setProperty("--p", 0);
-      prompt.classList.add("visible", "prompt-tap");
-    } else {
-      prompt.classList.remove("visible");
-    }
   }
 
   return { render, setDay, setVisible, showResult, hideResult, root: hud };

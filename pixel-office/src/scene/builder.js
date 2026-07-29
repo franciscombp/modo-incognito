@@ -90,6 +90,7 @@ export function buildOffice(scene, world) {
     markerGroup: markers.group,
     activityMarkers: markers.activityMarkers,
     distractionMarkers: markers.distractionMarkers,
+    hidingMarkers: markers.hidingMarkers,
   };
 }
 
@@ -542,22 +543,22 @@ function buildGameplayMarkers() {
   const group = new THREE.Group();
   group.name = "markers";
 
-  const shieldMat = new THREE.MeshBasicMaterial({
-    color: 0x4caf6a,
-    transparent: true,
-    opacity: 0.9,
-    toneMapped: false,
+  // One mesh per hiding spot rather than a merged batch: each has to be able
+  // to grey out on its own while it is recharging.
+  const hidingMarkers = hidingSpots.map(({ x, z, r }, i) => {
+    const mat = new THREE.MeshBasicMaterial({
+      color: 0x4caf6a,
+      transparent: true,
+      opacity: 0.9,
+      toneMapped: false,
+    });
+    const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.72, r * 0.9, 22), mat);
+    ring.rotation.x = -Math.PI / 2;
+    ring.position.set(x, 0.16 * S, z);
+    ring.userData.spotIndex = i;
+    group.add(ring);
+    return ring;
   });
-  const hideRings = hidingSpots.map(({ x, z, r }) => {
-    const geo = new THREE.RingGeometry(r * 0.72, r * 0.9, 20);
-    geo.rotateX(-Math.PI / 2);
-    geo.translate(x, 0.16 * S, z);
-    return geo;
-  });
-  if (hideRings.length) {
-    group.add(new THREE.Mesh(mergeGeometries(hideRings, false), shieldMat));
-    hideRings.forEach((g) => g.dispose());
-  }
 
   const starMat = new THREE.MeshBasicMaterial({ color: 0xf2c744, toneMapped: false });
   const distractionMarkers = distractions.map(({ x, z }) => {
@@ -590,7 +591,7 @@ function buildGameplayMarkers() {
     return ring;
   });
 
-  return { group, distractionMarkers, activityMarkers };
+  return { group, distractionMarkers, activityMarkers, hidingMarkers };
 }
 
 export { getTexture };

@@ -35,7 +35,7 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x9fb4c9);
+scene.background = new THREE.Color(0x05060a);
 
 // -------- Lighting: bright, flat fill so the flat art reads cleanly, plus
 // one soft key light for diorama depth. The day theme re-tints these. -----
@@ -64,8 +64,23 @@ async function boot() {
   setActiveScene(data.scenes.get(firstLevel.scene));
 
   const world = createCollisionWorld();
-  const { roomLabels, markerGroup } = buildOffice(scene, world);
+  const { roomLabels, markerGroup, hidingMarkers } = buildOffice(scene, world);
   const navmesh = buildNavmesh(world, { radius: 0.3 * S });
+
+  // Pull every authored point onto walkable floor. A waypoint buried in a
+  // table is a boss who stands still forever, and an activity inside a
+  // collider is a task you can never reach — both were happening.
+  const snapInPlace = (points) =>
+    points.forEach((p) => {
+      const fixed = navmesh.snap(p.x, p.z);
+      p.x = fixed.x;
+      p.z = fixed.z;
+    });
+  snapInPlace(floorplan.patrolRoute);
+  Object.values(floorplan.routes).forEach(snapInPlace);
+  snapInPlace(floorplan.activityStations);
+  snapInPlace(floorplan.distractions);
+  snapInPlace(floorplan.hidingSpots);
 
   const aspect = window.innerWidth / window.innerHeight;
   const view = new DioramaCamera(aspect);
@@ -144,6 +159,11 @@ async function boot() {
       visionRange: def.visionRange,
       visionHalfAngleDeg: def.visionHalfAngleDeg,
     });
+    // Sidekicks are characters, not just threats: you can walk up and talk.
+    watcher.cast = id;
+    watcher.id = id;
+    watcher.displayName = def.name ?? id;
+    watcher.talkCooldown = data.dialogues.encounters[id]?.cooldown ?? 35;
     watcher.setActive(false);
     scene.add(watcher.object3D);
     scene.add(watcher.cone);
@@ -368,6 +388,21 @@ async function boot() {
     });
   }
 
+  // Cover markers dim as they are used up and go grey while recharging, so
+  // "that circle no longer works" is visible on the floor, not just a toast.
+  const HIDE_READY = new THREE.Color(0x4caf6a);
+  const HIDE_SPENT = new THREE.Color(0x555f6e);
+  function updateHidingMarkers() {
+    const game = engine.game;
+    if (!game || !hidingMarkers) return;
+    hidingMarkers.forEach((ring, i) => {
+      const charge = game.hidingCharge(i);
+      ring.material.color.copy(HIDE_SPENT).lerp(HIDE_READY, charge);
+      ring.material.opacity = 0.28 + charge * 0.62;
+      ring.scale.setScalar(0.82 + charge * 0.18);
+    });
+  }
+
   const bobbingMeshes = [];
   scene.traverse((obj) => {
     if (obj.userData && obj.userData.bob) bobbingMeshes.push(obj);
@@ -395,6 +430,7 @@ async function boot() {
     });
 
     watchPerformance(dt);
+    updateHidingMarkers();
     updateLabels();
     view.update(dt, player.position);
     popups.update(dt);

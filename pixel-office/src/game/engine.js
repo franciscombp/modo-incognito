@@ -5,7 +5,15 @@ import { createSave } from "./save.js";
 import { applyTheme } from "./themes.js";
 import { createMenus, rankFor } from "../ui/menus.js";
 import { createCompass } from "../ui/compass.js";
-import { spawn, patrolRoute, routes, locationEggs } from "../scene/floorplan.js";
+import { createRadar } from "../ui/radar.js";
+import { createWorldPrompt } from "../ui/worldPrompt.js";
+import {
+  spawn,
+  patrolRoute,
+  routes,
+  locationEggs,
+  activityStations,
+} from "../scene/floorplan.js";
 
 /**
  * Campaign engine. Owns the flow — title menu, story beat, play the level,
@@ -35,6 +43,10 @@ export function createEngine({
 }) {
   const hud = createHud(app);
   const compass = createCompass(app, camera.camera);
+  const radar = createRadar(app);
+  const worldPrompt = createWorldPrompt(app, camera.camera, {
+    isTouch: matchMedia("(pointer: coarse)").matches,
+  });
   const dialogue = createDialogue(app);
   const save = createSave();
 
@@ -93,6 +105,14 @@ export function createEngine({
     boss.chaseSpeed = boss.baseSpeeds.chase * mul;
     boss.searchSpeed = boss.baseSpeeds.search * mul;
     boss.visionRange = boss.baseVisionRange * (rules.visionMul ?? 1);
+
+    // He drifts toward wherever the day's tasks are, so no wing is ever a
+    // safe corner to farm quietly.
+    const wanted = rules.objectives;
+    const spots = activityStations
+      .filter((s) => !wanted || wanted.includes(s.id))
+      .map((s) => ({ x: s.x, z: s.z }));
+    boss.setPointsOfInterest(spots);
   }
 
   // ---------------- Menus ----------------
@@ -289,12 +309,18 @@ export function createEngine({
   /** Which sidekicks are on duty today, and on which round. */
   function configureMinions(day) {
     const onDuty = [];
+    const wanted = day.rules?.objectives;
+    const spots = activityStations
+      .filter((s) => !wanted || wanted.includes(s.id))
+      .map((s) => ({ x: s.x, z: s.z }));
+
     minions.forEach((watcher) => watcher.setActive(false));
     (day.minions ?? []).forEach((def) => {
       const watcher = minions.get(def.id);
       if (!watcher) return;
       const route = routes[def.route] ?? routes.jefe ?? patrolRoute;
       watcher.setRoute(route);
+      watcher.setPointsOfInterest(spots);
       watcher.setActive(true);
       onDuty.push(watcher);
     });
@@ -363,7 +389,10 @@ export function createEngine({
   function update(dt) {
     game?.update(dt);
     // Reuse the frame state the HUD just rendered instead of rebuilding it.
-    compass.update(game && !menus.isOpen ? game.lastSnapshot : null);
+    const live = game && !menus.isOpen ? game.lastSnapshot : null;
+    compass.update(live);
+    radar.update(live, dt);
+    worldPrompt.update(dialogue.isOpen ? null : live);
   }
 
   return {
@@ -371,6 +400,7 @@ export function createEngine({
     dialogue,
     menus,
     compass,
+    radar,
     save,
     start: () => openTitle(),
     startDay,
