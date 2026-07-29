@@ -22,9 +22,10 @@ const CAPACITY_PATTERNS = {
 
 // Simple geometric primitives for furniture
 function createDeskCluster(group, pattern, capacity) {
-  const deskWidth = 1.2;
-  const deskDepth = 0.8;
-  const spacing = 0.4;
+  // Large white conference/cluster tables
+  const tableWidth = 2.5;
+  const tableDepth = 1.8;
+  const spacing = 0.8;
 
   const [cols, rows] = pattern.layout.split("x").map(Number);
 
@@ -32,23 +33,27 @@ function createDeskCluster(group, pattern, capacity) {
     for (let c = 0; c < cols; c++) {
       if (r * cols + c >= capacity) break;
 
-      const x = (c - cols / 2) * (deskWidth + spacing);
-      const z = (r - rows / 2) * (deskDepth + spacing);
+      const x = (c - cols / 2) * (tableWidth + spacing);
+      const z = (r - rows / 2) * (tableDepth + spacing);
 
-      // Desk
-      const deskGeo = new THREE.BoxGeometry(deskWidth, 0.75, deskDepth);
-      const deskMat = new THREE.MeshStandardMaterial({ color: 0xd4a574 });
+      // Large white desk/table
+      const deskGeo = new THREE.BoxGeometry(tableWidth, 1.0, tableDepth);
+      const deskMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.3,
+        metalness: 0.1
+      });
       const desk = new THREE.Mesh(deskGeo, deskMat);
-      desk.position.set(x, 0.375, z);
+      desk.position.set(x, 0.5, z);
       desk.castShadow = true;
       desk.receiveShadow = true;
       group.add(desk);
 
       // Chair
-      const chairGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.7, 8);
-      const chairMat = new THREE.MeshStandardMaterial({ color: 0x555555 });
+      const chairGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.85, 8);
+      const chairMat = new THREE.MeshStandardMaterial({ color: 0x444444 });
       const chair = new THREE.Mesh(chairGeo, chairMat);
-      chair.position.set(x, 0.35, z + deskDepth / 2 + 0.3);
+      chair.position.set(x, 0.42, z + tableDepth / 2 + 0.5);
       chair.castShadow = true;
       group.add(chair);
     }
@@ -56,9 +61,10 @@ function createDeskCluster(group, pattern, capacity) {
 }
 
 function createBenchLayout(group, capacity, doubleRow = false) {
-  const deskWidth = 1.0;
-  const deskDepth = 0.7;
-  const spacing = 0.3;
+  // Large white bench tables
+  const tableWidth = 2.0;
+  const tableDepth = 1.5;
+  const spacing = 0.5;
 
   const cols = Math.ceil(capacity / (doubleRow ? 2 : 1));
   const rows = doubleRow ? 2 : 1;
@@ -67,23 +73,27 @@ function createBenchLayout(group, capacity, doubleRow = false) {
     for (let c = 0; c < cols; c++) {
       if (r * cols + c >= capacity) break;
 
-      const x = (c - cols / 2) * (deskWidth + spacing) + (r === 1 ? 0.6 : 0);
-      const z = (r - rows / 2) * (deskDepth + spacing + 0.5);
+      const x = (c - cols / 2) * (tableWidth + spacing) + (r === 1 ? 0.8 : 0);
+      const z = (r - rows / 2) * (tableDepth + spacing + 0.8);
 
-      // Desk
-      const deskGeo = new THREE.BoxGeometry(deskWidth, 0.7, deskDepth);
-      const deskMat = new THREE.MeshStandardMaterial({ color: 0xc4906a });
+      // Large white bench table
+      const deskGeo = new THREE.BoxGeometry(tableWidth, 0.95, tableDepth);
+      const deskMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        roughness: 0.3,
+        metalness: 0.1
+      });
       const desk = new THREE.Mesh(deskGeo, deskMat);
-      desk.position.set(x, 0.35, z);
+      desk.position.set(x, 0.475, z);
       desk.castShadow = true;
       desk.receiveShadow = true;
       group.add(desk);
 
       // Chair
-      const chairGeo = new THREE.CylinderGeometry(0.28, 0.28, 0.65, 8);
-      const chairMat = new THREE.MeshStandardMaterial({ color: 0x4a4a4a });
+      const chairGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.8, 8);
+      const chairMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
       const chair = new THREE.Mesh(chairGeo, chairMat);
-      chair.position.set(x, 0.33, z + deskDepth / 2 + 0.25);
+      chair.position.set(x, 0.4, z + tableDepth / 2 + 0.45);
       chair.castShadow = true;
       group.add(chair);
     }
