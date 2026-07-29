@@ -1,4 +1,4 @@
-import { ACTIVITY_COLORS } from "../scene/floorplan.js";
+import { ACTIVITY_COLORS, AREA_KINDS } from "../scene/floorplan.js";
 
 function fmtTime(s) {
   const m = Math.floor(s / 60);
@@ -17,10 +17,26 @@ function el(tag, className, parent) {
   return node;
 }
 
+const KIND_LABEL = {
+  [AREA_KINDS.OPEN_OFFICE]: "Trabajo",
+  [AREA_KINDS.MEETING]: "Sala",
+  [AREA_KINDS.SOCIAL]: "Social",
+  [AREA_KINDS.AUDITORIUM]: "Auditorio",
+  [AREA_KINDS.CORE]: "Servicios",
+  [AREA_KINDS.ELEVATOR]: "Acceso",
+};
+
+const WING_LABEL = { sur: "Ala Sur", norte: "Ala Norte", centro: "Centro" };
+
 export function createHud(root) {
   const hud = el("div", "hud-root", root);
 
-  // Top bar: objectives (left) · suspicion (center) · timer (right)
+  // ---- Location strip: ala · zona · capacidad · tipo ----
+  const locationBar = el("div", "hud-location", hud);
+  const locWing = el("span", "hud-loc-wing", locationBar);
+  const locName = el("span", "hud-loc-name", locationBar);
+  const locMeta = el("span", "hud-loc-meta", locationBar);
+
   const topBar = el("div", "hud-topbar", hud);
 
   const objectivesPanel = el("div", "hud-panel hud-objectives", topBar);
@@ -29,6 +45,7 @@ export function createHud(root) {
   const objectivesList = el("div", "hud-objectives-list", objectivesPanel);
 
   const centerCol = el("div", "hud-center", topBar);
+  const dayChip = el("div", "hud-day-chip", centerCol);
   const suspicionWrap = el("div", "hud-panel hud-suspicion", centerCol);
   const susTitleRow = el("div", "hud-panel-title", suspicionWrap);
   susTitleRow.innerHTML = `<span class="hud-title-icon">👁️</span> SOSPECHA`;
@@ -36,11 +53,7 @@ export function createHud(root) {
   const suspicionFill = el("div", "hud-suspicion-fill", suspicionTrack);
   const suspicionGlint = el("div", "hud-suspicion-glint", suspicionFill);
   const warningsRow = el("div", "hud-warnings", suspicionWrap);
-  const warningPips = [0, 1, 2].map(() => {
-    const pip = el("div", "hud-warning-pip", warningsRow);
-    pip.textContent = "!";
-    return pip;
-  });
+  let warningPips = [];
 
   const timerPanel = el("div", "hud-panel hud-timer", topBar);
   const timerTitleRow = el("div", "hud-panel-title", timerPanel);
@@ -66,16 +79,52 @@ export function createHud(root) {
     <div class="hud-legend-item"><span class="hud-legend-swatch hud-legend-distract"></span>Distracción</div>
   `;
 
+  // ---- End-of-day card ----
   const overlay = el("div", "hud-overlay hidden", hud);
   const overlayCard = el("div", "hud-overlay-card", overlay);
   const overlayIcon = el("div", "hud-overlay-icon", overlayCard);
   const overlayTitle = el("div", "hud-overlay-title", overlayCard);
   const overlayBody = el("div", "hud-overlay-body", overlayCard);
-  const overlayBtn = el("button", "hud-overlay-btn", overlayCard);
-  overlayBtn.textContent = "Reintentar";
-  overlayBtn.addEventListener("click", () => window.location.reload());
+  const overlayActions = el("div", "hud-overlay-actions", overlayCard);
+
+  let maxWarningsRendered = -1;
+
+  function setDay(day) {
+    dayChip.textContent = `DÍA ${day.number} · ${day.title.toUpperCase()}`;
+  }
+
+  /** Shown between days; `actions` are [{ label, primary, onClick }]. */
+  function showResult({ icon, title, body, win, actions }) {
+    overlayIcon.textContent = icon;
+    overlayTitle.textContent = title;
+    overlayTitle.classList.toggle("win", !!win);
+    overlayTitle.classList.toggle("lose", !win);
+    overlayBody.textContent = body;
+    overlayActions.innerHTML = "";
+    actions.forEach((action) => {
+      const btn = el("button", `hud-overlay-btn${action.primary ? " primary" : ""}`, overlayActions);
+      btn.type = "button";
+      btn.textContent = action.label;
+      btn.addEventListener("click", action.onClick);
+    });
+    overlay.classList.remove("hidden");
+  }
+
+  function hideResult() {
+    overlay.classList.add("hidden");
+  }
 
   function render(state) {
+    if (state.maxWarnings !== maxWarningsRendered) {
+      maxWarningsRendered = state.maxWarnings;
+      warningsRow.innerHTML = "";
+      warningPips = Array.from({ length: state.maxWarnings }, () => {
+        const pip = el("div", "hud-warning-pip", warningsRow);
+        pip.textContent = "!";
+        return pip;
+      });
+    }
+
     const pct = Math.round((state.suspicion / state.suspicionMax) * 100);
     suspicionFill.style.width = `${pct}%`;
     suspicionFill.classList.toggle("danger", pct > 70 && pct <= 92);
@@ -108,6 +157,20 @@ export function createHud(root) {
       }
     });
 
+    // Location strip — the "estás aquí" readout asked for in the brief.
+    const area = state.area;
+    if (area) {
+      locWing.textContent = WING_LABEL[area.wing] ?? "Piso 7";
+      locName.textContent = area.name;
+      const bits = [KIND_LABEL[area.kind] ?? "Zona"];
+      if (area.capacity > 0) bits.push(`${area.capacity} sillas`);
+      locMeta.textContent = bits.join(" · ");
+      locationBar.style.setProperty("--zone-color", area.color ?? "#d9d9d9");
+      locationBar.classList.add("visible");
+    } else {
+      locationBar.classList.remove("visible");
+    }
+
     if (state.message) {
       toast.textContent = state.message.text;
       toast.classList.add("visible");
@@ -127,10 +190,9 @@ export function createHud(root) {
 
     if (state.nearStation) {
       const s = state.nearStation;
-      const pct2 = s.progress / s.time;
       promptIcon.textContent = s.icon ?? "•";
       promptText.textContent = `Mantén E: ${s.label}`;
-      promptRingFill.style.setProperty("--p", pct2);
+      promptRingFill.style.setProperty("--p", s.progress / s.time);
       prompt.classList.add("visible");
       prompt.classList.remove("prompt-tap");
     } else if (state.nearDistraction) {
@@ -141,22 +203,7 @@ export function createHud(root) {
     } else {
       prompt.classList.remove("visible");
     }
-
-    if (state.gameOver) {
-      overlay.classList.remove("hidden");
-      overlayIcon.textContent = state.win ? "🎉" : "🚪";
-      overlayTitle.textContent = state.win ? "¡Jornada completada!" : "Despedida";
-      overlayTitle.classList.toggle("win", state.win);
-      overlayTitle.classList.toggle("lose", !state.win);
-      overlayBody.textContent = state.win
-        ? "Completaste todas las actividades de ocio antes del cierre."
-        : state.warnings >= state.maxWarnings
-        ? "Tres advertencias del jefe."
-        : "Se terminó la jornada con objetivos pendientes.";
-    } else {
-      overlay.classList.add("hidden");
-    }
   }
 
-  return { render };
+  return { render, setDay, showResult, hideResult };
 }

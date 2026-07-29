@@ -1,45 +1,89 @@
-import { activityStations, distractions, hidingSpots } from "../scene/floorplan.js";
+import {
+  activityStations,
+  distractions,
+  hidingSpots,
+  nearestArea,
+  areaAt,
+} from "../scene/floorplan.js";
+import { WORLD_SCALE as S } from "../scene/config.js";
 import { BOSS_STATES } from "../entities/boss.js";
+import { locationEggs } from "../content/easterEggs.js";
 
-const LEVEL_DURATION = 240;
-const MAX_WARNINGS = 3;
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
 const DECAY_IDLE = 12;
 const SEEN_WHILE_HUNTED_RATE = 16;
-const INTERACT_RADIUS = 1.4;
+const INTERACT_RADIUS = 1.5 * S;
 const DISTRACTION_EFFECT_DURATION = 7;
 
-// Owns the core loop from section 5/6 of the design doc: suspicion meter,
-// the five forbidden activities (objectives), hiding/pretending, distractions,
-// and the win/lose conditions. Everything else (rendering, input capture,
-// boss movement) lives in its own module and just gets read/poked here.
+const DEFAULT_RULES = {
+  duration: 240,
+  maxWarnings: 3,
+  objectives: null, // null = every forbidden activity
+  decayMul: 1,
+  distractionsOff: false,
+};
+
+/**
+ * One workday. Owns the suspicion meter, the forbidden activities,
+ * hiding/pretending, distractions and the win/lose conditions. Everything
+ * else (rendering, input capture, boss movement, story) lives elsewhere and
+ * is only read/poked from here.
+ *
+ * All the knobs a day can change live in `rules`, so the campaign in
+ * src/content/days.js can escalate difficulty without touching this file.
+ */
 export class Game {
-  constructor({ player, boss, npcs, hud }) {
+  constructor({ player, boss, npcs, hud, rules = {}, onFinish = null, onEgg = null }) {
     this.player = player;
     this.boss = boss;
     this.npcs = npcs;
     this.hud = hud;
+    this.rules = { ...DEFAULT_RULES, ...rules };
+    this.onFinish = onFinish;
+    this.onEgg = onEgg;
 
     this.suspicion = 0;
     this.warnings = 0;
-    this.timeLeft = LEVEL_DURATION;
+    this.timeLeft = this.rules.duration;
     this.gameOver = false;
     this.win = false;
+    this.paused = false;
+    this._finished = false;
 
-    this.objectives = activityStations.map((s) => ({ ...s, progress: 0, done: false }));
-    this.distractionState = distractions.map((d) => ({ ...d, cooldownLeft: 0 }));
+    const wanted = this.rules.objectives;
+    this.objectives = activityStations
+      .filter((s) => !wanted || wanted.includes(s.id))
+      .map((s) => ({ ...s, progress: 0, done: false }));
+
+    this.distractionState = this.rules.distractionsOff
+      ? []
+      : distractions.map((d) => ({ ...d, cooldownLeft: 0 }));
 
     this.nearStation = null;
     this.nearDistraction = null;
     this.message = null;
+    this.currentArea = null;
 
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
+    this._eggDwell = new Map();
+    this._foundEggs = new Set();
+  }
+
+  /** Story beats freeze the world without tearing the level down. */
+  setPaused(paused) {
+    this.paused = paused;
+    if (paused) {
+      // Drop held keys so the player doesn't resume mid-interaction.
+      this.player.keys.clear();
+      this.player.touchAxis.x = 0;
+      this.player.touchAxis.z = 0;
+    }
   }
 
   update(dt) {
-    if (this.gameOver) {
+    if (this.gameOver || this.paused) {
       this.hud.render(this._snapshot());
       return;
     }
@@ -47,8 +91,11 @@ export class Game {
     this.timeLeft = Math.max(0, this.timeLeft - dt);
     if (this._caughtCooldown > 0) this._caughtCooldown -= dt;
 
+    const pos = this.player.position;
+    this.currentArea = areaAt(pos.x, pos.z) ?? nearestArea(pos.x, pos.z).area;
+
     this.player.isHiding = hidingSpots.some(
-      (h) => Math.hypot(h.x - this.player.position.x, h.z - this.player.position.z) < h.r
+      (h) => Math.hypot(h.x - pos.x, h.z - pos.z) < h.r
     );
 
     const holdingE = this.player.keys.has("e");
@@ -57,9 +104,7 @@ export class Game {
 
     this.nearStation =
       this.objectives.find(
-        (s) =>
-          !s.done &&
-          Math.hypot(s.x - this.player.position.x, s.z - this.player.position.z) < INTERACT_RADIUS
+        (s) => !s.done && Math.hypot(s.x - pos.x, s.z - pos.z) < INTERACT_RADIUS
       ) ?? null;
 
     if (this.nearStation && holdingE && !holdingF) {
@@ -78,13 +123,12 @@ export class Game {
     });
     this.nearDistraction =
       this.distractionState.find(
-        (d) =>
-          d.cooldownLeft <= 0 &&
-          Math.hypot(d.x - this.player.position.x, d.z - this.player.position.z) < INTERACT_RADIUS
+        (d) => d.cooldownLeft <= 0 && Math.hypot(d.x - pos.x, d.z - pos.z) < INTERACT_RADIUS
       ) ?? null;
 
     if (holdingE && !this._prevInteractKey && this.nearDistraction && !this.nearStation) {
-      if (this.boss.distract({ x: this.nearDistraction.x, z: this.nearDistraction.z }, DISTRACTION_EFFECT_DURATION)) {
+      const target = { x: this.nearDistraction.x, z: this.nearDistraction.z };
+      if (this.boss.distract(target, DISTRACTION_EFFECT_DURATION)) {
         this.nearDistraction.cooldownLeft = this.nearDistraction.cooldown;
         this._toast(`Distracción: ${this.nearDistraction.label}`);
       } else {
@@ -94,39 +138,32 @@ export class Game {
     this._prevInteractKey = holdingE;
 
     this.boss.update(dt, this.player, this.npcs);
+    this._updateEggs(dt);
 
     // ---- Suspicion ----
+    const decay = this.rules.decayMul;
     if (this.boss.redAlert) {
       const rate = this.nearStation?.riskRate ?? 20;
       this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + rate * dt);
     } else if (this.boss.state === BOSS_STATES.CHASE && this.boss.playerVisible) {
-      // Being actively hunted keeps the pressure on even between activities.
       this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + SEEN_WHILE_HUNTED_RATE * dt);
     } else if (this.player.isHiding || this.player.isPretending) {
-      this.suspicion = Math.max(0, this.suspicion - DECAY_HIDDEN_OR_PRETENDING * dt);
+      this.suspicion = Math.max(0, this.suspicion - DECAY_HIDDEN_OR_PRETENDING * decay * dt);
     } else {
-      this.suspicion = Math.max(0, this.suspicion - DECAY_IDLE * dt);
+      this.suspicion = Math.max(0, this.suspicion - DECAY_IDLE * decay * dt);
     }
 
-    // ---- Getting caught ----
     const caught =
       this._caughtCooldown <= 0 &&
       this.boss.isHunting &&
       !this.player.isHiding &&
-      this.boss.catches(this.player.position, this.player.radius);
+      this.boss.catches(pos, this.player.radius);
 
-    if (this.suspicion >= SUSPICION_MAX || caught) {
-      this._warn();
-    }
+    if (this.suspicion >= SUSPICION_MAX || caught) this._warn();
 
     if (!this.gameOver) {
-      if (this.objectives.every((o) => o.done)) {
-        this.gameOver = true;
-        this.win = true;
-      } else if (this.timeLeft <= 0) {
-        this.gameOver = true;
-        this.win = false;
-      }
+      if (this.objectives.every((o) => o.done)) this._finish(true);
+      else if (this.timeLeft <= 0) this._finish(false);
     }
 
     if (this.message) {
@@ -137,20 +174,48 @@ export class Game {
     this.hud.render(this._snapshot());
   }
 
+  /** Standing still in the right spot for a beat reveals a hidden note. */
+  _updateEggs(dt) {
+    if (!this.onEgg) return;
+    const pos = this.player.position;
+    for (const egg of locationEggs) {
+      if (this._foundEggs.has(egg.id)) continue;
+      const inside = Math.hypot(egg.x - pos.x, egg.z - pos.z) < egg.radius;
+      const dwell = (this._eggDwell.get(egg.id) ?? 0) + (inside ? dt : -dt * 2);
+      this._eggDwell.set(egg.id, Math.max(0, dwell));
+      if (dwell >= egg.dwell) {
+        this._foundEggs.add(egg.id);
+        this.onEgg(egg);
+      }
+    }
+  }
+
   _warn() {
     this.warnings += 1;
     this.suspicion = 0;
     this._caughtCooldown = 3;
-    // He has made his point; back to the route (and she gets a moment to run).
     this.boss.resetToPatrol();
 
-    if (this.warnings >= MAX_WARNINGS) {
-      this.gameOver = true;
-      this.win = false;
-      this._toast("Tercera advertencia: despedida.");
+    if (this.warnings >= this.rules.maxWarnings) {
+      this._toast("Última advertencia: despedida.");
+      this._finish(false);
     } else {
-      this._toast(`Advertencia ${this.warnings}/${MAX_WARNINGS}`);
+      this._toast(`Advertencia ${this.warnings}/${this.rules.maxWarnings}`);
     }
+  }
+
+  _finish(win) {
+    if (this._finished) return;
+    this._finished = true;
+    this.gameOver = true;
+    this.win = win;
+    this.onFinish?.({
+      win,
+      warnings: this.warnings,
+      timeLeft: this.timeLeft,
+      elapsed: this.rules.duration - this.timeLeft,
+      objectives: this.objectives,
+    });
   }
 
   _toast(text) {
@@ -162,9 +227,9 @@ export class Game {
       suspicion: this.suspicion,
       suspicionMax: SUSPICION_MAX,
       warnings: this.warnings,
-      maxWarnings: MAX_WARNINGS,
+      maxWarnings: this.rules.maxWarnings,
       timeLeft: this.timeLeft,
-      levelDuration: LEVEL_DURATION,
+      levelDuration: this.rules.duration,
       objectives: this.objectives,
       nearStation: this.nearStation,
       nearDistraction: this.nearDistraction,
@@ -175,6 +240,7 @@ export class Game {
       gameOver: this.gameOver,
       win: this.win,
       message: this.message,
+      area: this.currentArea,
     };
   }
 }

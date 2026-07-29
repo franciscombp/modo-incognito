@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { CharacterSprite } from "./sprite.js";
 import { facingFromGround } from "../scene/iso.js";
+import { WORLD_SCALE as S } from "../scene/config.js";
 
 export const BOSS_STATES = {
   PATROL: "PATROL",
@@ -40,19 +41,26 @@ function buildConeGeometry(range, halfAngle, segments = 24) {
  * distraction pulls him away from whatever he was doing.
  */
 export class Boss {
-  constructor(sheet, { world, route, radius = 0.3 }) {
+  constructor(sheet, { world, route, navmesh = null, radius = 0.3 * S, speedMul = 1 }) {
     this.world = world;
+    this.navmesh = navmesh;
     this.route = route;
     this.routeIndex = 0;
     this.position = { x: route[0].x, z: route[0].z };
     this.radius = radius;
     this.facingDir = { x: 0, z: -1 };
 
+    // Path following state, so he rounds the big tables and the restroom
+    // cores instead of grinding into them.
+    this._path = null;
+    this._pathTarget = null;
+    this._repathTimer = 0;
+
     this.state = PATROL;
-    this.speed = 2.4;
-    this.investigateSpeed = 3.2;
-    this.chaseSpeed = 4.9; // faster than the player, so cover matters
-    this.searchSpeed = 3.0;
+    this.speed = 2.4 * S * speedMul;
+    this.investigateSpeed = 3.2 * S * speedMul;
+    this.chaseSpeed = 4.9 * S * speedMul; // faster than the player, so cover matters
+    this.searchSpeed = 3.0 * S * speedMul;
 
     this.investigateTarget = null;
     this.investigateTimer = 0;
@@ -61,13 +69,13 @@ export class Boss {
     this.loseSightTimer = 0;
     this.lastSeenPlayerPos = null;
 
-    this.visionRange = 7.5;
+    this.visionRange = 7.5 * S;
     this.halfAngle = THREE.MathUtils.degToRad(30);
 
     this.playerVisible = false;
     this.redAlert = false;
 
-    this.sprite = new CharacterSprite(sheet, { height: 1.55 });
+    this.sprite = new CharacterSprite(sheet, { height: 1.55 * S });
     this.sprite.setPosition(this.position.x, this.position.z);
 
     const geometry = buildConeGeometry(this.visionRange, this.halfAngle);
@@ -116,7 +124,7 @@ export class Boss {
   catches(playerPos, playerRadius) {
     return (
       Math.hypot(playerPos.x - this.position.x, playerPos.z - this.position.z) <
-      this.radius + playerRadius + 0.25
+      this.radius + playerRadius + 0.25 * S
     );
   }
 
@@ -133,7 +141,7 @@ export class Boss {
     this._advanceState(dt, player);
 
     const target = this._pickTarget(player);
-    const dir = this._moveToward(dt, target);
+    const dir = this._moveToward(dt, this._steer(dt, target));
     if (dir) this.facingDir = dir;
     else if (this.playerVisible) {
       // Standing still but watching her — keep the cone trained on the player.
@@ -229,7 +237,40 @@ export class Boss {
     return this.route[this.routeIndex];
   }
 
-  _reached(target, eps = 0.4) {
+  /**
+   * Turn a far-away goal into the next immediate step. While the straight
+   * line is clear he just walks at it; the moment furniture is in the way he
+   * follows a navmesh path instead, re-planning a couple of times a second.
+   */
+  _steer(dt, target) {
+    if (!target || !this.navmesh) return target;
+    this._repathTimer -= dt;
+
+    if (this.world && !this.world.lineBlocked(this.position, target)) {
+      this._path = null;
+      return target;
+    }
+
+    const goalMoved =
+      !this._pathTarget ||
+      Math.hypot(this._pathTarget.x - target.x, this._pathTarget.z - target.z) > 1.2 * S;
+    if (!this._path || goalMoved || this._repathTimer <= 0) {
+      this._path = this.navmesh.path(this.position, target);
+      this._pathTarget = { x: target.x, z: target.z };
+      this._repathTimer = 0.5;
+    }
+    if (!this._path || !this._path.length) return target;
+
+    while (
+      this._path.length > 1 &&
+      Math.hypot(this._path[0].x - this.position.x, this._path[0].z - this.position.z) < 0.6 * S
+    ) {
+      this._path.shift();
+    }
+    return this._path[0];
+  }
+
+  _reached(target, eps = 0.4 * S) {
     if (!target) return true;
     return Math.hypot(target.x - this.position.x, target.z - this.position.z) < eps;
   }
@@ -246,7 +287,7 @@ export class Boss {
     const dx = target.x - this.position.x;
     const dz = target.z - this.position.z;
     const dist = Math.hypot(dx, dz);
-    if (dist < 0.06) return null;
+    if (dist < 0.06 * S) return null;
 
     const nx = dx / dist;
     const nz = dz / dist;

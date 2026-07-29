@@ -1,7 +1,7 @@
 {
   "name": "pixel-office",
   "version": "1.0.0",
-  "description": "Pixel-art isometric office scene built with Three.js",
+  "description": "Modo Incógnito — oficina isométrica oblicua en Three.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,8 @@
     "sprites": "python3 tools/gen_sprites.py",
     "check:reachable": "node tools/check-reachable.mjs",
     "check:chase": "node tools/check-chase.mjs",
-    "check": "npm run check:reachable && npm run check:chase"
+    "check": "npm run check:reachable && npm run check:chase",
+    "check:visual": "node tools/shoot.mjs"
   },
   "license": "ISC",
   "dependencies": {

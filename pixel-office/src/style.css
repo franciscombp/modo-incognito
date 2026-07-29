@@ -103,7 +103,7 @@ body.touch-device #hint {
 }
 
 .hud-objectives::before {
-  content: "BANCA DIGITAL · PISO 7";
+  content: "TRIBU CANALES · PISO 7";
   display: block;
   font-size: 9px;
   font-weight: 700;
@@ -633,17 +633,36 @@ body.touch-device .touch-controls {
   display: block;
 }
 
+/* Floating stick: the whole lower-left quadrant is the grab zone, and the
+   base appears under the thumb wherever it lands. */
+.touch-stick-zone {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 48%;
+  height: 62%;
+  pointer-events: auto;
+  touch-action: none;
+}
+
 .touch-stick-base {
   position: absolute;
-  left: 26px;
-  bottom: 26px;
+  left: 96px;
+  top: calc(100% - 96px);
   width: 118px;
   height: 118px;
+  margin: -59px 0 0 -59px;
   border-radius: 50%;
   background: radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.14), rgba(20, 21, 26, 0.55));
   border: 2px solid rgba(255, 255, 255, 0.22);
-  pointer-events: auto;
+  opacity: 0.45;
+  transition: opacity 0.15s;
+  pointer-events: none;
   touch-action: none;
+}
+
+.touch-stick-base.active {
+  opacity: 1;
 }
 
 .touch-stick-thumb {
@@ -712,5 +731,355 @@ body.touch-device .touch-controls {
 @media (min-width: 900px) and (pointer: fine) {
   .touch-controls {
     display: none !important;
+  }
+}
+
+/* ================= Location strip (ala · zona · capacidad) ============ */
+
+.hud-location {
+  --zone-color: #d9d9d9;
+  position: absolute;
+  left: 50%;
+  bottom: 14px;
+  transform: translate(-50%, 8px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(24, 26, 33, 0.94), rgba(13, 14, 19, 0.94));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  opacity: 0;
+  transition: opacity 0.2s, transform 0.2s;
+  max-width: min(92vw, 560px);
+}
+
+.hud-location.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.hud-loc-wing {
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #12141a;
+  background: var(--zone-color);
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.hud-loc-name {
+  font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-loc-meta {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #9aa2b1;
+  white-space: nowrap;
+}
+
+.hud-day-chip {
+  margin-bottom: 6px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: rgba(139, 92, 246, 0.22);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  color: #ddd0ff;
+  font-size: 9.5px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+  max-width: 92vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hud-overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.hud-overlay-btn {
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  padding: 10px 20px;
+}
+
+.hud-overlay-btn.primary {
+  background: linear-gradient(180deg, #8b5cf6, #6d3fd6);
+  border-color: transparent;
+  box-shadow: 0 6px 16px rgba(139, 92, 246, 0.4);
+}
+
+/* ================= Visual novel ================= */
+
+.vn-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  user-select: none;
+}
+
+.vn-layer.hidden {
+  display: none;
+}
+
+.vn-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6, 7, 10, 0.15), rgba(6, 7, 10, 0.72));
+}
+
+.vn-box {
+  position: relative;
+  width: min(760px, 100%);
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 14px;
+  padding: 16px 18px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(26, 28, 36, 0.98), rgba(14, 15, 20, 0.98));
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-top-color: rgba(255, 255, 255, 0.26);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+  color: #f5f4ef;
+  animation: vn-rise 0.22s ease-out;
+}
+
+@keyframes vn-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.vn-box[data-mood="tense"] {
+  border-color: rgba(242, 199, 68, 0.45);
+}
+
+.vn-box[data-mood="angry"] {
+  border-color: rgba(230, 72, 63, 0.55);
+}
+
+.vn-portrait {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 40% 30%, rgba(255, 255, 255, 0.14), rgba(0, 0, 0, 0.3));
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  font-size: 34px;
+}
+
+.vn-portrait[data-mood="angry"] {
+  background: radial-gradient(circle at 40% 30%, rgba(230, 72, 63, 0.35), rgba(0, 0, 0, 0.35));
+}
+
+.vn-body {
+  min-width: 0;
+}
+
+.vn-speaker {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #f2c744;
+  margin-bottom: 5px;
+}
+
+.vn-speaker.hidden {
+  display: none;
+}
+
+.vn-text {
+  font-size: 15px;
+  line-height: 1.5;
+  min-height: 3em;
+}
+
+.vn-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.vn-options.hidden {
+  display: none;
+}
+
+.vn-option {
+  pointer-events: auto;
+  text-align: left;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: #f5f4ef;
+  background: rgba(139, 92, 246, 0.16);
+  border: 1px solid rgba(139, 92, 246, 0.5);
+  border-radius: 10px;
+  padding: 11px 14px;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.vn-option:hover,
+.vn-option:active {
+  background: rgba(139, 92, 246, 0.32);
+}
+
+.vn-hint {
+  margin-top: 8px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #8f96a5;
+  animation: hud-timer-pulse 1.4s ease-in-out infinite;
+}
+
+.vn-hint.hidden {
+  visibility: hidden;
+}
+
+/* While a story beat is up, the game HUD steps out of the way. */
+body.vn-open .hud-topbar,
+body.vn-open .hud-location,
+body.vn-open .hud-prompt,
+body.vn-open .touch-controls,
+body.vn-open .hud-legend,
+body.vn-open #hint {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+
+/* ================= Touch utilities ================= */
+
+.touch-utils {
+  position: absolute;
+  top: calc(50% - 60px);
+  right: max(10px, env(safe-area-inset-right, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 21;
+}
+
+.touch-util {
+  pointer-events: auto;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(16, 17, 22, 0.72);
+  color: #f5f4ef;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+
+.touch-util:active {
+  background: rgba(139, 92, 246, 0.45);
+}
+
+body.inspect-mode .touch-util:last-child {
+  background: rgba(139, 92, 246, 0.5);
+  border-color: rgba(139, 92, 246, 0.9);
+}
+
+/* ================= Mobile refinements ================= */
+
+@media (max-width: 720px) {
+  .hud-location {
+    bottom: auto;
+    top: auto;
+    left: 50%;
+    bottom: calc(150px + env(safe-area-inset-bottom, 0px));
+    font-size: 11px;
+    padding: 5px 11px 5px 8px;
+  }
+  .hud-loc-meta {
+    display: none;
+  }
+  .hud-day-chip {
+    font-size: 8.5px;
+    padding: 2px 9px;
+  }
+  .vn-box {
+    grid-template-columns: 54px 1fr;
+    gap: 10px;
+    padding: 13px 14px;
+    border-radius: 14px;
+  }
+  .vn-portrait {
+    width: 54px;
+    height: 54px;
+    font-size: 26px;
+  }
+  .vn-text {
+    font-size: 14px;
+  }
+  .hud-overlay-card {
+    padding: 24px 20px;
+    margin: 0 14px;
+  }
+  .hud-overlay-icon {
+    font-size: 38px;
+  }
+  .hud-overlay-title {
+    font-size: 21px;
+  }
+  .touch-utils {
+    top: auto;
+    bottom: calc(200px + env(safe-area-inset-bottom, 0px));
+    flex-direction: row;
+  }
+}
+
+@media (max-width: 720px) and (orientation: landscape) {
+  .hud-location {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+  .touch-utils {
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+    flex-direction: column;
+  }
+}
+
+/* Respect notches and home indicators on phones. */
+.touch-actions {
+  right: max(20px, env(safe-area-inset-right, 0px));
+  bottom: max(26px, calc(18px + env(safe-area-inset-bottom, 0px)));
+}
+
+@media (max-width: 720px) {
+  /* The stacked top bar puts the day chip right under the panels; give it
+     breathing room so it never clips into them. */
+  .hud-center {
+    margin-top: 4px;
   }
 }
