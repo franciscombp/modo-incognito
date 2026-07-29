@@ -33,4 +33,23 @@ await p.click(".px-tab:nth-child(2)");
 await p.waitForTimeout(400);
 await p.screenshot({ path: "shots/menu-settings-camera.png" });
 console.log("settings ok");
+
+// And the dialogue box in context: start day 1 and shoot the prologue.
+for (const [name, w, h] of [
+  ["dialogue-desktop", 1440, 900],
+  ["dialogue-phone", 390, 844],
+]) {
+  const c = await b.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: 2 });
+  const page = await c.newPage();
+  await page.goto("http://localhost:4173/", { waitUntil: "networkidle" });
+  await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
+  await page.evaluate(() => {
+    window.__game.engine.startDay(0);
+  });
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: `shots/${name}.png` });
+  console.log(name, "ok");
+  await c.close();
+}
+
 await b.close();

@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import {
   areas,
   footprint,
@@ -14,34 +15,71 @@ import {
 import { WORLD_SCALE as S } from "./config.js";
 import { createLabel } from "./labels.js";
 import { texturedMaterial, getTexture } from "./textures.js";
-import { createSeatedTable, createBistroTable } from "./furniture.js";
+import { createFurnitureRegistry, placeSeatedTable, placeBistroTable } from "./furniture.js";
 
 const GLASS_WALL_H = 1.9 * S;
-const PERIMETER_WALL_H = 1.5 * S;
+const PERIMETER_WALL_H = 2.2 * S;
 const CORE_H = 2.6 * S;
 
 /**
  * Builds the whole floor from the `areas` table. Every solid piece registers
  * itself in the collision world as it is created, so the layout data stays
  * the single source of truth for both rendering and gameplay.
+ *
+ * The build is aggressively batched: repeated furniture goes through an
+ * instancing registry, and same-material static geometry is merged into a
+ * single mesh per material. A floor with ~250 chairs and 25 tables ends up
+ * costing a few dozen draw calls, which is what keeps it playable on a
+ * tablet instead of stalling and losing the WebGL context.
  */
 export function buildOffice(scene, world) {
   const group = new THREE.Group();
   group.name = "office";
   const roomLabels = [];
+  const registry = createFurnitureRegistry();
+
+  const carpets = [];
+  const glassPanes = [];
+  const extras = []; // one-off meshes that are not worth batching
+  const coreParts = { body: [], door: [], metal: [] };
 
   group.add(buildFootprintFloor());
   group.add(buildCorridors());
   group.add(buildPerimeterWalls(world));
 
   areas.forEach((area) => {
-    const { node, label } = buildArea(area, world);
-    group.add(node);
-    if (label) roomLabels.push(label);
+    const label = buildArea(area, world, { registry, carpets, glassPanes, coreParts, extras });
+    if (label) {
+      group.add(label);
+      roomLabels.push(label);
+    }
   });
 
+  if (carpets.length) {
+    // One mesh for every zone carpet: the colour rides in the vertex data, so
+    // 25 differently-coloured patches still cost a single draw call.
+    const merged = mergeGeometries(carpets, false);
+    const mesh = new THREE.Mesh(
+      merged,
+      texturedMaterial("carpetPurple", { vertexColors: true, roughness: 0.95 })
+    );
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    carpets.forEach((g) => g.dispose());
+  }
+
+  if (glassPanes.length) {
+    const mesh = new THREE.Mesh(mergeGeometries(glassPanes, false), interiorGlassMaterial());
+    group.add(mesh);
+    glassPanes.forEach((g) => g.dispose());
+  }
+
+  group.add(buildCoreMeshes(coreParts));
+  extras.forEach((mesh) => group.add(mesh));
   group.add(buildEntranceMat());
   group.add(buildPlants(world));
+  group.add(registry.build());
+
   const markers = buildGameplayMarkers();
   group.add(markers.group);
 
@@ -86,25 +124,61 @@ function applyPlanarUV(geometry, scale) {
   geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
 }
 
-/** Slightly lighter strips marking the main circulation, like real vinyl. */
-function buildCorridors() {
-  const group = new THREE.Group();
-  const mat = texturedMaterial("tileLobby", { color: 0xf1f2f4, roughness: 0.85 });
-  corridors.forEach((c) => {
-    const geo = new THREE.BoxGeometry(c.w, 0.05 * S, c.d);
-    applyPlanarUV(geo, 0.4 / S);
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.position.set(c.x, 0.025 * S, c.z);
-    mesh.receiveShadow = true;
-    group.add(mesh);
-  });
-  return group;
+function paintGeometry(geometry, hexColor) {
+  const color = new THREE.Color(hexColor);
+  const count = geometry.attributes.position.count;
+  const colors = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    colors[i * 3] = color.r;
+    colors[i * 3 + 1] = color.g;
+    colors[i * 3 + 2] = color.b;
+  }
+  geometry.setAttribute("color", new THREE.BufferAttribute(colors, 3));
+  return geometry;
 }
 
+/** Slightly lighter strips marking the main circulation, like real vinyl. */
+function buildCorridors() {
+  const parts = corridors.map((c) => {
+    const geo = new THREE.BoxGeometry(c.w, 0.05 * S, c.d);
+    applyPlanarUV(geo, 0.4 / S);
+    geo.translate(c.x, 0.025 * S, c.z);
+    return geo;
+  });
+  if (!parts.length) return new THREE.Group();
+  const mesh = new THREE.Mesh(
+    mergeGeometries(parts, false),
+    texturedMaterial("tileLobby", { color: 0xf1f2f4, roughness: 0.85 })
+  );
+  mesh.receiveShadow = true;
+  parts.forEach((g) => g.dispose());
+  return mesh;
+}
+
+function interiorGlassMaterial() {
+  return new THREE.MeshStandardMaterial({
+    color: 0xcfe6ff,
+    transparent: true,
+    opacity: 0.22,
+    roughness: 0.1,
+    metalness: 0,
+    side: THREE.DoubleSide,
+  });
+}
+
+/**
+ * The building envelope is a glass curtain wall rather than a solid one: at
+ * this camera angle an opaque parapet swallows whoever is walking behind it,
+ * and losing sight of the player or the boss on the near edge is the single
+ * most frustrating thing the old build did.
+ */
 function buildPerimeterWalls(world) {
   const group = new THREE.Group();
-  const material = texturedMaterial("wallPanel", { color: 0xc8ccd4, roughness: 0.85 });
   const h = PERIMETER_WALL_H;
+
+  const panes = [];
+  const mullions = [];
+  const sills = [];
 
   for (let i = 0; i < footprint.length; i++) {
     const [x1, z1] = footprint[i];
@@ -113,16 +187,68 @@ function buildPerimeterWalls(world) {
     const dx = x2 - x1;
     const dz = z2 - z1;
     const length = Math.hypot(dx, dz);
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(length, h, 0.3 * S), material);
-    wall.position.set((x1 + x2) / 2, h / 2, (z1 + z2) / 2);
-    wall.rotation.y = -Math.atan2(dz, dx);
-    wall.castShadow = true;
-    wall.receiveShadow = true;
-    group.add(wall);
+    const cx = (x1 + x2) / 2;
+    const cz = (z1 + z2) / 2;
+    const rotY = -Math.atan2(dz, dx);
 
-    if (world) world.addSegment(x1, z1, x2, z2, 0.3 * S, { sight: true });
+    const pane = new THREE.BoxGeometry(length, h, 0.08 * S);
+    pane.rotateY(rotY);
+    pane.translate(cx, h / 2, cz);
+    panes.push(pane);
+
+    // A low sill and evenly spaced mullions give the glass something to read
+    // against, so the edge of the floor is still legible.
+    const sill = new THREE.BoxGeometry(length, 0.16 * S, 0.22 * S);
+    sill.rotateY(rotY);
+    sill.translate(cx, 0.08 * S, cz);
+    sills.push(sill);
+
+    const cap = new THREE.BoxGeometry(length, 0.1 * S, 0.2 * S);
+    cap.rotateY(rotY);
+    cap.translate(cx, h, cz);
+    sills.push(cap);
+
+    const spacing = 2.6 * S;
+    const count = Math.max(1, Math.round(length / spacing));
+    for (let m = 0; m <= count; m++) {
+      const t = m / count - 0.5;
+      const post = new THREE.BoxGeometry(0.1 * S, h, 0.14 * S);
+      post.rotateY(rotY);
+      post.translate(cx + dx * t, h / 2, cz + dz * t);
+      mullions.push(post);
+    }
+
+    // Glass still stops you walking out of the building, but it must never
+    // block the boss's line of sight — you can be seen through a window.
+    if (world) world.addSegment(x1, z1, x2, z2, 0.3 * S, { sight: false });
   }
 
+  const glass = new THREE.Mesh(
+    mergeGeometries(panes, false),
+    new THREE.MeshStandardMaterial({
+      color: 0xbfe4f5,
+      transparent: true,
+      opacity: 0.16,
+      roughness: 0.08,
+      metalness: 0.1,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    })
+  );
+  glass.renderOrder = 3;
+  group.add(glass);
+
+  const frameMat = new THREE.MeshStandardMaterial({
+    color: 0x8e97a6,
+    roughness: 0.4,
+    metalness: 0.5,
+  });
+  const frame = new THREE.Mesh(mergeGeometries([...mullions, ...sills], false), frameMat);
+  frame.castShadow = false;
+  frame.receiveShadow = true;
+  group.add(frame);
+
+  [...panes, ...mullions, ...sills].forEach((g) => g.dispose());
   return group;
 }
 
@@ -140,60 +266,52 @@ function buildEntranceMat() {
 }
 
 // ---------- Per-zone construction ----------
-function buildArea(area, world) {
-  const group = new THREE.Group();
-  group.name = area.id;
-  group.position.set(area.x, 0, area.z);
-
+function buildArea(area, world, ctx) {
   const solid = area.kind === AREA_KINDS.CORE || area.kind === AREA_KINDS.ELEVATOR;
-  if (!solid) group.add(buildCarpet(area));
+  if (!solid) ctx.carpets.push(buildCarpet(area));
 
   switch (area.kind) {
     case AREA_KINDS.OPEN_OFFICE:
-      addSeatedTable(group, area, world);
+      addSeatedTable(area, world, ctx.registry);
       break;
     case AREA_KINDS.MEETING:
-      group.add(buildGlassWalls(area, world));
-      addSeatedTable(group, area, world, { monitors: false });
+      addGlassWalls(area, world, ctx.glassPanes);
+      addSeatedTable(area, world, ctx.registry, { monitors: false });
       break;
     case AREA_KINDS.SOCIAL:
-      group.add(buildCafeteria(area, world));
+      addCafeteria(area, world, ctx);
       break;
     case AREA_KINDS.AUDITORIUM:
-      group.add(buildAuditorium(area, world));
+      addAuditorium(area, world, ctx);
       break;
     case AREA_KINDS.CORE:
-      group.add(buildCoreBlock(area, world));
+      addCoreBlock(area, world, ctx.coreParts);
       break;
     case AREA_KINDS.ELEVATOR:
-      group.add(buildElevators(area, world));
+      addElevators(area, world, ctx.coreParts);
       break;
     default:
       break;
   }
 
-  let label = null;
-  if (area.name) {
-    const seats = area.capacity > 0 ? `\n${area.capacity} puestos` : "";
-    label = createLabel(
-      `${area.name}${seats}`,
-      {
-        accent: area.color,
-        solid: area.kind === AREA_KINDS.OPEN_OFFICE,
-        dark: true,
-        icon: iconFor(area),
-      },
-      0.62
-    );
-    label.position.set(0, (solid ? CORE_H : GLASS_WALL_H) + 0.7 * S, 0);
-    label.userData.homeX = area.x;
-    label.userData.homeZ = area.z;
-    label.userData.priority = area.labelPriority ?? 2;
-    label.userData.areaId = area.id;
-    group.add(label);
-  }
-
-  return { node: group, label };
+  if (!area.name) return null;
+  const seats = area.capacity > 0 ? `\n${area.capacity} puestos` : "";
+  const label = createLabel(
+    `${area.name}${seats}`,
+    {
+      accent: area.color,
+      solid: area.kind === AREA_KINDS.OPEN_OFFICE,
+      dark: true,
+      icon: iconFor(area),
+    },
+    0.62
+  );
+  label.position.set(area.x, (solid ? CORE_H : GLASS_WALL_H) + 0.7 * S, area.z);
+  label.userData.homeX = area.x;
+  label.userData.homeZ = area.z;
+  label.userData.priority = area.labelPriority ?? 2;
+  label.userData.areaId = area.id;
+  return label;
 }
 
 function iconFor(area) {
@@ -217,251 +335,212 @@ function iconFor(area) {
 function buildCarpet(area) {
   const geo = new THREE.BoxGeometry(area.w, 0.1 * S, area.d);
   applyPlanarUV(geo, 0.5 / S);
-  const texture = area.kind === AREA_KINDS.MEETING ? "carpetNeutral" : "carpetPurple";
-  const mesh = new THREE.Mesh(
-    geo,
-    texturedMaterial(texture, { color: new THREE.Color(area.color), roughness: 0.95 })
-  );
-  mesh.position.y = 0.05 * S;
-  mesh.receiveShadow = true;
-  return mesh;
+  paintGeometry(geo, area.color);
+  geo.translate(area.x, 0.05 * S, area.z);
+  return geo;
 }
 
-function addSeatedTable(group, area, world, opts = {}) {
-  const { group: table, collider } = createSeatedTable({
+function addSeatedTable(area, world, registry, opts = {}) {
+  const collider = placeSeatedTable(registry, {
+    originX: area.x,
+    originZ: area.z,
     width: area.w,
     depth: area.d,
     capacity: area.capacity,
     shape: area.tableShape ?? "rect",
     monitors: opts.monitors !== false,
   });
-  group.add(table);
   // Only the table top is solid — chairs stay walk-through so nobody can be
   // wedged between a chair and the table they are meant to sit at.
   if (world) world.addBox(area.x, area.z, collider.w, collider.d, { sight: true });
 }
 
-function buildGlassWalls(area, world) {
-  const group = new THREE.Group();
+function addGlassWalls(area, world, panes) {
   const height = GLASS_WALL_H;
-  const thickness = 0.14 * S;
-  const material = new THREE.MeshPhysicalMaterial({
-    color: 0xcfe6ff,
-    transparent: true,
-    opacity: 0.24,
-    roughness: 0.05,
-    metalness: 0,
-    transmission: 0.45,
-  });
+  const thickness = 0.12 * S;
 
-  const sides = [
-    { w: area.w, d: thickness, x: 0, z: -area.d / 2, door: false },
-    { w: area.w, d: thickness, x: 0, z: area.d / 2, door: true },
-    { w: thickness, d: area.d, x: -area.w / 2, z: 0, door: false },
-    { w: thickness, d: area.d, x: area.w / 2, z: 0, door: false },
-  ];
+  const push = (w, d, x, z) => {
+    const geo = new THREE.BoxGeometry(w, height, d);
+    geo.translate(area.x + x, height / 2, area.z + z);
+    panes.push(geo);
+    if (world) world.addBox(area.x + x, area.z + z, w, d, { sight: false });
+  };
 
-  sides.forEach((seg) => {
-    if (seg.door) {
-      const doorWidth = Math.max(1.5 * S, seg.w * 0.4);
-      const sideLen = (seg.w - doorWidth) / 2;
-      if (sideLen <= 0.05) return;
-      [-1, 1].forEach((dir) => {
-        const localX = dir * (doorWidth / 2 + sideLen / 2);
-        const wall = new THREE.Mesh(new THREE.BoxGeometry(sideLen, height, thickness), material);
-        wall.position.set(localX, height / 2, seg.z);
-        wall.castShadow = true;
-        group.add(wall);
-        if (world) world.addBox(area.x + localX, area.z + seg.z, sideLen, thickness, { sight: false });
-      });
-      return;
+  push(area.w, thickness, 0, -area.d / 2);
+  push(thickness, area.d, -area.w / 2, 0);
+  push(thickness, area.d, area.w / 2, 0);
+
+  // Leave a doorway in the front wall.
+  const doorWidth = Math.max(1.5 * S, area.w * 0.4);
+  const sideLen = (area.w - doorWidth) / 2;
+  if (sideLen > 0.05) {
+    for (const dir of [-1, 1]) {
+      push(sideLen, thickness, dir * (doorWidth / 2 + sideLen / 2), area.d / 2);
     }
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(seg.w, height, seg.d), material);
-    wall.position.set(seg.x, height / 2, seg.z);
-    wall.castShadow = true;
-    group.add(wall);
-    if (world) world.addBox(area.x + seg.x, area.z + seg.z, seg.w, seg.d, { sight: false });
-  });
-
-  const frame = new THREE.LineSegments(
-    new THREE.EdgesGeometry(new THREE.BoxGeometry(area.w, height, area.d)),
-    new THREE.LineBasicMaterial({ color: 0x5b6a7d })
-  );
-  frame.position.y = height / 2;
-  group.add(frame);
-  return group;
+  }
 }
 
-/** Restrooms / stairs: a closed volume you walk around, with a visible door. */
-function buildCoreBlock(area, world) {
-  const group = new THREE.Group();
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(area.w, CORE_H, area.d),
-    texturedMaterial("panelLight", { color: 0xdfe3e9, roughness: 0.8 })
-  );
-  body.position.y = CORE_H / 2;
-  body.castShadow = true;
-  body.receiveShadow = true;
-  group.add(body);
+/** Restrooms / stairs / lifts: closed volumes you walk around. */
+function addCoreBlock(area, world, parts) {
+  const body = new THREE.BoxGeometry(area.w, CORE_H, area.d);
+  body.translate(area.x, CORE_H / 2, area.z);
+  parts.body.push(body);
 
-  const door = new THREE.Mesh(
-    new THREE.BoxGeometry(0.9 * S, 1.9 * S, 0.08 * S),
-    new THREE.MeshStandardMaterial({ color: 0x4d5663, roughness: 0.6 })
-  );
-  door.position.set(0, 0.95 * S, area.d / 2 + 0.05 * S);
-  group.add(door);
+  const door = new THREE.BoxGeometry(0.9 * S, 1.9 * S, 0.08 * S);
+  door.translate(area.x, 0.95 * S, area.z + area.d / 2 + 0.05 * S);
+  parts.door.push(door);
 
   if (world) world.addBox(area.x, area.z, area.w, area.d, { sight: true });
-  return group;
 }
 
-/** The lift bank the player arrives through. */
-function buildElevators(area, world) {
-  const group = new THREE.Group();
-  const shaft = new THREE.Mesh(
-    new THREE.BoxGeometry(area.w, CORE_H * 1.15, area.d),
-    texturedMaterial("panelLight", { color: 0xd3d8e0, roughness: 0.7 })
-  );
-  shaft.position.y = (CORE_H * 1.15) / 2;
-  shaft.castShadow = true;
-  group.add(shaft);
+function addElevators(area, world, parts) {
+  const h = CORE_H * 1.15;
+  const shaft = new THREE.BoxGeometry(area.w, h, area.d);
+  shaft.translate(area.x, h / 2, area.z);
+  parts.body.push(shaft);
 
-  const doorMat = new THREE.MeshStandardMaterial({
-    color: 0xb9c0c9,
-    metalness: 0.7,
-    roughness: 0.3,
-  });
-  [-1, 1].forEach((side) => {
-    const doors = new THREE.Mesh(new THREE.BoxGeometry(1.5 * S, 2.1 * S, 0.1 * S), doorMat);
-    doors.position.set(side * area.w * 0.24, 1.05 * S, area.d / 2 + 0.06 * S);
-    group.add(doors);
-  });
+  for (const side of [-1, 1]) {
+    const doors = new THREE.BoxGeometry(1.5 * S, 2.1 * S, 0.1 * S);
+    doors.translate(area.x + side * area.w * 0.24, 1.05 * S, area.z + area.d / 2 + 0.06 * S);
+    parts.metal.push(doors);
+  }
 
   if (world) world.addBox(area.x, area.z, area.w, area.d, { sight: true });
+}
+
+function buildCoreMeshes(parts) {
+  const group = new THREE.Group();
+  const specs = [
+    ["body", texturedMaterial("panelLight", { color: 0xdfe3e9, roughness: 0.8 })],
+    ["door", new THREE.MeshStandardMaterial({ color: 0x4d5663, roughness: 0.6 })],
+    ["metal", new THREE.MeshStandardMaterial({ color: 0xb9c0c9, metalness: 0.7, roughness: 0.3 })],
+  ];
+  for (const [kind, material] of specs) {
+    if (!parts[kind].length) continue;
+    const mesh = new THREE.Mesh(mergeGeometries(parts[kind], false), material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    parts[kind].forEach((g) => g.dispose());
+  }
   return group;
 }
 
-/** Cafetería: counter with machines, bistro tables, planters. */
-function buildCafeteria(area, world) {
-  const group = new THREE.Group();
-
+/** Cafetería: counter with machines, bistro tables. */
+function addCafeteria(area, world, ctx) {
   const cw = area.w * 0.7;
   const cd = 0.75 * S;
-  const counter = new THREE.Mesh(
-    new THREE.BoxGeometry(cw, 1.05 * S, cd),
-    texturedMaterial("fabricCounter", { color: 0xf0e2cf, roughness: 0.5 })
-  );
-  counter.position.set(0, 0.53 * S, -area.d / 2 + cd);
-  counter.castShadow = true;
-  group.add(counter);
-  if (world) world.addBox(area.x, area.z - area.d / 2 + cd, cw, cd, { sight: true });
+  const cz = area.z - area.d / 2 + cd;
 
-  const machine = new THREE.Mesh(
-    new THREE.BoxGeometry(0.5 * S, 0.6 * S, 0.42 * S),
-    new THREE.MeshStandardMaterial({ color: 0x25282e, roughness: 0.4 })
-  );
-  machine.position.set(-cw * 0.3, 1.35 * S, -area.d / 2 + cd);
-  group.add(machine);
+  const counter = new THREE.BoxGeometry(cw, 1.05 * S, cd);
+  counter.translate(area.x, 0.53 * S, cz);
+  ctx.coreParts.body.push(counter);
+  if (world) world.addBox(area.x, cz, cw, cd, { sight: true });
 
-  const fridge = new THREE.Mesh(
-    new THREE.BoxGeometry(0.62 * S, 0.66 * S, 0.42 * S),
-    new THREE.MeshStandardMaterial({ color: 0x2f3a45, emissive: 0x123044, emissiveIntensity: 0.4 })
-  );
-  fridge.position.set(cw * 0.32, 1.38 * S, -area.d / 2 + cd);
-  group.add(fridge);
+  const machine = new THREE.BoxGeometry(0.5 * S, 0.6 * S, 0.42 * S);
+  machine.translate(area.x - cw * 0.3, 1.35 * S, cz);
+  ctx.coreParts.door.push(machine);
+
+  const fridge = new THREE.BoxGeometry(0.62 * S, 0.66 * S, 0.42 * S);
+  fridge.translate(area.x + cw * 0.32, 1.38 * S, cz);
+  ctx.coreParts.metal.push(fridge);
 
   // Bistro tables spread along the room, leaving a wide aisle in front of
   // the counter so the chase never bottlenecks here.
   [-0.3, 0.12, 0.34].forEach((tx, i) => {
-    const { group: table, collider } = createBistroTable(i === 1 ? 3 : 4);
-    const px = area.w * tx;
-    const pz = area.d * 0.18;
-    table.position.set(px, 0, pz);
-    group.add(table);
-    if (world) world.addBox(area.x + px, area.z + pz, collider.w, collider.d, { sight: false });
+    const px = area.x + area.w * tx;
+    const pz = area.z + area.d * 0.18;
+    const collider = placeBistroTable(ctx.registry, {
+      originX: px,
+      originZ: pz,
+      seats: i === 1 ? 3 : 4,
+    });
+    if (world) world.addBox(px, pz, collider.w, collider.d, { sight: false });
   });
-
-  return group;
 }
 
 /** Small auditorium: raised stage, screen, rows of chairs facing it. */
-function buildAuditorium(area, world) {
-  const group = new THREE.Group();
-
+function addAuditorium(area, world, ctx) {
   const stageD = area.d * 0.26;
-  const stageZ = -area.d / 2 + stageD / 2 + 0.3 * S;
-  const stage = new THREE.Mesh(
-    new THREE.BoxGeometry(area.w * 0.82, 0.28 * S, stageD),
-    texturedMaterial("woodLight", { roughness: 0.7 })
-  );
-  stage.position.set(0, 0.19 * S, stageZ);
-  stage.receiveShadow = true;
-  group.add(stage);
-  if (world) world.addBox(area.x, area.z + stageZ, area.w * 0.82, stageD, { sight: false });
+  const stageZ = area.z - area.d / 2 + stageD / 2 + 0.3 * S;
 
+  const stage = new THREE.BoxGeometry(area.w * 0.82, 0.28 * S, stageD);
+  stage.translate(area.x, 0.19 * S, stageZ);
+  ctx.coreParts.body.push(stage);
+  if (world) world.addBox(area.x, stageZ, area.w * 0.82, stageD, { sight: false });
+
+  // The lit screen is a one-off landmark, so it stays its own small mesh.
   const screen = new THREE.Mesh(
     new THREE.BoxGeometry(area.w * 0.5, 1.3 * S, 0.12 * S),
     new THREE.MeshStandardMaterial({
       color: 0x11141a,
       emissive: 0x2a6f9e,
-      emissiveIntensity: 1.1,
+      emissiveIntensity: 1.2,
     })
   );
-  screen.position.set(0, 1.25 * S, -area.d / 2 + 0.2 * S);
-  group.add(screen);
+  screen.position.set(area.x, 1.25 * S, area.z - area.d / 2 + 0.2 * S);
+  ctx.extras.push(screen);
 
-  const seatMat = texturedMaterial("fabricDark", { roughness: 0.85 });
   const rows = 3;
   const perRow = 6;
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < perRow; c++) {
-      const seat = new THREE.Group();
-      const cushion = new THREE.Mesh(new THREE.BoxGeometry(0.34 * S, 0.1 * S, 0.34 * S), seatMat);
-      cushion.position.y = 0.4 * S;
-      seat.add(cushion);
-      const back = new THREE.Mesh(new THREE.BoxGeometry(0.34 * S, 0.4 * S, 0.08 * S), seatMat);
-      back.position.set(0, 0.6 * S, 0.15 * S);
-      seat.add(back);
-      seat.position.set((c / (perRow - 1) - 0.5) * area.w * 0.66, 0, area.d * (0.02 + r * 0.16));
-      seat.castShadow = true;
-      group.add(seat);
+      ctx.registry.addStool(
+        area.x + (c / (perRow - 1) - 0.5) * area.w * 0.66,
+        area.z + area.d * (0.04 + r * 0.16)
+      );
     }
   }
-  return group;
+
 }
 
 // ---------- Cover props ----------
 function buildPlants(world) {
-  const group = new THREE.Group();
-  const potMat = texturedMaterial("woodPot", { roughness: 0.9 });
-  const leafMat = new THREE.MeshStandardMaterial({ color: 0x3f7a4a, roughness: 0.85 });
-  const leafMatLight = new THREE.MeshStandardMaterial({ color: 0x529a5c, roughness: 0.85 });
+  const potParts = [];
+  const leafParts = [];
 
   plants.forEach(({ x, z }, i) => {
-    const pot = new THREE.Mesh(new THREE.CylinderGeometry(0.3 * S, 0.24 * S, 0.45 * S, 8), potMat);
-    pot.position.set(x, 0.23 * S, z);
-    pot.castShadow = true;
-    group.add(pot);
+    const pot = new THREE.CylinderGeometry(0.3 * S, 0.24 * S, 0.45 * S, 8);
+    pot.translate(x, 0.23 * S, z);
+    potParts.push(pot);
 
-    const a = new THREE.Mesh(new THREE.SphereGeometry(0.5 * S, 8, 7), leafMat);
-    a.position.set(x, 0.95 * S, z);
-    a.scale.set(0.9, 1.2, 0.9);
-    a.castShadow = true;
-    group.add(a);
+    const bush = new THREE.SphereGeometry(0.5 * S, 8, 7);
+    bush.scale(0.9, 1.2, 0.9);
+    bush.translate(x, 0.95 * S, z);
+    leafParts.push(bush);
 
-    const b = new THREE.Mesh(new THREE.SphereGeometry(0.32 * S, 8, 7), leafMatLight);
-    b.position.set(x + (i % 2 ? 0.2 : -0.2) * S, 1.3 * S, z + (i % 3 ? 0.14 : -0.14) * S);
-    group.add(b);
+    const top = new THREE.SphereGeometry(0.32 * S, 8, 7);
+    top.translate(x + (i % 2 ? 0.2 : -0.2) * S, 1.3 * S, z + (i % 3 ? 0.14 : -0.14) * S);
+    leafParts.push(top);
 
     if (world) world.addBox(x, z, 0.6 * S, 0.6 * S, { sight: true });
   });
 
+  const group = new THREE.Group();
+  if (!potParts.length) return group;
+
+  const pots = new THREE.Mesh(
+    mergeGeometries(potParts, false),
+    texturedMaterial("woodPot", { roughness: 0.9 })
+  );
+  pots.castShadow = true;
+  group.add(pots);
+
+  const leaves = new THREE.Mesh(
+    mergeGeometries(leafParts, false),
+    new THREE.MeshStandardMaterial({ color: 0x3f7a4a, roughness: 0.85 })
+  );
+  leaves.castShadow = true;
+  group.add(leaves);
+
+  [...potParts, ...leafParts].forEach((g) => g.dispose());
   return group;
 }
 
 // ---------- Gameplay markers ----------
 function buildGameplayMarkers() {
   const group = new THREE.Group();
+  group.name = "markers";
 
   const shieldMat = new THREE.MeshBasicMaterial({
     color: 0x4caf6a,
@@ -469,17 +548,16 @@ function buildGameplayMarkers() {
     opacity: 0.9,
     toneMapped: false,
   });
-  hidingSpots.forEach(({ x, z, r }) => {
-    const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.72, r * 0.9, 24), shieldMat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(x, 0.16 * S, z);
-    group.add(ring);
-
-    const badge = new THREE.Mesh(new THREE.OctahedronGeometry(0.2 * S, 0), shieldMat);
-    badge.position.set(x, 0.7 * S, z);
-    badge.userData.bob = { base: 0.7 * S, speed: 1.4, amp: 0.08 * S, offset: Math.random() * Math.PI * 2 };
-    group.add(badge);
+  const hideRings = hidingSpots.map(({ x, z, r }) => {
+    const geo = new THREE.RingGeometry(r * 0.72, r * 0.9, 20);
+    geo.rotateX(-Math.PI / 2);
+    geo.translate(x, 0.16 * S, z);
+    return geo;
   });
+  if (hideRings.length) {
+    group.add(new THREE.Mesh(mergeGeometries(hideRings, false), shieldMat));
+    hideRings.forEach((g) => g.dispose());
+  }
 
   const starMat = new THREE.MeshBasicMaterial({ color: 0xf2c744, toneMapped: false });
   const distractionMarkers = distractions.map(({ x, z }) => {
@@ -498,14 +576,16 @@ function buildGameplayMarkers() {
       opacity: 0.85,
       toneMapped: false,
     });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.6 * S, 0.78 * S, 28), mat);
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.6 * S, 0.78 * S, 24), mat);
     ring.rotation.x = -Math.PI / 2;
     ring.position.set(station.x, 0.16 * S, station.z);
+    ring.userData.stationId = station.id;
     group.add(ring);
 
     const icon = new THREE.Mesh(new THREE.OctahedronGeometry(0.16 * S, 0), mat);
     icon.position.set(station.x, 0.85 * S, station.z);
     icon.userData.bob = { base: 0.85 * S, speed: 1.8, amp: 0.07 * S, offset: Math.random() * Math.PI * 2 };
+    icon.userData.stationId = station.id;
     group.add(icon);
     return ring;
   });

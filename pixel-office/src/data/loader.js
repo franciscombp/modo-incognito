@@ -46,7 +46,13 @@ export function prepareScene(raw) {
     corridors: (raw.corridors ?? []).map(rect),
     plants: (raw.props ?? []).filter((p) => p.type === "plant").map(pt),
     props: (raw.props ?? []).map(pt),
-    patrolRoute: required(raw, "patrol", where).map(pt),
+    patrolRoute: (raw.routes?.jefe ?? required(raw, "patrol", where)).map(pt),
+    routes: Object.fromEntries(
+      Object.entries(raw.routes ?? { jefe: raw.patrol ?? [] }).map(([name, points]) => [
+        name,
+        points.map(pt),
+      ])
+    ),
     activityStations: (raw.activities ?? []).map(pt),
     hidingSpots: (raw.hidingSpots ?? []).map((h) => ({ ...pt(h), r: (h.r ?? 1.3) * S })),
     distractions: (raw.distractions ?? []).map((d) => ({ ...pt(d), radius: (d.radius ?? 1.2) * S })),
@@ -70,6 +76,9 @@ function prepareCharacters(raw) {
   return {
     player: scaleChar(raw.player),
     boss: scaleChar(raw.boss),
+    minions: Object.fromEntries(
+      Object.entries(raw.minions ?? {}).map(([k, v]) => [k, scaleChar(v)])
+    ),
     npcs: Object.fromEntries(Object.entries(raw.npcs ?? {}).map(([k, v]) => [k, scaleChar(v)])),
   };
 }
@@ -82,8 +91,9 @@ function prepareCharacters(raw) {
 export async function loadGameData() {
   const manifest = await getJSON("manifest.json");
 
-  const [charactersRaw, sceneList, levelList] = await Promise.all([
+  const [charactersRaw, dialoguesRaw, sceneList, levelList] = await Promise.all([
     getJSON(manifest.characters ?? "characters.json"),
+    getJSON(manifest.dialogues ?? "dialogues.json").catch(() => ({ cast: {}, encounters: {}, barks: {} })),
     Promise.all((manifest.scenes ?? []).map((id) => getJSON(`scenes/${id}.json`))),
     Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
   ]);
@@ -107,6 +117,11 @@ export async function loadGameData() {
 
   return {
     manifest,
+    dialogues: {
+      cast: dialoguesRaw.cast ?? {},
+      encounters: dialoguesRaw.encounters ?? {},
+      barks: dialoguesRaw.barks ?? {},
+    },
     characters: prepareCharacters(charactersRaw),
     scenes,
     levels,

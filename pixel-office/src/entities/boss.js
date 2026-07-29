@@ -53,7 +53,18 @@ export class Boss {
     visionRange = 7.5 * S,
     visionHalfAngleDeg = 30,
     speedMul = 1,
+    role = "boss",
+    name = "Jefe",
+    coneColor = 0xf2c744,
+    onSpot = null,
   }) {
+    // "minion" watchers never grab you themselves — they report you, which
+    // sends the real boss to that spot. That makes them a different kind of
+    // threat instead of three more bosses.
+    this.role = role;
+    this.name = name;
+    this.onSpot = onSpot;
+    this._reportCooldown = 0;
     this.world = world;
     this.navmesh = navmesh;
     this.route = route;
@@ -98,8 +109,9 @@ export class Boss {
     this.sprite.setPosition(this.position.x, this.position.z);
 
     const geometry = buildConeGeometry(this.visionRange, this.halfAngle);
+    this.baseConeColor = coneColor;
     this.coneMaterial = new THREE.MeshBasicMaterial({
-      color: 0xf2c744,
+      color: coneColor,
       transparent: true,
       opacity: 0.55,
       side: THREE.DoubleSide,
@@ -141,10 +153,28 @@ export class Boss {
   }
 
   catches(playerPos, playerRadius) {
+    if (this.role === "minion") return false;
     return (
       Math.hypot(playerPos.x - this.position.x, playerPos.z - this.position.z) <
       this.radius + playerRadius + 0.25 * S
     );
+  }
+
+  /** Swap the patrol loop (levels give minions their own round). */
+  setRoute(route, startIndex = 0) {
+    this.route = route;
+    this.routeIndex = Math.min(startIndex, route.length - 1);
+    this.position.x = route[this.routeIndex].x;
+    this.position.z = route[this.routeIndex].z;
+    this._path = null;
+    this.resetToPatrol();
+  }
+
+  /** Watchers that are not on duty today are hidden, not destroyed. */
+  setActive(active) {
+    this.active = active;
+    this.sprite.object.visible = active;
+    this.cone.visible = active;
   }
 
   /** Called by Game after a warning, so he gives up and goes back to work. */
@@ -156,7 +186,17 @@ export class Boss {
   }
 
   update(dt, player, npcs) {
+    if (this.active === false) return;
+    if (this._reportCooldown > 0) this._reportCooldown -= dt;
     this._updateVision(player, npcs);
+
+    // A minion that catches you slacking shouts for the boss instead of
+    // grabbing you, then goes back to its round.
+    if (this.role === "minion" && this.redAlert && this._reportCooldown <= 0) {
+      this._reportCooldown = 8;
+      this.onSpot?.(this, { x: player.position.x, z: player.position.z });
+    }
+
     this._advanceState(dt, player);
 
     const target = this._pickTarget(player);
@@ -179,7 +219,9 @@ export class Boss {
     this.cone.rotation.y = facingRotationY(this.facingDir.x, this.facingDir.z);
 
     const hot = this.redAlert || this.state === CHASE;
-    this.coneMaterial.color.set(hot ? 0xe6483f : this.state === SEARCH ? 0xe0a03c : 0xf2c744);
+    this.coneMaterial.color.set(
+      hot ? 0xe6483f : this.state === SEARCH ? 0xe0a03c : this.baseConeColor
+    );
     this.coneMaterial.opacity = hot ? 0.68 : 0.55;
   }
 

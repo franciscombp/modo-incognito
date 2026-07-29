@@ -12,15 +12,19 @@ const ADVANCE_KEYS = new Set([" ", "enter", "e"]);
 export function createDialogue(root) {
   const layer = document.createElement("div");
   layer.className = "vn-layer hidden";
+  // Full-bleed cinematic box: letterbox bars, an oversized portrait that
+  // breaks out of the frame and a name tab sitting on the top edge, so the
+  // conversation feels part of the scene instead of a tooltip floating over it.
   layer.innerHTML = `
     <div class="vn-scrim"></div>
-    <div class="vn-box" role="dialog" aria-live="polite">
+    <div class="vn-bar vn-bar-top"></div>
+    <div class="vn-dock">
       <div class="vn-portrait"><span class="vn-portrait-emoji"></span></div>
-      <div class="vn-body">
-        <div class="vn-speaker"></div>
+      <div class="vn-box" role="dialog" aria-live="polite">
+        <div class="vn-speaker"><span class="vn-speaker-text"></span></div>
         <div class="vn-text"></div>
         <div class="vn-options"></div>
-        <div class="vn-hint">▼ toca o pulsa espacio</div>
+        <div class="vn-hint">▼</div>
       </div>
     </div>
   `;
@@ -30,6 +34,7 @@ export function createDialogue(root) {
   const portrait = layer.querySelector(".vn-portrait");
   const portraitEmoji = layer.querySelector(".vn-portrait-emoji");
   const speakerEl = layer.querySelector(".vn-speaker");
+  const speakerText = layer.querySelector(".vn-speaker-text");
   const textEl = layer.querySelector(".vn-text");
   const optionsEl = layer.querySelector(".vn-options");
   const hintEl = layer.querySelector(".vn-hint");
@@ -106,21 +111,23 @@ export function createDialogue(root) {
   });
 
   async function playLine(node, ctx) {
+    if (typeof node.effect === "string") ctx.applyEffect?.(node.effect);
     optionsEl.innerHTML = "";
     optionsEl.classList.add("hidden");
     const speaker = resolve(node.speaker, ctx) ?? "";
-    speakerEl.textContent = speaker;
+    speakerText.textContent = speaker;
     speakerEl.classList.toggle("hidden", !speaker);
     portraitEmoji.textContent = node.portrait ?? "🗨️";
     portrait.dataset.mood = node.mood ?? "neutral";
     box.dataset.mood = node.mood ?? "neutral";
+    if (node.color) layer.style.setProperty("--vn-accent", node.color);
     await type(resolve(node.text, ctx));
     await waitForAdvance();
   }
 
   function playChoice(node, ctx) {
     return new Promise(async (resolve_) => {
-      speakerEl.textContent = resolve(node.speaker, ctx) ?? "";
+      speakerText.textContent = resolve(node.speaker, ctx) ?? "";
       speakerEl.classList.toggle("hidden", !node.speaker);
       portraitEmoji.textContent = node.portrait ?? "❓";
       box.dataset.mood = node.mood ?? "neutral";
@@ -139,7 +146,10 @@ export function createDialogue(root) {
           optionsEl.innerHTML = "";
           optionsEl.classList.add("hidden");
           if (opt.flag) ctx.setFlag?.(opt.flag, true);
-          opt.effect?.(ctx);
+          // Effects arrive from JSON as strings; the engine maps them to
+          // gameplay. A function is still accepted for code-defined scenes.
+          if (typeof opt.effect === "function") opt.effect(ctx);
+          else if (opt.effect) ctx.applyEffect?.(opt.effect);
           if (opt.reply) {
             await playLine({ speaker: opt.replySpeaker ?? "Tú", portrait: "🙂", text: opt.reply }, ctx);
           }

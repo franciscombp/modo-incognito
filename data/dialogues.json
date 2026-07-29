@@ -1,0 +1,235 @@
+{
+  "$comment": [
+    "PERSONAJES Y DIÁLOGOS. Todo editable sin tocar el motor.",
+    "",
+    "cast: quién es cada personaje (nombre, retrato, color, sprite).",
+    "encounters: qué dice cada uno cuando te acercas y pulsas USAR.",
+    "  · scenes es una LISTA de conversaciones; se van usando en orden y",
+    "    luego se repiten, así el mismo compañero no dice siempre lo mismo.",
+    "  · cooldown: segundos hasta poder volver a hablarle.",
+    "  · Un nodo puede ser línea { speaker, portrait, text, mood } o elección",
+    "    { prompt, options: [{ label, reply, flag, effect, then }] }.",
+    "  · effect admite: \"suspicion-\" (te calma), \"suspicion+\" (te delata),",
+    "    \"score+\", \"reveal-boss\" (te marca dónde está el jefe), \"speed+\".",
+    "barks: frases sueltas que sueltan los secuaces al detectarte."
+  ],
+  "cast": {
+    "manu": {
+      "name": "Manu de la suerte",
+      "portrait": "🍀",
+      "color": "#a8e05f",
+      "sheet": "npc1",
+      "blurb": "Siempre le toca el parqueadero cubierto. Nunca le auditan nada."
+    },
+    "cesar": {
+      "name": "César",
+      "portrait": "😤",
+      "color": "#ff6b81",
+      "sheet": "npc4",
+      "blurb": "El más malcriadito de la tribu. Se queja en tiempo real."
+    },
+    "enriquetta": {
+      "name": "Enriquetta",
+      "portrait": "💘",
+      "color": "#ff9ad5",
+      "sheet": "npc2",
+      "blurb": "Chapter del amor. Sabe quién sale con quién antes que ellos."
+    },
+    "jefe": {"name":"Jefe","portrait":"🕴️","color":"#e6483f","sheet":"boss"},
+    "chispita": {"name":"Chispita","portrait":"⚡","color":"#f2c744","sheet":"npc3"},
+    "washo": {"name":"Washo","portrait":"🧽","color":"#45e0d0","sheet":"npc2"},
+    "crispo": {"name":"Crispo","portrait":"🥨","color":"#c08457","sheet":"npc4"}
+  },
+  "encounters": {
+    "manu": {
+      "cooldown": 45,
+      "scenes": [
+        [
+          {
+            "speaker": "Manu de la suerte",
+            "portrait": "🍀",
+            "text": "¿Sabías que llevo cuatro años sin que me toque una guardia de fin de mes? Cuatro."
+          },
+          {
+            "prompt": "Te ofrece «un poquito de su suerte».",
+            "portrait": "🍀",
+            "options": [
+              {
+                "label": "«Dame de esa suerte.»",
+                "reply": "Dame de esa suerte, Manu.",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "Manu de la suerte",
+                    "portrait": "🍀",
+                    "text": "Listo. El jefe acaba de irse al otro lado del piso. De nada."
+                  }
+                ]
+              },
+              {
+                "label": "«La suerte no existe.»",
+                "reply": "La suerte no existe, Manu.",
+                "then": [
+                  {
+                    "speaker": "Manu de la suerte",
+                    "portrait": "🍀",
+                    "text": "Dice la que lleva veinte minutos sin trabajar y nadie se ha dado cuenta."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "speaker": "Manu de la suerte",
+            "portrait": "🍀",
+            "text": "Ojo: hoy el jefe está raro. Yo que tú me quedaría cerca de las plantas.",
+            "effect": "reveal-boss"
+          }
+        ],
+        [
+          {
+            "speaker": "Manu de la suerte",
+            "portrait": "🍀",
+            "text": "Me gané el sorteo del almuerzo otra vez. Ya me da vergüenza. Un poquito."
+          }
+        ]
+      ]
+    },
+    "cesar": {
+      "cooldown": 40,
+      "scenes": [
+        [
+          {
+            "speaker": "César",
+            "portrait": "😤",
+            "mood": "tense",
+            "text": "¿Tú también viste que movieron mi silla? MI silla. La que tiene el apoyabrazos bueno."
+          },
+          {
+            "prompt": "Está a un comentario de gritar.",
+            "portrait": "😤",
+            "options": [
+              {
+                "label": "«Qué injusticia, César.»",
+                "reply": "Qué injusticia, César. Deberías escalarlo.",
+                "effect": "score+",
+                "then": [
+                  {
+                    "speaker": "César",
+                    "portrait": "😤",
+                    "text": "¡EXACTO! Voy a escribir un correo. Con copia a todos. AHORA."
+                  },
+                  {
+                    "speaker": "Tú",
+                    "portrait": "😏",
+                    "text": "Perfecto. Eso lo tiene ocupado media hora y a mí me deja libre."
+                  }
+                ]
+              },
+              {
+                "label": "«Es solo una silla.»",
+                "reply": "César… es solo una silla.",
+                "effect": "suspicion+",
+                "then": [
+                  {
+                    "speaker": "César",
+                    "portrait": "😤",
+                    "mood": "angry",
+                    "text": "¿SOLO UNA SILLA? ¡JEFE! ¡JEFE, VEN A ESCUCHAR ESTO!"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "speaker": "César",
+            "portrait": "😤",
+            "mood": "tense",
+            "text": "El aire acondicionado está a 21. VEINTIUNO. Esto es un ataque personal."
+          }
+        ],
+        [
+          {
+            "speaker": "César",
+            "portrait": "😤",
+            "text": "Llevo tres sprints pidiendo un monitor curvo. Tres. Nadie me quiere en esta tribu."
+          }
+        ]
+      ]
+    },
+    "enriquetta": {
+      "cooldown": 45,
+      "scenes": [
+        [
+          {
+            "speaker": "Enriquetta",
+            "portrait": "💘",
+            "text": "Ven, ven. ¿Tú sabías lo de Contact Center con el de Portales? Porque yo sí."
+          },
+          {
+            "prompt": "Te tiene agarrada del brazo. Esto va a durar.",
+            "portrait": "💘",
+            "options": [
+              {
+                "label": "«Cuéntamelo TODO.»",
+                "reply": "Cuéntamelo todo, Enriquetta.",
+                "effect": "score+",
+                "then": [
+                  {
+                    "speaker": "Enriquetta",
+                    "portrait": "💘",
+                    "text": "Se mandan reuniones de 15 minutos sin agenda. QUINCE MINUTOS. SIN AGENDA."
+                  },
+                  {"speaker":"Tú","portrait":"😮","text":"Eso en esta empresa es prácticamente una boda."}
+                ]
+              },
+              {
+                "label": "«Ahora no puedo, viene el jefe.»",
+                "reply": "Ahora no, que viene el jefe.",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "Enriquetta",
+                    "portrait": "💘",
+                    "text": "Tranquila, yo lo distraigo. Le pregunto por su boda. Tarda cuarenta minutos."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "speaker": "Enriquetta",
+            "portrait": "💘",
+            "text": "El chapter del amor tiene un tablero Kanban. En «en progreso» hay cuatro personas."
+          }
+        ],
+        [
+          {
+            "speaker": "Enriquetta",
+            "portrait": "💘",
+            "text": "A ti te vi hablando mucho con la cafetera. No juzgo. Documento."
+          }
+        ]
+      ]
+    }
+  },
+  "barks": {
+    "chispita": ["¡Ey! ¿Esa no es tu zona?","Voy, voy, voy — ¡te vi!","¡Jefe! ¡JEFE! Mira quién anda por acá."],
+    "washo": [
+      "Desde acá se ve todo, ¿sabías?",
+      "Yo no acuso a nadie. Solo informo.",
+      "Mmm. Interesante. Muy interesante."
+    ],
+    "crispo": [
+      "No me muevo de aquí. Tú tampoco deberías moverte.",
+      "Esa silla lleva veinte minutos vacía.",
+      "Estoy contando. Solo eso. Contando."
+    ]
+  }
+}

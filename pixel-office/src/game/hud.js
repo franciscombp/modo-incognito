@@ -138,10 +138,15 @@ export function createHud(root) {
       btn.addEventListener("click", action.onClick);
     });
     overlay.classList.remove("hidden");
+    // The touch joystick covers most of the lower screen; without this the
+    // result card is unreachable on a phone because every tap lands on the
+    // stick zone instead of the buttons.
+    document.body.classList.add("overlay-open");
   }
 
   function hideResult() {
     overlay.classList.add("hidden");
+    document.body.classList.remove("overlay-open");
   }
 
   function render(state) {
@@ -232,7 +237,12 @@ export function createHud(root) {
     statusBadge.classList.toggle("visible", statusBits.length > 0);
     statusBadge.classList.toggle("alert", state.bossState === "CHASE");
 
-    if (state.nearStation) {
+    if (state.nearNpc) {
+      promptIcon.textContent = "💬";
+      promptText.textContent = `Toca E: hablar con ${state.nearNpc.displayName}`;
+      promptRingFill.style.setProperty("--p", 0);
+      prompt.classList.add("visible", "prompt-tap");
+    } else if (state.nearStation) {
       const s = state.nearStation;
       promptIcon.textContent = s.icon ?? "•";
       promptText.textContent = `Mantén E: ${s.label}`;

@@ -35,6 +35,7 @@ export let entrance = { x: 0, z: 0, w: 0, label: "" };
 export let corridors = [];
 export let plants = [];
 export let patrolRoute = [];
+export let routes = {};
 export let activityStations = [];
 export let hidingSpots = [];
 export let distractions = [];
@@ -51,6 +52,7 @@ export function setActiveScene(prepared) {
   corridors = prepared.corridors;
   plants = prepared.plants;
   patrolRoute = prepared.patrolRoute;
+  routes = prepared.routes ?? {};
   activityStations = prepared.activityStations;
   hidingSpots = prepared.hidingSpots;
   distractions = prepared.distractions;

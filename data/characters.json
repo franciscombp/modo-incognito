@@ -5,7 +5,6 @@
     "Alturas, velocidades y radios están en unidades de plano; el motor los",
     "multiplica por WORLD_SCALE."
   ],
-
   "player": {
     "sheet": "employee",
     "name": "Tú",
@@ -15,7 +14,6 @@
     "speed": 4.4,
     "pretendSpeedMul": 0.45
   },
-
   "boss": {
     "sheet": "boss",
     "name": "Jefe",
@@ -24,18 +22,52 @@
     "radius": 0.3,
     "visionRange": 7.5,
     "visionHalfAngleDeg": 30,
-    "speeds": {
-      "patrol": 2.4,
-      "investigate": 3.2,
-      "chase": 4.9,
-      "search": 3.0
+    "speeds": {"patrol":2.4,"investigate":3.2,"chase":4.9,"search":3}
+  },
+  "$minions": [
+    "SECUACES DEL JEFE. No te atrapan: te delatan. Si te ven haciendo algo",
+    "prohibido, llaman al jefe a esa posición y te suben la sospecha.",
+    "Cada uno tiene su forma de vigilar; los niveles eligen cuáles aparecen."
+  ],
+  "minions": {
+    "chispita": {
+      "sheet": "npc3",
+      "name": "Chispita",
+      "portrait": "⚡",
+      "height": 1.38,
+      "radius": 0.28,
+      "visionRange": 5.5,
+      "visionHalfAngleDeg": 26,
+      "speeds": {"patrol":4.2,"investigate":4.8,"chase":5.2,"search":4.4},
+      "trait": "Corre por todo el piso. Cono corto, pero llega enseguida."
+    },
+    "washo": {
+      "sheet": "npc2",
+      "name": "Washo",
+      "portrait": "🧽",
+      "height": 1.44,
+      "radius": 0.28,
+      "visionRange": 11,
+      "visionHalfAngleDeg": 22,
+      "speeds": {"patrol":1.5,"investigate":2.2,"chase":2.4,"search":2},
+      "trait": "Lentísimo, pero te ve desde el otro extremo del ala."
+    },
+    "crispo": {
+      "sheet": "npc4",
+      "name": "Crispo",
+      "portrait": "🥨",
+      "height": 1.42,
+      "radius": 0.28,
+      "visionRange": 7,
+      "visionHalfAngleDeg": 58,
+      "speeds": {"patrol":0.9,"investigate":1.6,"chase":1.8,"search":1.4},
+      "trait": "Casi no se mueve, pero abarca medio pasillo con la mirada."
     }
   },
-
   "npcs": {
-    "npc1": { "sheet": "npc1", "name": "Compañera", "portrait": "💬", "height": 1.4, "radius": 0.28 },
-    "npc2": { "sheet": "npc2", "name": "Compañero", "portrait": "🧑‍💻", "height": 1.4, "radius": 0.28 },
-    "npc3": { "sheet": "npc3", "name": "Analista", "portrait": "📊", "height": 1.4, "radius": 0.28 },
-    "npc4": { "sheet": "npc4", "name": "Becario", "portrait": "🧢", "height": 1.4, "radius": 0.28 }
+    "npc1": {"sheet":"npc1","name":"Compañera","portrait":"💬","height":1.4,"radius":0.28},
+    "npc2": {"sheet":"npc2","name":"Compañero","portrait":"🧑‍💻","height":1.4,"radius":0.28},
+    "npc3": {"sheet":"npc3","name":"Analista","portrait":"📊","height":1.4,"radius":0.28},
+    "npc4": {"sheet":"npc4","name":"Becario","portrait":"🧢","height":1.4,"radius":0.28}
   }
 }

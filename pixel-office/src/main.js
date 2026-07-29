@@ -14,7 +14,7 @@ import { Boss } from "./entities/boss.js";
 import { loadSheet } from "./entities/sprite.js";
 import { createEngine } from "./game/engine.js";
 import { createTouchControls } from "./game/touchControls.js";
-import { getSettings, subscribeSettings } from "./game/settings.js";
+import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./game/settings.js";
 import { createPopups } from "./ui/popups.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
@@ -24,9 +24,10 @@ const canvas = document.getElementById("scene");
 const app = document.getElementById("app");
 const boot0 = document.getElementById("boot");
 
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-renderer.shadowMap.enabled = true;
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
+const quality0 = resolveQuality();
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality0.maxPixelRatio));
+renderer.shadowMap.enabled = quality0.shadows;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
@@ -46,7 +47,7 @@ scene.add(hemi);
 const key = new THREE.DirectionalLight(0xfff2d6, 1.35);
 key.position.set(26 * S, 40 * S, 20 * S);
 key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048);
+key.shadow.mapSize.set(quality0.shadowMap, quality0.shadowMap);
 const shadowSpan = 44 * S;
 key.shadow.camera.left = -shadowSpan;
 key.shadow.camera.right = shadowSpan;
@@ -81,6 +82,7 @@ async function boot() {
   const needed = new Set([
     chars.player.sheet,
     chars.boss.sheet,
+    ...Object.values(chars.minions ?? {}).map((m) => m.sheet),
     ...floorplan.npcs.map((n) => n.sheet),
   ]);
   const sheets = new Map();
@@ -97,13 +99,16 @@ async function boot() {
   });
   scene.add(player.object3D);
 
-  const npcs = floorplan.npcs.map((data_) => {
-    const def = chars.npcs[data_.sheet] ?? {};
-    return new NPC(sheets.get(def.sheet ?? data_.sheet) ?? sheets.values().next().value, {
-      ...data_,
-      radius: def.radius,
-      height: def.height,
-    });
+  const npcs = floorplan.npcs.map((def) => {
+    const stats = chars.npcs[def.sheet] ?? {};
+    const persona = data.dialogues.cast[def.cast];
+    const sheet = sheets.get(persona?.sheet ?? def.sheet) ?? sheets.values().next().value;
+    const npc = new NPC(sheet, { ...def, radius: stats.radius, height: stats.height });
+    // Named colleagues can be talked to; the rest are set dressing.
+    npc.cast = def.cast ?? null;
+    npc.displayName = persona?.name ?? stats.name ?? "Compañero";
+    npc.talkCooldown = data.dialogues.encounters[def.cast]?.cooldown ?? 40;
+    return npc;
   });
   npcs.forEach((npc) => scene.add(npc.object3D));
 
@@ -120,6 +125,31 @@ async function boot() {
   scene.add(boss.object3D);
   scene.add(boss.cone);
 
+  // One watcher per sidekick, created up front and parked out of sight. Days
+  // switch them on and hand them a route; nothing is added to or removed from
+  // the scene graph mid-game.
+  const minionColors = { chispita: 0xf2c744, washo: 0x45e0d0, crispo: 0xc08457 };
+  const minions = new Map();
+  for (const [id, def] of Object.entries(chars.minions ?? {})) {
+    const watcher = new Boss(sheets.get(def.sheet), {
+      world,
+      route: floorplan.routes[id] ?? floorplan.patrolRoute,
+      navmesh,
+      role: "minion",
+      name: def.name ?? id,
+      coneColor: minionColors[id] ?? 0x9fb4c9,
+      radius: def.radius,
+      height: def.height,
+      speeds: def.speeds,
+      visionRange: def.visionRange,
+      visionHalfAngleDeg: def.visionHalfAngleDeg,
+    });
+    watcher.setActive(false);
+    scene.add(watcher.object3D);
+    scene.add(watcher.cone);
+    minions.set(id, watcher);
+  }
+
   const popups = createPopups(app, camera);
 
   const engine = createEngine({
@@ -134,6 +164,8 @@ async function boot() {
     levels: data.levels,
     codeEggs: data.codeEggs,
     manifest: data.manifest,
+    dialogues: data.dialogues,
+    minions,
     onPopup: (p) => popups.spawn(p),
   });
 
@@ -242,11 +274,58 @@ async function boot() {
     }
   });
 
+  // iOS ignores user-scalable=no, so a quick double tap zooms the whole page
+  // and wrecks the layout. Swallow the second tap ourselves, and block the
+  // pinch-zoom gestures Safari fires outside the canvas.
+  let lastTouchEnd = 0;
+  document.addEventListener(
+    "touchend",
+    (e) => {
+      const now = Date.now();
+      if (now - lastTouchEnd < 320) e.preventDefault();
+      lastTouchEnd = now;
+    },
+    { passive: false }
+  );
+  ["gesturestart", "gesturechange", "gestureend"].forEach((type) =>
+    document.addEventListener(type, (e) => e.preventDefault(), { passive: false })
+  );
+  document.addEventListener("dblclick", (e) => e.preventDefault(), { passive: false });
+
   subscribeSettings((s) => {
     pixels.setPixelSize(s.pixelSize);
     pixels.setLevels(s.colorLevels);
     if (markerGroup) markerGroup.visible = s.showMarkers;
+
+    const q = resolveQuality(s.quality);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.maxPixelRatio));
+    renderer.shadowMap.enabled = q.shadows;
+    if (key.shadow.mapSize.x !== q.shadowMap) {
+      key.shadow.mapSize.set(q.shadowMap, q.shadowMap);
+      key.shadow.map?.dispose();
+      key.shadow.map = null;
+    }
+    scene.traverse((obj) => {
+      if (obj.isMesh || obj.isInstancedMesh) obj.castShadow = obj.castShadow && q.shadows;
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    pixels.setSize(window.innerWidth, window.innerHeight);
   });
+
+  // Frame-rate watchdog. On "auto" a device that cannot hold ~30fps for a
+  // few seconds gets stepped down instead of heating up until the browser
+  // kills the WebGL context — which is what happened on tablets.
+  let slowFrames = 0;
+  let downgraded = false;
+  function watchPerformance(dt) {
+    if (downgraded || getSettings().quality !== "auto") return;
+    slowFrames = dt > 0.033 ? slowFrames + 1 : Math.max(0, slowFrames - 1);
+    if (slowFrames > 180) {
+      downgraded = true;
+      setSettings({ quality: "bajo", pixelSize: Math.max(2, getSettings().pixelSize) });
+      console.info("Calidad reducida automáticamente para mantener la fluidez.");
+    }
+  }
 
   const LABEL_NEAR = 7 * S;
   const LABEL_FAR = 13 * S;
@@ -315,6 +394,7 @@ async function boot() {
       m.rotation.y = t * 0.6 + b.offset;
     });
 
+    watchPerformance(dt);
     updateLabels();
     view.update(dt, player.position);
     popups.update(dt);

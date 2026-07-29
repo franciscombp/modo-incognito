@@ -8,22 +8,59 @@
   "rules": {
     "duration": 240,
     "maxWarnings": 3,
-    "objectives": ["coffee", "chat", "sleep"],
+    "objectives": ["coffee","chat","sleep"],
     "bossSpeedMul": 1,
     "visionMul": 1,
     "targetScore": 900
   },
   "intro": [
-    { "speaker": "Compañera", "portrait": "💬", "text": "Regla no escrita: si caminas con una laptop abierta, nadie te pregunta nada." },
+    {
+      "speaker": "Compañera",
+      "portrait": "💬",
+      "text": "Regla no escrita: si caminas con una laptop abierta, nadie te pregunta nada."
+    },
     {
       "prompt": "¿Aceptas el consejo?",
       "portrait": "💬",
       "options": [
-        { "label": "«Anotado.»", "reply": "Anotado. Laptop como escudo.", "flag": "escudo" },
-        { "label": "«Prefiero improvisar.»", "reply": "Prefiero improvisar.", "flag": "improvisa" }
+        {"label":"«Anotado.»","reply":"Anotado. Laptop como escudo.","flag":"escudo"},
+        {"label":"«Prefiero improvisar.»","reply":"Prefiero improvisar.","flag":"improvisa"}
       ]
     }
   ],
-  "outroWin": [{ "speaker": "Tú", "portrait": "😴", "text": "Dormir en el escritorio es una habilidad. Y yo estoy escalando." }],
-  "outroLose": [{ "speaker": "Jefe", "portrait": "🕴️", "mood": "angry", "text": "Segundo día, segunda charla. Vamos mal." }]
+  "outroWin": [
+    {
+      "speaker": "Tú",
+      "portrait": "😴",
+      "text": "Dormir en el escritorio es una habilidad. Y yo estoy escalando."
+    }
+  ],
+  "outroLose": [
+    {
+      "speaker": "Jefe",
+      "portrait": "🕴️",
+      "mood": "angry",
+      "text": "Segundo día, segunda charla. Vamos mal."
+    }
+  ],
+  "prologue": {
+    "kind": "elevator",
+    "title": "Planta baja · 8:59",
+    "intro": [
+      {
+        "speaker": "Narrador",
+        "portrait": "🛗",
+        "text": "Segundo día. Ya reconoces a la gente de la fila. Ellos a ti también."
+      }
+    ],
+    "choice": {
+      "prompt": "El ascensor está lleno. ¿Te metes igual?",
+      "portrait": "🛗",
+      "options": [
+        {"label":"Esperar el siguiente","reply":"Espero el siguiente.","effect":"wait"},
+        {"label":"Escaleras, otra vez","reply":"Escaleras. Otra vez.","effect":"stairs"},
+        {"label":"Meterte a presión","reply":"Cabe uno más. Yo.","effect":"cut"}
+      ]
+    }
+  }
 }
