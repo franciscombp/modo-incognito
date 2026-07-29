@@ -181,7 +181,7 @@ export function createHud(root) {
 
     warningPips.forEach((pip, i) => pip.classList.toggle("lit", i < state.warnings));
 
-    timerValue.textContent = fmtTime(state.timeLeft);
+    timerValue.textContent = `${state.currentTime} · ${fmtTime(state.timeLeft)}`;
     const timePct = Math.round((state.timeLeft / state.levelDuration) * 100);
     timerFill.style.width = `${timePct}%`;
     const timeLow = state.timeLeft < 30;
