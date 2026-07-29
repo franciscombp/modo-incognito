@@ -16,6 +16,13 @@ const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
 const DECAY_IDLE = 12;
 const SEEN_WHILE_HUNTED_RATE = 16;
+const MINION_CAUGHT_RATE = 12; // secuaz te pilla en una actividad prohibida
+// Que te vean fuera de tu puesto, sin fingir, también debe levantar sospecha
+// aunque no estés haciendo nada prohibido — antes solo subía si el jefe te
+// pillaba en plena actividad, así que quedarte plantada en medio del pasillo
+// mirándolo a los ojos no hacía nada.
+const SEEN_IDLE_BOSS_RATE = 9;
+const SEEN_IDLE_MINION_RATE = 5;
 const INTERACT_RADIUS = 1.5 * S;
 const DISTRACTION_EFFECT_DURATION = 7;
 // A hiding spot is a one-shot breather, not a safe room: once you have used
@@ -278,21 +285,37 @@ export class Game {
       // Bebedero / baño / tu propia mesa: el jefe puede verte ahí y no cuenta.
       this.suspicion = Math.max(0, this.suspicion - DECAY_IDLE * this.rules.decayMul * dt);
     } else {
-      // A minion catching you counts too, at a gentler rate: they tell on you,
-      // they don't drag you to HR themselves.
-      const spotted = this.minions.some((m) => m.redAlert);
       const decay = this.rules.decayMul;
-      if (spotted && !this.boss.redAlert) {
+      const outOfPlace = !this.player.isPretending && !this.inWorkspace;
+
+      // Un secuaz te ve: si te pilla en una actividad prohibida sube fuerte;
+      // si solo te ve fuera de tu puesto sin fingir, sube más despacio. Antes
+      // solo existía la primera rama, así que pasearte delante de un secuaz
+      // sin tocar nada prohibido no levantaba nada.
+      const minionCaught = this.minions.some((m) => m.redAlert);
+      const minionSeenIdle = !minionCaught && outOfPlace && this.minions.some((m) => m.playerVisible);
+      if (minionCaught && !this.boss.redAlert) {
         this.suspicion = Math.min(
           SUSPICION_MAX,
-          this.suspicion + 12 * this.rules.minionSuspicionMul * dt
+          this.suspicion + MINION_CAUGHT_RATE * this.rules.minionSuspicionMul * dt
+        );
+      } else if (minionSeenIdle && !this.boss.redAlert) {
+        this.suspicion = Math.min(
+          SUSPICION_MAX,
+          this.suspicion + SEEN_IDLE_MINION_RATE * this.rules.minionSuspicionMul * dt
         );
       }
+
       if (this.boss.redAlert) {
         const rate = this.nearStation?.riskRate ?? 20;
         this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + rate * dt);
       } else if (this.boss.state === BOSS_STATES.CHASE && this.boss.playerVisible) {
         this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + SEEN_WHILE_HUNTED_RATE * dt);
+      } else if (this.boss.playerVisible && outOfPlace) {
+        // Te ve fuera de tu puesto sin fingir: sospecha, aunque no estés
+        // haciendo nada prohibido. El jefe tarda en acelerar (nivel de
+        // búsqueda), pero ya sabe que algo no cuadra.
+        this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + SEEN_IDLE_BOSS_RATE * dt);
       } else if (this.player.isHiding) {
         this.suspicion = Math.max(0, this.suspicion - DECAY_HIDDEN_OR_PRETENDING * decay * dt);
       } else if (this.player.isPretending) {
@@ -450,6 +473,7 @@ export class Game {
     if (!this.onTalk) return;
     const pos = this.player.position;
     for (const m of this.minions) {
+      if (m.active === false) continue; // no está de turno / desactivado
       if (!m.cast || (this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
       if (Math.hypot(m.position.x - pos.x, m.position.z - pos.z) > MINION_APPROACH) continue;
       this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
