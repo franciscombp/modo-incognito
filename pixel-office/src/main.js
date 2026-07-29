@@ -1,14 +1,14 @@
 import * as THREE from "three";
-import { createIsoCamera, resizeIsoCamera, overviewZoom, overviewTarget } from "./scene/camera.js";
-import { buildOffice } from "./scene/builder.js";
+import { createDioramaCamera, updateDioramaCamera, setDioramaZoom } from "./scene/cameraPreset.js";
+import { buildOfficeArchitecture } from "./scene/architectureBuilder.js";
 import { createCollisionWorld } from "./scene/collision.js";
-import * as floorplan from "./scene/floorplan.js";
-import { patrolRoute, npcs as npcData } from "./scene/floorplan.js";
+import * as floorData from "./scene/floorData.js";
 import { Player } from "./entities/player.js";
 import { NPC } from "./entities/npc.js";
 import { Boss } from "./entities/boss.js";
 import { loadSheet } from "./entities/sprite.js";
-import { createHud } from "./game/hud.js";
+import { HudManager } from "./ui/hudManager.js";
+import { LabelManager, LABEL_MODES } from "./ui/labelManager.js";
 import { Game } from "./game/game.js";
 import { createTouchControls } from "./game/touchControls.js";
 
@@ -18,6 +18,7 @@ const sheetUrl = (name) => `${BASE}sprites/${name}.png`;
 const canvas = document.getElementById("scene");
 const app = document.getElementById("app");
 
+// Three.js setup
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.shadowMap.enabled = true;
@@ -28,45 +29,65 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0c0d11);
+scene.background = new THREE.Color(0x1a1a2e);
 
 const aspect = window.innerWidth / window.innerHeight;
-const { camera, frustumSize, offset } = createIsoCamera(aspect);
-const cameraTarget = overviewTarget();
+const cameraState = createDioramaCamera(aspect);
+const { camera } = cameraState;
 
-// -------- Lighting: bright, flat, high-key fill so the pixel textures read
-// cleanly, with one soft key light for isometric depth. --------
-scene.add(new THREE.AmbientLight(0xffffff, 1.0));
-scene.add(new THREE.HemisphereLight(0xdfe8ff, 0x50493a, 0.85));
+// Diorama fog effect
+scene.fog = new THREE.Fog(0x1a1a2e, 50, 150);
 
-const key = new THREE.DirectionalLight(0xfff2d6, 1.35);
-key.position.set(26, 34, 20);
-key.castShadow = true;
-key.shadow.mapSize.set(2048, 2048);
-key.shadow.camera.left = -24;
-key.shadow.camera.right = 24;
-key.shadow.camera.top = 24;
-key.shadow.camera.bottom = -24;
-key.shadow.camera.far = 120;
-key.shadow.bias = -0.0018;
-scene.add(key);
+// Lighting optimized for diorama style
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+scene.add(ambientLight);
 
-// -------- World --------
+const hemisphereLight = new THREE.HemisphereLight(0xdfe8ff, 0x50493a, 0.7);
+scene.add(hemisphereLight);
+
+// Key light for depth
+const keyLight = new THREE.DirectionalLight(0xfff2d6, 1.2);
+keyLight.position.set(28, 26, 18);
+keyLight.castShadow = true;
+keyLight.shadow.mapSize.set(2048, 2048);
+keyLight.shadow.camera.left = -30;
+keyLight.shadow.camera.right = 30;
+keyLight.shadow.camera.top = 30;
+keyLight.shadow.camera.bottom = -30;
+keyLight.shadow.camera.far = 100;
+keyLight.shadow.bias = -0.002;
+scene.add(keyLight);
+
+// World and collision setup
 const world = createCollisionWorld();
-const { roomLabels } = buildOffice(scene, world);
+const { floorGeometry, labelTargets } = buildOfficeArchitecture(scene, world, floorData);
 
-let zoom = 1;
-let follow = false;
+// UI managers
+const hud = new HudManager(app);
+const labelManager = new LabelManager(camera, scene, renderer);
 
-function applyZoom(next, aspectRatio = window.innerWidth / window.innerHeight) {
-  const fit = overviewZoom(aspectRatio);
-  zoom = THREE.MathUtils.clamp(next, fit * 0.9, 2.6);
-  camera.zoom = zoom;
-  camera.updateProjectionMatrix();
-  // Once the view is tighter than the whole floor there is nothing to frame
-  // statically any more, so hand the camera over to the player.
-  follow = zoom > fit * 1.06;
-}
+// Add labels for all areas
+floorData.openAreas.forEach(area => {
+  labelManager.addLabel(area.id, {
+    x: area.x,
+    z: area.z,
+    name: area.name,
+    type: area.type,
+    capacity: area.capacity,
+    priority: floorData.labelConfig.priority[area.type] || 1
+  });
+});
+
+floorData.rooms.forEach(room => {
+  labelManager.addLabel(room.id, {
+    x: room.x,
+    z: room.z,
+    name: room.name,
+    type: room.type,
+    capacity: room.capacity,
+    priority: floorData.labelConfig.priority[room.type] || 1
+  });
+});
 
 async function boot() {
   const [employeeSheet, bossSheet, ...npcSheets] = await Promise.all([
@@ -75,141 +96,174 @@ async function boot() {
     loadSheet(sheetUrl("npc1")),
     loadSheet(sheetUrl("npc2")),
     loadSheet(sheetUrl("npc3")),
-    loadSheet(sheetUrl("npc4")),
+    loadSheet(sheetUrl("npc4"))
   ]);
-  const npcSheetByName = { npc1: npcSheets[0], npc2: npcSheets[1], npc3: npcSheets[2], npc4: npcSheets[3] };
+  const npcSheetByName = {
+    npc1: npcSheets[0],
+    npc2: npcSheets[1],
+    npc3: npcSheets[2],
+    npc4: npcSheets[3]
+  };
 
-  const player = new Player(employeeSheet, { x: -0.6, z: 12.2 });
+  // Player at entrance
+  const player = new Player(employeeSheet, { x: -3, z: -6 });
   scene.add(player.object3D);
 
-  const npcs = npcData.map((data) => new NPC(npcSheetByName[data.sheet] ?? npcSheets[0], data));
+  // NPCs
+  const npcs = floorData.npcs.map(
+    (data) => new NPC(npcSheetByName[data.sheet] || npcSheets[0], data)
+  );
   npcs.forEach((npc) => scene.add(npc.object3D));
 
-  const boss = new Boss(bossSheet, { world, route: patrolRoute });
+  // Boss
+  const boss = new Boss(bossSheet, { world, route: floorData.patrolRoute });
   scene.add(boss.object3D);
   scene.add(boss.cone);
 
-  const hud = createHud(app);
+  // Game logic
   const game = new Game({ player, boss, npcs, hud });
   createTouchControls(player, app);
 
-  // Start framed on the whole floor like the reference image; narrow screens
-  // can't show it usefully, so those start following the player instead.
-  applyZoom(aspect >= 1.15 ? overviewZoom(aspect) : 1.35, aspect);
+  // Input handling
+  let followCamera = true;
+  let labelTogglePressed = false;
 
-  window.addEventListener("wheel", (e) => applyZoom(zoom - e.deltaY * 0.0012), { passive: true });
+  window.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "l") {
+      if (!labelTogglePressed) {
+        labelManager.toggleMode();
+        hud.updateLabelModeIndicator(labelManager.mode);
+        labelTogglePressed = true;
+      }
+    }
+    if (e.key.toLowerCase() === "v") {
+      followCamera = !followCamera;
+    }
+  });
 
+  window.addEventListener("keyup", (e) => {
+    if (e.key.toLowerCase() === "l") {
+      labelTogglePressed = false;
+    }
+  });
+
+  // Zoom input
+  window.addEventListener(
+    "wheel",
+    (e) => {
+      e.preventDefault();
+      const newZoom = cameraState.currentZoom - e.deltaY * 0.0003;
+      setDioramaZoom(cameraState, newZoom);
+    },
+    { passive: false }
+  );
+
+  // Touch pinch zoom
   let pinchStartDist = null;
   let pinchStartZoom = 1;
-  const pinchDistance = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+  const pinchDistance = (t) =>
+    Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+
   canvas.addEventListener(
     "touchstart",
     (e) => {
       if (e.touches.length === 2) {
         pinchStartDist = pinchDistance(e.touches);
-        pinchStartZoom = zoom;
+        pinchStartZoom = cameraState.currentZoom;
       }
     },
     { passive: true }
   );
+
   canvas.addEventListener(
     "touchmove",
     (e) => {
       if (e.touches.length === 2 && pinchStartDist) {
-        applyZoom(pinchStartZoom * (pinchDistance(e.touches) / pinchStartDist));
+        const newZoom =
+          pinchStartZoom * (pinchDistance(e.touches) / pinchStartDist);
+        setDioramaZoom(cameraState, newZoom);
       }
     },
     { passive: true }
   );
+
   canvas.addEventListener("touchend", (e) => {
     if (e.touches.length < 2) pinchStartDist = null;
   }, { passive: true });
 
+  // Resize handler
   window.addEventListener("resize", () => {
     const w = window.innerWidth;
     const h = window.innerHeight;
     renderer.setSize(w, h);
-    resizeIsoCamera(camera, frustumSize, w / h);
-    applyZoom(zoom, w / h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
   });
 
-  // -------- Camera: fixed isometric angle, target point follows player or frames overview -----
-  const overview = overviewTarget();
-  const desired = new THREE.Vector3();
-  function updateCamera() {
-    if (follow) desired.set(player.position.x, 0, player.position.z);
-    else desired.copy(overview);
-    cameraTarget.lerp(desired, follow ? 0.08 : 0.05);
-    camera.position.set(cameraTarget.x + offset.x, offset.y, cameraTarget.z + offset.z);
-    camera.lookAt(cameraTarget);
-  }
-
-  // Room labels are clutter from afar — fade them in as the player
-  // approaches, and show them all in the overview framing where they act as
-  // the map key the reference image uses.
-  const LABEL_NEAR = 6;
-  const LABEL_FAR = 11;
-  const overviewFit = () => overviewZoom(window.innerWidth / window.innerHeight);
-  function updateLabelFade() {
-    // Sprites keep a fixed world size, so under an orthographic zoom they
-    // would balloon on screen. Counter-scale by the zoom so signage stays a
-    // constant, readable size however far in the player is.
-    const sizeComp = overviewFit() / zoom;
-    roomLabels.forEach((label) => {
-      let t;
-      if (!follow || label.userData.alwaysVisible) {
-        t = 1;
-      } else {
-        const d = Math.hypot(
-          label.userData.homeX - player.position.x,
-          label.userData.homeZ - player.position.z
-        );
-        t = THREE.MathUtils.clamp((LABEL_FAR - d) / (LABEL_FAR - LABEL_NEAR), 0, 1);
+  // Determine current area
+  function getCurrentArea() {
+    for (const area of floorData.openAreas) {
+      const dx = Math.abs(player.position.x - area.x);
+      const dz = Math.abs(player.position.z - area.z);
+      if (dx < area.width / 2 && dz < area.depth / 2) {
+        return area;
       }
-      label.material.opacity = t;
-      label.visible = t > 0.02;
-      const base = label.userData.baseScale;
-      if (base) label.scale.set(base.x * sizeComp, base.y * sizeComp, 1);
-    });
+    }
+    for (const room of floorData.rooms) {
+      const dx = Math.abs(player.position.x - room.x);
+      const dz = Math.abs(player.position.z - room.z);
+      if (dx < room.width / 2 && dz < room.depth / 2) {
+        return room;
+      }
+    }
+    return null;
   }
 
-  const bobbingMeshes = [];
-  scene.traverse((obj) => {
-    if (obj.userData && obj.userData.bob) bobbingMeshes.push(obj);
-  });
-
+  // Main loop
   let last = performance.now();
   function animate(now) {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
-    const t = now / 1000;
 
+    // Update game
     player.update(dt, world);
-    npcs.forEach((npc) => npc.update(dt, t));
+    npcs.forEach((npc) => npc.update(dt, now / 1000));
     game.update(dt);
 
-    bobbingMeshes.forEach((m) => {
-      const b = m.userData.bob;
-      m.position.y = b.base + Math.sin(t * b.speed + b.offset) * b.amp;
-      m.rotation.y = t * 0.6 + b.offset;
-    });
+    // Update camera
+    updateDioramaCamera(cameraState, player.position, followCamera);
 
-    updateLabelFade();
-    updateCamera();
+    // Update area info
+    const currentArea = getCurrentArea();
+    if (currentArea) {
+      hud.updateAreaInfo(currentArea.name, currentArea.type, currentArea.capacity);
+    }
+
+    // Update suspicion display
+    hud.updateSuspicion(game.suspicion, game.suspicionMax);
+    hud.updateObjectives(game.objectives);
+    hud.updateWarnings(game.warnings, game.maxWarnings);
+
+    // Update labels with occlusion
+    labelManager.update(player.position, floorGeometry);
+
+    // Render
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
   }
+
   requestAnimationFrame(animate);
 
-  // Exposed for the automated reachability check in tools/check-reachable.mjs.
-  window.__game = { world, player, boss, game, camera, scene };
-  window.__floorplan = floorplan;
+  // Expose for debugging
+  window.__game = { world, player, boss, game, camera, scene, labelManager, hud };
+  window.__floorplan = floorData;
 }
 
 boot().catch((err) => {
   console.error(err);
   const msg = document.createElement("div");
-  msg.style.cssText = "position:absolute;inset:0;display:grid;place-items:center;color:#e6483f;font:14px sans-serif";
+  msg.style.cssText =
+    "position:absolute;inset:0;display:grid;place-items:center;color:#e6483f;font:14px sans-serif";
   msg.textContent = `No se pudieron cargar los sprites: ${err.message ?? err}`;
   app.appendChild(msg);
 });
