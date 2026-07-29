@@ -11,6 +11,7 @@ import { loadSheet } from "./entities/sprite.js";
 import { createHud } from "./game/hud.js";
 import { Game } from "./game/game.js";
 import { createTouchControls } from "./game/touchControls.js";
+import { IsoCameraController } from "./scene/isoCameraController.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 const sheetUrl = (name) => `${BASE}sprites/${name}.png`;
@@ -93,6 +94,14 @@ async function boot() {
   const game = new Game({ player, boss, npcs, hud });
   createTouchControls(player, app);
 
+  // Initialize interactive camera controller
+  try {
+    const cameraController = new IsoCameraController(camera, { pitchDeg: 35, yawDeg: -45, distance: 60 });
+    window.__cameraController = cameraController;
+  } catch (err) {
+    console.error("Failed to initialize camera controller:", err);
+  }
+
   // Start framed on the whole floor like the reference image; narrow screens
   // can't show it usefully, so those start following the player instead.
   applyZoom(aspect >= 1.15 ? overviewZoom(aspect) : 1.35, aspect);
@@ -140,7 +149,8 @@ async function boot() {
     if (follow) desired.set(player.position.x, 0, player.position.z);
     else desired.copy(overview);
     cameraTarget.lerp(desired, follow ? 0.08 : 0.05);
-    camera.position.set(cameraTarget.x + offset.x, offset.y, cameraTarget.z + offset.z);
+    const currentOffset = camera.userData.isoOffset || offset;
+    camera.position.set(cameraTarget.x + currentOffset.x, currentOffset.y, cameraTarget.z + currentOffset.z);
     camera.lookAt(cameraTarget);
   }
 
