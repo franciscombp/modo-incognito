@@ -44,7 +44,7 @@ const DEFAULTS = Object.freeze({
   quality: "auto",
   pixelSize: 2,
   colorLevels: 24,
-  showLabels: true,
+  showLabels: false,
   showMarkers: true,
   vibration: true,
   screenShake: true,

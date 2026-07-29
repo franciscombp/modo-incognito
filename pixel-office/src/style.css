@@ -2117,3 +2117,280 @@ body.vn-open .hud-topbar {
     min-height: 2.6em;
   }
 }
+
+/* ================= Guías (tarea activa + jefe) ================= */
+/* Sustituyen al minimapa: dos tarjetas con el mismo lenguaje, una para la
+   tarea activa (derecha, cian) y otra para el jefe (izquierda, rojo). Cada
+   una es "qué es / a cuántos metros / cuán urgente", con un marcador que se
+   clava sobre el objetivo en pantalla o se convierte en flecha de borde. */
+
+.track-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.track-layer.visible {
+  opacity: 1;
+}
+
+.track-card {
+  position: absolute;
+  bottom: max(16px, var(--safe-b));
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "top top" "icon body" "bar bar";
+  align-items: center;
+  gap: 6px 14px;
+  min-width: 300px;
+  max-width: min(90vw, 400px);
+  padding: 12px 20px 10px 16px;
+  font-family: var(--mono);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  box-shadow: 0 0 20px rgba(69, 224, 208, 0.2);
+  clip-path: polygon(
+    var(--cut) 0,
+    100% 0,
+    100% calc(100% - var(--cut)),
+    calc(100% - var(--cut)) 100%,
+    0 100%,
+    0 var(--cut)
+  );
+}
+
+.track-right .track-card {
+  right: 14px;
+}
+
+.track-left .track-card {
+  left: 14px;
+}
+
+.track-red .track-card {
+  border-color: rgba(255, 77, 94, 0.55);
+  box-shadow: 0 0 20px rgba(255, 77, 94, 0.18);
+}
+
+.track-card.warm {
+  border-color: rgba(242, 199, 68, 0.75);
+  box-shadow: 0 0 22px rgba(242, 199, 68, 0.28);
+}
+
+.track-card.hot {
+  border-color: var(--red);
+  animation: alarm 0.7s ease-in-out infinite;
+}
+
+.track-top {
+  grid-area: top;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.16em;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-red .track-top {
+  color: #ffb3bb;
+}
+
+.track-icon {
+  grid-area: icon;
+  font-size: 30px;
+}
+
+.track-body {
+  grid-area: body;
+  display: grid;
+  min-width: 0;
+}
+
+.track-label {
+  font-size: 17px;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.track-meta {
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  color: var(--cyan);
+}
+
+.track-red .track-meta {
+  color: var(--red);
+}
+
+.track-card.hot .track-meta {
+  color: var(--red);
+}
+
+.track-bar {
+  grid-area: bar;
+  display: block;
+  height: 6px;
+  margin-top: 2px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.track-bar i {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--cyan), var(--red));
+  transition: width 0.2s linear;
+}
+
+.track-red .track-bar i {
+  background: linear-gradient(90deg, var(--amber), var(--red));
+}
+
+.track-marker {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  font-family: var(--mono);
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(69, 224, 208, 0.8), 2px 2px 0 rgba(0, 0, 0, 0.7);
+  will-change: transform;
+}
+
+.track-red .track-marker {
+  color: var(--red);
+  text-shadow: 0 0 10px rgba(255, 77, 94, 0.85), 2px 2px 0 rgba(0, 0, 0, 0.7);
+}
+
+.track-arrow {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.track-marker:not(.edge) .track-arrow {
+  font-size: 18px;
+  animation: bob 1.2s ease-in-out infinite;
+}
+
+.track-dist {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+/* Objetivos: la lista de tareas crece para leerse de un vistazo. */
+.hud-objectives {
+  min-width: 300px;
+  max-width: 380px;
+  padding: 16px 22px;
+}
+
+.hud-objectives-list {
+  gap: 12px;
+  font-size: 16px;
+}
+
+.hud-objective {
+  grid-template-columns: 9px 30px 1fr;
+  gap: 12px;
+}
+
+.hud-objective-dot {
+  width: 9px;
+  height: 18px;
+}
+
+.hud-objective-icon {
+  font-size: 21px;
+}
+
+.hud-objective-bar {
+  height: 8px;
+}
+
+/* Nivel de búsqueda: estrellas al estilo GTA, junto al día. */
+.heat-stars {
+  display: flex;
+  gap: 4px;
+  font-size: 15px;
+  letter-spacing: 0.05em;
+  filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6));
+}
+
+.heat-stars .lit {
+  color: var(--amber);
+  text-shadow: 0 0 8px rgba(242, 199, 68, 0.8);
+}
+
+.heat-stars .off {
+  color: rgba(255, 255, 255, 0.18);
+}
+
+@media (max-width: 900px) {
+  .track-card {
+    min-width: 0;
+    max-width: 46vw;
+    padding: 8px 12px 7px 10px;
+    gap: 4px 8px;
+  }
+  .track-icon {
+    font-size: 20px;
+  }
+  .track-label {
+    font-size: 12.5px;
+  }
+  .track-meta {
+    font-size: 10px;
+  }
+  .track-top {
+    font-size: 8.5px;
+  }
+  .track-left .track-card {
+    left: 8px;
+    bottom: calc(200px + var(--safe-b));
+  }
+  .track-right .track-card {
+    right: 8px;
+    bottom: calc(200px + var(--safe-b));
+  }
+  .hud-objectives {
+    min-width: 0;
+    max-width: none;
+    padding: 10px 12px;
+  }
+  .hud-objectives-list {
+    font-size: 13px;
+    gap: 7px;
+  }
+  .hud-objective {
+    grid-template-columns: 6px 20px 1fr;
+    gap: 7px;
+  }
+  .hud-objective-icon {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 900px) and (orientation: landscape) {
+  .track-left .track-card {
+    bottom: calc(12px + var(--safe-b));
+  }
+  .track-right .track-card {
+    bottom: calc(12px + var(--safe-b));
+  }
+}
+
+body.menu-open .track-layer,
+body.overlay-open .track-layer,
+body.vn-open .track-layer {
+  display: none !important;
+}
