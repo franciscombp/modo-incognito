@@ -1,8 +1,9 @@
 import { CharacterSprite } from "./sprite.js";
 import { screenToGround, facingFromGround } from "../scene/iso.js";
 
-// Isometric player. Input is screen-relative (W/A/S/D move up/left/down/right on screen),
-// then rotated into world-space so movement reads naturally in the isometric view.
+// The protagonist. Input is interpreted in *screen* space and then rotated
+// into world space, so W/A/S/D (and the joystick) move her up/left/down/right
+// as seen on screen rather than diagonally across the isometric view.
 export class Player {
   constructor(sheet, { x = 0, z = 12.6, radius = 0.26, height = 1.45 } = {}) {
     this.speed = 4.4;
@@ -33,11 +34,12 @@ export class Player {
     return this.sprite.object;
   }
 
-  /** Screen-space input (WASD moves up/left/down/right as seen on screen). */
+  /** Screen-space intent, from either the keyboard or the on-screen stick. */
   _readInput() {
     const tx = this.touchAxis.x;
     const tz = this.touchAxis.z;
     if (Math.hypot(tx, tz) > 0.08) {
+      // Joystick: +z on the pad is "down the screen".
       return { right: tx, up: -tz };
     }
     let right = 0;
@@ -67,6 +69,7 @@ export class Player {
 
     if (world) world.resolveCircle(this.position, this.radius);
 
+    // Standing still while "working" still shows the idle pose, not a walk.
     this.sprite.setFacing(this.facing);
     this.sprite.setMoving(moving && !this.isPretending);
     this.sprite.setPosition(this.position.x, this.position.z);

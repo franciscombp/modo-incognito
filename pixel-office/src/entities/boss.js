@@ -13,7 +13,8 @@ const { PATROL, INVESTIGATE, CHASE, SEARCH } = BOSS_STATES;
 
 // Rotation (about Y) that points the cone's local -Z forward axis along
 // world-space direction (dirX, dirZ). Derived analytically rather than via
-// Object3D.lookAt, which produced inconsistent Euler extraction for some directions.
+// Object3D.lookAt, which produced inconsistent Euler extraction for some
+// directions.
 function facingRotationY(dirX, dirZ) {
   return Math.atan2(-dirX, -dirZ);
 }
