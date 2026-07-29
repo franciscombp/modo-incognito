@@ -119,6 +119,8 @@ export function createHud(root) {
     if (state.isHiding) statusBits.push("🫥 ESCONDIDA");
     if (state.isPretending) statusBits.push("⌨️ FINGIENDO TRABAJAR");
     if (state.bossState === "CHASE") statusBits.push("🚨 ¡TE PERSIGUE!");
+    else if (state.bossState === "SEARCH") statusBits.push("🔎 TE ESTÁ BUSCANDO");
+    else if (state.bossState === "INVESTIGATE") statusBits.push("❓ DISTRAÍDO");
     statusBadge.textContent = statusBits.join("   ·   ");
     statusBadge.classList.toggle("visible", statusBits.length > 0);
     statusBadge.classList.toggle("alert", state.bossState === "CHASE");

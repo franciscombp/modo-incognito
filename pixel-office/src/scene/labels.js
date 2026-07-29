@@ -85,6 +85,7 @@ export function createLabel(
   const sprite = new THREE.Sprite(material);
   const scale = 0.028 * scaleMul;
   sprite.scale.set(canvas.width * scale, canvas.height * scale, 1);
+  sprite.userData.baseScale = { x: sprite.scale.x, y: sprite.scale.y };
   return sprite;
 }
 

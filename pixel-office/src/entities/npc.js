@@ -1,43 +1,36 @@
-import * as THREE from "three";
+import { CharacterSprite } from "./sprite.js";
 
-// Background coworker: mostly a static billboard that blocks the boss's
-// line of sight, with a small idle bob so the office doesn't feel frozen.
-// One of them (the `chat` station's npc) is also what the "conversar con
-// colegas" activity is anchored to.
+// Background coworker. Mostly set dressing, but they also block the boss's
+// line of sight and one of them anchors the "conversar con colegas" activity.
+// A few wander a short beat so the floor doesn't look frozen.
 export class NPC {
-  constructor({ x, z, color = 0xd8c39a, radius = 0.32 }) {
+  constructor(sheet, { x, z, radius = 0.28, facing = "south", sway = 0 } = {}) {
     this.position = { x, z };
+    this.home = { x, z };
     this.radius = radius;
+    this.sway = sway;
 
-    const canvas = document.createElement("canvas");
-    canvas.width = 56;
-    canvas.height = 88;
-    const ctx = canvas.getContext("2d");
-    ctx.fillStyle = "#00000000";
-    ctx.clearRect(0, 0, 56, 88);
-    ctx.fillStyle = "#2b2f38";
-    ctx.beginPath();
-    ctx.ellipse(28, 82, 18, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = `#${color.toString(16).padStart(6, "0")}`;
-    ctx.fillRect(13, 26, 30, 44);
-    ctx.fillStyle = "#e3b489";
-    ctx.beginPath();
-    ctx.arc(28, 16, 15, 0, Math.PI * 2);
-    ctx.fill();
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.magFilter = THREE.NearestFilter;
-
-    const material = new THREE.SpriteMaterial({ map: texture, transparent: true });
-    this.sprite = new THREE.Sprite(material);
-    this.sprite.scale.set(1, 1.55, 1);
-    this.sprite.position.set(x, 0.78, z);
-    this._bobOffset = Math.random() * Math.PI * 2;
+    this.sprite = new CharacterSprite(sheet, { height: 1.4 });
+    this.sprite.setFacing(facing);
+    this.sprite.setPosition(x, z);
+    this._phase = Math.random() * Math.PI * 2;
   }
 
-  update(t) {
-    this.sprite.position.y = 0.78 + Math.sin(t * 1.4 + this._bobOffset) * 0.02;
+  get object3D() {
+    return this.sprite.object;
+  }
+
+  update(dt, t) {
+    if (this.sway > 0) {
+      // A slow shuffle left and right in place — enough motion to read as
+      // "someone is working here" without needing pathfinding.
+      const offset = Math.sin(t * 0.6 + this._phase) * this.sway;
+      const prev = this.position.x;
+      this.position.x = this.home.x + offset;
+      this.sprite.setFacing(this.position.x >= prev ? "east" : "west");
+      this.sprite.setMoving(Math.abs(this.position.x - prev) > 0.0005);
+      this.sprite.setPosition(this.position.x, this.position.z);
+    }
+    this.sprite.update(dt);
   }
 }
