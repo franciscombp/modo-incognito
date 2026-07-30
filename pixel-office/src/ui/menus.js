@@ -125,14 +125,19 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
 
   // ---------------- Character select ----------------
   const charScreen = makeScreen("characters");
-  el("h2", "px-screen-title-text", charScreen, "Elige tu personaje");
+  const charTitle = el("h2", "px-screen-title-text", charScreen, "Elige tu personaje");
   const charGrid = el("div", "px-day-grid px-char-grid", charScreen);
-  button(el("div", "px-screen-foot", charScreen), "Volver", {
+  const charBackBtn = button(el("div", "px-screen-foot", charScreen), "Volver", {
     onClick: () => show(previousScreen ?? "title"),
   });
 
   function renderCharacters() {
     charGrid.innerHTML = "";
+    // Sin personaje elegido todavía: no hay a dónde "volver" — hay que elegir
+    // para poder jugar. Una vez elegido, la pantalla vuelve a ser opcional.
+    const forced = !save.characterId;
+    charTitle.textContent = forced ? "Elige tu personaje para empezar" : "Elige tu personaje";
+    charBackBtn.classList.toggle("hidden", forced);
     Object.entries(modes).forEach(([id, mode]) => {
       const locked = mode.playable === false;
       const active = save.characterId === id || (!save.characterId && id === "fran");
@@ -368,6 +373,12 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
       renderCharBadge();
       continueBtn.classList.toggle("hidden", !progress.hasProgress);
       titleFoot.textContent = progress.summary;
+      // Primera vez (o localStorage limpio): elegir personaje no es opcional.
+      if (!save.characterId) {
+        renderCharacters();
+        show("characters");
+        return;
+      }
       show("title");
     },
     openPause(info) {
