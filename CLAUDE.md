@@ -88,6 +88,13 @@ en una captura.
 - Un JSON de contenido inválido debe fallar con el nombre del archivo en
   pantalla (ver `src/data/loader.js`), nunca con una pantalla en negro
   silenciosa. Si tocas el loader, no rompas esa garantía.
+- **Persecución comprometida**: desde que un vigilante te mete en el halo,
+  `boss.lockedOn` queda en true y NO debe soltarte por perderte de vista ni
+  por atascarse contra un mueble; la única salida es un lugar seguro
+  (`game._breakAllPursuits()`, que se comprueba cada frame mientras estés
+  dentro, no solo al entrar). Si tocas `_advanceState` o `_updateStuck`, corre
+  `npm run check:pursuit`: las cuatro reglas se pisan entre sí con facilidad
+  y el fallo típico es que el jefe vuelva a rendirse solo.
 - Todo el audio es generado, no hay archivos: `src/game/sfx.js` sintetiza los
   efectos con WebAudio y `src/game/soundtrack.js` (con Tone.js) toca en vivo
   los riffs de `src/game/soundtrackThemes.js` según el ánimo de la partida.
@@ -108,7 +115,7 @@ antes de correr** — no funcionan contra el servidor de `npm run dev`.
 ```bash
 cd pixel-office
 npm run build && npm run preview &   # deja el preview corriendo en :4173
-npm run check                        # corre los 7 check:* en orden
+npm run check                        # corre todos los check:* en orden
 ```
 
 Si añades un tool nuevo en `tools/`, añádele también su script `check:*` en

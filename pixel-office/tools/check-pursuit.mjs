@@ -1,0 +1,106 @@
+// La persecucion es "comprometida": en cuanto un vigilante te mete en su halo
+// no te suelta hasta alcanzarte, y la UNICA forma de quitartelo de encima es
+// llegar a un lugar seguro. Esconderse o doblar una esquina ya no bastan.
+//
+// Se comprueba aqui porque son cuatro reglas que se pisan entre si con
+// facilidad: al tocarlas, el jefe volvia a rendirse solo (por perder la vista,
+// o por atascarse contra un mueble) sin que se notara jugando de pasada.
+//
+// Uso: npm run check:pursuit   (necesita `npm run preview` en :4173)
+import { chromium } from "playwright";
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium" });
+const url = process.argv[2] ?? "http://localhost:4173/";
+const p = await (await b.newContext({ viewport: { width: 1280, height: 800 } })).newPage();
+const errors = [];
+p.on("pageerror", (e) => errors.push(String(e)));
+p.on("console", (m) => { if (m.type() === "error" && !m.text().includes("favicon")) errors.push(m.text()); });
+await p.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
+await p.waitForFunction(() => !!window.__game, null, { timeout: 25000 });
+await p.evaluate(() => { window.__game.engine.startDay(0); });
+await p.waitForTimeout(1500);
+
+const out = await p.evaluate(() => {
+  const g = window.__game.engine.game;
+  const fp = window.__floorplan;
+  const S = fp.WORLD_SCALE;
+  const boss = g.boss;
+  const res = {};
+  const dist = () => Math.hypot(boss.position.x - g.player.position.x, boss.position.z - g.player.position.z);
+
+  g.setPaused(false);
+  g.rules.explore = false;
+  g.minions.forEach((m) => m.setActive(false));
+  const blind = function () { this.playerVisible = false; this.redAlert = false; };
+  const sees = function () { this.playerVisible = true; this.redAlert = true; };
+
+  // Coloca a la jugadora lejos de cualquier lugar seguro para las pruebas 1-3.
+  const far = fp.patrolRoute[0];
+  g.player.position.x = far.x; g.player.position.z = far.z;
+  g.player.isHiding = false; g.player.isDoingActivity = true; g.player.isPretending = false;
+
+  // --- 1. Te mete en el halo -> se compromete ---
+  boss.resetToPatrol();
+  boss.position.x = g.player.position.x + 14 * S;
+  boss.position.z = g.player.position.z;
+  boss._updateVision = sees;
+  g.update(1 / 30);
+  res.lockedAfterHalo = boss.lockedOn;
+  res.stateAfterHalo = boss.state;
+
+  // --- 2. Escondida y sin verla: NO se rinde y sigue cerrando distancia ---
+  boss._updateVision = blind;
+  g.player.isHiding = true;
+  const d0 = dist();
+  for (let i = 0; i < 90; i++) g.update(1 / 30); // 3 s (antes desistía a los 1.2 s)
+  res.stateWhileHidden = boss.state;
+  res.stillLocked = boss.lockedOn;
+  res.closed = +(d0 - dist()).toFixed(2);
+
+  // --- 3. Persigue HASTA atraparte ---
+  // Ambos sobre waypoints de la ronda: por construccion estan en el navmesh
+  // y conectados entre si, asi que un fallo aqui es de la IA y no del sitio.
+  const wpA = fp.patrolRoute[0], wpB = fp.patrolRoute[2];
+  g.player.position.x = wpA.x; g.player.position.z = wpA.z;
+  boss.position.x = wpB.x; boss.position.z = wpB.z;
+  boss.startChase();
+  const warnings0 = g.warnings;
+  for (let i = 0; i < 1800 && g.warnings === warnings0; i++) g.update(1 / 30);
+  res.caughtWhileHidden = g.warnings > warnings0;
+
+  // --- 4. El lugar seguro SÍ corta una persecución comprometida ---
+  const safe = fp.safeSpots[0];
+  // Atraparla dispara el dialogo de regano, que pausa la partida: hay que
+  // reanudarla o los update() siguientes no hacen nada.
+  g.setPaused(false);
+  g.gameOver = false;
+  res.safeSpot = { r: safe.r ?? null, label: safe.label ?? null };
+  g.player.position.x = safe.x; g.player.position.z = safe.z;
+  g._caughtCooldown = 0;
+  boss.resetToPatrol();
+  boss.position.x = safe.x + 14 * S;
+  boss.position.z = safe.z;
+  boss._updateVision = sees;
+  g.update(1 / 30);
+  const lockedBeforeSafe = boss.lockedOn;
+  boss._updateVision = blind;
+  g.update(1 / 30); // primer frame ya dentro del lugar seguro
+  res.lockedBeforeSafe = lockedBeforeSafe;
+  res.inSafeSpot = g.inSafeSpot;
+  res.lockedAfterSafe = boss.lockedOn;
+  res.stateAfterSafe = boss.state;
+  return res;
+});
+
+console.log(JSON.stringify(out, null, 1));
+const checks = [
+  ["se compromete al meterte en el halo", out.lockedAfterHalo && out.stateAfterHalo === "CHASE"],
+  ["esconderse ya no le hace desistir", out.stillLocked && out.stateWhileHidden === "CHASE"],
+  ["sigue cerrando distancia sin verte", out.closed > 1],
+  ["te persigue hasta atraparte", out.caughtWhileHidden],
+  ["el lugar seguro corta la persecucion", out.lockedBeforeSafe && out.inSafeSpot && !out.lockedAfterSafe],
+];
+let ok = true;
+for (const [label, pass] of checks) { ok = ok && !!pass; console.log(pass ? "PASS" : "FAIL", " ", label); }
+if (errors.length) { console.log("ERRORES:"); errors.forEach((e) => console.log("  ", e)); }
+await b.close();
+process.exit(ok && !errors.length ? 0 : 1);

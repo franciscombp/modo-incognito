@@ -20,17 +20,74 @@ function facingRotationY(dirX, dirZ) {
   return Math.atan2(-dirX, -dirZ);
 }
 
-function buildConeGeometry(range, halfAngle, segments = 24) {
+// El cono se dibuja con color POR VÉRTICE en RGBA: opaco en el vértice (donde
+// está la mirada) y transparente en el borde exterior, además de más suave en
+// los laterales que en el centro. Antes era un triángulo plano de opacidad
+// única, que se leía como una cuña de cartulina pegada al suelo; con el
+// degradado parece un haz de luz y además comunica mejor la mecánica — el
+// peligro real está cerca del vértice, no en la punta lejana.
+const CONE_ALPHA_CORE = 0.62; // en el vértice
+const CONE_ALPHA_EDGE = 0.0; // en el arco exterior
+
+// Radianes por segundo a los que gira la mirada. Persiguiendo gira casi al
+// doble: está pendiente de ti, no paseando.
+const TURN_RATE_CALM = 3.2;
+const TURN_RATE_ALERT = 6.0;
+// Cada cuántos segundos sale una onda nueva del radar de Washo.
+const WAVE_PERIOD = 2.2;
+
+function buildConeGeometry(range, halfAngle, segments = 28) {
   const positions = [];
+  const colors = [];
+
+  // Suavidad angular: 1 en el eje central, 0 en los bordes laterales.
+  const sideFade = (t) => {
+    const k = Math.abs(t) / (halfAngle || 1e-3);
+    return 1 - k * k * 0.75;
+  };
+
   for (let i = 0; i < segments; i++) {
     const t0 = -halfAngle + 2 * halfAngle * (i / segments);
     const t1 = -halfAngle + 2 * halfAngle * ((i + 1) / segments);
     positions.push(0, 0, 0);
     positions.push(Math.sin(t0) * range, 0, -Math.cos(t0) * range);
     positions.push(Math.sin(t1) * range, 0, -Math.cos(t1) * range);
+    // El color va en blanco: el tinte real lo pone material.color, así que
+    // cambiar de amarillo a rojo en plena persecución sigue siendo una línea.
+    colors.push(1, 1, 1, CONE_ALPHA_CORE);
+    colors.push(1, 1, 1, CONE_ALPHA_EDGE * sideFade(t0));
+    colors.push(1, 1, 1, CONE_ALPHA_EDGE * sideFade(t1));
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 4));
+  return geometry;
+}
+
+/**
+ * Anillo plano para el radar de Washo. `inner`/`outer` en unidades de mundo;
+ * el degradado va de opaco por dentro a transparente por fuera, para que la
+ * onda se lea como un frente que se expande y no como una rosquilla.
+ */
+function buildRingGeometry(inner, outer, segments = 48) {
+  const positions = [];
+  const colors = [];
+  for (let i = 0; i < segments; i++) {
+    const a0 = (i / segments) * Math.PI * 2;
+    const a1 = ((i + 1) / segments) * Math.PI * 2;
+    const p = (a, r) => [Math.sin(a) * r, 0, -Math.cos(a) * r];
+    const [ix0, , iz0] = p(a0, inner);
+    const [ix1, , iz1] = p(a1, inner);
+    const [ox0, , oz0] = p(a0, outer);
+    const [ox1, , oz1] = p(a1, outer);
+    positions.push(ix0, 0, iz0, ox0, 0, oz0, ox1, 0, oz1);
+    positions.push(ix0, 0, iz0, ox1, 0, oz1, ix1, 0, iz1);
+    for (const a of [1, 0, 0, 1, 0, 1]) colors.push(1, 1, 1, a);
   }
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute("color", new THREE.Float32BufferAttribute(colors, 4));
   return geometry;
 }
 
@@ -56,9 +113,11 @@ export class Boss {
     role = "boss",
     name = "Gabo",
     coneColor = 0xf2c744,
+    visionShape = "cone", // "cone" | "radar" (ver characters.json)
     onSpot = null,
     config = null,
   }) {
+    this.visionShape = visionShape;
     // "minion" watchers never grab you themselves — they report you, which
     // sends the real boss to that spot. That makes them a different kind of
     // threat instead of three more bosses.
@@ -82,6 +141,14 @@ export class Boss {
     this.position = { x: route[0].x, z: route[0].z };
     this.radius = radius;
     this.facingDir = { x: 0, z: -1 };
+    // Hacia dónde QUIERE mirar. `facingDir` lo persigue suavemente cada
+    // frame: antes el cono saltaba de golpe a la nueva dirección y se leía
+    // como un parpadeo, sobre todo al girar hacia la jugadora de cerca.
+    this.desiredFacing = { x: 0, z: -1 };
+    // Persecución comprometida: en cuanto te mete en el halo no te suelta
+    // hasta alcanzarte. Solo un lugar seguro (game.js) lo cancela.
+    this.lockedOn = false;
+    this._waveTime = 0;
 
     // Path following state, so he rounds the big tables and the restroom
     // cores instead of grinding into them.
@@ -131,27 +198,54 @@ export class Boss {
     this.sprite = new CharacterSprite(sheet, { height });
     this.sprite.setPosition(this.position.x, this.position.z);
 
-    const geometry = buildConeGeometry(this.visionRange, this.halfAngle);
     this.baseConeColor = coneColor;
     this.coneMaterial = new THREE.MeshBasicMaterial({
       color: coneColor,
       transparent: true,
-      opacity: 0.55,
+      opacity: 1, // el degradado vive en el alfa por vértice
+      vertexColors: true,
       side: THREE.DoubleSide,
       depthWrite: false,
       // The cone is a gameplay readout, not a lit surface — keep it flat and
       // saturated regardless of scene exposure.
       toneMapped: false,
     });
-    this.cone = new THREE.Mesh(geometry, this.coneMaterial);
-    this.cone.position.set(this.position.x, 0.16, this.position.z);
-    this.cone.renderOrder = 2;
 
-    const rim = new THREE.LineSegments(
-      new THREE.EdgesGeometry(geometry, 1),
-      new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45, toneMapped: false })
-    );
-    this.cone.add(rim);
+    if (this.visionShape === "radar") {
+      // Washo no mira: barre. Su alcance es un círculo completo y lo anuncia
+      // con ondas que salen de él, así que se entiende de un vistazo que el
+      // peligro no depende de hacia dónde esté mirando.
+      this.cone = new THREE.Mesh(
+        buildRingGeometry(this.visionRange * 0.985, this.visionRange),
+        this.coneMaterial
+      );
+      this.cone.position.set(this.position.x, 0.16, this.position.z);
+      this.cone.renderOrder = 2;
+
+      this._waves = [0, 1 / 3, 2 / 3].map((phase) => {
+        const material = new THREE.MeshBasicMaterial({
+          color: coneColor,
+          transparent: true,
+          opacity: 1,
+          vertexColors: true,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          toneMapped: false,
+        });
+        // Geometría de radio 1: la onda se escala en update(), así que no hay
+        // que reconstruir buffers cada frame.
+        const mesh = new THREE.Mesh(buildRingGeometry(0.86, 1), material);
+        mesh.position.y = 0.005;
+        this.cone.add(mesh);
+        return { mesh, material, phase };
+      });
+    } else {
+      const geometry = buildConeGeometry(this.visionRange, this.halfAngle);
+      this.cone = new THREE.Mesh(geometry, this.coneMaterial);
+      this.cone.position.set(this.position.x, 0.16, this.position.z);
+      this.cone.renderOrder = 2;
+      this._waves = null;
+    }
   }
 
   get object3D() {
@@ -165,6 +259,21 @@ export class Boss {
   startChase() {
     this.state = CHASE;
     this.loseSightTimer = 0;
+    this.lockedOn = true;
+  }
+
+  /**
+   * Cortar la persecución de verdad. Lo llama game.js cuando la jugadora
+   * alcanza un lugar seguro (bebedero, baño, su propia mesa): ahí no puede
+   * seguir persiguiéndola sin quedar él en evidencia, así que suelta la presa
+   * y vuelve a la ronda. Es la ÚNICA salida a un `lockedOn`, junto con
+   * alcanzarla; esconderse o fingir ya no bastan una vez te tiene fichada.
+   */
+  breakPursuit() {
+    if (!this.lockedOn && this.state !== CHASE && this.state !== SEARCH) return false;
+    this.lockedOn = false;
+    this._resumeNearestRoutePoint();
+    return true;
   }
 
   distract(target, duration) {
@@ -221,6 +330,7 @@ export class Boss {
     this.loseSightTimer = 0;
     this.searchTimer = 0;
     this.lastSeenPlayerPos = null;
+    this.lockedOn = false;
   }
 
   /**
@@ -235,6 +345,16 @@ export class Boss {
 
   get inGrace() {
     return this._graceTimer > 0;
+  }
+
+  /**
+   * ¿Está `pos` dentro del alcance, sin mirar hacia dónde? Lo usa el radar de
+   * Washo para frenarte: su efecto es de área, no de mirada, así que rodearlo
+   * por detrás no te libra — es justo lo que la onda dibuja en el suelo.
+   */
+  inRange(pos) {
+    if (this.active === false) return false;
+    return Math.hypot(pos.x - this.position.x, pos.z - this.position.z) <= this.visionRange;
   }
 
   update(dt, player, npcs) {
@@ -255,14 +375,18 @@ export class Boss {
 
     const target = this._pickTarget(player);
     const dir = this._moveToward(dt, this._steer(dt, target));
-    if (dir) this.facingDir = dir;
-    else if (this.playerVisible) {
-      // Standing still but watching her — keep the cone trained on the player.
+    // Adónde MIRA. Persiguiéndote (o simplemente teniéndote a la vista) el
+    // cono se queda encarado a la jugadora aunque el cuerpo esté rodeando una
+    // mesa; si no, mira hacia donde camina.
+    if (this.playerVisible || this.lockedOn) {
       const dx = player.position.x - this.position.x;
       const dz = player.position.z - this.position.z;
       const len = Math.hypot(dx, dz);
-      if (len > 0.001) this.facingDir = { x: dx / len, z: dz / len };
+      if (len > 0.001) this.desiredFacing = { x: dx / len, z: dz / len };
+    } else if (dir) {
+      this.desiredFacing = dir;
     }
+    this._turnToward(dt);
 
     this.sprite.setFacing(facingFromGround(this.facingDir.x, this.facingDir.z, "south"));
     this.sprite.setMoving(!!dir);
@@ -276,7 +400,42 @@ export class Boss {
     this.coneMaterial.color.set(
       hot ? 0xe6483f : this.state === SEARCH ? 0xe0a03c : this.baseConeColor
     );
-    this.coneMaterial.opacity = hot ? 0.68 : 0.55;
+    this._updateWaves(dt, hot);
+  }
+
+  /**
+   * Gira `facingDir` hacia `desiredFacing` a velocidad angular limitada, en
+   * vez de teletransportar la mirada. Con la jugadora al lado el ángulo cambia
+   * muy rápido, y el salto instantáneo hacía parpadear el cono de un lado a
+   * otro; así el haz la sigue con un barrido continuo.
+   */
+  _turnToward(dt) {
+    const current = Math.atan2(this.facingDir.x, this.facingDir.z);
+    const wanted = Math.atan2(this.desiredFacing.x, this.desiredFacing.z);
+    let delta = wanted - current;
+    while (delta > Math.PI) delta -= Math.PI * 2;
+    while (delta < -Math.PI) delta += Math.PI * 2;
+    // Persiguiendo gira más rápido: está pendiente de ti, no distraído.
+    const rate = (this.lockedOn || this.playerVisible ? TURN_RATE_ALERT : TURN_RATE_CALM) * dt;
+    const step = THREE.MathUtils.clamp(delta, -rate, rate);
+    const next = current + step;
+    this.facingDir = { x: Math.sin(next), z: Math.cos(next) };
+  }
+
+  /** Ondas del radar de Washo: tres frentes que salen y se desvanecen. */
+  _updateWaves(dt, hot) {
+    if (!this._waves) return;
+    this._waveTime += dt;
+    const color = hot ? 0xe6483f : this.baseConeColor;
+    for (const wave of this._waves) {
+      const t = (this._waveTime / WAVE_PERIOD + wave.phase) % 1;
+      // Arranca pegado a él y se expande hasta el borde de su alcance.
+      const radius = this.visionRange * (0.12 + t * 0.88);
+      wave.mesh.scale.set(radius, 1, radius);
+      // Se apaga al llegar al borde; el frente joven es el más visible.
+      wave.material.opacity = 0.5 * (1 - t) * (1 - t);
+      wave.material.color.set(color);
+    }
   }
 
   _advanceState(dt, player) {
@@ -284,7 +443,7 @@ export class Boss {
       case CHASE: {
         if (this.playerVisible) {
           this.loseSightTimer = 0;
-        } else {
+        } else if (!this.lockedOn) {
           this.loseSightTimer += dt;
           // Give up the direct pursuit and go sweep her last known spot.
           if (this.loseSightTimer > 1.2) {
@@ -293,6 +452,10 @@ export class Boss {
             this.searchTimer = 5;
           }
         }
+        // Con lockedOn no hay rendición: te metió en el halo, así que viene
+        // hasta alcanzarte. Perderle de vista (esconderte, doblar una
+        // esquina) ya no basta — solo un lugar seguro lo corta, y de eso se
+        // encarga game.js llamando a breakPursuit().
         break;
       }
       case SEARCH: {
@@ -382,10 +545,17 @@ export class Boss {
     if (this.state === PATROL) {
       this.routeIndex = (this.routeIndex + 1) % this.route.length;
       this._waypointTimer = 0;
-    } else if (this.state === SEARCH) {
+    } else if (this.state === SEARCH && !this.lockedOn) {
       this._resumeNearestRoutePoint();
     } else if (this.state === INVESTIGATE) {
       this.investigateTimer = 0;
+    } else if (this.lockedOn) {
+      // Comprometido: atascarse contra un mueble NO es motivo para soltarte.
+      // Se limpia la ruta para replanificar y el empujón de abajo lo saca del
+      // bloqueo, pero sigue viniendo. Sin esto, quedarte al otro lado de una
+      // mesa bastaba para que desistiera — justo lo que el lugar seguro
+      // debería ser el único en conseguir.
+      this.state = CHASE;
     } else if (this.state === CHASE && !this.playerVisible) {
       // El objetivo en persecución es la posición exacta del jugador, que
       // puede quedar pegada a un mueble (justo lo que la hace un buen
@@ -412,7 +582,12 @@ export class Boss {
 
   _pickTarget(player) {
     if (this.state === CHASE) {
-      if (!player.isHiding) return { x: player.position.x, z: player.position.z };
+      // Comprometido: va a por ella aunque se haya metido en un escondite.
+      // Sin compromiso (una caza que arrancó de rebote) sigue valiendo el
+      // escondite para despistarlo hacia la última posición conocida.
+      if (this.lockedOn || !player.isHiding) {
+        return { x: player.position.x, z: player.position.z };
+      }
       return this.lastSeenPlayerPos ?? this.route[this.routeIndex];
     }
     if (this.state === SEARCH) return this.searchTarget ?? this.route[this.routeIndex];
@@ -522,9 +697,13 @@ export class Boss {
     const dist = Math.hypot(dx, dz);
     if (dist > this.visionRange || dist < 0.001) return;
 
-    const toPlayer = { x: dx / dist, z: dz / dist };
-    const cos = this.facingDir.x * toPlayer.x + this.facingDir.z * toPlayer.z;
-    if (cos < Math.cos(this.halfAngle)) return;
+    // Un radar no tiene "delante": barre los 360°. Solo el cono comprueba
+    // hacia dónde mira.
+    if (this.visionShape !== "radar") {
+      const toPlayer = { x: dx / dist, z: dz / dist };
+      const cos = this.facingDir.x * toPlayer.x + this.facingDir.z * toPlayer.z;
+      if (cos < Math.cos(this.halfAngle)) return;
+    }
 
     const blockers = npcs.map((n) => ({ x: n.position.x, z: n.position.z, radius: n.radius }));
     if (this.world && this.world.lineBlocked(this.position, player.position, blockers)) return;
