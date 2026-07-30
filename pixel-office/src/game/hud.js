@@ -130,6 +130,44 @@ export function createHud(root) {
   const comboText = el("span", "hud-combo-text", comboChip);
   const perkChip = el("div", "hud-perk", scorePanel);
 
+  // ---- Escena de acción: ilustración grande de lo que estás haciendo ----
+  // Al estilo RPG clásico: un panel visible mientras dura la actividad (o
+  // mientras finges), con una imagen por acción. Las imágenes reales llegan
+  // después (public/actions/<id>.png); hasta entonces, o si a alguna le
+  // falta el archivo, cae en el emoji de la actividad sin romper nada.
+  const actionScene = el("div", "action-scene hidden", hud);
+  const actionFrame = el("div", "action-frame", actionScene);
+  const actionImg = el("img", "action-img hidden", actionFrame);
+  const actionEmoji = el("div", "action-emoji", actionFrame);
+  const actionLabel = el("div", "action-label", actionScene);
+  let actionId = null;
+
+  function setAction(action) {
+    if (!action) {
+      actionScene.classList.add("hidden");
+      actionId = null;
+      return;
+    }
+    actionScene.classList.remove("hidden");
+    if (action.id !== actionId) {
+      actionId = action.id;
+      actionEmoji.textContent = action.icon ?? "❓";
+      actionEmoji.classList.remove("hidden");
+      actionImg.classList.add("hidden");
+      actionImg.onerror = () => {
+        actionImg.classList.add("hidden");
+        actionEmoji.classList.remove("hidden");
+      };
+      actionImg.onload = () => {
+        actionImg.classList.remove("hidden");
+        actionEmoji.classList.add("hidden");
+      };
+      const base = import.meta.env.BASE_URL ?? "/";
+      actionImg.src = `${base}actions/${action.id}.png`;
+    }
+    actionLabel.textContent = action.label ?? "";
+  }
+
   // ---- End-of-day card ----
   const overlay = el("div", "hud-overlay hidden", hud);
   const overlayCard = el("div", "hud-overlay-card", overlay);
@@ -195,6 +233,8 @@ export function createHud(root) {
   }
 
   function render(state) {
+    setAction(state.currentAction);
+
     if (state.maxWarnings !== maxWarningsRendered) {
       maxWarningsRendered = state.maxWarnings;
       warningsRow.innerHTML = "";

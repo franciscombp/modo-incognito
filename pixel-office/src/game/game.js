@@ -796,6 +796,22 @@ export class Game {
     return `${h}:${String(m).padStart(2, "0")} ${suffix}`;
   }
 
+  /**
+   * Qué se está "viendo" ahora mismo en la escena grande de acción: una
+   * actividad prohibida en curso (usa su icono/id propio, uno por tarea) o,
+   * si no hay ninguna, fingir que trabajas (un solo "id" genérico). null si
+   * no estás haciendo ninguna de las dos.
+   */
+  _currentAction() {
+    if (this.player.isDoingActivity && this.nearStation) {
+      return { id: this.nearStation.id, icon: this.nearStation.icon ?? "❓", label: this.nearStation.label };
+    }
+    if (this.player.isPretending) {
+      return { id: "pretend", icon: "⌨️", label: "Fingiendo que trabajas" };
+    }
+    return null;
+  }
+
   _snapshot() {
     this.lastSnapshot = {
       suspicion: this.suspicion,
@@ -829,6 +845,7 @@ export class Game {
       revealBoss: this.revealBossUntil > 0,
       isPretending: this.player.isPretending,
       isHiding: this.player.isHiding,
+      currentAction: this._currentAction(),
       redAlert: this.boss.redAlert,
       bossState: this.boss.state,
       gameOver: this.gameOver,
