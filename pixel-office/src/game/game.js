@@ -11,6 +11,7 @@ import {
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { BOSS_STATES } from "../entities/boss.js";
 import { buzz } from "./settings.js";
+import { sfxComplete, sfxWarn, sfxDistraction } from "./sfx.js";
 
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
@@ -298,6 +299,7 @@ export class Game {
       if (this.boss.distract(target, DISTRACTION_EFFECT_DURATION)) {
         this.nearDistraction.cooldownLeft = this.nearDistraction.cooldown;
         this._toast(`Distracción: ${this.nearDistraction.label}`);
+        sfxDistraction();
         this._award(40, "Distracción", this.player.position);
       } else {
         this._toast("¡Ya te vio! Una distracción no lo detiene ahora.");
@@ -440,6 +442,7 @@ export class Game {
     if (station.perk) this._applyPerk(station.perk);
 
     buzz([12, 40, 18]);
+    sfxComplete();
     this._toast(`${station.label} ✔${nerveLabel}`);
     this._actionFlash = { icon: station.icon ?? "❓", label: station.label, timer: 1.1 };
     this.onPopup?.({
@@ -666,6 +669,7 @@ export class Game {
     this.comboLeft = 0;
     this.boss.resetToPatrol();
     buzz([40, 60, 40]);
+    sfxWarn();
 
     const final = this.warnings >= this.rules.maxWarnings;
     if (final) {

@@ -38,6 +38,8 @@ export const SETTINGS_SCHEMA = {
   showMarkers: { label: "Marcas de suelo", type: "toggle" },
   vibration: { label: "Vibración (móvil)", type: "toggle" },
   screenShake: { label: "Sacudida de cámara", type: "toggle" },
+  sound: { label: "Sonido (efectos)", type: "toggle" },
+  music: { label: "Música", type: "toggle" },
 };
 
 const DEFAULTS = Object.freeze({
@@ -48,6 +50,8 @@ const DEFAULTS = Object.freeze({
   showMarkers: true,
   vibration: true,
   screenShake: true,
+  sound: true,
+  music: true,
 });
 
 function coerce(values) {

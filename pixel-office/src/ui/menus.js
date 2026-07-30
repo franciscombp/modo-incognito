@@ -1,4 +1,5 @@
 import { SETTINGS_SCHEMA, getSettings, setSettings, subscribeSettings, buzz } from "../game/settings.js";
+import { sfxMove, sfxSelect, sfxBack, sfxOpen } from "../game/sfx.js";
 import { createCameraPanel } from "./cameraPanel.js";
 
 // Every full-screen menu the game has: title, day select, settings (game +
@@ -13,13 +14,15 @@ function el(tag, className, parent, text) {
   return node;
 }
 
-function button(parent, label, { primary = false, icon = "", onClick } = {}) {
+function button(parent, label, { primary = false, icon = "", onClick, back = false } = {}) {
   const btn = el("button", `px-btn${primary ? " px-btn-primary" : ""}`, parent);
   btn.type = "button";
   if (icon) el("span", "px-btn-icon", btn, icon);
   el("span", null, btn, label);
   btn.addEventListener("click", () => {
     buzz(10);
+    if (back) sfxBack();
+    else sfxSelect();
     onClick?.();
   });
   return btn;
@@ -97,7 +100,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
   const daysScreen = makeScreen("days");
   el("h2", "px-screen-title-text", daysScreen, "Elige un día");
   const dayGrid = el("div", "px-day-grid", daysScreen);
-  button(el("div", "px-screen-foot", daysScreen), "Volver", { onClick: () => show("title") });
+  button(el("div", "px-screen-foot", daysScreen), "Volver", { back: true, onClick: () => show("title") });
 
   function renderDays() {
     dayGrid.innerHTML = "";
@@ -118,6 +121,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
       card.addEventListener("click", () => {
         if (!unlocked) return;
         buzz(10);
+        sfxSelect();
         actions.play(i);
       });
     });
@@ -128,6 +132,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
   const charTitle = el("h2", "px-screen-title-text", charScreen, "Elige tu personaje");
   const charGrid = el("div", "px-day-grid px-char-grid", charScreen);
   const charBackBtn = button(el("div", "px-screen-foot", charScreen), "Volver", {
+    back: true,
     onClick: () => show(previousScreen ?? "title"),
   });
 
@@ -162,6 +167,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
       card.addEventListener("click", () => {
         if (locked) return;
         buzz(10);
+        sfxSelect();
         actions.selectCharacter(id);
         renderCharBadge();
         renderCharacters();
@@ -192,7 +198,10 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
   ].map((tab) => {
     const btn = el("button", "px-tab", tabs, tab.label);
     btn.type = "button";
-    btn.addEventListener("click", () => selectTab(tab.id));
+    btn.addEventListener("click", () => {
+      sfxMove();
+      selectTab(tab.id);
+    });
     return { ...tab, btn };
   });
 
@@ -225,12 +234,18 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
         const chip = el("button", "px-chip", input, option.toUpperCase());
         chip.type = "button";
         chip.dataset.value = option;
-        chip.addEventListener("click", () => setSettings({ [key]: option }));
+        chip.addEventListener("click", () => {
+          sfxSelect();
+          setSettings({ [key]: option });
+        });
       });
     } else {
       input = el("button", "px-switch", row);
       input.type = "button";
-      input.addEventListener("click", () => setSettings({ [key]: !getSettings()[key] }));
+      input.addEventListener("click", () => {
+        sfxSelect();
+        setSettings({ [key]: !getSettings()[key] });
+      });
     }
     if (def.hint) el("span", "px-opt-hint", row, def.hint);
     controls.set(key, { input, readout, def });
@@ -255,7 +270,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
   });
 
   const settingsFoot = el("div", "px-screen-foot", settingsScreen);
-  button(settingsFoot, "Volver", { onClick: () => show(previousScreen ?? "title") });
+  button(settingsFoot, "Volver", { back: true, onClick: () => show(previousScreen ?? "title") });
 
   // ---------------- Help ----------------
   const helpScreen = makeScreen("help");
@@ -278,6 +293,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
     Hacerlas con el jefe cerca puntúa más. Al final del día recibes un rango.</p>
   `;
   button(el("div", "px-screen-foot", helpScreen), "Volver", {
+    back: true,
     onClick: () => show(previousScreen ?? "title"),
   });
 
@@ -298,13 +314,16 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
       cameraPane.appendChild(cameraPanel.root);
       selectTab("game");
     }
-    if (currentScreen && currentScreen !== name) previousScreen = currentScreen;
+    const wasHidden = layer.classList.contains("hidden");
+    const changingScreen = currentScreen !== name;
+    if (currentScreen && changingScreen) previousScreen = currentScreen;
     currentScreen = name;
     Object.entries(screens).forEach(([key, node]) => node.classList.toggle("hidden", key !== name));
     layer.classList.remove("hidden");
     document.body.classList.add("menu-open");
     layer.dataset.screen = name;
     focusFirst();
+    if (wasHidden || changingScreen) sfxOpen();
   }
 
   function close() {
@@ -342,6 +361,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
     const at = items.indexOf(document.activeElement);
     const next = items[(((at < 0 ? 0 : at) + delta) % items.length + items.length) % items.length];
     next.focus();
+    sfxMove();
   }
 
   window.addEventListener("keydown", (e) => {

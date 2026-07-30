@@ -7,6 +7,8 @@
 //   { prompt, options: [{ label, reply, flag, then }] } -> a choice
 // `then` is a nested array of nodes, so a branch is just another scene.
 
+import { sfxMove, sfxSelect, sfxAdvance, sfxType } from "./sfx.js";
+
 const ADVANCE_KEYS = new Set([" ", "enter", "e"]);
 const NEXT_KEYS = new Set(["arrowdown", "s", "tab"]);
 const PREV_KEYS = new Set(["arrowup", "w"]);
@@ -89,10 +91,12 @@ export function createDialogue(root) {
   let optionButtons = [];
   let optionIndex = 0;
 
-  function focusOption(i) {
+  function focusOption(i, { silent = false } = {}) {
     if (!optionButtons.length) return;
+    const prev = optionIndex;
     optionIndex = ((i % optionButtons.length) + optionButtons.length) % optionButtons.length;
     optionButtons.forEach((b, idx) => b.classList.toggle("focused", idx === optionIndex));
+    if (!silent && optionIndex !== prev) sfxMove();
   }
 
   let typingTimer = null;
@@ -110,6 +114,9 @@ export function createDialogue(root) {
       const step = () => {
         i += 1;
         textEl.textContent = text.slice(0, i);
+        // Un tick por letra sería un ruido continuo; uno cada pocas basta
+        // para el efecto "máquina de escribir" sin saturar el oído.
+        if (i % 2 === 0) sfxType();
         if (i >= text.length) {
           typingTimer = null;
           typingResolve = null;
@@ -145,6 +152,7 @@ export function createDialogue(root) {
     if (!active) return;
     if (finishTyping()) return;
     if (awaiting) {
+      sfxAdvance();
       const resolve = awaiting;
       awaiting = null;
       hintEl.classList.add("hidden");
@@ -235,6 +243,7 @@ export function createDialogue(root) {
         btn.textContent = opt.label;
         btn.addEventListener("click", async (e) => {
           e.stopPropagation();
+          sfxSelect();
           optionsEl.innerHTML = "";
           optionsEl.classList.add("hidden");
           optionButtons = [];
@@ -255,7 +264,7 @@ export function createDialogue(root) {
         optionsEl.appendChild(btn);
       });
       optionButtons = [...optionsEl.querySelectorAll(".vn-option")];
-      focusOption(0);
+      focusOption(0, { silent: true });
     });
   }
 
