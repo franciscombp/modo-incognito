@@ -1,4 +1,5 @@
 import { ACTIVITY_COLORS, AREA_KINDS } from "../scene/floorplan.js";
+import { sfxMove, sfxSelect } from "./sfx.js";
 
 function fmtTime(s) {
   const m = Math.floor(s / 60);
@@ -231,19 +232,46 @@ export function createHud(root) {
       const btn = el("button", `hud-overlay-btn${action.primary ? " primary" : ""}`, overlayActions);
       btn.type = "button";
       btn.textContent = action.label;
-      btn.addEventListener("click", action.onClick);
+      btn.addEventListener("click", () => {
+        sfxSelect();
+        action.onClick();
+      });
     });
     overlay.classList.remove("hidden");
     // The touch joystick covers most of the lower screen; without this the
     // result card is unreachable on a phone because every tap lands on the
     // stick zone instead of the buttons.
     document.body.classList.add("overlay-open");
+    const primaryBtn = overlayActions.querySelector(".primary") ?? overlayActions.firstElementChild;
+    primaryBtn?.focus();
   }
 
   function hideResult() {
     overlay.classList.add("hidden");
     document.body.classList.remove("overlay-open");
   }
+
+  // ---- Teclado en la tarjeta de fin de día: mismas teclas que en los menús
+  // (flechas/WASD mueven el foco, E también confirma junto a espacio/enter).
+  window.addEventListener("keydown", (e) => {
+    if (overlay.classList.contains("hidden")) return;
+    const key = e.key.toLowerCase();
+    const items = [...overlayActions.querySelectorAll("button")];
+    if (!items.length) return;
+    const at = items.indexOf(document.activeElement);
+    if (["arrowdown", "arrowright", "s", "d"].includes(key)) {
+      e.preventDefault();
+      items[(((at < 0 ? 0 : at) + 1) % items.length + items.length) % items.length].focus();
+      sfxMove();
+    } else if (["arrowup", "arrowleft", "w", "a"].includes(key)) {
+      e.preventDefault();
+      items[(((at < 0 ? 0 : at) - 1) % items.length + items.length) % items.length].focus();
+      sfxMove();
+    } else if (key === "e" && document.activeElement && items.includes(document.activeElement)) {
+      e.preventDefault();
+      document.activeElement.click();
+    }
+  });
 
   function render(state) {
     setAction(state.currentAction);

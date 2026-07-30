@@ -1,6 +1,7 @@
 import { Game } from "./game.js";
 import { createHud } from "./hud.js";
 import { buzz } from "./settings.js";
+import { playMusic } from "./music.js";
 import { createDialogue } from "./dialogue.js";
 import { createSave } from "./save.js";
 import { applyTheme } from "./themes.js";
@@ -191,6 +192,7 @@ export function createEngine({
     game?.setPaused(true);
     hud.setVisible(false);
     hud.hideResult();
+    playMusic("title");
     const done = save.state.completedDays.length;
     menus.openTitle({
       hasProgress: done > 0 || save.dayIndex > 0,
@@ -308,6 +310,7 @@ export function createEngine({
     hud.setDay(day);
     hud.setVisible(true);
     hud.hideResult();
+    playMusic(day.music ?? day.id);
     resetEntities();
     applyBossTuning();
 

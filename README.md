@@ -43,6 +43,8 @@ código**.
 | El guion de un día concreto (reglas, prólogo, secuaces de turno) | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/data/levels) |
 | El plano de la oficina (zonas, escondites, distracciones, secretos) | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) |
 | El balance de IA del jefe / sospecha | [`boss-config.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/boss-config.json) |
+| Los efectos de sonido 8-bit (menús, diálogo, acciones) (código) | [`src/game/sfx.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/sfx.js) |
+| La música de fondo por día | [`public/audio/music/<id>.mp3`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/audio/music) |
 | Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) |
 | Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/style.css) |
 | Sprites de personajes | [`public/sprites/*.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/sprites) |
@@ -232,6 +234,21 @@ campo de visión, yaw, pitch, distancia, altura del objetivo y suavizado, con
 vista previa en vivo. Orbita con clic derecho (o dos dedos), y cuando te guste
 pulsa **Copiar parámetros**: obtienes un bloque `CAMERA_PRESET` listo para
 pegar en `src/scene/config.js` y dejarlo como valor por defecto.
+
+## Sonido
+
+Los efectos (menús, diálogo, actividades) son **sintetizados con WebAudio** en
+`src/game/sfx.js` — tonos cuadrados/triangulares generados en el momento, sin
+un solo archivo de audio que cargar ni que se pueda romper. Para añadir o
+tocar un efecto se edita ese archivo; no hace falta ningún asset.
+
+La música de fondo sí es un archivo real, gestionado por `src/game/music.js`:
+cae uno por día en `public/audio/music/<id>.mp3` (`<id>` es el `id` del nivel
+en `manifest.json`, o el campo `music` del día si quieres otro nombre) y
+`public/audio/music/title.mp3` para el menú. Mientras el archivo no exista no
+suena nada — ni un error en consola, mismo criterio que las ilustraciones de
+`public/actions/`. **Ajustes → Juego** trae interruptores separados para
+sonido y música.
 
 ## Aspecto
 
