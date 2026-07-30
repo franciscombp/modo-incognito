@@ -1,0 +1,148 @@
+// Banda sonora procedural con Tone.js: nada de archivos de música — los
+// mismos cuatro riffs cortos de soundtrackThemes.js se recombinan en vivo
+// según lo que pasa en la partida (calma / tensión / persecución), subiendo
+// y bajando el volumen de cada capa en vez de cortar y arrancar canciones
+// distintas. Editar el sonido del juego es editar soundtrackThemes.js — este
+// archivo solo sabe reproducir esos datos.
+import * as Tone from "tone";
+import { getSettings, subscribeSettings } from "./settings.js";
+import { THEMES } from "./soundtrackThemes.js";
+
+let ready = false;
+let started = false;
+let currentThemeName = null;
+let bassSynth, leadSynth, padSynth, percSynth;
+let bassGain, leadGain, padGain, percGain;
+let bassSeq, leadSeq, padSeq;
+let masterGain;
+let percSeqBuilt = false;
+
+function build() {
+  if (ready) return;
+  ready = true;
+
+  masterGain = new Tone.Gain(getSettings().music ? 1 : 0).toDestination();
+
+  bassGain = new Tone.Gain(0).connect(masterGain);
+  leadGain = new Tone.Gain(0).connect(masterGain);
+  padGain = new Tone.Gain(0).connect(masterGain);
+  percGain = new Tone.Gain(0).connect(masterGain);
+
+  bassSynth = new Tone.Synth({
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.01, decay: 0.15, sustain: 0.2, release: 0.2 },
+  }).connect(bassGain);
+
+  // Pizzicato/ukulele: PluckSynth es justo esa cuerda pulsada y corta que le
+  // da al riff su aire de "mockumentary de oficina" en vez de sonar a videojuego serio.
+  leadSynth = new Tone.PluckSynth({ attackNoise: 0.6, dampening: 3200, resonance: 0.82 }).connect(
+    leadGain
+  );
+
+  padSynth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "sine" },
+    envelope: { attack: 0.4, decay: 0.3, sustain: 0.6, release: 1.2 },
+  }).connect(padGain);
+
+  percSynth = new Tone.NoiseSynth({
+    noise: { type: "white" },
+    envelope: { attack: 0.001, decay: 0.04, sustain: 0 },
+  }).connect(percGain);
+
+  subscribeSettings((s) => {
+    masterGain.gain.rampTo(s.music ? 1 : 0, 0.2);
+  });
+}
+
+async function ensureStarted() {
+  build();
+  if (started) return;
+  try {
+    await Tone.start();
+    started = true;
+  } catch {
+    // Sin gesto de usuario todavía: se reintenta en el próximo setMood/playStinger.
+  }
+}
+
+function makeSequence(pattern, steps, synth, isChord) {
+  if (!pattern || !pattern.length) return null;
+  return new Tone.Sequence(
+    (time, note) => {
+      if (note == null) return;
+      synth.triggerAttackRelease(note, "8n", time);
+    },
+    pattern,
+    `${steps === 8 ? "8n" : "16n"}`
+  ).start(0);
+}
+
+function disposeSequences() {
+  [bassSeq, leadSeq, padSeq].forEach((seq) => seq?.dispose());
+  bassSeq = leadSeq = padSeq = null;
+}
+
+/** Cambia de tema (calm/tense/chase/title...), con una transición suave de
+ * tempo y volumen en vez de un corte — así el motor puede llamarla cada
+ * frame sin que suene a interruptor. No hace nada si ya es el tema activo. */
+export async function setMood(name) {
+  const theme = THEMES[name];
+  if (!theme || !theme.bass) return; // victory/defeat son stingers, no temas
+  if (name === currentThemeName) return;
+  currentThemeName = name;
+
+  await ensureStarted();
+  build();
+
+  Tone.Transport.bpm.rampTo(theme.bpm, 0.6);
+
+  disposeSequences();
+  bassSeq = makeSequence(theme.bass, theme.steps, bassSynth, false);
+  leadSeq = makeSequence(theme.lead, theme.steps, leadSynth, false);
+  padSeq = makeSequence(theme.pad, theme.steps, padSynth, true);
+  // La percusión de la persecución es una capa fija de corcheas, no un patrón
+  // propio del tema — solo sube o baja de volumen.
+  if (!percSeqBuilt) {
+    percSeqBuilt = true;
+    new Tone.Sequence((time) => percSynth.triggerAttackRelease("16n", time), [0], "8n").start(0);
+  }
+
+  const mix = theme.mix;
+  bassGain.gain.rampTo(mix.bass, 0.5);
+  leadGain.gain.rampTo(mix.lead, 0.5);
+  padGain.gain.rampTo(mix.pad, 0.5);
+  percGain.gain.rampTo(mix.perc, 0.5);
+
+  if (Tone.Transport.state !== "started") Tone.Transport.start();
+}
+
+/** Un puñado de notas sueltas (victoria/derrota), no un bucle. */
+export async function playStinger(name) {
+  const theme = THEMES[name];
+  if (!theme?.notes) return;
+  await ensureStarted();
+  build();
+  const now = Tone.now();
+  theme.notes.forEach((note, i) => {
+    leadSynth.triggerAttackRelease(note, "8n", now + i * (theme.noteDuration + theme.gap));
+  });
+}
+
+export function stopSoundtrack() {
+  currentThemeName = null;
+  Tone.Transport.stop();
+  disposeSequences();
+}
+
+/** Decide el ánimo a partir del estado de la partida (ver hud snapshot). Solo
+ * cambia de tema en las transiciones — llamarla cada frame es barato. */
+export function updateMoodFromSnapshot(state) {
+  if (!state || state.gameOver) return;
+  let mood = "calm";
+  if (state.redAlert || state.bossState === "CHASE" || state.bossState === "SEARCH") {
+    mood = "chase";
+  } else if (state.suspicion / state.suspicionMax > 0.5) {
+    mood = "tense";
+  }
+  setMood(mood);
+}

@@ -6,6 +6,8 @@ import { createCameraPanel } from "./cameraPanel.js";
 // camera), how-to-play and pause. They all live in one overlay that swaps
 // screens, so only one thing can ever be on top of the game.
 
+const SPRITE_BASE = `${import.meta.env.BASE_URL ?? "/"}sprites/`;
+
 function el(tag, className, parent, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -153,7 +155,12 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
       );
       card.type = "button";
       card.disabled = locked;
-      el("span", "px-day-num", card, mode.portrait ?? "🙂");
+      if (mode.sheet) {
+        const thumb = el("span", "px-char-sprite", card);
+        thumb.style.backgroundImage = `url(${SPRITE_BASE}${mode.sheet}.png)`;
+      } else {
+        el("span", "px-day-num", card, mode.portrait ?? "🙂");
+      }
       el(
         "span",
         "px-day-name",
