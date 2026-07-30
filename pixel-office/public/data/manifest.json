@@ -73,6 +73,23 @@
           "portrait": "🧑‍🎨",
           "sheet": "npc3",
           "text": "Los dos. Así mantenemos viva la creatividad en un lugar que preferiría que no la tuviéramos. No se lo digas a Gabo."
+        },
+        {
+          "speaker": "Giuli",
+          "portrait": "🧑‍🎨",
+          "sheet": "npc3",
+          "text": "La idea fue de César y Manu, un día que César se quejó tan fuerte que a alguien se le ocurrió construir algo en vez de seguir aguantando. Fran es quien lo está programando de verdad."
+        },
+        {
+          "speaker": "Giuli",
+          "portrait": "🧑‍🎨",
+          "sheet": "npc3",
+          "text": "Con ayuda, eso sí. Fran no programa solo — programa con Claude Code al lado, fingiendo que es una reunión de arquitectura."
+        },
+        {
+          "speaker": "Tú",
+          "portrait": "😏",
+          "text": "Así que hasta la IA está fingiendo que trabaja aquí."
         }
       ]
     }
