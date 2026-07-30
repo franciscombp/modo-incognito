@@ -234,11 +234,18 @@ export function createEngine({
 
     if (key === "escape") {
       e.preventDefault();
+      // El cruce no tiene forma de pausarse (su bucle es propio, no pasa por
+      // game.setPaused) — abrir el menú encima solo taparía el tráfico
+      // seguir avanzando sin que se vea.
+      if (crossingActive) return;
       if (menus.isOpen && menus.screen === "pause") resumeFromMenu();
       else if (!menus.isOpen) openPause();
       return;
     }
-    if (menus.isOpen) return;
+    // Las flechas del cruce podrían coincidir por accidente con un código
+    // secreto (el Konami usa flechas también) y abrir un diálogo encima del
+    // tráfico todavía en marcha.
+    if (menus.isOpen || crossingActive) return;
 
     codeBuffer.push(key);
     if (codeBuffer.length > 12) codeBuffer.shift();
@@ -326,6 +333,7 @@ export function createEngine({
       if (day.crossingIntro) await dialogue.play(withSprites(day.crossingIntro), ctx);
       document.body.classList.add("crossing-open");
       crossingActive = true;
+      setMood("crossing");
       const outcome = await crossing3D.play((s, c) => pixels?.render(s, c));
       crossingActive = false;
       document.body.classList.remove("crossing-open");
@@ -504,6 +512,7 @@ export function createEngine({
 
   /** Atropellada antes de llegar a entrar: se lo dices a Gabo y te "asciende". */
   async function crossingFailed(day) {
+    playStinger("defeat");
     hud.setDay(day);
     hud.setVisible(true);
     await dialogue.play(

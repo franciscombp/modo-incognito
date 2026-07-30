@@ -26,6 +26,11 @@ const ctx = await b.newContext({ viewport: { width: 1440, height: 900 }, deviceS
 const p = await ctx.newPage();
 await p.goto("http://localhost:4173/", { waitUntil: "networkidle" });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
+// Un perfil nuevo fuerza la selección de personaje antes de mostrar el
+// título — sin esto "Ajustes" resuelve al botón (oculto) del título.
+const forced = await p.evaluate(() => window.__game.engine.menus.screen === "characters");
+if (forced) await p.click(".px-day.px-char:not(.locked)");
+await p.waitForTimeout(300);
 await p.click("text=Ajustes");
 await p.waitForTimeout(400);
 await p.screenshot({ path: "shots/menu-settings-game.png" });

@@ -492,7 +492,7 @@ async function boot() {
   requestAnimationFrame(animate);
 
   // Exposed for the automated checks in tools/.
-  window.__game = { world, navmesh, player, boss, engine, camera, scene, view, pixels, data };
+  window.__game = { world, navmesh, player, boss, engine, camera, scene, view, pixels, data, crossing3D };
   window.__floorplan = floorplan;
 }
 

@@ -16,17 +16,20 @@ const VEHICLE_WIDTH = 0.85 * S;
 const PLAYER_RADIUS = 0.3 * S;
 const MOVE_COOLDOWN = 150;
 
+// Huecos generosos a propósito: es un chiste sobre que te despidan, no un
+// examen de reflejos — la caminata debe ganarse con lectura de tráfico, no
+// con pixel-perfect timing.
 const ROWS = [
   { kind: "sidewalk" },
-  { kind: "car", dir: 1, speed: 3.4 * S, gap: [1.1, 1.8], colors: [0xe6483f, 0x45a0e0, 0xf2c744] },
-  { kind: "car", dir: 1, speed: 4.4 * S, gap: [1.0, 1.6], colors: [0xe6483f, 0xe8e8e8, 0x45a0e0] },
-  { kind: "car", dir: 1, speed: 3.8 * S, gap: [1.2, 2.0], colors: [0xf2c744, 0xe6483f] },
-  { kind: "bike", dir: -1, speed: 5.2 * S, gap: [0.9, 1.5], colors: [0xa8e05f, 0x45e0d0] },
+  { kind: "car", dir: 1, speed: 2.4 * S, gap: [2.0, 2.9], colors: [0xe6483f, 0x45a0e0, 0xf2c744] },
+  { kind: "car", dir: 1, speed: 2.9 * S, gap: [1.9, 2.7], colors: [0xe6483f, 0xe8e8e8, 0x45a0e0] },
+  { kind: "car", dir: 1, speed: 2.6 * S, gap: [2.1, 3.0], colors: [0xf2c744, 0xe6483f] },
+  { kind: "bike", dir: -1, speed: 3.4 * S, gap: [1.7, 2.4], colors: [0xa8e05f, 0x45e0d0] },
   { kind: "median" },
-  { kind: "bike", dir: 1, speed: 5.2 * S, gap: [0.9, 1.5], colors: [0xa8e05f, 0x45e0d0] },
-  { kind: "car", dir: -1, speed: 4.0 * S, gap: [1.1, 1.8], colors: [0x8b5cf6, 0xe8e8e8] },
-  { kind: "car", dir: -1, speed: 4.6 * S, gap: [1.0, 1.6], colors: [0xe6483f, 0x45a0e0, 0xf2c744] },
-  { kind: "car", dir: -1, speed: 3.5 * S, gap: [1.2, 2.0], colors: [0xf2c744, 0x8b5cf6] },
+  { kind: "bike", dir: 1, speed: 3.4 * S, gap: [1.7, 2.4], colors: [0xa8e05f, 0x45e0d0] },
+  { kind: "car", dir: -1, speed: 2.7 * S, gap: [2.0, 2.9], colors: [0x8b5cf6, 0xe8e8e8] },
+  { kind: "car", dir: -1, speed: 3.0 * S, gap: [1.9, 2.7], colors: [0xe6483f, 0x45a0e0, 0xf2c744] },
+  { kind: "car", dir: -1, speed: 2.4 * S, gap: [2.1, 3.0], colors: [0xf2c744, 0x8b5cf6] },
   { kind: "goal" },
 ];
 const GOAL_ROW = ROWS.length - 1;
@@ -178,6 +181,7 @@ export function createCrossing3D(root, playerSheet) {
   scene.add(player.object);
 
   let vehicles = [];
+  let nextSpawnByRow = ROWS.map(() => 0);
   let playerCell = { row: 0, col: Math.floor(COLS / 2) };
   let lastMove = 0;
   let running = false;
@@ -206,6 +210,11 @@ export function createCrossing3D(root, playerSheet) {
     vehicles.push(v);
   }
 
+  function randomGap(row) {
+    const [gMin, gMax] = row.gap;
+    return gMin + Math.random() * (gMax - gMin);
+  }
+
   function resetGame() {
     vehicles.forEach((v) => v.sprite.parent?.remove(v.sprite));
     vehicles = [];
@@ -215,11 +224,12 @@ export function createCrossing3D(root, playerSheet) {
     placeCamera();
     ROWS.forEach((row, i) => {
       if (row.kind !== "car" && row.kind !== "bike") return;
-      for (let n = 0; n < 2; n++) {
-        spawnFor(i);
-        vehicles[vehicles.length - 1].x = (Math.random() - 0.5) * ROAD_WIDTH;
-        vehicles[vehicles.length - 1].sprite.position.x = vehicles[vehicles.length - 1].x;
-      }
+      // Un vehículo ya en marcha, repartido por la calle, para que el
+      // carril no arranque completamente vacío.
+      spawnFor(i);
+      vehicles[vehicles.length - 1].x = (Math.random() - 0.5) * ROAD_WIDTH;
+      vehicles[vehicles.length - 1].sprite.position.x = vehicles[vehicles.length - 1].x;
+      nextSpawnByRow[i] = randomGap(row);
     });
   }
 
@@ -263,10 +273,12 @@ export function createCrossing3D(root, playerSheet) {
     });
     ROWS.forEach((row, i) => {
       if (row.kind !== "car" && row.kind !== "bike") return;
+      nextSpawnByRow[i] -= dt;
+      if (nextSpawnByRow[i] > 0) return;
       const rowVehicles = vehicles.filter((v) => v.row === i);
-      if (rowVehicles.length >= 3) return;
-      const edgeFree = rowVehicles.every((v) => Math.abs(v.x - (row.dir > 0 ? -ROAD_WIDTH / 2 : ROAD_WIDTH / 2)) > VEHICLE_WIDTH * 1.4);
-      if (edgeFree && Math.random() < dt * 0.5) spawnFor(i);
+      if (rowVehicles.length >= 2) return;
+      spawnFor(i);
+      nextSpawnByRow[i] = randomGap(row);
     });
     vehicles = vehicles.filter((v) => {
       const gone = v.dir > 0 ? v.x > ROAD_WIDTH / 2 + VEHICLE_WIDTH : v.x < -ROAD_WIDTH / 2 - VEHICLE_WIDTH;
@@ -335,5 +347,17 @@ export function createCrossing3D(root, playerSheet) {
   }
 
   placeCamera();
-  return { scene, camera, play, resize, dispose };
+  // Introspección de solo lectura — la usan las comprobaciones en tools/
+  // para decidir con criterio cuándo es seguro avanzar, en vez de darle a
+  // la tecla a ciegas.
+  function getState() {
+    return {
+      row: playerCell.row,
+      col: playerCell.col,
+      goalRow: GOAL_ROW,
+      vehicles: vehicles.map((v) => ({ row: v.row, x: v.x, dir: v.dir })),
+    };
+  }
+
+  return { scene, camera, play, resize, dispose, getState };
 }
