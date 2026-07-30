@@ -139,9 +139,16 @@ export function createHud(root) {
   const actionFrame = el("div", "action-frame", actionScene);
   const actionImg = el("img", "action-img hidden", actionFrame);
   const actionEmoji = el("div", "action-emoji", actionFrame);
+  const actionDone = el("div", "action-done hidden", actionFrame);
+  const actionTrack = el("div", "action-progress-track", actionScene);
+  const actionFill = el("div", "action-progress-fill", actionTrack);
   const actionLabel = el("div", "action-label", actionScene);
   let actionId = null;
 
+  // Una sola escena de acción: mientras se sostiene E la barra de progreso y
+  // la ilustración viven en el mismo panel que antes duplicaba el globo
+  // flotante "MANTÉN E" (worldPrompt se oculta mientras esto está visible,
+  // ver render() más abajo). Al completarse muestra un check un instante.
   function setAction(action) {
     if (!action) {
       actionScene.classList.add("hidden");
@@ -149,6 +156,8 @@ export function createHud(root) {
       return;
     }
     actionScene.classList.remove("hidden");
+    actionFrame.classList.toggle("done", !!action.done);
+    actionDone.classList.toggle("hidden", !action.done);
     if (action.id !== actionId) {
       actionId = action.id;
       actionEmoji.textContent = action.icon ?? "❓";
@@ -165,7 +174,11 @@ export function createHud(root) {
       const base = import.meta.env.BASE_URL ?? "/";
       actionImg.src = `${base}actions/${action.id}.png`;
     }
-    actionLabel.textContent = action.label ?? "";
+    actionLabel.textContent = action.done ? `${action.label} ✔` : action.label ?? "";
+    actionTrack.classList.toggle("hidden", action.progress == null);
+    if (action.progress != null) {
+      actionFill.style.width = `${Math.round(Math.min(1, Math.max(0, action.progress)) * 100)}%`;
+    }
   }
 
   // ---- End-of-day card ----
