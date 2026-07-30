@@ -75,7 +75,8 @@ código**.
 | Qué puede hacer una opción de diálogo (`effect`) | [`src/game/effects.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/effects.js) |
 | Registrar un minijuego nuevo (antes de la jornada) | [`src/game/minigames.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/minigames.js) |
 | Los efectos de sonido 8-bit (menús, diálogo, acciones) (código) | [`src/game/sfx.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/sfx.js) |
-| El soundtrack procedural (notas, tempo, mezcla por ánimo) | [`src/game/soundtrackThemes.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrackThemes.js) |
+| La pista de música y cómo reacciona al juego | [`src/game/soundtrackTrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrackTrack.js) + [`public/audio/`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/audio) |
+| El soundtrack procedural de respaldo (notas, tempo, mezcla) | [`src/game/soundtrackThemes.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrackThemes.js) |
 | Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrack.js) |
 | Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) |
 | Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/style.css) |
@@ -159,6 +160,7 @@ npm run check                        # ahora sí, corre la batería completa
 | `check:minion-proximity` | Un secuaz solo "atrapa" con proximidad física real, no solo con verte |
 | `check:suspicion` | La sospecha sube/baja/decae con los valores esperados |
 | `check:pursuit` | Que una persecución comprometida no se rinda (ni por perderte de vista ni por atascarse) y que el lugar seguro sea la única salida |
+| `check:music` | Que la pista suene de verdad (no solo que cargue) y que el ánimo le abra el filtro y le suba el tempo |
 | `check:layout` | Que en 6 tamaños de pantalla (de 1440px a un iPhone SE, y horizontal) ningún panel, botón o marcador se solape con otro, ningún texto se recorte y nada se salga de la pantalla |
 
 `check:layout` es el que conviene correr después de tocar el HUD o el CSS:
@@ -336,16 +338,25 @@ Los efectos (menús, diálogo, actividades) son **sintetizados con WebAudio** en
 un solo archivo de audio que cargar ni que se pueda romper. Para añadir o
 tocar un efecto se edita ese archivo; no hace falta ningún asset.
 
-La música de fondo también es procedural — no hay ni un `.mp3` en el repo.
-`src/game/soundtrack.js` usa [Tone.js](https://tonejs.github.io/) para tocar en
-vivo los riffs cortos (bajo + pizzicato + colchón + percusión) que viven en
-`src/game/soundtrackThemes.js`, con un aire de mockumentary de oficina. El
-motor cambia de ánimo solo — `calm` de patrulla, `tense` con la sospecha alta,
-`chase` en plena persecución, y un stinger de `victory`/`defeat` al cerrar el
-día — subiendo y bajando el volumen de cada capa en vez de cortar canciones,
-así que nunca se nota el cambio como un golpe. **Para tocar el soundtrack solo
-se edita `soundtrackThemes.js`**: son datos (notas, tempo, mezcla), no motor de
-audio. **Ajustes → Juego** trae interruptores separados para sonido y música.
+La música de fondo es una **pista compuesta** que suena en bucle:
+`public/audio/stapler-sprint.mp3` (16 compases exactos a 136 BPM, en Do menor).
+No se limita a sonar de fondo — `src/game/soundtrackTrack.js` le hace
+**remezcla vertical ligera**: con el jefe lejos suena filtrada y baja, como
+si viniera de otra sala; cuando te caza se abre del todo y acelera un 8%. Así
+la música sigue reaccionando a la partida aunque sea una pieza cerrada.
+
+Para cambiar de tema, deja otro mp3 en `public/audio/` y ajusta `TRACK` en
+`soundtrackTrack.js` — sobre todo `bpm` y `loopEnd`, que marcan el punto de
+bucle; si no cuadran con la pista nueva, el bucle se oye cortado. Los ajustes
+por ánimo (volumen, filtro, velocidad) están en `TRACK_MOODS`, en el mismo
+archivo.
+
+Si el mp3 falta o no carga, el juego **no se queda mudo**: cae en el
+soundtrack procedural con Tone.js de `src/game/soundtrackThemes.js`, que
+sintetiza en vivo riffs de bajo + pizzicato + colchón + percusión y los
+recombina por ánimo. Los stingers de victoria y derrota son siempre
+sintetizados, así que suenan haya pista o no. **Ajustes → Juego** trae
+interruptores separados para sonido y música.
 
 ## Aspecto
 

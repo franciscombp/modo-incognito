@@ -1,12 +1,19 @@
-// Banda sonora procedural con Tone.js: nada de archivos de música — los
-// mismos cuatro riffs cortos de soundtrackThemes.js se recombinan en vivo
-// según lo que pasa en la partida (calma / tensión / persecución), subiendo
-// y bajando el volumen de cada capa en vez de cortar y arrancar canciones
-// distintas. Editar el sonido del juego es editar soundtrackThemes.js — este
-// archivo solo sabe reproducir esos datos.
+// La banda sonora del juego, en dos capas que se eligen solas:
+//
+//  1. La PISTA compuesta (soundtrackTrack.js -> public/audio/*.mp3). Es la que
+//     suena normalmente. No se limita a sonar: se le hace remezcla vertical
+//     ligera — filtro y volumen por ánimo — para que siga reaccionando a la
+//     partida, que es de lo que iba el soundtrack desde el principio.
+//  2. Los riffs PROCEDURALES de soundtrackThemes.js, como plan B. Si el mp3
+//     no está o no carga, el juego sigue teniendo música en vez de quedarse
+//     mudo, y ahí sí se recombinan capas en vivo (bajo/lead/pad/perc).
+//
+// Los stingers de victoria y derrota son siempre sintetizados, en su propio
+// sintetizador, así que suenan con o sin pista.
 import * as Tone from "tone";
 import { getSettings, subscribeSettings } from "./settings.js";
 import { THEMES } from "./soundtrackThemes.js";
+import { createTrackPlayer } from "./soundtrackTrack.js";
 
 let ready = false;
 let started = false;
@@ -16,6 +23,14 @@ let bassGain, leadGain, padGain, percGain, stingerGain;
 let bassSeq, leadSeq, padSeq;
 let masterGain;
 let percSeqBuilt = false;
+let track = null;
+
+// Con una pista compuesta disponible manda ella y los riffs sintetizados se
+// callan; si el archivo falta o no carga, `track.failed` deja que el
+// soundtrack procedural siga siendo el plan B, sin que el juego se entere.
+function useTrack() {
+  return track && !track.failed;
+}
 
 function build() {
   if (ready) return;
@@ -59,6 +74,8 @@ function build() {
     oscillator: { type: "triangle" },
     envelope: { attack: 0.01, decay: 0.2, sustain: 0.25, release: 0.4 },
   }).connect(stingerGain);
+
+  track = createTrackPlayer(masterGain);
 
   subscribeSettings((s) => {
     masterGain.gain.rampTo(s.music ? 1 : 0, 0.2);
@@ -105,6 +122,16 @@ export async function setMood(name) {
   await ensureStarted();
   build();
 
+  // La pista compuesta lleva la voz cantante. Solo si no hay archivo se
+  // recurre a los riffs de soundtrackThemes.js.
+  if (track) {
+    track.apply(name);
+    if (useTrack()) {
+      silenceSynthLayers();
+      return;
+    }
+  }
+
   Tone.Transport.bpm.rampTo(theme.bpm, 0.6);
 
   disposeSequences();
@@ -127,6 +154,13 @@ export async function setMood(name) {
   if (Tone.Transport.state !== "started") Tone.Transport.start();
 }
 
+/** Baja las capas sintetizadas: con pista real no deben sonar encima. */
+function silenceSynthLayers() {
+  [bassGain, leadGain, padGain, percGain].forEach((g) => g?.gain.rampTo(0, 0.4));
+  disposeSequences();
+  if (Tone.Transport.state === "started") Tone.Transport.stop();
+}
+
 /** Un puñado de notas sueltas (victoria/derrota), no un bucle. */
 export async function playStinger(name) {
   const theme = THEMES[name];
@@ -141,14 +175,32 @@ export async function playStinger(name) {
 
 export function stopSoundtrack() {
   currentThemeName = null;
+  track?.stop();
   Tone.Transport.stop();
   disposeSequences();
+}
+
+/** Estado interno, solo para las comprobaciones de tools/. */
+export function soundtrackState() {
+  return {
+    mood: currentThemeName,
+    usingTrack: useTrack(),
+    trackReady: !!track?.ready,
+    trackFailed: !!track?.failed,
+    playing: track?.isPlaying ?? false,
+    cutoff: track?.cutoff ?? null,
+    rate: track?.rate ?? null,
+  };
 }
 
 /** Decide el ánimo a partir del estado de la partida (ver hud snapshot). Solo
  * cambia de tema en las transiciones — llamarla cada frame es barato. */
 export function updateMoodFromSnapshot(state) {
   if (!state || state.gameOver) return;
+  // Si la pista ya cargó pero aún no suena (el contexto de audio tardó en
+  // desbloquearse), se reintenta aquí en vez de esperar a un cambio de ánimo
+  // que quizá no llegue en toda la partida.
+  if (track && !track.failed && !track.isPlaying) track.nudge();
   let mood = "calm";
   if (state.redAlert || state.bossState === "CHASE" || state.bossState === "SEARCH") {
     mood = "chase";
