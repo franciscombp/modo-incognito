@@ -126,13 +126,21 @@ async function boot() {
     const mode = modeOf(id);
     player.sprite.setSheet(walkSheetOf(id));
     player.sprite.setActionSheet(sheets.get(mode?.actionSheet ?? chars.player.actionSheet));
-    crossing3D.setPlayerSheet(walkSheetOf(id));
+    crossing3D.setPlayerSheet(
+      walkSheetOf(id),
+      sheets.get(mode?.actionSheet ?? chars.player.actionSheet)
+    );
   }
 
   // Cruzar la avenida es una escena 3D aparte, con cámara propia (por detrás
   // del hombro) pero los mismos sprites — se crea aquí, donde ya tenemos las
   // hojas cargadas.
-  const crossing3D = createCrossing3D(app, walkSheetOf(save.characterId));
+  const crossing3D = createCrossing3D(app, walkSheetOf(save.characterId), {
+    playerAction: sheets.get(modeOf(save.characterId)?.actionSheet ?? chars.player.actionSheet),
+    // Gente de la oficina llenando la acera: los mismos pliegos de compañeros
+    // que se usan en el piso, sin cargar nada nuevo.
+    crowd: ["npc1", "npc2", "npc3", "npc4"].map((n) => sheets.get(n)),
+  });
   crossing3D.resize(window.innerWidth / window.innerHeight);
 
   // Los minijuegos se registran aquí; el motor solo los busca por el id que
