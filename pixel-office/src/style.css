@@ -1269,7 +1269,7 @@ body.touch-device #hint {
   position: absolute;
   left: 0;
   top: 0;
-  bottom: clamp(150px, 24vh, 232px);
+  bottom: calc(18px + clamp(150px, 24vh, 232px));
   z-index: 2;
   width: clamp(220px, 34vw, 480px);
   display: grid;
@@ -1317,11 +1317,13 @@ body.touch-device #hint {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 0;
-  padding: 34px clamp(24px, 4vw, 56px) calc(20px + var(--safe-b));
-  border-top: 2px solid var(--vn-accent);
+  bottom: max(18px, var(--safe-b));
+  padding: 34px clamp(24px, 4vw, 56px) 20px;
+  border: 2px solid var(--vn-accent);
+  border-radius: 14px;
   background: var(--scan), linear-gradient(180deg, rgba(14, 20, 36, 0.98), rgba(6, 8, 16, 0.98));
-  box-shadow: 0 -8px 40px rgba(69, 224, 208, 0.2), inset 0 0 60px rgba(69, 224, 208, 0.06);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 40px rgba(69, 224, 208, 0.2),
+    inset 0 0 60px rgba(69, 224, 208, 0.06);
   animation: vn-rise 0.2s ease-out;
 }
 
@@ -2195,17 +2197,13 @@ body.overlay-open .compass-layer,
 body.overlay-open .px-popups,
 body.overlay-open .touch-controls,
 body.overlay-open #hint,
+body.vn-open .hud-root,
 body.vn-open .radar,
 body.vn-open .wprompt,
 body.vn-open .compass-layer,
 body.vn-open .touch-controls,
 body.vn-open #hint {
   display: none !important;
-}
-
-body.vn-open .hud-topbar {
-  opacity: 0.25;
-  transition: opacity 0.2s;
 }
 
 /* ================= Móvil ================= */
