@@ -11,8 +11,8 @@ import { THEMES } from "./soundtrackThemes.js";
 let ready = false;
 let started = false;
 let currentThemeName = null;
-let bassSynth, leadSynth, padSynth, percSynth;
-let bassGain, leadGain, padGain, percGain;
+let bassSynth, leadSynth, padSynth, percSynth, stingerSynth;
+let bassGain, leadGain, padGain, percGain, stingerGain;
 let bassSeq, leadSeq, padSeq;
 let masterGain;
 let percSeqBuilt = false;
@@ -48,6 +48,17 @@ function build() {
     noise: { type: "white" },
     envelope: { attack: 0.001, decay: 0.04, sustain: 0 },
   }).connect(percGain);
+
+  // Los stingers (victoria/derrota) tienen su propio sintetizador a
+  // propósito. Compartir `leadSynth` con el bucle hacía que Tone lanzara
+  // "The time must be greater than or equal to the last scheduled time":
+  // el stinger reserva ~1.4 s de notas futuras y, mientras tanto, la
+  // secuencia del tema seguía pidiéndole notas en instantes anteriores.
+  stingerGain = new Tone.Gain(1).connect(masterGain);
+  stingerSynth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.01, decay: 0.2, sustain: 0.25, release: 0.4 },
+  }).connect(stingerGain);
 
   subscribeSettings((s) => {
     masterGain.gain.rampTo(s.music ? 1 : 0, 0.2);
@@ -124,7 +135,7 @@ export async function playStinger(name) {
   build();
   const now = Tone.now();
   theme.notes.forEach((note, i) => {
-    leadSynth.triggerAttackRelease(note, "8n", now + i * (theme.noteDuration + theme.gap));
+    stingerSynth.triggerAttackRelease(note, "8n", now + i * (theme.noteDuration + theme.gap));
   });
 }
 

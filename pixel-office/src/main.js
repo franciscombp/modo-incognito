@@ -5,6 +5,7 @@ import { createCollisionWorld } from "./scene/collision.js";
 import { buildNavmesh } from "./scene/navmesh.js";
 import { PixelPipeline } from "./scene/pixelPipeline.js";
 import { createCrossing3D } from "./scene/crossing3d.js";
+import { createMinigameRegistry } from "./game/minigames.js";
 import { WORLD_SCALE as S } from "./scene/config.js";
 import * as floorplan from "./scene/floorplan.js";
 import { setActiveScene } from "./scene/floorplan.js";
@@ -114,6 +115,16 @@ async function boot() {
   const crossing3D = createCrossing3D(app, sheets.get(chars.player.sheet));
   crossing3D.resize(window.innerWidth / window.innerHeight);
 
+  // Los minijuegos se registran aquí; el motor solo los busca por el id que
+  // pida el JSON del día (ver game/minigames.js). Añadir otro es una línea
+  // más, sin tocar engine.js.
+  const minigames = createMinigameRegistry();
+  minigames.register("crossing", {
+    play: (renderFn) => crossing3D.play(renderFn),
+    mood: "crossing",
+    bodyClass: "crossing-open",
+  });
+
   const player = new Player(sheets.get(chars.player.sheet), {
     x: floorplan.spawn.x,
     z: floorplan.spawn.z,
@@ -210,7 +221,7 @@ async function boot() {
     playerName: chars.player.name ?? "Tú",
     minions,
     onPopup: (p) => popups.spawn(p),
-    crossing3D,
+    minigames,
     pixels,
   });
 
@@ -457,6 +468,24 @@ async function boot() {
   boot0?.remove();
   engine.start();
 
+  // Los controles de abajo son una nota de bienvenida: se apagan en cuanto la
+  // jugadora se mueve por su cuenta (o tras un rato, si se queda mirando), y
+  // así dejan de pelearse por la esquina con la tarjeta de tarea.
+  // Solo las teclas de movimiento cuentan: player.keys guarda TODAS las
+  // pulsadas, así que mirar su tamaño habría dado por "ya sabe andar" a
+  // quien solo apretó espacio para pasar un diálogo.
+  const MOVE_KEYS = ["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright"];
+  let hintPlayTime = 0;
+  function updateHints(dt) {
+    if (document.body.classList.contains("hints-done")) return;
+    if (!engine.inLevel || engine.isPaused) return;
+    hintPlayTime += dt;
+    const moved =
+      MOVE_KEYS.some((k) => player.keys.has(k)) ||
+      Math.hypot(player.touchAxis.x, player.touchAxis.z) > 0.08;
+    if (moved || hintPlayTime > 18) document.body.classList.add("hints-done");
+  }
+
   let last = performance.now();
   function animate(now) {
     const dt = Math.min((now - last) / 1000, 0.05);
@@ -479,6 +508,7 @@ async function boot() {
       });
 
       watchPerformance(dt);
+      updateHints(dt);
       updateHidingMarkers();
       updateSafeSpotMarkers();
       updateLabels();

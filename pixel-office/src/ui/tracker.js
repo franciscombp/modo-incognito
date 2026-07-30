@@ -17,6 +17,10 @@ const EDGE = 46; // px que se dejan libres en el borde de la pantalla
 // asumir una altura fija que solo es correcta en un tamaño de pantalla.
 const TOP_SAFE_FALLBACK = 260;
 const TOP_SAFE_MARGIN = 18;
+// Lo mismo por la derecha en táctil: ahí vive la rejilla de utilidades
+// (zoom / plano / pausa) y la flecha de borde se le metía debajo, quedando
+// ilegible justo cuando más importa (el jefe fuera de cámara).
+const SIDE_SAFE_MARGIN = 12;
 
 export function createTracker(root, camera, { id, side = "right", accent = "cyan" }) {
   const layer = document.createElement("div");
@@ -53,6 +57,7 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
   // Buscado perezosamente: hud.js crea `.hud-topbar` en el mismo tick que
   // este tracker, pero el orden exacto no está garantizado.
   let topbarEl = null;
+  let utilsEl = null;
 
   /**
    * @param {object|null} target  { x, z, icon, top, label, meta, urgency, level }
@@ -105,6 +110,18 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
       // media pantalla igual, así que cede proporcionalmente ahí.
       const topSafe = Math.min(barHeight + TOP_SAFE_MARGIN, h * 0.55);
       sy = Math.max(h / 2 - ny * scale, topSafe);
+
+      // La columna táctil de la derecha manda sobre la flecha: si el borde
+      // cae debajo, se corre a su izquierda.
+      if (!utilsEl) utilsEl = document.querySelector(".touch-utils");
+      const utils = utilsEl?.getBoundingClientRect();
+      if (utils && utils.width > 0 && sy > utils.top - EDGE && sy < utils.bottom + EDGE) {
+        // `sx` es el CENTRO del marcador (va con translate -50%), así que hay
+        // que descontar su media anchura o la mitad derecha se sigue metiendo
+        // debajo de los botones.
+        const halfMarker = marker.getBoundingClientRect().width / 2 || 18;
+        sx = Math.min(sx, utils.left - SIDE_SAFE_MARGIN - halfMarker);
+      }
       angle = Math.atan2(nx, ny) * (180 / Math.PI);
     }
 

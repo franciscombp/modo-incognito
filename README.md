@@ -72,6 +72,8 @@ código**.
 | El guion de un día concreto (reglas, prólogo, secuaces de turno) | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/data/levels) |
 | El plano de la oficina (zonas, escondites, distracciones, secretos) | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) |
 | El balance de IA del jefe / sospecha | [`boss-config.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/boss-config.json) |
+| Qué puede hacer una opción de diálogo (`effect`) | [`src/game/effects.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/effects.js) |
+| Registrar un minijuego nuevo (antes de la jornada) | [`src/game/minigames.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/minigames.js) |
 | Los efectos de sonido 8-bit (menús, diálogo, acciones) (código) | [`src/game/sfx.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/sfx.js) |
 | El soundtrack procedural (notas, tempo, mezcla por ánimo) | [`src/game/soundtrackThemes.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrackThemes.js) |
 | Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrack.js) |
@@ -156,6 +158,13 @@ npm run check                        # ahora sí, corre la batería completa
 | `check:catch` | Diálogos al ser atrapada (secuaz e interrogatorio del jefe + gracia) |
 | `check:minion-proximity` | Un secuaz solo "atrapa" con proximidad física real, no solo con verte |
 | `check:suspicion` | La sospecha sube/baja/decae con los valores esperados |
+| `check:layout` | Que en 6 tamaños de pantalla (de 1440px a un iPhone SE, y horizontal) ningún panel, botón o marcador se solape con otro, ningún texto se recorte y nada se salga de la pantalla |
+
+`check:layout` es el que conviene correr después de tocar el HUD o el CSS:
+estos fallos no se ven leyendo el diff y cuesta pillarlos a ojo en una
+captura. Ya ha cazado el botón de pausa debajo de la tarjeta de tarea, el
+botón USAR encima de los de utilidades en horizontal, y la flecha que apunta
+al jefe metiéndose bajo los controles táctiles.
 
 ## Controles
 
@@ -383,6 +392,51 @@ src/
   `$comment` que separa los campos ya conectados al motor de los reservados
   para una futura mecánica de salida por ascensor (tocar esos últimos hoy no
   cambia nada todavía).
+
+### Los dos puntos de extensión que sí piden código
+
+Casi todo es JSON, pero dos cosas necesitan una línea de JavaScript. Las dos
+están aisladas a propósito en su propio archivo, para que añadir no signifique
+editar el motor:
+
+- **Un efecto de diálogo nuevo** (`"effect": "..."` en una opción) →
+  `src/game/effects.js`. Es un objeto: añade una entrada con `label` (para
+  quien escriba contenido) y `run(game)`. El resto del motor no se entera.
+  Un nombre que no exista ya no se ignora en silencio: avisa por consola
+  diciendo cuáles son válidos, así una errata en `dialogues.json` se ve.
+
+  ```js
+  "cafe-doble": {
+    label: "Doble de cafeína, doble de nervios",
+    run: (game) => { game.applyPerk("caffeine"); game.suspicion += 10; },
+  }
+  ```
+
+  Lo que un efecto puede tocar es la API pública de `Game`: `toast()`,
+  `award()`, `applyPerk()`, `suspicion`, `timeLeft`, `revealBossUntil`…
+
+- **Un minijuego nuevo** (una escena jugable antes de la jornada, como cruzar
+  la avenida) → escríbela aparte (mira `src/scene/crossing3d.js`) y regístrala
+  en `src/main.js` con una línea:
+
+  ```js
+  minigames.register("ascensor", { play, mood: "tense", bodyClass: "lift-open" });
+  ```
+
+  A partir de ahí es contenido: el día que lo quiera lo declara en su JSON, y
+  **todo el texto de la derrota también es JSON** — el motor no sabe qué dice
+  Gabo cuando pierdes:
+
+  ```json
+  "minigame": {
+    "id": "ascensor",
+    "intro":  [ { "speaker": "Steven el Daddy", "narrator": true, "text": "…" } ],
+    "onFail": { "icon": "🛗", "title": "Te ascendieron a cliente",
+                "body": "…", "dialogue": [ … ] }
+  }
+  ```
+
+  `play(renderFn)` devuelve una promesa que resuelve `"safe"` o `"hit"`.
 
 ## Puntuación
 

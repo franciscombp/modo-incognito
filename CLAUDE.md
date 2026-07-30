@@ -47,6 +47,28 @@ regenerados de la raíz (`assets/`, `data/`, `index.html`) al commit. Si no,
 la versión servida por Pages (o por `serve.py`) queda desincronizada del
 código fuente.
 
+## Dónde se extiende el juego (no metas esto en el motor)
+
+Dos registros aislados a propósito. Si te piden "añade un efecto" o "añade un
+minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
+
+- `src/game/effects.js` — lo que puede hacer un `"effect"` de diálogo. Una
+  entrada `{ label, run(game) }` por efecto. Un nombre desconocido avisa por
+  consola (antes se ignoraba en silencio y parecía que el diálogo no hacía
+  nada). Los efectos usan la API pública de `Game`: `toast()`, `award()`,
+  `applyPerk()`, `chispitaReport()`, `suspicion`, `timeLeft`,
+  `revealBossUntil`. Si necesitas algo más, expón un método público con
+  nombre claro — no llames a `_privados` desde un efecto.
+- `src/game/minigames.js` — escenas jugables antes de la jornada. Se
+  registran en `main.js`; el día las pide por id en su JSON, y **el texto de
+  la derrota es JSON** (`minigame.onFail`), no código. El motor nunca debe
+  volver a tener un `if (day.loQueSea)` para un minijuego concreto.
+
+Si tocas el HUD o el CSS, corre `npm run check:layout` antes de darlo por
+bueno: comprueba en seis tamaños de pantalla que nada se solape, se recorte
+ni se salga. Este tipo de fallo no se ve en el diff y es fácil que se cuele
+en una captura.
+
 ## Invariantes que no debes romper
 
 - **`scenes/piso7.json` → `areas`**: los rectángulos de zona no deben
