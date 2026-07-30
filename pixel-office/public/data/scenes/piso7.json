@@ -618,6 +618,15 @@
       "facing": "north",
       "sway": 0.4,
       "cast": "fran_npc"
+    },
+    {
+      "id": "parce_npc",
+      "x": 32.3,
+      "z": -9.1,
+      "sheet": "npc1",
+      "facing": "south",
+      "sway": 0.5,
+      "cast": "parce"
     }
   ],
   "eggs": [

@@ -179,9 +179,15 @@ varias escenas que se van alternando, con opciones que hacen algo de verdad:
   (y deja de mirarte); llévale la contraria y grita llamando al jefe.
 - **Enriquetta** — chapter del amor. El chisme puntúa; también se ofrece a
   entretener al jefe durante cuarenta minutos.
+- **El Parce** — ala norte, sala 4. Siempre anda con una petaca de aguardiente
+  ("el amarillo que nos unió") lista para invitar.
 
-Manu, César y Enriquetta son **amigos tuyos**. Los secuaces no lo son, pero
-también puedes hablarles: según lo que elijas te cubren o te delatan.
+Manu, César, Enriquetta y El Parce son **amigos tuyos**. Los secuaces no lo
+son, pero también puedes hablarles: según lo que elijas te cubren o te delatan.
+
+El jefe es **Gabo**, alias **Barbie Malibú** (`characters.json` → `boss`,
+`dialogues.json` → `cast.jefe`) — su nombre de pila aparece como interlocutor
+en los diálogos; "el jefe" sigue usándose como su rol dentro del texto.
 
 Los **secuaces** (`minions` en `characters.json`) no te atrapan: te delatan.
 Si te ven haciendo algo prohibido llaman al jefe a ese punto y te suben la

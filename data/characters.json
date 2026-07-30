@@ -16,7 +16,8 @@
   },
   "boss": {
     "sheet": "boss",
-    "name": "Jefe",
+    "name": "Gabo",
+    "alias": "Barbie Malibú",
     "portrait": "🕴️",
     "height": 1.55,
     "radius": 0.3,
