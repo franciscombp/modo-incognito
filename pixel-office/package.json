@@ -24,7 +24,8 @@
   },
   "license": "ISC",
   "dependencies": {
-    "three": "^0.185.1"
+    "three": "^0.185.1",
+    "tone": "^15.1.22"
   },
   "devDependencies": {
     "playwright": "^1.62.0",

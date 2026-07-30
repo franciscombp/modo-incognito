@@ -1,7 +1,7 @@
 import { Game } from "./game.js";
 import { createHud } from "./hud.js";
 import { buzz } from "./settings.js";
-import { playMusic } from "./music.js";
+import { setMood, playStinger, updateMoodFromSnapshot } from "./soundtrack.js";
 import { createDialogue } from "./dialogue.js";
 import { createSave } from "./save.js";
 import { applyTheme } from "./themes.js";
@@ -192,7 +192,7 @@ export function createEngine({
     game?.setPaused(true);
     hud.setVisible(false);
     hud.hideResult();
-    playMusic("title");
+    setMood("title");
     const done = save.state.completedDays.length;
     menus.openTitle({
       hasProgress: done > 0 || save.dayIndex > 0,
@@ -310,7 +310,7 @@ export function createEngine({
     hud.setDay(day);
     hud.setVisible(true);
     hud.hideResult();
-    playMusic(day.music ?? day.id);
+    setMood("calm");
     resetEntities();
     applyBossTuning();
 
@@ -440,6 +440,7 @@ export function createEngine({
 
   async function finishDay(day, result) {
     inLevel = false;
+    playStinger(result.win ? "victory" : "defeat");
     save.setHadWarningYesterday(result.warnings > 0);
     const target = result.targetScore ?? 1000;
     const rank = rankFor(result.score, target);
@@ -488,6 +489,7 @@ export function createEngine({
     const live = game && !menus.isOpen ? game.lastSnapshot : null;
     guides.update(live);
     worldPrompt.update(dialogue.isOpen ? null : live);
+    if (live && !dialogue.isOpen) updateMoodFromSnapshot(live);
   }
 
   return {

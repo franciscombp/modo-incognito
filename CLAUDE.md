@@ -46,6 +46,15 @@ código fuente.
 - Un JSON de contenido inválido debe fallar con el nombre del archivo en
   pantalla (ver `src/data/loader.js`), nunca con una pantalla en negro
   silenciosa. Si tocas el loader, no rompas esa garantía.
+- Todo el audio es generado, no hay archivos: `src/game/sfx.js` sintetiza los
+  efectos con WebAudio y `src/game/soundtrack.js` (con Tone.js) toca en vivo
+  los riffs de `src/game/soundtrackThemes.js` según el ánimo de la partida.
+  Para cambiar cómo suena el juego se edita `soundtrackThemes.js` (son datos:
+  notas, tempo, mezcla), no el motor de audio.
+- Los personajes jugables usan su sprite real (campo `sheet` en
+  `characters.json`/`modes.json`, mismo pliego 4x4 que el retrato de
+  diálogo), no un emoji — no reintroduzcas emojis genéricos en la selección
+  de personaje.
 
 ## Cómo probar cambios
 

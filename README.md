@@ -44,7 +44,8 @@ código**.
 | El plano de la oficina (zonas, escondites, distracciones, secretos) | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) |
 | El balance de IA del jefe / sospecha | [`boss-config.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/boss-config.json) |
 | Los efectos de sonido 8-bit (menús, diálogo, acciones) (código) | [`src/game/sfx.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/sfx.js) |
-| La música de fondo por día | [`public/audio/music/<id>.mp3`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/audio/music) |
+| El soundtrack procedural (notas, tempo, mezcla por ánimo) | [`src/game/soundtrackThemes.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrackThemes.js) |
+| Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrack.js) |
 | Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) |
 | Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/style.css) |
 | Sprites de personajes | [`public/sprites/*.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/sprites) |
@@ -242,13 +243,16 @@ Los efectos (menús, diálogo, actividades) son **sintetizados con WebAudio** en
 un solo archivo de audio que cargar ni que se pueda romper. Para añadir o
 tocar un efecto se edita ese archivo; no hace falta ningún asset.
 
-La música de fondo sí es un archivo real, gestionado por `src/game/music.js`:
-cae uno por día en `public/audio/music/<id>.mp3` (`<id>` es el `id` del nivel
-en `manifest.json`, o el campo `music` del día si quieres otro nombre) y
-`public/audio/music/title.mp3` para el menú. Mientras el archivo no exista no
-suena nada — ni un error en consola, mismo criterio que las ilustraciones de
-`public/actions/`. **Ajustes → Juego** trae interruptores separados para
-sonido y música.
+La música de fondo también es procedural — no hay ni un `.mp3` en el repo.
+`src/game/soundtrack.js` usa [Tone.js](https://tonejs.github.io/) para tocar en
+vivo los riffs cortos (bajo + pizzicato + colchón + percusión) que viven en
+`src/game/soundtrackThemes.js`, con un aire de mockumentary de oficina. El
+motor cambia de ánimo solo — `calm` de patrulla, `tense` con la sospecha alta,
+`chase` en plena persecución, y un stinger de `victory`/`defeat` al cerrar el
+día — subiendo y bajando el volumen de cada capa en vez de cortar canciones,
+así que nunca se nota el cambio como un golpe. **Para tocar el soundtrack solo
+se edita `soundtrackThemes.js`**: son datos (notas, tempo, mezcla), no motor de
+audio. **Ajustes → Juego** trae interruptores separados para sonido y música.
 
 ## Aspecto
 
