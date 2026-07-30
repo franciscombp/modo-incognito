@@ -46,6 +46,35 @@
           "text": "Consulta de nómina denegada. Vuelva a intentarlo el día 30, como todos."
         }
       ]
+    },
+    {
+      "id": "egg_incognito",
+      "keys": ["i","n","c","o","g","n","i","t","o"],
+      "scene": [
+        {
+          "speaker": "Giuli",
+          "portrait": "🧑‍🎨",
+          "sheet": "npc3",
+          "text": "Shhh, ven. ¿Ya te diste cuenta? \"Fingir que trabajas\" no es fingir. Es la coartada."
+        },
+        {
+          "speaker": "Giuli",
+          "portrait": "🧑‍🎨",
+          "sheet": "npc3",
+          "text": "El banco cree que diseñamos flujos de crédito. En realidad, cada vez que finges, alguien de la Tribu está programando el juego que estás jugando ahora mismo."
+        },
+        {
+          "speaker": "Tú",
+          "portrait": "😳",
+          "text": "¿O sea que Modo Incógnito es literal? ¿Es el nombre en clave Y el juego de verdad?"
+        },
+        {
+          "speaker": "Giuli",
+          "portrait": "🧑‍🎨",
+          "sheet": "npc3",
+          "text": "Los dos. Así mantenemos viva la creatividad en un lugar que preferiría que no la tuviéramos. No se lo digas a Gabo."
+        }
+      ]
     }
   ],
   "dialogues": "dialogues.json"

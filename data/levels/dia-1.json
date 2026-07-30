@@ -20,7 +20,7 @@
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
-      "text": "¡Bienvenida a Modo Incógnito! Yo soy Steven el Daddy, tu voz desde el call center. Hoy es tu primer día en la Tribu Canales. Mantén la calma, aparenta estar trabajando, y lograremos que pases desapercibida."
+      "text": "¡Bienvenida a Modo Incógnito! Yo soy Steven el Daddy, tu voz desde el call center. Hoy es tu primer día en la Tribu Canales, el equipo de diseño del Centro Digital de este banco. Mantén la calma, aparenta estar trabajando, y lograremos que pases desapercibida."
     },
     {
       "speaker": "Recepción",
@@ -31,6 +31,11 @@
       "speaker": "Tú",
       "portrait": "🙂",
       "text": "Primer día. Plan: parecer ocupada, lograr absolutamente nada."
+    },
+    {
+      "speaker": "Tú",
+      "portrait": "🤫",
+      "text": "Bueno, casi nada. Diseñadora de banco de día. Lo demás… mejor lo hablamos bajito."
     },
     {
       "speaker": "Gabo",

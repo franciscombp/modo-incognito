@@ -3,6 +3,14 @@
 Juego web en Three.js: eres una empleada del Piso 10 · Centro Digital que intenta **no trabajar**
 —café, chisme, siesta, televisión— mientras el jefe patrulla la planta.
 
+**Lore, para quien escriba diálogos nuevos:** la Tribu Canales es el equipo de
+diseño del Centro Digital de un banco — creativos dentro de una empresa que
+no lo es tanto. El meta-chiste, para quien lo encuentre (código secreto
+`incognito`, ver `manifest.json` → `codeEggs`): "fingir que trabajas" es, en
+la ficción, la coartada del equipo para programar en secreto este mismo
+juego y mantener viva su creatividad. No lo spoilees en textos nuevos — que
+se descubra jugando.
+
 Se publica en <https://franciscombp.github.io/modo-incognito/> desde `main`.
 **El repositorio usa una sola rama.**
 

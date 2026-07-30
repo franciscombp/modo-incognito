@@ -44,7 +44,18 @@
       "portrait": "🕴️",
       "text": "Semana impecable. No te vi ni una vez fuera de tu puesto. Te asciendo."
     },
-    {"speaker":"Tú","portrait":"🏆","text":"Exactamente. No me vio ni una vez."}
+    {"speaker":"Tú","portrait":"🏆","text":"Exactamente. No me vio ni una vez."},
+    {
+      "speaker": "Steven el Daddy",
+      "narrator": true,
+      "text": "Y así se cierra otra semana en el Centro Digital. Cinco días fingiendo programar para el banco…"
+    },
+    {
+      "speaker": "Steven el Daddy",
+      "narrator": true,
+      "text": "…mientras programábamos, en secreto, el juego que acabas de terminar de jugar. Modo Incógnito no es solo el plan. Es el commit de hoy."
+    },
+    {"speaker":"Tú","portrait":"😏","text":"Si preguntan, esto también fue una reunión de innovación."}
   ],
   "outroLose": [
     {
