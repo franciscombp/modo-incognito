@@ -28,6 +28,65 @@ recarga el navegador. Solo los cambios en `pixel-office/src/` piden un build.
 Abrir `index.html` con doble clic no funciona: el navegador bloquea los
 módulos y la carga de los JSON desde `file://`. Por eso el servidor.
 
+## Quiero cambiar X → edito Y
+
+Tabla rápida con enlaces directos a GitHub. Todo el contenido del juego vive
+en JSON bajo `pixel-office/public/data/`; el motor (`pixel-office/src/`) solo
+lee esos archivos, así que para el 90% de los cambios **no hace falta tocar
+código**.
+
+| Quiero cambiar… | Edito este archivo |
+| --- | --- |
+| Qué personajes/modos puede elegir la jugadora | [`modes.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/modes.json) |
+| Estadísticas de la jugadora, el jefe y los NPC (velocidad, visión, sprite) | [`characters.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/characters.json) |
+| Cualquier diálogo (compañeros, secuaces, jefe) | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/dialogues.json) |
+| El guion de un día concreto (reglas, prólogo, secuaces de turno) | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/data/levels) |
+| El plano de la oficina (zonas, escondites, distracciones, secretos) | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) |
+| El balance de IA del jefe / sospecha | [`boss-config.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/boss-config.json) |
+| Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) |
+| Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/style.css) |
+| Sprites de personajes | [`public/sprites/*.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/sprites) |
+| Ilustraciones grandes de actividades (opcional, con emoji de respaldo) | [`public/actions/<id>.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/actions) |
+| Cómo decide y persigue el jefe/los secuaces (código) | [`src/entities/boss.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/boss.js) |
+| Reglas centrales de una jornada (código) | [`src/game/game.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/game.js) |
+| El flujo de campaña día a día (código) | [`src/game/engine.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/engine.js) |
+| El HUD (tarjetas, radar, indicadores) (código) | [`src/game/hud.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/hud.js) |
+| El sistema de diálogo a pantalla completa (código) | [`src/game/dialogue.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/dialogue.js) |
+| La construcción 3D de la oficina (código) | [`src/scene/builder.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/builder.js) |
+| La cámara (código) | [`src/scene/camera.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/camera.js) y [`src/scene/config.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/config.js) |
+| Los menús (título, elegir día, ajustes, pausa) (código) | [`src/ui/menus.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/menus.js) |
+| Los controles táctiles (código) | [`src/game/touchControls.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/touchControls.js) |
+
+Cada JSON de `public/data/` trae su propio campo `"$comment"` al principio
+explicando su esquema — ábrelo y léelo antes de editarlo a ciegas.
+
+⚠️ **Nunca edites `data/`, `assets/`, `sprites/` ni `index.html` en la raíz
+del repo directamente**: son una copia generada del build de
+`pixel-office/` (ver «Arquitectura del repo» más abajo). Edita siempre dentro
+de `pixel-office/` y luego corre `npm run build:pages`.
+
+¿Vas a usar un agente de IA (Claude Code u otro) para modificar el juego?
+Lee primero [`CLAUDE.md`](https://github.com/franciscombp/modo-incognito/blob/main/CLAUDE.md).
+
+## Arquitectura del repo
+
+Este repositorio tiene dos partes:
+
+- **`pixel-office/`** — el proyecto fuente real (Vite + Three.js). Aquí es
+  donde se edita todo: código en `src/`, contenido en `public/data/`, sprites
+  en `public/sprites/`.
+- **Raíz del repo** (`assets/`, `data/`, `sprites/`, `index.html`,
+  `favicon.png`, `.nojekyll`) — una **copia generada** del build de
+  producción, mantenida en sincronía con `npm run sync:root` (que a su vez
+  corre `npm run build:pages` y el workflow de GitHub Actions tras cada
+  push). Existe para que GitHub Pages funcione tanto si *Settings → Pages*
+  está en modo **GitHub Actions** como en **Deploy from a branch →
+  main/(root)**.
+
+Por eso cualquier cambio en `pixel-office/src` o `pixel-office/public/data`
+necesita `npm run build:pages` antes de hacer commit — si no, la raíz del
+repo (lo que sirve Pages en modo "branch") queda desactualizada.
+
 ## Desarrollo
 
 ```bash
@@ -35,12 +94,33 @@ cd pixel-office
 npm ci
 npm run dev            # servidor local
 npm run build          # build de producción a dist/
-npm run check          # navmesh + IA del jefe (Playwright)
+npm run preview        # sirve dist/ en http://localhost:4173 (lo usan los check:*)
+npm run check          # corre TODOS los check:* de abajo, en orden
 npm run check:visual   # capturas del juego a shots/
 npm run check:menus    # capturas de los menús a shots/
 npm run build:pages    # build + copia a la raíz del repo
 npm run format:data    # reordena los JSON de data/ para que sigan legibles
 ```
+
+Los `check:*` son scripts de Playwright que abren el juego de verdad en un
+navegador headless y comprueban su estado interno (`window.__game`). **Todos
+necesitan que `npm run preview` esté corriendo primero** (o pásales otra URL
+como argumento):
+
+```bash
+npm run build && npm run preview &   # deja el servidor de preview corriendo
+npm run check                        # ahora sí, corre la batería completa
+```
+
+| Script | Qué verifica |
+| --- | --- |
+| `check:reachable` | El navmesh es válido y todo punto del plano es alcanzable |
+| `check:chase` | El jefe persigue, pierde y busca correctamente (máquina de estados) |
+| `check:modes` | Los modos de personaje elegibles cargan y funcionan |
+| `check:charselect` | La pantalla de selección de personaje transiciona bien |
+| `check:catch` | Diálogos al ser atrapada (secuaz e interrogatorio del jefe + gracia) |
+| `check:minion-proximity` | Un secuaz solo "atrapa" con proximidad física real, no solo con verte |
+| `check:suspicion` | La sospecha sube/baja/decae con los valores esperados |
 
 ## Controles
 
@@ -221,6 +301,10 @@ src/
   escena con `"cast": "<id>"`.
 - **Un secuaz**: perfil en `characters.json` → `minions`, y súbelo al día que
   quieras con `"minions": [{ "id": "...", "route": "..." }]`.
+- **El balance de dificultad del jefe**: `boss-config.json` trae su propio
+  `$comment` que separa los campos ya conectados al motor de los reservados
+  para una futura mecánica de salida por ascensor (tocar esos últimos hoy no
+  cambia nada todavía).
 
 ## Puntuación
 
