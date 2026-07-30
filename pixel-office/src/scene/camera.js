@@ -57,6 +57,11 @@ export class DioramaCamera {
     // overview (framing 0, whole floor) is still one zoom-out away.
     this.framing = 1;
 
+    // Cinematic override: while set, the camera looks at this world point
+    // instead of following the player — used to "introduce" a secuaz or
+    // frame the elevator core for a beat. Cleared with setFocus(null).
+    this._focus = null;
+
     this._unsubscribe = subscribeCameraSettings((next) => {
       this.settings = next;
       this.camera.fov = next.fov;
@@ -97,6 +102,11 @@ export class DioramaCamera {
     this.framing = THREE.MathUtils.clamp(value, 0, 1);
   }
 
+  /** `{x,z}` to hold the camera on, or `null` to resume following the player. */
+  setFocus(point) {
+    this._focus = point ? { x: point.x, z: point.z } : null;
+  }
+
   /** Live orbit, used by right-drag on desktop and two-finger drag on touch. */
   orbitBy(deltaYawDeg, deltaPitchDeg) {
     setCameraSettings(
@@ -111,7 +121,8 @@ export class DioramaCamera {
   /** Follow the player (or stay parked on the plan) for one frame. */
   update(dt, playerPos) {
     const t = this.framing;
-    if (this.isFollowing) this.desired.set(playerPos.x, 0, playerPos.z);
+    if (this._focus) this.desired.set(this._focus.x, 0, this._focus.z);
+    else if (this.isFollowing) this.desired.set(playerPos.x, 0, playerPos.z);
     else this.desired.copy(this.center);
 
     // Blend toward the player as we zoom in, so the pull-in reads as one

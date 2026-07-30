@@ -294,7 +294,7 @@ body.touch-device #hint {
 }
 
 .hud-objectives::before {
-  content: "▚ TRIBU CANALES // PISO 7";
+  content: "▚ TRIBU CANALES // P10 · CENTRO DIGITAL";
   display: block;
   margin-bottom: 8px;
   font-size: 11px;
@@ -954,6 +954,120 @@ body.touch-device #hint {
 .px-pop-sub { font-size: 13px; color: var(--amber); }
 .px-pop-nerve .px-pop-main { font-size: 26px; color: var(--magenta); }
 .px-pop-minor .px-pop-main { font-size: 16px; color: var(--cyan); }
+
+/* ================= Presentación de secuaces ================= */
+
+.intro-card {
+  position: absolute;
+  left: 50%;
+  top: 22%;
+  transform: translate(-50%, -50%);
+  z-index: 24;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 24px;
+  background: var(--scan), linear-gradient(180deg, rgba(20, 28, 48, 0.96), rgba(8, 10, 18, 0.97));
+  border: 2px solid var(--red);
+  clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
+  box-shadow: 0 0 40px rgba(255, 77, 94, 0.35);
+  pointer-events: none;
+}
+
+.intro-card.hidden {
+  display: none;
+}
+
+.intro-card.pop {
+  animation: intro-card-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes intro-card-pop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.8) translateY(-10px); }
+}
+
+.intro-card-icon {
+  font-size: 32px;
+}
+
+.intro-card-name {
+  font-family: var(--mono);
+  font-weight: 900;
+  font-size: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--red);
+}
+
+.intro-card-blurb {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--dim);
+  max-width: 46ch;
+}
+
+/* ================= Mensaje de Teams (Gabo) ================= */
+
+.teams-toast {
+  position: absolute;
+  top: max(16px, var(--safe-t));
+  right: max(16px, var(--safe-r, 16px));
+  z-index: 26;
+  width: min(300px, 78vw);
+  padding: 10px 14px;
+  background: var(--scan), linear-gradient(180deg, rgba(20, 28, 48, 0.97), rgba(8, 10, 18, 0.98));
+  border: 2px solid #5b5fc7;
+  border-radius: 10px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 24px rgba(91, 95, 199, 0.35);
+  pointer-events: none;
+}
+
+.teams-toast.hidden {
+  display: none;
+}
+
+.teams-toast.pop {
+  animation: teams-toast-in 0.28s ease-out;
+}
+
+@keyframes teams-toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+}
+
+.teams-toast-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.teams-toast-icon {
+  font-size: 13px;
+}
+
+.teams-toast-app {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #8b8ee0;
+}
+
+.teams-toast-from {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--paper);
+  margin-bottom: 2px;
+}
+
+.teams-toast-text {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--paper);
+}
 
 /* ================= Escena de acción ================= */
 /* Ilustración grande al estilo RPG mientras haces una actividad (o finges
@@ -2736,4 +2850,163 @@ body.menu-open .track-layer,
 body.overlay-open .track-layer,
 body.vn-open .track-layer {
   display: none !important;
+}
+
+/* ================= Vestíbulo de ascensores ================= */
+/* Segunda "escena": tapa el lienzo 3D del todo durante el prólogo de cada
+   día, para que el piso no se vea de fondo antes de que la jugadora haya
+   "llegado" de verdad. Las puertas se abren con una transición al terminar
+   el prólogo, revelando el piso 3D detrás. */
+
+.lobby-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 35;
+  overflow: hidden;
+  pointer-events: none;
+  background: var(--scan),
+    linear-gradient(180deg, #1c2436 0%, #11151f 55%, #0a0c12 100%);
+}
+
+.lobby-scene.hidden {
+  display: none;
+}
+
+.lobby-door {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 35%;
+  background: linear-gradient(90deg, #2a3346 0%, #4a5570 45%, #2a3346 100%);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.5);
+  transition: transform 1.1s cubic-bezier(0.7, 0, 0.3, 1);
+}
+
+.lobby-door-left {
+  left: 15%;
+  transform-origin: left;
+}
+
+.lobby-door-right {
+  right: 15%;
+  transform-origin: right;
+}
+
+.lobby-scene.open .lobby-door-left {
+  transform: translateX(-105%);
+}
+
+.lobby-scene.open .lobby-door-right {
+  transform: translateX(105%);
+}
+
+.lobby-door-seam {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.lobby-door-left .lobby-door-seam {
+  right: 0;
+}
+
+.lobby-door-right .lobby-door-seam {
+  left: 0;
+}
+
+.lobby-door-handle {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 70px;
+  transform: translateY(-50%);
+  background: linear-gradient(180deg, var(--cyan), #1a8f84);
+  border-radius: 3px;
+  box-shadow: 0 0 12px rgba(69, 224, 208, 0.6);
+}
+
+.lobby-door-left .lobby-door-handle {
+  right: 14px;
+}
+
+.lobby-door-right .lobby-door-handle {
+  left: 14px;
+}
+
+.lobby-sign {
+  position: absolute;
+  top: max(28px, var(--safe-t));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  padding: 10px 26px;
+  background: rgba(6, 8, 14, 0.85);
+  border: 2px solid var(--cyan);
+  clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  box-shadow: 0 0 30px rgba(69, 224, 208, 0.35);
+}
+
+.lobby-sign-floor {
+  font-family: var(--mono);
+  font-size: 34px;
+  font-weight: 900;
+  color: var(--amber);
+  line-height: 1;
+  animation: px-blink 2.4s steps(1) infinite;
+}
+
+.lobby-sign-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  color: var(--cyan);
+}
+
+.lobby-deco {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.lobby-plant {
+  position: absolute;
+  left: 3%;
+  bottom: 6%;
+  font-size: clamp(48px, 8vw, 90px);
+  filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.5));
+}
+
+.lobby-waiting {
+  position: absolute;
+  right: 5%;
+  bottom: 7%;
+  font-size: clamp(40px, 7vw, 70px);
+  filter: drop-shadow(0 8px 10px rgba(0, 0, 0, 0.5)) grayscale(0.2);
+}
+
+.lobby-waiting-2 {
+  right: 13%;
+  bottom: 6.5%;
+  opacity: 0.85;
+}
+
+@media (max-width: 900px) {
+  .lobby-door {
+    width: 40%;
+  }
+  .lobby-door-left {
+    left: 8%;
+  }
+  .lobby-door-right {
+    right: 8%;
+  }
+  .lobby-sign-floor {
+    font-size: 26px;
+  }
 }
