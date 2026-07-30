@@ -44,8 +44,9 @@ export function createHud(root) {
   const objectivesList = el("div", "hud-objectives-list", objectivesPanel);
 
   const centerCol = el("div", "hud-center", topBar);
-  const dayChip = el("div", "hud-day-chip", centerCol);
-  const heatStars = el("div", "heat-stars", centerCol);
+  const dayRow = el("div", "hud-day-row", centerCol);
+  const dayChip = el("div", "hud-day-chip", dayRow);
+  const heatStars = el("div", "heat-stars", dayRow);
   const suspicionWrap = el("div", "hud-panel hud-suspicion", centerCol);
   const susTitleRow = el("div", "hud-panel-title", suspicionWrap);
   susTitleRow.innerHTML = `<span class="hud-title-icon">👁️</span> SOSPECHA`;
@@ -61,6 +62,7 @@ export function createHud(root) {
   const timerPanel = el("div", "hud-panel hud-timer", rightCol);
   const timerTitleRow = el("div", "hud-panel-title", timerPanel);
   timerTitleRow.innerHTML = `<span class="hud-title-icon">⏱️</span> JORNADA`;
+  const clockValue = el("div", "hud-clock-value", timerPanel);
   const timerValue = el("div", "hud-timer-value", timerPanel);
   const timerTrack = el("div", "hud-timer-track", timerPanel);
   const timerFill = el("div", "hud-timer-fill", timerTrack);
@@ -181,7 +183,8 @@ export function createHud(root) {
 
     warningPips.forEach((pip, i) => pip.classList.toggle("lit", i < state.warnings));
 
-    timerValue.textContent = `${state.currentTime} · ${fmtTime(state.timeLeft)}`;
+    clockValue.textContent = state.currentTime;
+    timerValue.textContent = fmtTime(state.timeLeft);
     const timePct = Math.round((state.timeLeft / state.levelDuration) * 100);
     timerFill.style.width = `${timePct}%`;
     const timeLow = state.timeLeft < 30;

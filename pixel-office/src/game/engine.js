@@ -327,7 +327,7 @@ export function createEngine({
     });
     game.setPaused(true);
 
-    camera.setFraming(camera.camera.aspect >= 1.15 ? 0.35 : 0.8);
+    camera.setFraming(1);
 
     // The lift queue first, then the day proper.
     prologueChoice = null;

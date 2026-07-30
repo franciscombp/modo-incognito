@@ -318,24 +318,34 @@ body.touch-device #hint {
   gap: 8px;
 }
 
-.hud-day-chip {
+/* Día + nivel de búsqueda en una sola fila: antes eran dos bloques
+   apilados que solo sumaban altura sin aportar nada nuevo. */
+.hud-day-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
   max-width: 100%;
-  padding: 5px 16px;
+}
+
+.hud-day-chip {
+  min-width: 0;
+  padding: 5px 14px;
   font-size: 11px;
   font-weight: 900;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.14em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: #ffd2f2;
-  background: rgba(255, 78, 205, 0.16);
+  background: rgba(30, 10, 24, 0.82);
   border: 1px solid rgba(255, 78, 205, 0.6);
   text-shadow: 0 0 8px rgba(255, 78, 205, 0.6);
 }
 
 .hud-suspicion {
   width: 100%;
-  padding: 14px 20px 16px;
+  padding: 10px 18px 12px;
   text-align: center;
 }
 
@@ -474,12 +484,21 @@ body.touch-device #hint {
   justify-content: flex-end;
 }
 
+.hud-clock-value {
+  font-size: clamp(12px, 1.3vw, 15px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
 .hud-timer-value {
-  font-size: 34px;
+  font-size: clamp(22px, 2.6vw, 34px);
   font-weight: 900;
-  line-height: 1;
+  line-height: 1.15;
   font-variant-numeric: tabular-nums;
   text-shadow: 0 0 10px rgba(69, 224, 208, 0.45);
+  white-space: nowrap;
 }
 
 .hud-timer-value.danger {
@@ -1992,6 +2011,10 @@ body.vn-open .hud-topbar {
   .hud-timer,
   .hud-scorepanel {
     padding: 7px 10px;
+  }
+
+  .hud-clock-value {
+    font-size: 10px;
   }
 
   .hud-timer-value {

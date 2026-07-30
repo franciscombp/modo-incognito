@@ -53,9 +53,9 @@ export class DioramaCamera {
     this.lookAt = this.center.clone();
     this.aspect = aspect;
 
-    // Start showing the whole plan on a wide screen; a phone in portrait
-    // can't read it usefully, so it starts closer to the player instead.
-    this.framing = aspect >= 1.15 ? 0 : 0.75;
+    // Default: zoom as close to the player as the framing allows. The
+    // overview (framing 0, whole floor) is still one zoom-out away.
+    this.framing = 1;
 
     this._unsubscribe = subscribeCameraSettings((next) => {
       this.settings = next;
