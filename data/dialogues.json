@@ -116,6 +116,11 @@
             "speaker": "Gabo",
             "portrait": "🕴️",
             "text": "Quedas advertida. Voy a mirar para otro lado un momento, a ver si aprendes."
+          },
+          {
+            "speaker": "Tú",
+            "portrait": "😅",
+            "text": "Fue sin querer queriendo."
           }
         ],
         [
@@ -201,6 +206,13 @@
             "portrait": "🍀",
             "text": "Mi secreto no es la suerte, es que nunca miro nervioso. Camina como si el pasillo fuera tuyo."
           }
+        ],
+        [
+          {
+            "speaker": "Manu de la suerte",
+            "portrait": "🍀",
+            "text": "«No contaban con mi astucia» — Chapulín Colorado, y yo cada vez que esquivo una reunión de las 8am."
+          }
         ]
       ]
     },
@@ -273,6 +285,14 @@
             "mood": "tense",
             "text": "¿Viste que en la cafetería ya no hay las galletas buenas? Voy a escalarlo. A quien sea. Hoy mismo."
           }
+        ],
+        [
+          {
+            "speaker": "César",
+            "portrait": "😤",
+            "mood": "angry",
+            "text": "«Vamo a calmarno» me dijo el de Talento Humano. A MÍ. El que menos calmado está en este edificio soy yo, con toda razón."
+          }
         ]
       ]
     },
@@ -341,6 +361,13 @@
             "portrait": "💘",
             "text": "Se rumora que Sistemas y Nómina se mandan mensajes con emoji de anillo. YO LO SÉ TODO, mi amor."
           }
+        ],
+        [
+          {
+            "speaker": "Enriquetta",
+            "portrait": "💘",
+            "text": "«Las mujeres ya no lloran, facturan», mi amor. Yo ya llevo tres horas facturando chisme del bueno."
+          }
         ]
       ]
     },
@@ -399,6 +426,13 @@
             "portrait": "⚡",
             "text": "¿Sabes qué es lo peor? Que me pagan lo mismo que a ti. Y yo sí hago cardio."
           }
+        ],
+        [
+          {
+            "speaker": "Chispita",
+            "portrait": "⚡",
+            "text": "Ya tú sabe. Corro por este piso como si fuera el Rigo ese del meme, subiéndome al carro antes de que Gabo me vea llorar."
+          }
         ]
       ]
     },
@@ -443,6 +477,13 @@
             "speaker": "Washo",
             "portrait": "🧽",
             "text": "No parpadeo porque si parpadeo te pierdo. Y si te pierdo, ¿para qué existo?"
+          }
+        ],
+        [
+          {
+            "speaker": "Washo",
+            "portrait": "🧽",
+            "text": "«No era penal», dijiste cuando te vi con la cámara apagada en la reunión. Yo tengo el clip. Siempre tengo el clip."
           }
         ]
       ]
@@ -501,6 +542,13 @@
             "portrait": "🥨",
             "text": "No hace falta correr. Si esperas lo suficiente, todo el mundo pasa por aquí."
           }
+        ],
+        [
+          {
+            "speaker": "Crispo",
+            "portrait": "🥨",
+            "text": "Fue sin querer queriendo, dijiste la última vez que te vi lejos del puesto. Yo también anoté eso sin querer queriendo."
+          }
         ]
       ]
     },
@@ -547,6 +595,13 @@
             "portrait": "🧑‍🎨",
             "text": "Mi rider de Figma dice «en revisión» desde el martes pasado. Es arte conceptual, en realidad."
           }
+        ],
+        [
+          {
+            "speaker": "Giuli",
+            "portrait": "🧑‍🎨",
+            "text": "Estoy en modo Shakira: aunque me pregunten qué hago, la cadera —digo, el mouse— no miente. Sigue moviéndose. Nada más."
+          }
         ]
       ]
     },
@@ -591,6 +646,13 @@
             "speaker": "Fran",
             "portrait": "🕵️‍♂️",
             "text": "Dora la criticona también critica: esa reunión pudo ser un correo. Todas pudieron ser un correo."
+          }
+        ],
+        [
+          {
+            "speaker": "Fran",
+            "portrait": "🕵️‍♂️",
+            "text": "Estoy compilando algo. No preguntes qué. «No contaban con mi astucia» aplica también a los sprints."
           }
         ]
       ]
@@ -661,21 +723,35 @@
             "portrait": "🥃",
             "text": "Un consejo de parcero: nunca mezcle Amarillo con café de la cafetería. Ya sé por qué lo digo."
           }
+        ],
+        [
+          {
+            "speaker": "El Parce",
+            "portrait": "🥃",
+            "text": "Ala parce, ¿vio el partido? No, mentiras, aquí no se ve nada. Yo solo vengo a ofrecerle un traguito y a decir «vamo a calmarno» cuando el jefe pasa."
+          }
         ]
       ]
     }
   },
   "barks": {
-    "chispita": ["¡Ey! ¿Esa no es tu zona?","Voy, voy, voy — ¡te vi!","¡Jefe! ¡JEFE! Mira quién anda por acá."],
+    "chispita": [
+      "¡Ey! ¿Esa no es tu zona?",
+      "Voy, voy, voy — ¡te vi!",
+      "¡Jefe! ¡JEFE! Mira quién anda por acá.",
+      "Ya tú sabe lo que va a pasar. Corriendo voy a contarlo."
+    ],
     "washo": [
       "Desde acá se ve todo, ¿sabías?",
       "Yo no acuso a nadie. Solo informo.",
-      "Mmm. Interesante. Muy interesante."
+      "Mmm. Interesante. Muy interesante.",
+      "No era penal, pero tengo el clip igual."
     ],
     "crispo": [
       "No me muevo de aquí. Tú tampoco deberías moverte.",
       "Esa silla lleva veinte minutos vacía.",
-      "Estoy contando. Solo eso. Contando."
+      "Estoy contando. Solo eso. Contando.",
+      "Fue sin querer queriendo que te vi. Pero te vi."
     ]
   },
   "teamsMessages": {
@@ -691,7 +767,13 @@
       "psss. entre nos. el de sistemas se fue a fumar hace 40 min. no digan que yo dije",
       "si alguien pregunta, estoy en 'una reunión estratégica'. la reunión es el gimnasio del piso 3",
       "manifestando: que hoy nadie me haga alzar la voz. depende de ustedes 💅",
-      "dato curioso: mi mamá también le dice Barbie Malibú. no es un apodo del trabajo, es de nacimiento"
+      "dato curioso: mi mamá también le dice Barbie Malibú. no es un apodo del trabajo, es de nacimiento",
+      "vamo a calmarno todos por favor, que hoy amanecí sensible 💅",
+      "no era penal lo de ayer, fue negligencia. aun así alguien tiene que pagar",
+      "les recuerdo mi frase favorita: las mujeres ya no lloran, facturan. YO SÍ LLORO. facturen por mí",
+      "no contaban con mi astucia: instalé cámara nueva en el ala sur. es broma. ¿o no?",
+      "¿alguien mas siente que esta semana es un capítulo de telenovela? porque yo sí, y soy el malo",
+      "actualización de humor: hoy me siento Shakira en videollamada, la cadera no miente pero el ánimo tampoco"
     ]
   }
 }

@@ -27,6 +27,12 @@ gente real, pensados para que el equipo se reconozca — sobre todo en lo
 malo (microgestión, favoritismos, "cultura de familia" hueca). Si generas
 diálogo nuevo, dale filo real; no lo suavices por defecto.
 
+Usa mucho meme y cultura pop latinoamericana a propósito (Chapulín
+Colorado, El Chavo, audios virales tipo "vamo a calmarno", Shakira, fútbol,
+reguetón, telenovela) — ver ejemplos ya metidos en `dialogues.json`
+(encounters, barks, teamsMessages.gabo). Si generas diálogo nuevo, sigue esa
+línea con naturalidad, no como referencia forzada.
+
 ## Estructura del repo (dos partes, no la confundas)
 
 - `pixel-office/` — el proyecto fuente real. **Edita siempre aquí.**
