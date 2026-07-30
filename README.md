@@ -23,6 +23,15 @@ favoritismos, el "banco innovador" que no lo es, la cultura de "familia" que
 se usa para pedir más sin dar más. Si escribes diálogo nuevo, que tenga
 filo — un chiste sin nada que criticar es solo relleno.
 
+También hay mucho **meme y cultura pop latinoamericana** metidos con calzador
+a propósito — Chapulín Colorado ("no contaban con mi astucia"), El Chavo
+("fue sin querer queriendo"), audios virales ("vamo a calmarno"), Shakira
+("las mujeres ya no lloran, facturan"), fútbol ("no era penal"), reguetón,
+telenovela. Están repartidos en `dialogues.json` (encounters, barks,
+teamsMessages.gabo). Si escribes diálogo nuevo, mételos con la misma
+naturalidad — una referencia sin fuerza ni disfraz, como la soltaría
+cualquiera del equipo en el chat.
+
 Se publica en <https://franciscombp.github.io/modo-incognito/> desde `main`.
 **El repositorio usa una sola rama.**
 
