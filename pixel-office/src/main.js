@@ -19,6 +19,7 @@ import { createSave } from "./game/save.js";
 import { createTouchControls } from "./game/touchControls.js";
 import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./game/settings.js";
 import { createPopups } from "./ui/popups.js";
+import { soundtrackState } from "./game/soundtrack.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 const sheetUrl = (name) => `${BASE}sprites/${name}.png`;
@@ -523,7 +524,7 @@ async function boot() {
   requestAnimationFrame(animate);
 
   // Exposed for the automated checks in tools/.
-  window.__game = { world, navmesh, player, boss, engine, camera, scene, view, pixels, data, crossing3D };
+  window.__game = { world, navmesh, player, boss, engine, camera, scene, view, pixels, data, crossing3D, soundtrackState };
   window.__floorplan = floorplan;
 }
 
