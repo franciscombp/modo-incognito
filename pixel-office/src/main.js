@@ -4,6 +4,7 @@ import { buildOffice } from "./scene/builder.js";
 import { createCollisionWorld } from "./scene/collision.js";
 import { buildNavmesh } from "./scene/navmesh.js";
 import { PixelPipeline } from "./scene/pixelPipeline.js";
+import { createCrossing3D } from "./scene/crossing3d.js";
 import { WORLD_SCALE as S } from "./scene/config.js";
 import * as floorplan from "./scene/floorplan.js";
 import { setActiveScene } from "./scene/floorplan.js";
@@ -107,6 +108,12 @@ async function boot() {
     [...needed].map(async (name) => sheets.set(name, await loadSheet(sheetUrl(name))))
   );
 
+  // Cruzar la avenida es una escena 3D aparte, con la cámara oblicua y los
+  // sprites de siempre — pero un lienzo propio, así que se crea aquí donde
+  // ya tenemos las hojas cargadas.
+  const crossing3D = createCrossing3D(app, sheets.get(chars.player.sheet));
+  crossing3D.resize(window.innerWidth / window.innerHeight);
+
   const player = new Player(sheets.get(chars.player.sheet), {
     x: floorplan.spawn.x,
     z: floorplan.spawn.z,
@@ -203,6 +210,8 @@ async function boot() {
     playerName: chars.player.name ?? "Tú",
     minions,
     onPopup: (p) => popups.spawn(p),
+    crossing3D,
+    pixels,
   });
 
   // -------- Labels: three tiers, so the diorama never drowns in signage ----
@@ -301,6 +310,7 @@ async function boot() {
     renderer.setSize(w, h);
     pixels.setSize(w, h);
     view.setAspect(w / h);
+    crossing3D.resize(w / h);
   }
   window.addEventListener("resize", resize);
 
@@ -453,25 +463,30 @@ async function boot() {
     last = now;
     const t = now / 1000;
 
-    if (!engine.isPaused) {
-      player.update(dt, world);
-      npcs.forEach((npc) => npc.update(dt, t));
+    // Cruzar la avenida es una escena 3D aparte con su propio bucle de
+    // dibujado (ver crossing3d.js): mientras dura, el piso ni se actualiza
+    // ni se pinta, para que los dos lienzos no se peleen por el mismo canvas.
+    if (!engine.crossingActive) {
+      if (!engine.isPaused) {
+        player.update(dt, world);
+        npcs.forEach((npc) => npc.update(dt, t));
+      }
+
+      bobbingMeshes.forEach((m) => {
+        const b = m.userData.bob;
+        m.position.y = b.base + Math.sin(t * b.speed + b.offset) * b.amp;
+        m.rotation.y = t * 0.6 + b.offset;
+      });
+
+      watchPerformance(dt);
+      updateHidingMarkers();
+      updateSafeSpotMarkers();
+      updateLabels();
+      view.update(dt, player.position);
+      popups.update(dt);
+      pixels.render(scene, camera);
     }
     engine.update(dt);
-
-    bobbingMeshes.forEach((m) => {
-      const b = m.userData.bob;
-      m.position.y = b.base + Math.sin(t * b.speed + b.offset) * b.amp;
-      m.rotation.y = t * 0.6 + b.offset;
-    });
-
-    watchPerformance(dt);
-    updateHidingMarkers();
-    updateSafeSpotMarkers();
-    updateLabels();
-    view.update(dt, player.position);
-    popups.update(dt);
-    pixels.render(scene, camera);
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);

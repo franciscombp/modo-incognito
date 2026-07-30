@@ -9,7 +9,6 @@ import { createMenus, rankFor } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
-import { createCrossing } from "../ui/crossing.js";
 import {
   spawn,
   patrolRoute,
@@ -52,6 +51,8 @@ export function createEngine({
   playerName = "Tú",
   minions = new Map(),
   onPopup = null,
+  crossing3D = null,
+  pixels = null,
 }) {
   const hud = createHud(app);
   const guides = createGuides(app, camera.camera);
@@ -60,8 +61,8 @@ export function createEngine({
   });
   const dialogue = createDialogue(app);
   const lobby = createLobby(app);
-  const crossing = createCrossing(app);
   const save = createSave();
+  let crossingActive = false;
 
   const eggIds = [...locationEggs.map((e) => e.id), ...codeEggs.map((e) => e.id)];
 
@@ -318,10 +319,15 @@ export function createEngine({
 
     // Cruzar la avenida pasa ANTES de entrar al edificio, así que ni el
     // vestíbulo ni el piso existen todavía para la jugadora en este punto.
-    if (day.crossing) {
-      document.body.classList.add("crossing-open");
+    // Es una escena 3D propia (scene/crossing3d.js): mientras dura, main.js
+    // deja de dibujar el piso y deja que este minijuego pinte su propio
+    // fotograma (ver engine.crossingActive).
+    if (day.crossing && crossing3D) {
       if (day.crossingIntro) await dialogue.play(withSprites(day.crossingIntro), ctx);
-      const outcome = await crossing.play();
+      document.body.classList.add("crossing-open");
+      crossingActive = true;
+      const outcome = await crossing3D.play((s, c) => pixels?.render(s, c));
+      crossingActive = false;
       document.body.classList.remove("crossing-open");
       if (outcome === "hit") {
         // Nunca llegaste a entrar: se ve el vestíbulo con las puertas
@@ -618,13 +624,15 @@ export function createEngine({
     get inLevel() {
       return inLevel;
     },
+    get crossingActive() {
+      return crossingActive;
+    },
     get currentCharacterId() {
       return save.characterId;
     },
     dispose() {
       window.removeEventListener("keydown", onKey);
       dialogue.dispose();
-      crossing.dispose();
     },
   };
 }

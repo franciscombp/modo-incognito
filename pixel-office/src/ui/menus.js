@@ -284,8 +284,11 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
   el("h2", "px-screen-title-text", helpScreen, "Cómo se juega");
   const helpBody = el("div", "px-help", helpScreen);
   helpBody.innerHTML = `
-    <p>Eres empleada del Piso 10 · Centro Digital. Tu trabajo es <b>no trabajar</b>: café, chisme,
-    siesta, televisión. El jefe patrulla la planta con un cono de visión.</p>
+    <p>Eres diseñadora en el Centro Digital de un banco. Tu trabajo de mentira es
+    <b>no trabajar</b>: café, chisme, siesta, televisión. El jefe patrulla la
+    planta con un cono de visión. (Tu trabajo de verdad es otra cosa —
+    hay quien dice que fingir es, en realidad, la única forma de seguir
+    diseñando algo con vida propia aquí dentro.)</p>
     <ul>
       <li><b>Mover</b> — WASD o flechas · joystick en móvil</li>
       <li><b>Usar / distraer</b> — <kbd>E</kbd> · botón USAR</li>

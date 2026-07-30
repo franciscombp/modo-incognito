@@ -13,6 +13,13 @@ bajo `pixel-office/public/data/`; el motor en `pixel-office/src/` solo lee
 esos datos. Para añadir o cambiar contenido casi nunca hace falta tocar
 código — mira primero si hay un JSON para eso.
 
+**Lore, para diálogo nuevo:** la Tribu Canales diseña en el Centro Digital de
+un banco. El meta-chiste (código secreto `incognito`, en
+`manifest.json` → `codeEggs`) es que "fingir que trabajas" es la coartada del
+equipo para programar en secreto este mismo juego. Si escribes diálogo
+nuevo, mantén el tono — y no reveles el chiste fuera del huevo de pascua ni
+del cierre del día 5 (`levels/dia-5.json`).
+
 ## Estructura del repo (dos partes, no la confundas)
 
 - `pixel-office/` — el proyecto fuente real. **Edita siempre aquí.**

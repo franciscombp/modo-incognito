@@ -2863,21 +2863,23 @@ body.crossing-open #hint {
 }
 
 /* ================= Cruzar la Amazonas ================= */
-/* Minijuego aparte, al estilo Crossy Road: seis carriles + parterre +
-   ciclovías, entre la acera de salida y la puerta del edificio. */
+/* El cruce en sí es una escena 3D más (scene/crossing3d.js) con la misma
+   cámara oblicua y los mismos sprites que el piso — esto es solo el cromo
+   por encima: el pie de foto y los botones táctiles. */
 
-.crossing-scene {
+.crossing-ui {
   position: absolute;
   inset: 0;
   z-index: 36;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: flex-end;
   padding: max(16px, var(--safe-t)) 0 max(16px, var(--safe-b));
-  background: linear-gradient(180deg, #1a1f2e 0%, #10131c 100%);
+  pointer-events: none;
 }
 
-.crossing-scene.hidden {
+.crossing-ui.hidden {
   display: none;
 }
 
@@ -2895,117 +2897,13 @@ body.crossing-open #hint {
   border-radius: 8px;
 }
 
-.crossing-road {
-  position: relative;
-  flex: 1 1 auto;
-  width: min(460px, 92vw);
-  display: flex;
-  flex-direction: column-reverse;
-  border-left: 4px solid #2a2f3d;
-  border-right: 4px solid #2a2f3d;
-  overflow: hidden;
-}
-
-.crossing-row {
-  position: relative;
-  flex: 1 1 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.crossing-sidewalk,
-.crossing-goal {
-  background: repeating-linear-gradient(90deg, #3b4152 0 18px, #343a49 18px 20px);
-}
-
-.crossing-goal {
-  background: repeating-linear-gradient(90deg, #3b4152 0 18px, #343a49 18px 20px),
-    linear-gradient(180deg, rgba(69, 224, 208, 0.18), transparent);
-}
-
-.crossing-goal::after {
-  content: "🚪";
-  position: absolute;
-  right: 8%;
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: 26px;
-}
-
-.crossing-car {
-  background: #26272c;
-  background-image: repeating-linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0.35) 0 22px,
-    transparent 22px 40px
-  );
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 3px;
-}
-
-.crossing-bike {
-  background: #2e3a2c;
-  background-image: repeating-linear-gradient(90deg, rgba(168, 224, 95, 0.35) 0 14px, transparent 14px 30px);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: 100% 2px;
-}
-
-.crossing-median {
-  background: linear-gradient(180deg, #234029, #1a2f21);
-}
-
-.crossing-median::before {
-  content: "🌳    🌳    🌳";
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  font-size: 20px;
-  letter-spacing: 4px;
-  opacity: 0.9;
-}
-
-.crossing-vehicle {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 26px;
-  pointer-events: none;
-  will-change: left;
-}
-
-.crossing-bike-icon {
-  font-size: 20px;
-}
-
-.crossing-player {
-  position: absolute;
-  transform: translate(-50%, 50%);
-  font-size: 26px;
-  z-index: 3;
-  transition: left 0.1s ease-out, bottom 0.1s ease-out;
-  filter: drop-shadow(0 3px 3px rgba(0, 0, 0, 0.5));
-}
-
-.crossing-player.hit {
-  animation: crossing-hit 0.6s ease-out;
-}
-
-@keyframes crossing-hit {
-  0% { transform: translate(-50%, 50%) scale(1); }
-  40% { transform: translate(-50%, 50%) scale(1.4) rotate(30deg); filter: drop-shadow(0 0 12px rgba(255, 77, 94, 0.9)); }
-  100% { transform: translate(-50%, 50%) scale(0.6) rotate(70deg); opacity: 0; }
-}
-
 .crossing-touchpad {
   flex: 0 0 auto;
   display: none;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  margin-top: 10px;
+  pointer-events: auto;
 }
 
 .crossing-touchpad-row {
