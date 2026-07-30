@@ -37,9 +37,9 @@ const HEAT_THRESHOLDS = [12, 34, 58, 80];
 const HEAT_TUNING = [
   { vision: 1, speed: 1, huntEvery: Infinity },
   { vision: 1.08, speed: 1.05, huntEvery: Infinity },
-  { vision: 1.18, speed: 1.12, huntEvery: 14 },
-  { vision: 1.3, speed: 1.2, huntEvery: 9 },
-  { vision: 1.45, speed: 1.3, huntEvery: 6 },
+  { vision: 1.2, speed: 1.14, huntEvery: 12 },
+  { vision: 1.32, speed: 1.22, huntEvery: 8 },
+  { vision: 1.48, speed: 1.32, huntEvery: 5 },
 ];
 
 // Fingir que trabajas solo cuela donde hay un puesto de trabajo. En mitad
@@ -118,12 +118,14 @@ export class Game {
     onEgg = null,
     onPopup = null,
     onTalk = null,
+    onWarn = null,
   }) {
     this.player = player;
     this.boss = boss;
     this.npcs = npcs;
     this.minions = minions;
     this.onTalk = onTalk;
+    this.onWarn = onWarn;
     this.hud = hud;
     this.rules = { ...DEFAULT_RULES, ...rules };
     this.onFinish = onFinish;
@@ -194,6 +196,7 @@ export class Game {
     this._caughtCooldown = 0;
     this._eggDwell = new Map();
     this._foundEggs = new Set();
+    this._minionRedAlertPrev = new Map();
   }
 
   /** Story beats and menus freeze the world without tearing the level down. */
@@ -308,6 +311,7 @@ export class Game {
 
     this.boss.update(dt, this.player, this.npcs);
     this.minions.forEach((m) => m.update(dt, this.player, this.npcs));
+    this._updateMinionCatch();
     this._updateMinionApproach();
     this._updateEggs(dt);
     this._updateSpeedMul();
@@ -371,18 +375,19 @@ export class Game {
 
     this._updateHeat(dt);
 
-    // Fingiendo con poca sospecha eres intocable; con mucha, "si estabas con
-    // más, valiste". Un escondite o un lugar seguro también te cubren.
-    const pretendImmune =
-      this.player.isPretending &&
-      (this.rules.pretendAlways || this.suspicion < this.suspicionConfig.pretendImmuneThreshold);
+    // Fingiendo con poca sospecha eres intocable, y un escondite o un lugar
+    // seguro te cubren MIENTRAS el jefe todavía no te tiene en la mira ni te
+    // persigue. Pero en cuanto entra en caza activa (CHASE/SEARCH), ya sabe
+    // dónde estás o adónde ibas: fingir o escondes no sirve, solo un lugar
+    // seguro de verdad corta la persecución. `pretendAlways` (un modo de
+    // personaje futuro) es la única excepción explícita a esa regla.
+    const pretendAlwaysImmune = this.player.isPretending && this.rules.pretendAlways;
     const caught =
       !this.rules.explore &&
       this._caughtCooldown <= 0 &&
       this.boss.isHunting &&
-      !this.player.isHiding &&
       !this.inSafeSpot &&
-      !pretendImmune &&
+      !pretendAlwaysImmune &&
       this.boss.catches(pos, this.player.radius);
 
     // La amonestación llega cuando el jefe te aborda de verdad, no en cuanto
@@ -508,6 +513,28 @@ export class Game {
     }
   }
 
+  /**
+   * Interrogatorio: el instante en que un secuaz te pilla (su redAlert pasa
+   * de apagado a encendido) dispara su diálogo en vez de subir la sospecha
+   * en silencio — la respuesta que elijas decide cuánto sube o baja. Solo se
+   * dispara en el flanco de subida (no en cada frame que sigue viéndote) y
+   * respeta el enfriamiento normal de charla, así no se encadenan dos
+   * interrogatorios seguidos del mismo secuaz.
+   */
+  _updateMinionCatch() {
+    if (!this.onTalk) return;
+    for (const m of this.minions) {
+      const was = this._minionRedAlertPrev.get(m) ?? false;
+      this._minionRedAlertPrev.set(m, m.redAlert);
+      if (!m.redAlert || was) continue;
+      if (m.active === false || !m.cast) continue;
+      if ((this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
+      this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
+      this.onTalk(m, { caught: true });
+      return;
+    }
+  }
+
   /** Los secuaces te paran ellos: no hace falta pulsar nada. */
   _updateMinionApproach() {
     if (!this.onTalk) return;
@@ -623,12 +650,17 @@ export class Game {
     this.boss.resetToPatrol();
     buzz([40, 60, 40]);
 
-    if (this.warnings >= this.rules.maxWarnings) {
+    const final = this.warnings >= this.rules.maxWarnings;
+    if (final) {
       this._toast("Última advertencia: despedida.");
-      this._finish(false);
     } else {
       this._toast(`Advertencia ${this.warnings}/${this.rules.maxWarnings}`);
     }
+    // El motor (engine.js) muestra el diálogo del regaño y, cuando lo cierra,
+    // le da al jefe unos segundos sin observar — si lo hiciéramos aquí, ese
+    // respiro se gastaría mientras el diálogo está en pausa, sin servir de nada.
+    this.onWarn?.({ warnings: this.warnings, maxWarnings: this.rules.maxWarnings, final });
+    if (final) this._finish(false);
   }
 
   _finish(win) {

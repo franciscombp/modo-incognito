@@ -42,30 +42,33 @@ const report = await page.evaluate(async () => {
   out.safeSpotHeldSuspicion = game.suspicion <= 50; // never rose while inside
   game.boss.redAlert = false;
 
-  // ---- Pretend immunity under 30% suspicion ----
-  // Step off the safe spot first: standing in one is its own immunity and
-  // would confound the suspicion-threshold rule this checks.
+  // ---- Once the boss actively hunts (CHASE/SEARCH), pretending no longer
+  // saves you — only a real safe spot does now. (Pretending still prevents
+  // a chase from starting in the first place; it just can't end one.) ----
   game.player.position.x = fp.spawn.x;
   game.player.position.z = fp.spawn.z;
-  game.suspicion = 10;
-  // update() derives isPretending from the held "f" key every frame, so a
-  // direct property set gets clobbered — hold the key like the real input does.
+  game.suspicion = 10; // even very low suspicion
   game.player.keys.add("f");
-  game.boss.startChase(); // isHunting derives from state; this makes it true
+  game.boss.startChase();
   const origCatches = game.boss.catches;
   game.boss.catches = () => true; // force a would-be catch every frame
   const warningsBefore = game.warnings;
   game._caughtCooldown = 0;
   game.update(1 / 30);
-  out.immuneUnder30 = game.warnings === warningsBefore;
+  out.pretendNoLongerStopsActiveChase = game.warnings === warningsBefore + 1;
+  game.player.keys.delete("f");
 
-  // ---- Over 30% while pretending: catchable ----
-  game.suspicion = 60;
+  // ---- A safe spot is still the one real escape from an active chase ----
+  const safeSpot2 = fp.safeSpots[0];
+  game.player.position.x = safeSpot2.x;
+  game.player.position.z = safeSpot2.z;
+  game.suspicion = 80;
+  game.boss.startChase();
+  const warningsBefore2 = game.warnings;
   game._caughtCooldown = 0;
   game.update(1 / 30);
-  out.catchableOver30 = game.warnings === warningsBefore + 1;
+  out.safeSpotStillEscapesActiveChase = game.warnings === warningsBefore2;
   game.boss.catches = origCatches;
-  game.player.keys.delete("f");
 
   // ---- Kiara explore mode: suspicion/warnings never happen ----
   engine.startDay(0);
@@ -120,8 +123,8 @@ console.log(JSON.stringify(report, null, 1));
 
 const checks = [
   ["safeSpotHeldSuspicion", "safe spot suppresses suspicion while boss hunts"],
-  ["immuneUnder30", "pretending under 30% suspicion is immune to a catch"],
-  ["catchableOver30", "pretending over 30% suspicion can still be caught"],
+  ["pretendNoLongerStopsActiveChase", "pretending no longer stops an active chase"],
+  ["safeSpotStillEscapesActiveChase", "a safe spot still escapes an active chase"],
   ["exploreIgnoresSuspicion", "Kiara's explore mode ignores suspicion/warnings"],
   ["seenIdleRaisesSuspicion", "boss watching you do nothing still raises suspicion"],
 ];

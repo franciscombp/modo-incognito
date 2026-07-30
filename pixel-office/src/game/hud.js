@@ -28,8 +28,58 @@ const KIND_LABEL = {
 
 const WING_LABEL = { sur: "Ala Sur", norte: "Ala Norte", centro: "Centro" };
 
+// Qué tan minimizado está cada panel del HUD, recordado entre sesiones —
+// en móvil el espacio es escaso y en desktop a veces solo estorba.
+const COLLAPSE_KEY = "modo-incognito:hud-collapse:v1";
+function readCollapse() {
+  try {
+    return JSON.parse(localStorage.getItem(COLLAPSE_KEY) ?? "{}");
+  } catch {
+    return {};
+  }
+}
+function writeCollapse(state) {
+  try {
+    localStorage.setItem(COLLAPSE_KEY, JSON.stringify(state));
+  } catch {
+    /* private mode: no molesta, solo no se recuerda */
+  }
+}
+
 export function createHud(root) {
   const hud = el("div", "hud-root", root);
+  const stored = readCollapse();
+  // En móvil, si nunca se ha tocado el ajuste, arranca colapsado: la
+  // pantalla es chica y tres paneles abiertos a la vez se comen media
+  // partida. En desktop arranca expandido, minimizar es una opción, no el
+  // default.
+  const isCoarsePointer = matchMedia("(pointer: coarse)").matches;
+  const collapseState =
+    Object.keys(stored).length > 0
+      ? stored
+      : isCoarsePointer
+      ? { objectives: true, pressure: true, resources: true }
+      : {};
+
+  /** Botón "▾/▸" en la fila de título de un panel: colapsa `targetEl`. */
+  function addCollapseToggle(titleRow, targetEl, key) {
+    const btn = el("button", "hud-collapse-btn", titleRow);
+    btn.type = "button";
+    const apply = () => {
+      const collapsed = !!collapseState[key];
+      targetEl.classList.toggle("collapsed", collapsed);
+      btn.textContent = collapsed ? "▸" : "▾";
+      btn.setAttribute("aria-label", collapsed ? "Expandir panel" : "Minimizar panel");
+    };
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      collapseState[key] = !collapseState[key];
+      writeCollapse(collapseState);
+      apply();
+    });
+    apply();
+    return btn;
+  }
 
   // Three columns that never share space, so nothing can overlap: tasks on
   // the left, pressure in the middle, resources on the right. The "where am
@@ -42,6 +92,7 @@ export function createHud(root) {
   objTitleRow.innerHTML = `<span class="hud-title-icon">🎯</span> OBJETIVOS <span class="hud-objectives-count"></span>`;
   const objectivesCount = objTitleRow.querySelector(".hud-objectives-count");
   const objectivesList = el("div", "hud-objectives-list", objectivesPanel);
+  addCollapseToggle(objTitleRow, objectivesPanel, "objectives");
 
   const centerCol = el("div", "hud-center", topBar);
   const dayRow = el("div", "hud-day-row", centerCol);
@@ -55,6 +106,7 @@ export function createHud(root) {
   const suspicionGlint = el("div", "hud-suspicion-glint", suspicionFill);
   const warningsRow = el("div", "hud-warnings", suspicionWrap);
   let warningPips = [];
+  addCollapseToggle(susTitleRow, centerCol, "pressure");
   const statusBadge = el("div", "hud-status-badge", centerCol);
   const toast = el("div", "hud-toast", centerCol);
 
@@ -66,6 +118,7 @@ export function createHud(root) {
   const timerValue = el("div", "hud-timer-value", timerPanel);
   const timerTrack = el("div", "hud-timer-track", timerPanel);
   const timerFill = el("div", "hud-timer-fill", timerTrack);
+  addCollapseToggle(timerTitleRow, rightCol, "resources");
 
   const scorePanel = el("div", "hud-panel hud-scorepanel", rightCol);
   const scoreTitleRow = el("div", "hud-panel-title", scorePanel);
