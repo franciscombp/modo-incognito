@@ -351,6 +351,15 @@ export function createEngine({
 
     menus.close();
     menuPaused = false;
+    // Limpiar lo que dejó puesto el intento anterior ANTES de nada. Si el día
+    // se perdió en el cruce, quedaban en pantalla el vestíbulo (con las
+    // puertas cerradas) y la tarjeta de resultado; al reintentar, la avenida
+    // se jugaba debajo de los dos y parecía que el juego se colgaba en el
+    // ascensor. Antes esto solo se limpiaba al entrar al piso — es decir,
+    // después del minijuego.
+    lobby.reset();
+    hud.hideResult();
+    hud.setVisible(false);
 
     // Un minijuego del día (cruzar la avenida, etc.) pasa ANTES de entrar al
     // edificio: ni el vestíbulo ni el piso existen todavía para la jugadora.
