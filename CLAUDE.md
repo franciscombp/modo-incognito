@@ -1,0 +1,73 @@
+# CLAUDE.md — guía para agentes de IA
+
+Orientación rápida para Claude Code (u otro agente) trabajando en este repo.
+Para el mapa completo de "quiero cambiar X → edito Y" con enlaces a GitHub,
+usa la tabla del [README.md](https://github.com/franciscombp/modo-incognito/blob/main/README.md#quiero-cambiar-x--edito-y) —
+no la dupliques aquí.
+
+## Qué es esto
+
+Juego web isométrico (Vite + Three.js) de sigilo/comedia de oficina. Todo el
+contenido (personajes, diálogos, niveles, plano, balance de IA) está en JSON
+bajo `pixel-office/public/data/`; el motor en `pixel-office/src/` solo lee
+esos datos. Para añadir o cambiar contenido casi nunca hace falta tocar
+código — mira primero si hay un JSON para eso.
+
+## Estructura del repo (dos partes, no la confundas)
+
+- `pixel-office/` — el proyecto fuente real. **Edita siempre aquí.**
+- Raíz del repo (`assets/`, `data/`, `sprites/`, `index.html`, `favicon.png`,
+  `.nojekyll`) — copia generada del build, para que GitHub Pages funcione en
+  modo "Deploy from branch". **Nunca la edites a mano.**
+
+Regla dura: si tocaste algo en `pixel-office/src/` o
+`pixel-office/public/data/`, corre `npm run build:pages` (dentro de
+`pixel-office/`) antes de hacer commit, y añade también los archivos
+regenerados de la raíz (`assets/`, `data/`, `index.html`) al commit. Si no,
+la versión servida por Pages (o por `serve.py`) queda desincronizada del
+código fuente.
+
+## Invariantes que no debes romper
+
+- **`scenes/piso7.json` → `areas`**: los rectángulos de zona no deben
+  solaparse. Si añades o mueves una zona, revisa `x/z/w/d` contra las
+  vecinas antes de dar por bueno el cambio.
+- **Unidades del plano vs. mundo**: las coordenadas en los JSON de escena
+  están en "unidades de plano" (≈ un puesto de trabajo); el motor las
+  multiplica por `WORLD_SCALE` (en `src/scene/config.js`). No mezcles
+  unidades ya escaladas en el JSON.
+- **`boss-config.json`** trae campos activos y campos reservados (para una
+  futura mecánica de salida por ascensor) — su propio `$comment` dice cuáles
+  son cuáles. Cambiar un campo reservado no tiene efecto todavía; no asumas
+  que sí.
+- Cada JSON de `public/data/` documenta su propio esquema en un array
+  `"$comment"` al principio del archivo. Léelo antes de asumir la forma de
+  los datos.
+- Un JSON de contenido inválido debe fallar con el nombre del archivo en
+  pantalla (ver `src/data/loader.js`), nunca con una pantalla en negro
+  silenciosa. Si tocas el loader, no rompas esa garantía.
+
+## Cómo probar cambios
+
+Los tests (`pixel-office/tools/check-*.mjs`) son scripts de Playwright que
+abren el juego real en un navegador headless y leen su estado interno vía
+`window.__game`. **Necesitan el build servido en `http://localhost:4173/`
+antes de correr** — no funcionan contra el servidor de `npm run dev`.
+
+```bash
+cd pixel-office
+npm run build && npm run preview &   # deja el preview corriendo en :4173
+npm run check                        # corre los 7 check:* en orden
+```
+
+Si añades un tool nuevo en `tools/`, añádele también su script `check:*` en
+`package.json` y súmalo a la cadena del script `check` agregado — si no,
+queda invisible y nadie lo vuelve a correr.
+
+## Flujo de git
+
+Una sola rama: `main`. No hay ramas de feature ni PRs internos — se hace
+commit y push directo a `main`. Antes de un push, confirma que
+`npm run build:pages` corrió si tocaste `pixel-office/src` o
+`pixel-office/public/data`, y que `git status` no deja la copia de la raíz
+desactualizada respecto al build nuevo.
