@@ -53,6 +53,11 @@ const PRETEND_IMMUNE_THRESHOLD = 30;
 // Los secuaces no esperan a que les hables: te abordan.
 const MINION_APPROACH = 3.4 * S;
 
+// Cuánto debe aguantar encendido el redAlert de un secuaz antes de que su
+// interrogatorio se dispare — el margen que te deja reaccionar (romper la
+// línea de visión, ponerte a fingir) antes de quedar atrapada en el diálogo.
+const CATCH_DIALOGUE_DELAY = 1.1;
+
 // Washo casi no anda, pero mientras estés en su mira te pesan las piernas.
 const WASHO_SLOW_MUL = 0.55;
 
@@ -196,7 +201,7 @@ export class Game {
     this._caughtCooldown = 0;
     this._eggDwell = new Map();
     this._foundEggs = new Set();
-    this._minionRedAlertPrev = new Map();
+    this._minionCatchTimer = new Map();
   }
 
   /** Story beats and menus freeze the world without tearing the level down. */
@@ -311,7 +316,7 @@ export class Game {
 
     this.boss.update(dt, this.player, this.npcs);
     this.minions.forEach((m) => m.update(dt, this.player, this.npcs));
-    this._updateMinionCatch();
+    this._updateMinionCatch(dt);
     this._updateMinionApproach();
     this._updateEggs(dt);
     this._updateSpeedMul();
@@ -514,33 +519,51 @@ export class Game {
   }
 
   /**
-   * Interrogatorio: el instante en que un secuaz te pilla (su redAlert pasa
-   * de apagado a encendido) dispara su diálogo en vez de subir la sospecha
-   * en silencio — la respuesta que elijas decide cuánto sube o baja. Solo se
-   * dispara en el flanco de subida (no en cada frame que sigue viéndote) y
-   * respeta el enfriamiento normal de charla, así no se encadenan dos
-   * interrogatorios seguidos del mismo secuaz.
+   * Interrogatorio: cuando un secuaz te pilla (redAlert) dispara su diálogo
+   * en vez de subir la sospecha en silencio — la respuesta que elijas
+   * decide cuánto sube o baja. No es instantáneo: redAlert tiene que
+   * aguantar encendido un ratito (CATCH_DIALOGUE_DELAY) antes de disparar
+   * el diálogo, así el secuaz alcanza a perseguirte de verdad (se le ve
+   * venir, cierra distancia) en vez de congelar la partida en el mismo
+   * fotograma en que te ve — que es justo lo que hacía sentir que "no
+   * siguen": el diálogo tapaba la persecución antes de que empezara.
+   * Si dejas de estar en su mira antes de ese tiempo, no pasa nada: se
+   * resetea y toca escaparte de verdad, no solo aguantar un instante.
    */
-  _updateMinionCatch() {
+  _updateMinionCatch(dt) {
     if (!this.onTalk) return;
     for (const m of this.minions) {
-      const was = this._minionRedAlertPrev.get(m) ?? false;
-      this._minionRedAlertPrev.set(m, m.redAlert);
-      if (!m.redAlert || was) continue;
+      const timer = this._minionCatchTimer.get(m) ?? 0;
+      if (!m.redAlert) {
+        if (timer > 0) this._minionCatchTimer.set(m, 0);
+        continue;
+      }
+      const next = timer + dt;
+      this._minionCatchTimer.set(m, next);
+      if (next < CATCH_DIALOGUE_DELAY) continue;
       if (m.active === false || !m.cast) continue;
       if ((this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
+      this._minionCatchTimer.set(m, 0);
       this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
       this.onTalk(m, { caught: true });
       return;
     }
   }
 
-  /** Los secuaces te paran ellos: no hace falta pulsar nada. */
+  /**
+   * Los secuaces te paran ellos: no hace falta pulsar nada. Esta es la
+   * cháchara casual (Washo comentando el ala, etc.), así que un secuaz que
+   * ahora mismo te tiene en la mira (redAlert, ya sea disparando su propio
+   * temporizador de interrogatorio o a punto de hacerlo) queda fuera: si no,
+   * la charla amistosa se colaba antes que el interrogatorio real y daba la
+   * sensación de que "hablan antes de atraparte" sin haber pasado nada.
+   */
   _updateMinionApproach() {
     if (!this.onTalk) return;
     const pos = this.player.position;
     for (const m of this.minions) {
       if (m.active === false) continue; // no está de turno / desactivado
+      if (m.redAlert) continue; // eso lo resuelve _updateMinionCatch
       if (!m.cast || (this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
       if (Math.hypot(m.position.x - pos.x, m.position.z - pos.z) > MINION_APPROACH) continue;
       this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
