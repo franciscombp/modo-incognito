@@ -40,6 +40,11 @@ export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
   function update(state) {
     if (!state || state.gameOver) return hide();
 
+    // While the big action scene is on screen (doing a task, or its
+    // just-completed flash) it already shows the label and progress, so the
+    // floating "MANTÉN E" card would just duplicate it on top of the object.
+    if (state.currentAction) return hide();
+
     // Priority: what you are actually holding beats what is merely nearby.
     let target = null;
     if (state.nearStation) {

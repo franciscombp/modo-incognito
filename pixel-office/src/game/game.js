@@ -184,6 +184,7 @@ export class Game {
     this.nearNpc = null;
     this.focusStation = null;
     this.message = null;
+    this._actionFlash = null;
     this.currentArea = null;
     this.talkCooldowns = new Map();
     this.hideState = hidingSpots.map(() => ({ cooldownLeft: 0, usedFor: 0 }));
@@ -404,6 +405,10 @@ export class Game {
       this.message.timer -= dt;
       if (this.message.timer <= 0) this.message = null;
     }
+    if (this._actionFlash) {
+      this._actionFlash.timer -= dt;
+      if (this._actionFlash.timer <= 0) this._actionFlash = null;
+    }
 
     this.hud.render(this._snapshot());
   }
@@ -436,6 +441,7 @@ export class Game {
 
     buzz([12, 40, 18]);
     this._toast(`${station.label} ✔${nerveLabel}`);
+    this._actionFlash = { icon: station.icon ?? "❓", label: station.label, timer: 1.1 };
     this.onPopup?.({
       text: `+${gained}`,
       sub: this.combo > 1 ? `x${this.combo.toFixed(1)}` : "",
@@ -792,10 +798,25 @@ export class Game {
    */
   _currentAction() {
     if (this.player.isDoingActivity && this.nearStation) {
-      return { id: this.nearStation.id, icon: this.nearStation.icon ?? "❓", label: this.nearStation.label };
+      return {
+        id: this.nearStation.id,
+        icon: this.nearStation.icon ?? "❓",
+        label: this.nearStation.label,
+        progress: this.nearStation.progress / this.nearStation.time,
+        done: false,
+      };
+    }
+    if (this._actionFlash) {
+      return {
+        id: `done-${this._actionFlash.label}`,
+        icon: this._actionFlash.icon,
+        label: this._actionFlash.label,
+        progress: 1,
+        done: true,
+      };
     }
     if (this.player.isPretending) {
-      return { id: "pretend", icon: "⌨️", label: "Fingiendo que trabajas" };
+      return { id: "pretend", icon: "⌨️", label: "Fingiendo que trabajas", progress: null, done: false };
     }
     return null;
   }
