@@ -53,6 +53,20 @@ export const THEMES = {
     mix: { bass: 0.6, lead: 0.55, pad: 0.4, perc: 0.2 },
   },
 
+  // Cruzar la avenida: staccato y saltarina, como si el semáforo mismo
+  // llevara el pulso — nerviosa pero todavía cómica, no de persecución.
+  crossing: {
+    bpm: 132,
+    steps: 8,
+    bass: ["C2", null, "C2", null, "F2", null, "G2", null],
+    lead: [
+      "C5", "C5", null, "Eb5", "D5", "D5", null, "C5",
+      "F5", "F5", null, "Eb5", "D5", null, "G4", null,
+    ],
+    pad: [],
+    mix: { bass: 0.65, lead: 0.7, pad: 0, perc: 0.35 },
+  },
+
   // Persecución activa: tempo arriba, bajo insistente en corcheas, perc
   // marcando cada pulso — la energía de una sitcom llegando al clímax del
   // cold open, no una banda sonora de terror.
