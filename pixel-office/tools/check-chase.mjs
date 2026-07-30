@@ -21,7 +21,7 @@ await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
 // Note the braces: startDay's promise only settles once the intro dialogue
 // is dismissed, and returning it here would hang the test forever.
 await page.evaluate(() => {
-  window.__game.engine.startDay(0);
+  window.__game.engine.startDay(0, { skipMinigame: true });
 });
 await page.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 10000 });
 

@@ -49,7 +49,7 @@ for (const [name, w, h] of [
   await page.goto("http://localhost:4173/", { waitUntil: "networkidle" });
   await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
   await page.evaluate(() => {
-    window.__game.engine.startDay(0);
+    window.__game.engine.startDay(0, { skipMinigame: true });
   });
   await page.waitForTimeout(2500);
   await page.screenshot({ path: `shots/${name}.png` });

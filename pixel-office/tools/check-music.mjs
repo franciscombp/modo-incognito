@@ -17,7 +17,7 @@ p.on("console", (m) => { if (m.type() === "error" && !m.text().includes("favicon
 const url = process.argv[2] ?? "http://localhost:4173/";
 await p.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 25000 });
-await p.evaluate(() => { window.__game.engine.startDay(0); });
+await p.evaluate(() => { window.__game.engine.startDay(0, { skipMinigame: true }); });
 // Hay que cerrar los dialogos: mientras haya uno abierto el motor no
 // actualiza el animo de la musica.
 for (let r = 0; r < 3; r++) {

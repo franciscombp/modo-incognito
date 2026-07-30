@@ -31,7 +31,7 @@ async function audit(w, h, name, touch) {
   p.on("pageerror", (e) => pageErrors.push(String(e)));
   await p.goto(url, { waitUntil: "networkidle" });
   await p.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
-  await p.evaluate(() => { window.__game.engine.startDay(0); });
+  await p.evaluate(() => { window.__game.engine.startDay(0, { skipMinigame: true }); });
   // El prólogo, el vestíbulo y la presentación de secuaces dejan huecos en
   // los que `dialogue.isOpen` es false sin haber terminado todavía.
   for (let r = 0; r < 3; r++) {

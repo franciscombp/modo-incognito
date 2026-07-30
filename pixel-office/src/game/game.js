@@ -275,6 +275,9 @@ export class Game {
 
     if (this.nearStation && holdingE && !holdingF) {
       this.player.isDoingActivity = true;
+      // La pose sale del JSON de la actividad (`pose`, ver scenes/*.json); si
+      // el personaje no tiene hoja de acciones, sprite.js la ignora.
+      this.player.pose = this.nearStation.pose ?? null;
       this.nearStation.progress = Math.min(this.nearStation.time, this.nearStation.progress + dt);
       if (this.nearStation.progress >= this.nearStation.time && !this.nearStation.done) {
         this.nearStation.done = true;
@@ -282,6 +285,8 @@ export class Game {
       }
     } else {
       this.player.isDoingActivity = false;
+      // Fingir que trabajas es, literalmente, la pose de estar en el portátil.
+      this.player.pose = holdingF ? "work" : null;
     }
 
     this.distractionState.forEach((d) => {

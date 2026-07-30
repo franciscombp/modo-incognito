@@ -31,7 +31,7 @@ page.on("pageerror", (e) => console.log("ERR2", String(e)));
 await page.goto("http://localhost:4173/", { waitUntil: "networkidle" });
 await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
 await page.evaluate(() => {
-  window.__game.engine.startDay(0);
+  window.__game.engine.startDay(0, { skipMinigame: true });
 });
 await page.waitForTimeout(1500);
 // Skip through the intro dialogue quickly.

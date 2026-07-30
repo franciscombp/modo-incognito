@@ -3,15 +3,23 @@
     "MANIFIESTO. Añade aquí un escenario o un día y aparecerá en el juego.",
     "No hace falta tocar ningún archivo del motor.",
     "- scenes[]: archivos en data/scenes/<id>.json",
-    "- levels[]: archivos en data/levels/<id>.json, en orden de campaña"
+    "- levels[]: archivos en data/levels/<id>.json, en orden de campaña",
+    "",
+    "MVP: la campaña es SOLO el día 1. Los archivos dia-2..dia-5 siguen en",
+    "data/levels/ pero están fuera de la lista a propósito — para reactivarlos",
+    "basta con volver a nombrarlos aquí, no hay nada más que tocar."
   ],
   "title": "Modo Incógnito",
   "subtitle": "Tribu Canales · Piso 10 · Centro Digital",
   "characters": "characters.json",
   "modes": "modes.json",
   "bossConfig": "boss-config.json",
-  "scenes": ["piso7"],
-  "levels": ["dia-1","dia-2","dia-3","dia-4","dia-5"],
+  "scenes": [
+    "piso7"
+  ],
+  "levels": [
+    "dia-1"
+  ],
   "codeEggs": [
     {
       "id": "egg_konami",
@@ -38,7 +46,14 @@
     },
     {
       "id": "egg_nomina",
-      "keys": ["n","o","m","i","n","a"],
+      "keys": [
+        "n",
+        "o",
+        "m",
+        "i",
+        "n",
+        "a"
+      ],
       "scene": [
         {
           "speaker": "Sistema",
@@ -49,18 +64,28 @@
     },
     {
       "id": "egg_incognito",
-      "keys": ["i","n","c","o","g","n","i","t","o"],
+      "keys": [
+        "i",
+        "n",
+        "c",
+        "o",
+        "g",
+        "n",
+        "i",
+        "t",
+        "o"
+      ],
       "scene": [
         {
           "speaker": "Giuli",
           "portrait": "🧑‍🎨",
-          "sheet": "npc3",
+          "sheet": "guili-camina",
           "text": "Shhh, ven. ¿Ya te diste cuenta? \"Fingir que trabajas\" no es fingir. Es la coartada."
         },
         {
           "speaker": "Giuli",
           "portrait": "🧑‍🎨",
-          "sheet": "npc3",
+          "sheet": "guili-camina",
           "text": "El banco cree que diseñamos flujos de crédito. En realidad, cada vez que finges, alguien de la Tribu está programando el juego que estás jugando ahora mismo."
         },
         {
@@ -71,19 +96,19 @@
         {
           "speaker": "Giuli",
           "portrait": "🧑‍🎨",
-          "sheet": "npc3",
+          "sheet": "guili-camina",
           "text": "Los dos. Así mantenemos viva la creatividad en un lugar que preferiría que no la tuviéramos. No se lo digas a Gabo."
         },
         {
           "speaker": "Giuli",
           "portrait": "🧑‍🎨",
-          "sheet": "npc3",
+          "sheet": "guili-camina",
           "text": "La idea fue de César y Manu, un día que César se quejó tan fuerte que a alguien se le ocurrió construir algo en vez de seguir aguantando. Fran es quien lo está programando de verdad."
         },
         {
           "speaker": "Giuli",
           "portrait": "🧑‍🎨",
-          "sheet": "npc3",
+          "sheet": "guili-camina",
           "text": "Con ayuda, eso sí. Fran no programa solo — programa con Claude Code al lado, fingiendo que es una reunión de arquitectura."
         },
         {

@@ -6,7 +6,7 @@ p.on("pageerror", (e) => console.log("ERR", String(e)));
 p.on("console", (m) => { if (m.type()==="error" && !m.text().includes("favicon")) console.log("CERR", m.text()); });
 await p.goto("http://localhost:4173/", { waitUntil: "networkidle" });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
-await p.evaluate(() => { window.__game.engine.startDay(0); });
+await p.evaluate(() => { window.__game.engine.startDay(0, { skipMinigame: true }); });
 await p.waitForTimeout(600);
 await p.screenshot({ path: "shots/dialogue-line.png" });
 console.log("line ok");

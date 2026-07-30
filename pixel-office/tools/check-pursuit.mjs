@@ -16,7 +16,7 @@ p.on("pageerror", (e) => errors.push(String(e)));
 p.on("console", (m) => { if (m.type() === "error" && !m.text().includes("favicon")) errors.push(m.text()); });
 await p.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 25000 });
-await p.evaluate(() => { window.__game.engine.startDay(0); });
+await p.evaluate(() => { window.__game.engine.startDay(0, { skipMinigame: true }); });
 await p.waitForTimeout(1500);
 
 const out = await p.evaluate(() => {

@@ -53,6 +53,15 @@ export function prepareScene(raw) {
         points.map(pt),
       ])
     ),
+    // Tabiques rectos que parten el piso, con su hueco de puerta. Ver el
+    // bloque "$barriers" del propio JSON de escena.
+    barriers: (raw.barriers ?? []).map((b) => ({
+      ...b,
+      at: b.at * S,
+      from: b.from * S,
+      to: b.to * S,
+      door: b.door ? { at: b.door.at * S, w: b.door.w * S } : null,
+    })),
     activityStations: (raw.activities ?? []).map(pt),
     hidingSpots: (raw.hidingSpots ?? []).map((h) => ({ ...pt(h), r: (h.r ?? 1.3) * S })),
     safeSpots: (raw.safeSpots ?? []).map((s) => ({ ...pt(s), radius: (s.radius ?? 1.3) * S })),

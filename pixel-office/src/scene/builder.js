@@ -11,6 +11,7 @@ import {
   safeSpots,
   distractions,
   activityStations,
+  barriers,
   ACTIVITY_COLORS,
 } from "./floorplan.js";
 import { WORLD_SCALE as S } from "./config.js";
@@ -47,6 +48,7 @@ export function buildOffice(scene, world) {
   group.add(buildFootprintFloor());
   group.add(buildCorridors());
   group.add(buildPerimeterWalls(world));
+  group.add(buildBarriers(world));
 
   areas.forEach((area) => {
     const label = buildArea(area, world, { registry, carpets, glassPanes, coreParts, extras });
@@ -167,6 +169,77 @@ function interiorGlassMaterial() {
     metalness: 0,
     side: THREE.DoubleSide,
   });
+}
+
+const BARRIER_H = 2.2 * S;
+const BARRIER_THICK = 0.34 * S;
+
+/**
+ * Los tabiques que parten el piso (ver `barriers` en el JSON de escena). Se
+ * construyen como dos tramos macizos con un hueco en medio: la puerta es un
+ * hueco de verdad, se cruza andando y el navmesh la ve — no un adorno.
+ * El marco y el dintel dejan claro dónde está el paso a distancia.
+ */
+function buildBarriers(world) {
+  const group = new THREE.Group();
+  group.name = "barriers";
+  if (!barriers.length) return group;
+
+  const body = [];
+  const trim = [];
+
+  barriers.forEach((b) => {
+    const along = b.axis === "z" ? "x" : "z"; // eje sobre el que se extiende
+    const door = b.door;
+    // Tramos macizos: todo el muro menos el hueco de la puerta.
+    const spans = door
+      ? [
+          [b.from, door.at - door.w / 2],
+          [door.at + door.w / 2, b.to],
+        ]
+      : [[b.from, b.to]];
+
+    spans.forEach(([a, z]) => {
+      const length = z - a;
+      if (length <= 0.01) return;
+      const mid = (a + z) / 2;
+      const geo =
+        along === "z"
+          ? new THREE.BoxGeometry(BARRIER_THICK, BARRIER_H, length)
+          : new THREE.BoxGeometry(length, BARRIER_H, BARRIER_THICK);
+      const [cx, cz] = along === "z" ? [b.at, mid] : [mid, b.at];
+      geo.translate(cx, BARRIER_H / 2, cz);
+      body.push(geo);
+      const [w, d] = along === "z" ? [BARRIER_THICK, length] : [length, BARRIER_THICK];
+      world.addBox(cx, cz, w, d); // opaco: también corta la línea de visión
+    });
+
+    if (!door) return;
+    // Dintel sobre la puerta: se ve el vano, pero se pasa por debajo.
+    const lintelH = 0.42 * S;
+    const geo =
+      along === "z"
+        ? new THREE.BoxGeometry(BARRIER_THICK * 1.15, lintelH, door.w)
+        : new THREE.BoxGeometry(door.w, lintelH, BARRIER_THICK * 1.15);
+    const [cx, cz] = along === "z" ? [b.at, door.at] : [door.at, b.at];
+    geo.translate(cx, BARRIER_H - lintelH / 2, cz);
+    trim.push(geo);
+  });
+
+  if (body.length) {
+    group.add(new THREE.Mesh(mergeGeometries(body, false), texturedMaterial("wallPanel", { roughness: 0.9 })));
+    body.forEach((g) => g.dispose());
+  }
+  if (trim.length) {
+    group.add(
+      new THREE.Mesh(
+        mergeGeometries(trim, false),
+        new THREE.MeshStandardMaterial({ color: 0xe0a03c, roughness: 0.7 })
+      )
+    );
+    trim.forEach((g) => g.dispose());
+  }
+  return group;
 }
 
 /**

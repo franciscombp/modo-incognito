@@ -99,21 +99,40 @@ async function boot() {
 
   // ---- Characters, straight from data/characters.json ----
   const chars = data.characters;
-  const needed = new Set([
-    chars.player.sheet,
-    chars.boss.sheet,
-    ...Object.values(chars.minions ?? {}).map((m) => m.sheet),
-    ...floorplan.npcs.map((n) => n.sheet),
-  ]);
+  // Se cargan también los pliegos de ACCIONES (café, peli, comer...) y los de
+  // todos los personajes jugables: la selección de personaje ocurre con el
+  // juego ya montado, así que su sprite se cambia en caliente, sin recargar.
+  const needed = new Set(
+    [
+      chars.player.sheet,
+      chars.player.actionSheet,
+      chars.boss.sheet,
+      chars.boss.actionSheet,
+      ...Object.values(chars.minions ?? {}).flatMap((m) => [m.sheet, m.actionSheet]),
+      ...Object.values(data.modes ?? {}).flatMap((m) => [m.sheet, m.actionSheet]),
+      ...floorplan.npcs.map((n) => n.sheet),
+    ].filter(Boolean)
+  );
   const sheets = new Map();
   await Promise.all(
     [...needed].map(async (name) => sheets.set(name, await loadSheet(sheetUrl(name))))
   );
 
-  // Cruzar la avenida es una escena 3D aparte, con la cámara oblicua y los
-  // sprites de siempre — pero un lienzo propio, así que se crea aquí donde
-  // ya tenemos las hojas cargadas.
-  const crossing3D = createCrossing3D(app, sheets.get(chars.player.sheet));
+  const save = createSave();
+  // El personaje elegido manda sobre el sprite base de characters.json.
+  const modeOf = (id) => data.modes?.[id] ?? data.modes?.giu ?? null;
+  const walkSheetOf = (id) => sheets.get(modeOf(id)?.sheet ?? chars.player.sheet);
+  function applyCharacterSprite(id) {
+    const mode = modeOf(id);
+    player.sprite.setSheet(walkSheetOf(id));
+    player.sprite.setActionSheet(sheets.get(mode?.actionSheet ?? chars.player.actionSheet));
+    crossing3D.setPlayerSheet(walkSheetOf(id));
+  }
+
+  // Cruzar la avenida es una escena 3D aparte, con cámara propia (por detrás
+  // del hombro) pero los mismos sprites — se crea aquí, donde ya tenemos las
+  // hojas cargadas.
+  const crossing3D = createCrossing3D(app, walkSheetOf(save.characterId));
   crossing3D.resize(window.innerWidth / window.innerHeight);
 
   // Los minijuegos se registran aquí; el motor solo los busca por el id que
@@ -134,9 +153,9 @@ async function boot() {
     speed: chars.player.speed,
   });
   scene.add(player.object3D);
+  applyCharacterSprite(save.characterId);
 
   // Exclude NPCs that are the current playable character
-  const save = createSave();
   const excludedCasts = new Set();
   if (save.characterId === "giu") excludedCasts.add("giuli");
   if (save.characterId === "fran" || !save.characterId) excludedCasts.add("fran_npc");
@@ -167,6 +186,7 @@ async function boot() {
     visionHalfAngleDeg: chars.boss.visionHalfAngleDeg,
     config: data.bossConfig?.boss,
   });
+  boss.sprite.setActionSheet(sheets.get(chars.boss.actionSheet));
   scene.add(boss.object3D);
   scene.add(boss.cone);
 
@@ -196,6 +216,7 @@ async function boot() {
     watcher.id = id;
     watcher.displayName = def.name ?? id;
     watcher.talkCooldown = data.dialogues.encounters[id]?.cooldown ?? 35;
+    watcher.sprite.setActionSheet(sheets.get(def.actionSheet));
     watcher.setActive(false);
     scene.add(watcher.object3D);
     scene.add(watcher.cone);
@@ -219,7 +240,8 @@ async function boot() {
     dialogues: data.dialogues,
     modes: data.modes,
     bossConfig: data.bossConfig,
-    playerSheet: chars.player.sheet,
+    playerSheet: modeOf(save.characterId)?.sheet ?? chars.player.sheet,
+    onCharacter: (id) => applyCharacterSprite(id),
     playerName: chars.player.name ?? "Tú",
     minions,
     onPopup: (p) => popups.spawn(p),

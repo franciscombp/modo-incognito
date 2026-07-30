@@ -17,7 +17,7 @@ await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
 
 const report = await page.evaluate(async () => {
   const { engine } = window.__game;
-  engine.startDay(0);
+  engine.startDay(0, { skipMinigame: true });
   await new Promise((r) => setTimeout(r, 50));
   const game = engine.game;
   game.setPaused(false);
@@ -71,11 +71,11 @@ const report = await page.evaluate(async () => {
   game.boss.catches = origCatches;
 
   // ---- Kiara explore mode: suspicion/warnings never happen ----
-  engine.startDay(0);
+  engine.startDay(0, { skipMinigame: true });
   await new Promise((r) => setTimeout(r, 50));
   const save = engine.save;
   save.setCharacter("kiara");
-  engine.startDay(0);
+  engine.startDay(0, { skipMinigame: true });
   await new Promise((r) => setTimeout(r, 50));
   const gameK = engine.game;
   gameK.setPaused(false);
@@ -91,7 +91,7 @@ const report = await page.evaluate(async () => {
   // This was the reported bug — before the fix, redAlert (and so any
   // suspicion gain) required an in-progress forbidden activity, so standing
   // in his cone doing nothing never moved the meter at all.
-  engine.startDay(0);
+  engine.startDay(0, { skipMinigame: true });
   await new Promise((r) => setTimeout(r, 50));
   const game2 = engine.game;
   game2.setPaused(false);

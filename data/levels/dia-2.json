@@ -5,44 +5,15 @@
   "subtitle": "Ya sabes dónde están las cámaras. Y las plantas.",
   "scene": "piso7",
   "theme": "morning",
-  "minigame": {
-    "id": "crossing",
-    "intro": [
-      {
-        "speaker": "Steven el Daddy",
-        "narrator": true,
-        "text": "Antes que nada: hay que cruzar la Amazonas. Seis carriles, ciclovía a cada lado del parterre. Con cuidado."
-      }
-    ],
-    "onFail": {
-      "icon": "🚑",
-      "title": "Te ascendieron a cliente",
-      "body": "Nunca llegaste a cruzar la avenida.",
-      "dialogue": [
-        {
-          "speaker": "Tú",
-          "portrait": "😰",
-          "text": "Jefe... me atropellaron cruzando la Amazonas. No voy a poder entrar."
-        },
-        {
-          "speaker": "Gabo",
-          "portrait": "🕴️",
-          "mood": "angry",
-          "text": "¿Perdón? Eso se avisa CON TIEMPO. No se improvisa un atropello."
-        },
-        {
-          "speaker": "Gabo",
-          "portrait": "🕴️",
-          "mood": "angry",
-          "text": "Quedas ascendida a cliente. Con efecto inmediato."
-        }
-      ]
-    }
-  },
   "rules": {
     "duration": 240,
     "maxWarnings": 3,
-    "objectives": ["coffee","stretch","sleep","scroll"],
+    "objectives": [
+      "coffee",
+      "stretch",
+      "sleep",
+      "scroll"
+    ],
     "bossSpeedMul": 1,
     "visionMul": 1,
     "targetScore": 1100
@@ -57,8 +28,16 @@
       "prompt": "¿Aceptas el consejo?",
       "portrait": "💬",
       "options": [
-        {"label":"«Anotado.»","reply":"Anotado. Laptop como escudo.","flag":"escudo"},
-        {"label":"«Prefiero improvisar.»","reply":"Prefiero improvisar.","flag":"improvisa"}
+        {
+          "label": "«Anotado.»",
+          "reply": "Anotado. Laptop como escudo.",
+          "flag": "escudo"
+        },
+        {
+          "label": "«Prefiero improvisar.»",
+          "reply": "Prefiero improvisar.",
+          "flag": "improvisa"
+        }
       ]
     }
   ],
@@ -91,9 +70,21 @@
       "prompt": "El ascensor está lleno. ¿Te metes igual?",
       "portrait": "🛗",
       "options": [
-        {"label":"Esperar el siguiente","reply":"Espero el siguiente.","effect":"wait"},
-        {"label":"Escaleras, otra vez","reply":"Escaleras. Otra vez.","effect":"stairs"},
-        {"label":"Meterte a presión","reply":"Cabe uno más. Yo.","effect":"cut"}
+        {
+          "label": "Esperar el siguiente",
+          "reply": "Espero el siguiente.",
+          "effect": "wait"
+        },
+        {
+          "label": "Escaleras, otra vez",
+          "reply": "Escaleras. Otra vez.",
+          "effect": "stairs"
+        },
+        {
+          "label": "Meterte a presión",
+          "reply": "Cabe uno más. Yo.",
+          "effect": "cut"
+        }
       ]
     }
   }

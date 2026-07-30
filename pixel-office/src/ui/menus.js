@@ -147,7 +147,9 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
     charBackBtn.classList.toggle("hidden", forced);
     Object.entries(modes).forEach(([id, mode]) => {
       const locked = mode.playable === false;
-      const active = save.characterId === id || (!save.characterId && id === "fran");
+      // Giuli va marcada por defecto: es quien narra el día 1 en femenino y
+      // la única con pliego de acciones propio (café, peli, comer).
+      const active = save.characterId === id || (!save.characterId && id === "giu");
       const card = el(
         "button",
         `px-day px-char${locked ? " locked" : ""}${active ? " done" : ""}`,

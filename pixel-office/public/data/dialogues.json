@@ -45,7 +45,13 @@
       "blurb": "Amiga tuya. Chapter del amor: vive por y para el chisme romántico de la tribu.",
       "friend": true
     },
-    "jefe": {"name":"Gabo","alias":"Barbie Malibú","portrait":"🕴️","color":"#e6483f","sheet":"boss"},
+    "jefe": {
+      "name": "Gabo",
+      "alias": "Barbie Malibú",
+      "portrait": "🕴️",
+      "color": "#e6483f",
+      "sheet": "gabo-camina"
+    },
     "chispita": {
       "name": "Chispita",
       "portrait": "⚡",
@@ -66,7 +72,7 @@
       "name": "Crispo",
       "portrait": "🥨",
       "color": "#c08457",
-      "sheet": "npc4",
+      "sheet": "crispo-camina",
       "friend": false,
       "blurb": "Secuaz del jefe. Casi no camina y abarca medio pasillo con la mirada."
     },
@@ -74,7 +80,7 @@
       "name": "Giuli",
       "portrait": "🧑‍🎨",
       "color": "#ffcf7a",
-      "sheet": "npc3",
+      "sheet": "guili-camina",
       "friend": true,
       "blurb": "Finge que trabaja mejor que nadie. Farmear con ella da puntos, pero el reloj corre más rápido a su lado."
     },
@@ -461,7 +467,10 @@
                   }
                 ]
               },
-              {"label":"Seguir de largo sin decir nada","reply":"…"}
+              {
+                "label": "Seguir de largo sin decir nada",
+                "reply": "…"
+              }
             ]
           }
         ],
@@ -578,7 +587,10 @@
                   }
                 ]
               },
-              {"label":"«Ahora no, voy justa de tiempo.»","reply":"Ahora no, Giuli, voy justa de tiempo."}
+              {
+                "label": "«Ahora no, voy justa de tiempo.»",
+                "reply": "Ahora no, Giuli, voy justa de tiempo."
+              }
             ]
           }
         ],
@@ -630,7 +642,10 @@
                   }
                 ]
               },
-              {"label":"«Luego, Fran.»","reply":"Luego, Fran, ahora no puedo."}
+              {
+                "label": "«Luego, Fran.»",
+                "reply": "Luego, Fran, ahora no puedo."
+              }
             ]
           }
         ],

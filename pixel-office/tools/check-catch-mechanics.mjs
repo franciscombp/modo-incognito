@@ -15,7 +15,7 @@ page.on("console", (m) => {
 
 await page.goto(url, { waitUntil: "networkidle" });
 await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
-await page.evaluate(() => { window.__game.engine.startDay(0); });
+await page.evaluate(() => { window.__game.engine.startDay(0, { skipMinigame: true }); });
 await page.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 10000 });
 
 // Drives whatever dialogue is currently open to completion (mashing space,

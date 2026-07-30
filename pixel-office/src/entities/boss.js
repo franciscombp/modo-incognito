@@ -169,6 +169,11 @@ export class Boss {
     this.prowlTimer = 0;
     this.pointsOfInterest = [];
 
+    // Correa: en vez de dar su vuelta por todo el piso, se queda rondando a
+    // alguien (la jugadora). Ver setTether().
+    this.tether = null;
+    this._tetherTarget = null;
+
     this.state = PATROL;
     this.baseSpeeds = {
       patrol: speeds.patrol ?? 2.4 * S,
@@ -293,6 +298,20 @@ export class Boss {
   }
 
   /** Where slacking tends to happen: the boss drifts toward these on patrol. */
+  /**
+   * Atarlo a alguien: mientras patrulla no se va del piso entero, se queda
+   * orbitando a `target` (un objeto vivo con .x/.z, normalmente
+   * player.position). Si se aleja mas de `far` camina hasta ponerse a `near`;
+   * dentro de esa banda sigue con su ronda normal, asi que no se le ve
+   * pegado como una sombra sino "casualmente por aquí" todo el rato.
+   *
+   * No toca la persecucion: perseguir, investigar y buscar siguen mandando.
+   */
+  setTether(target, { near = 5 * S, far = 9 * S } = {}) {
+    this.tether = target ? { target, near, far } : null;
+    this._tetherTarget = null;
+  }
+
   setPointsOfInterest(points) {
     this.pointsOfInterest = points;
     this.prowlTarget = null;
@@ -482,6 +501,27 @@ export class Boss {
           this.startChase();
           break;
         }
+        // Con correa puesta, su ronda deja de ser el piso entero y pasa a ser
+        // "donde estes tu". Se acerca hasta la banda `near` y ahi la suelta,
+        // para volver a la ronda de siempre hasta que te vuelvas a alejar.
+        if (this.tether) {
+          const { target, near, far } = this.tether;
+          const d = Math.hypot(target.x - this.position.x, target.z - this.position.z);
+          if (d > far) {
+            // Un punto sobre el anillo `near`, en la linea que los une: llega
+            // a ponerse cerca, no encima.
+            const k = near / (d || 1);
+            this._tetherTarget = {
+              x: target.x + (this.position.x - target.x) * k,
+              z: target.z + (this.position.z - target.z) * k,
+            };
+          } else if (d < near) {
+            this._tetherTarget = null;
+          }
+        } else {
+          this._tetherTarget = null;
+        }
+
         // Even without seeing her he keeps drifting toward wherever people
         // are most likely to be wasting time, so no corner of the floor is
         // ever permanently safe.
@@ -542,6 +582,7 @@ export class Boss {
     this._path = null;
     this._pathTarget = null;
     this.prowlTarget = null;
+    this._tetherTarget = null;
     if (this.state === PATROL) {
       this.routeIndex = (this.routeIndex + 1) % this.route.length;
       this._waypointTimer = 0;
@@ -592,7 +633,7 @@ export class Boss {
     }
     if (this.state === SEARCH) return this.searchTarget ?? this.route[this.routeIndex];
     if (this.state === INVESTIGATE) return this.investigateTarget;
-    return this.prowlTarget ?? this.route[this.routeIndex];
+    return this._tetherTarget ?? this.prowlTarget ?? this.route[this.routeIndex];
   }
 
   /**

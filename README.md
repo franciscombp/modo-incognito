@@ -1,7 +1,16 @@
 # Modo Incógnito · Tribu Canales · Piso 10 · Centro Digital
 
 Juego web en Three.js: eres una empleada del Piso 10 · Centro Digital que intenta **no trabajar**
-—café, chisme, siesta, televisión— mientras el jefe patrulla la planta.
+—café, película, comer— mientras el jefe patrulla la planta.
+
+> **Estado: MVP del día 1.** La campaña publicada es **solo el día 1**, pulido
+> de principio a fin: cruzas la avenida Amazonas, subes por el ascensor y
+> tienes tres cosas que hacer (tomar café, ver película, comer) en el **ala
+> sur**, con Gabo pegado a ti todo el rato. Los días 2 a 5 siguen escritos en
+> `pixel-office/public/data/levels/` pero están **fuera de**
+> [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json)
+> → `levels`, así que no aparecen. Volver a activarlos es añadir su id a esa
+> lista; no hay nada más que tocar.
 
 **Lore, para quien escriba diálogos nuevos:** la Tribu Canales es el equipo de
 diseño del Centro Digital de un banco — creativos dentro de una empresa que
@@ -92,7 +101,12 @@ código**.
 | Los menús (título, elegir día, ajustes, pausa) (código) | [`src/ui/menus.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/menus.js) |
 | Los controles táctiles (código) | [`src/game/touchControls.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/touchControls.js) |
 | El vestíbulo de ascensores (segunda "escena", antes del piso) (código) | [`src/ui/lobby.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/lobby.js) |
-| El minijuego de cruzar la avenida (código) | [`src/ui/crossing.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/crossing.js) |
+| El minijuego de cruzar la avenida: carriles, tráfico, cámara, coches 3D (código) | [`src/scene/crossing3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/crossing3d.js) |
+| Qué días forman la campaña (activar/desactivar días) | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) → `levels` |
+| El muro que separa las alas y su puerta | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) → `barriers` |
+| Que el jefe se quede pegado a la jugadora | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/levels) → `rules.bossTether` |
+| Qué pose hace la jugadora en cada actividad | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) → `activities[].pose` |
+| Meter pliegos de sprites dibujados a mano (los normaliza a la rejilla 4x4) | [`tools/pack-sprites.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/pack-sprites.py) |
 | Los mensajes de Teams de Gabo | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/dialogues.json) → `teamsMessages.gabo` |
 
 Cada JSON de `public/data/` trae su propio campo `"$comment"` al principio
@@ -213,6 +227,37 @@ la mesa grande con sus sillas, la moqueta de color y el rótulo:
 `elevator`. Un archivo con JSON inválido falla con el nombre del archivo en
 pantalla, nunca con una pantalla en negro.
 
+### Muros con puerta (`barriers`)
+
+Un tabique que parte el piso se declara igual de fácil. El del MVP separa el
+ala sur (donde pasa el día 1) del ala norte:
+
+```json
+{ "id": "muro_alas", "axis": "x", "at": 14.05, "from": -10.4, "to": 12.4,
+  "door": { "at": 0.6, "w": 3.4 }, "label": "ALA NORTE" }
+```
+
+`axis` es el eje del muro (`"x"` = vertical en el plano), `at` su
+coordenada, `from`/`to` el tramo que cubre y `door` un hueco **de verdad**:
+se cruza andando y el navmesh lo ve, no es un adorno. Sin `door`, el muro es
+macizo. El motor lo dibuja y lo mete en la colisión solo, en
+[`src/scene/builder.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/builder.js).
+
+### Poses de las actividades
+
+Una actividad puede decir qué pose hace la jugadora mientras la ejecuta:
+
+```json
+{ "id": "coffee", "label": "Tomar café", "type": "coffee", "pose": "coffee", ... }
+```
+
+Las poses salen del pliego `*-acciones.png` del personaje (`actionSheet` en
+`modes.json` / `characters.json`). Son ocho — `work`, `sleep`, `coffee`,
+`eat`, `movie`, `phone`, `scared`, `shrug` — y su orden en la rejilla está
+documentado en `POSES`, dentro de
+[`src/entities/sprite.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/sprite.js). Un personaje sin
+`actionSheet` simplemente se queda con su pose de caminar; no rompe nada.
+
 ## Personajes
 
 `dialogues.json` define el reparto y sus conversaciones. Cada compañero tiene
@@ -228,6 +273,25 @@ varias escenas que se van alternando, con opciones que hacen algo de verdad:
 
 Manu, César, Enriquetta y El Parce son **amigos tuyos**. Los secuaces no lo
 son, pero también puedes hablarles: según lo que elijas te cubren o te delatan.
+
+### Sprites dibujados a mano
+
+Los pliegos que dibuja el equipo (`gabo-camina.png`, `guili-acciones.png`…)
+llegan en lienzos grandes y **sin rejilla regular** — en `guili-camina.png`
+las cuatro filas miden 274, 257, 255 y 275 px, así que cortar por «ancho / 4»
+mete la cabeza de una fila en los pies de la anterior. Antes de usarlos hay
+que pasarlos por:
+
+```bash
+cd pixel-office
+python3 tools/pack-sprites.py          # todos
+python3 tools/pack-sprites.py guili-camina   # solo uno
+```
+
+Detecta las filas y columnas por las franjas transparentes, recorta, escala
+todo con una sola escala (para que el personaje no cambie de tamaño entre
+fotogramas) y deja el pliego en la rejilla que espera el motor: 4x4 celdas de
+128x176. Es idempotente y trabaja sobre `public/sprites/` en el sitio.
 
 El jefe es **Gabo**, alias **Barbie Malibú** (`characters.json` → `boss`,
 `dialogues.json` → `cast.jefe`) — su nombre de pila aparece como interlocutor
