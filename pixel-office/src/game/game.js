@@ -241,6 +241,16 @@ export class Game {
 
     this.player.isHiding = this._updateHiding(dt, pos);
     this.inSafeSpot = this._updateSafeSpot(dt, pos);
+    // Estar en un lugar seguro es la ÚNICA forma de quitarte de encima una
+    // persecución ya comprometida: el jefe y sus secuaces sueltan la presa y
+    // vuelven a la ronda. (Esconderse o fingir sirven para que no te fichen,
+    // no para escaparte una vez te tienen.)
+    //
+    // Se comprueba cada frame, no solo al ENTRAR: si te fichan estando ya
+    // dentro (te ve desde lejos mientras estás en el bebedero), la
+    // persecución tiene que morir igual — con detección de flanco, ese caso
+    // se quedaba perseguido para siempre.
+    if (this.inSafeSpot) this._breakAllPursuits();
 
     const holdingE = this.player.keys.has("e");
     const holdingF = this.player.keys.has("f");
@@ -485,10 +495,23 @@ export class Game {
    * pisar al otro, así que se recalculan juntos cada frame en vez de que cada
    * efecto escriba `speedMul` por su cuenta.
    */
+  /** Todo el que te venga persiguiendo se rinde al verte en lugar seguro. */
+  _breakAllPursuits() {
+    let broke = this.boss.breakPursuit();
+    for (const m of this.minions) broke = m.breakPursuit() || broke;
+    if (broke) this.toast("Lugar seguro: dejan de perseguirte");
+    return broke;
+  }
+
   _updateSpeedMul() {
+    // El radar de Washo frena por ÁREA, no por mirada: basta con estar dentro
+    // de su alcance, mires por donde mires y mire él por donde mire. Es
+    // exactamente lo que dibujan sus ondas en el suelo, así que el efecto se
+    // entiende sin explicarlo.
     const washo = this.minions.find((m) => m.cast === "washo");
-    const slowed = washo && washo.playerVisible ? WASHO_SLOW_MUL : 1;
-    this.player.speedMul = this._perkSpeedMul * slowed;
+    const inRadar = washo?.active !== false && washo?.inRange(this.player.position);
+    this.player.speedMul = this._perkSpeedMul * (inRadar ? WASHO_SLOW_MUL : 1);
+    this.inWashoRadar = !!inRadar;
   }
 
   /**
@@ -540,7 +563,11 @@ export class Game {
     if (!this.onTalk) return;
     const pos = this.player.position;
     for (const m of this.minions) {
-      if (!m.redAlert) continue;
+      // `redAlert` se apaga en cuanto te escondes, pero un secuaz ya
+      // comprometido (lockedOn) viene igual: sin esta segunda condición se
+      // quedaba persiguiéndote para siempre sin llegar a interrogarte nunca,
+      // porque su "captura" es justamente este diálogo.
+      if (!m.redAlert && !m.lockedOn) continue;
       if (m.active === false || !m.cast) continue;
       if ((this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
       const dist = Math.hypot(m.position.x - pos.x, m.position.z - pos.z);

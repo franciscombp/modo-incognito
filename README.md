@@ -158,6 +158,7 @@ npm run check                        # ahora sí, corre la batería completa
 | `check:catch` | Diálogos al ser atrapada (secuaz e interrogatorio del jefe + gracia) |
 | `check:minion-proximity` | Un secuaz solo "atrapa" con proximidad física real, no solo con verte |
 | `check:suspicion` | La sospecha sube/baja/decae con los valores esperados |
+| `check:pursuit` | Que una persecución comprometida no se rinda (ni por perderte de vista ni por atascarse) y que el lugar seguro sea la única salida |
 | `check:layout` | Que en 6 tamaños de pantalla (de 1440px a un iPhone SE, y horizontal) ningún panel, botón o marcador se solape con otro, ningún texto se recorte y nada se salga de la pantalla |
 
 `check:layout` es el que conviene correr después de tocar el HUD o el CSS:
@@ -287,6 +288,32 @@ Tres capas que no compiten entre sí:
   jefe —que late cuando te está cazando—, la de sus secuaces, las tareas
   pendientes y los escondites cargados. Con la distancia al jefe en metros,
   así que el zoom nunca te deja a ciegas.
+
+## Persecución: una vez te fichan, no te sueltan
+
+Que un vigilante te meta en su halo **compromete la persecución**: a partir de
+ahí va a por ti hasta alcanzarte. Perderle de vista ya no sirve — ni
+esconderte, ni doblar la esquina, ni ponerte al otro lado de una mesa. La
+**única** salida es llegar a un **lugar seguro** (bebedero, baño, tu propia
+mesa): ahí sueltan la presa y vuelven a la ronda.
+
+Los escondites siguen valiendo, pero para lo de antes: que **no te fichen**.
+Una vez te tienen, dejan de ser refugio. Esa distinción es la regla más fácil
+de romper sin darse cuenta al tocar la IA, así que la cubre entera
+`npm run check:pursuit`.
+
+Cada vigilante mira distinto, y el suelo lo dice sin texto:
+
+- **Cono** (jefe, Chispita, Crispo) — un haz con degradado: opaco donde está
+  el peligro real, junto a él, y desvanecido en la punta. Gira siguiéndote con
+  un barrido suave en vez de saltar de golpe.
+- **Radar** (Washo) — no mira, **barre**. Alcance de 360°, así que rodearlo
+  por detrás no sirve, y lo anuncia con ondas que salen de él. Dentro de su
+  alcance **te pesan las piernas** (te mueves más lento), lo mires como lo
+  mires. Es área, no mirada.
+
+La forma se elige por personaje en `characters.json` con
+`"visionShape": "cone" | "radar"`.
 
 ## Escondites con recarga
 

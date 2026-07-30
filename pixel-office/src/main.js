@@ -187,6 +187,7 @@ async function boot() {
       speeds: def.speeds,
       visionRange: def.visionRange,
       visionHalfAngleDeg: def.visionHalfAngleDeg,
+      visionShape: def.visionShape,
       config: data.bossConfig?.boss,
     });
     // Sidekicks are characters, not just threats: you can walk up and talk.

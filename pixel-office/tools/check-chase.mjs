@@ -87,9 +87,12 @@ const log = await page.evaluate(async () => {
   player.keys.delete("f");
   player.keys.delete("e");
 
-  // Losing her must end the direct pursuit. `isHiding` is recomputed from the
-  // hiding spots every frame, so the test moves her out of range instead —
-  // otherwise the flag is overwritten and the boss keeps seeing her.
+  // Perderla de vista ya NO termina la persecución: desde que la mete en el
+  // halo va comprometido (boss.lockedOn) y solo un lugar seguro lo corta —
+  // ver tools/check-pursuit.mjs, que cubre esa regla entera. Aquí solo se
+  // comprueba que teletransportarla lejos no le hace desistir por su cuenta.
+  // `isHiding` se recalcula cada frame desde los escondites, así que el test
+  // la aleja en vez de tocar la bandera.
   player.position.x = px + 40 * S;
   // Generous: headless throttles frames, and the boss only accumulates
   // "lost sight" time on frames that actually run. A single long sleep(3000)
@@ -98,6 +101,7 @@ const log = await page.evaluate(async () => {
   // several shorter sleeps), so this polls instead of waiting once.
   for (let i = 0; i < 15; i++) await sleep(200);
   out.stateWhenHidden = boss.state;
+  out.lockedWhenHidden = boss.lockedOn;
   out.gameOverWhenHidden = game.gameOver;
   out.loseSightTimer = +boss.loseSightTimer.toFixed(2);
   out.warningsSoFar = game.warnings;
@@ -124,7 +128,7 @@ const checks = [
   ["boss closes the distance", log.closedDistance > 0.3],
   ["suspicion rises while seen", log.suspicionRose],
   ["pretending to work clears the red alert", log.redAlertWhilePretending === false],
-  ["boss searches after losing sight", log.stateWhenHidden === "SEARCH" || log.stateWhenHidden === "PATROL"],
+  ["losing sight no longer ends a committed chase", log.stateWhenHidden === "CHASE" && log.lockedWhenHidden],
   ["distraction is accepted", log.distractAccepted === true],
   ["distraction switches to INVESTIGATE", log.stateAfterDistract === "INVESTIGATE"],
 ];
