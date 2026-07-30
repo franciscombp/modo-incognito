@@ -1,13 +1,16 @@
 import * as THREE from "three";
 import { CharacterSprite } from "../entities/sprite.js";
 import { WORLD_SCALE as S } from "./config.js";
-import { cameraDirection } from "./iso.js";
 import { getCameraSettings, subscribeCameraSettings } from "./cameraSettings.js";
 
-// Cruzar la Amazonas, en 3D: mismo motor, misma cámara oblicua y los mismos
-// sprites de personaje que el resto del juego — un escenario aparte, no una
-// superposición de HTML. Editable aquí mismo: ROWS describe cada carril de
-// la acera de salida (fila 0) a la puerta del edificio (última fila).
+// Cruzar la Amazonas, en 3D: mismo motor y el mismo sprite de personaje que
+// el resto del juego, pero con una cámara propia — aquí NO se usa la vista
+// oblicua del piso. Vas de espaldas, avanzando hacia el fondo, con la cámara
+// detrás y un poco por encima del hombro: se ve venir el tráfico de frente,
+// que es de lo que va el minijuego.
+//
+// Editable aquí mismo: ROWS describe cada carril, de la acera de salida
+// (fila 0) a la puerta del edificio (última fila).
 
 const COLS = 5;
 const LANE_DEPTH = 2.4 * S;
@@ -15,6 +18,12 @@ const ROAD_WIDTH = 5.2 * S;
 const VEHICLE_WIDTH = 0.85 * S;
 const PLAYER_RADIUS = 0.3 * S;
 const MOVE_COOLDOWN = 150;
+
+// Cámara: detrás de la jugadora y algo elevada, mirando calle adelante.
+const CAM_BACK = 9.6 * S;
+const CAM_HEIGHT = 6.2 * S;
+const CAM_AHEAD = 2.6 * S;
+const CAM_SIDE_FOLLOW = 0.45; // cuánto acompaña la cámara al moverte de lado
 
 // Huecos generosos a propósito: es un chiste sobre que te despidan, no un
 // examen de reflejos — la caminata debe ganarse con lectura de tráfico, no
@@ -42,46 +51,99 @@ const ROAD_COLORS = {
   median: 0x234029,
 };
 
+// La cámara mira hacia +Z, así que su "derecha" es -X: por eso la columna
+// crece hacia -X y la tecla izquierda mueve, de verdad, hacia la izquierda de
+// la pantalla. Si algún día se gira la cámara, este signo es lo único a tocar.
 function colToX(col) {
-  return (col - (COLS - 1) / 2) * (ROAD_WIDTH / COLS);
+  return -(col - (COLS - 1) / 2) * (ROAD_WIDTH / COLS);
 }
 
-/** Pixel-art carrito/bici dibujado a mano en un canvas — sin archivos que subir. */
-function vehicleTexture(kind, color) {
-  const w = kind === "bike" ? 14 : 22;
-  const h = 14;
-  const canvas = document.createElement("canvas");
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d");
-  ctx.imageSmoothingEnabled = false;
-  const hex = `#${color.toString(16).padStart(6, "0")}`;
+// ---- Vehículos: geometría 3D de verdad, ya no sprites dibujados a mano ----
+// Se construyen una sola vez por tipo y se comparten entre todos los coches;
+// lo único propio de cada uno es el material de la carrocería (el color).
+const geomCache = new Map();
+function cached(key, build) {
+  if (!geomCache.has(key)) geomCache.set(key, build());
+  return geomCache.get(key);
+}
+
+const DARK = new THREE.MeshLambertMaterial({ color: 0x14151a });
+const GLASS = new THREE.MeshLambertMaterial({ color: 0x9fd8f2 });
+const SKIN = new THREE.MeshLambertMaterial({ color: 0xe8c9a0 });
+
+/**
+ * Un carrito de tres cajas y cuatro ruedas, o una bici con su ciclista.
+ * Mira siempre a lo largo de X, que es como corren los carriles; `dir` solo
+ * decide hacia qué lado se gira.
+ */
+function vehicleMesh(kind, color, dir) {
+  const group = new THREE.Group();
+  const paint = new THREE.MeshLambertMaterial({ color });
 
   if (kind === "bike") {
-    ctx.fillStyle = "#1a1a1a";
-    ctx.fillRect(1, 8, 4, 4);
-    ctx.fillRect(9, 8, 4, 4);
-    ctx.fillStyle = hex;
-    ctx.fillRect(4, 6, 6, 2);
-    ctx.fillRect(6, 3, 2, 5);
-    ctx.fillStyle = "#e8c9a0";
-    ctx.fillRect(6, 1, 3, 3);
+    const wheel = cached("bikeWheel", () =>
+      new THREE.TorusGeometry(0.28 * S, 0.07 * S, 6, 12)
+    );
+    [-0.42, 0.42].forEach((dx) => {
+      const w = new THREE.Mesh(wheel, DARK);
+      w.position.set(dx * S, 0.28 * S, 0);
+      group.add(w);
+    });
+    const frame = new THREE.Mesh(
+      cached("bikeFrame", () => new THREE.BoxGeometry(0.9 * S, 0.1 * S, 0.1 * S)),
+      paint
+    );
+    frame.position.y = 0.5 * S;
+    group.add(frame);
+
+    const torso = new THREE.Mesh(
+      cached("bikeTorso", () => new THREE.BoxGeometry(0.34 * S, 0.5 * S, 0.3 * S)),
+      paint
+    );
+    torso.position.set(-0.05 * S, 0.85 * S, 0);
+    group.add(torso);
+    const head = new THREE.Mesh(
+      cached("bikeHead", () => new THREE.BoxGeometry(0.26 * S, 0.26 * S, 0.26 * S)),
+      SKIN
+    );
+    head.position.set(0.02 * S, 1.22 * S, 0);
+    group.add(head);
   } else {
-    ctx.fillStyle = hex;
-    ctx.fillRect(1, 4, 20, 6);
-    ctx.fillRect(5, 1, 12, 4);
-    ctx.fillStyle = "#9fd8f2";
-    ctx.fillRect(6, 2, 4, 3);
-    ctx.fillRect(12, 2, 4, 3);
-    ctx.fillStyle = "#111";
-    ctx.fillRect(3, 9, 4, 4);
-    ctx.fillRect(15, 9, 4, 4);
+    const body = new THREE.Mesh(
+      cached("carBody", () => new THREE.BoxGeometry(2.1 * S, 0.5 * S, 0.95 * S)),
+      paint
+    );
+    body.position.y = 0.42 * S;
+    group.add(body);
+
+    const cabin = new THREE.Mesh(
+      cached("carCabin", () => new THREE.BoxGeometry(1.1 * S, 0.42 * S, 0.86 * S)),
+      paint
+    );
+    cabin.position.set(-0.1 * S, 0.86 * S, 0);
+    group.add(cabin);
+
+    const windshield = new THREE.Mesh(
+      cached("carGlass", () => new THREE.BoxGeometry(1.12 * S, 0.26 * S, 0.9 * S)),
+      GLASS
+    );
+    windshield.position.set(-0.1 * S, 0.9 * S, 0);
+    group.add(windshield);
+
+    const wheel = cached("carWheel", () =>
+      new THREE.CylinderGeometry(0.24 * S, 0.24 * S, 0.16 * S, 8).rotateX(Math.PI / 2)
+    );
+    [-0.68, 0.68].forEach((dx) => {
+      [-0.5, 0.5].forEach((dz) => {
+        const w = new THREE.Mesh(wheel, DARK);
+        w.position.set(dx * S, 0.24 * S, dz * S);
+        group.add(w);
+      });
+    });
   }
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.magFilter = THREE.NearestFilter;
-  texture.minFilter = THREE.NearestFilter;
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
+
+  if (dir < 0) group.rotation.y = Math.PI;
+  return group;
 }
 
 function el(tag, className, parent) {
@@ -110,11 +172,17 @@ export function createCrossing3D(root, playerSheet) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x11151f);
+  scene.fog = new THREE.Fog(0x11151f, 26 * S, 60 * S);
 
   scene.add(new THREE.AmbientLight(0xffffff, 1.1));
   const key = new THREE.DirectionalLight(0xfff2d6, 1.05);
   key.position.set(10 * S, 30 * S, 6 * S);
   scene.add(key);
+  // Relleno desde el lado de la cámara: la fachada del banco mira hacia -Z y
+  // sin esto se veía como un rectángulo negro al fondo de la calle.
+  const fill = new THREE.DirectionalLight(0xbcd4ff, 0.75);
+  fill.position.set(-4 * S, 12 * S, -20 * S);
+  scene.add(fill);
 
   const camera = new THREE.PerspectiveCamera(getCameraSettings().fov, 1, 0.5 * S, 300 * S);
   const camTarget = new THREE.Vector3(0, 0, 0);
@@ -123,11 +191,11 @@ export function createCrossing3D(root, playerSheet) {
     camera.updateProjectionMatrix();
   });
 
+  /** Detrás del hombro y mirando calle adelante — nunca de lado. */
   function placeCamera() {
-    const dir = cameraDirection();
-    const distance = 10 * S;
-    camera.position.set(camTarget.x + dir.x * distance, dir.y * distance, camTarget.z + dir.z * distance);
-    camera.lookAt(camTarget.x, 0.6 * S, camTarget.z);
+    const x = camTarget.x * CAM_SIDE_FOLLOW;
+    camera.position.set(x, CAM_HEIGHT, camTarget.z - CAM_BACK);
+    camera.lookAt(x, 1.0 * S, camTarget.z + CAM_AHEAD);
   }
 
   // ---- Calle: una franja ancha por fila, apiladas a lo largo de Z ----
@@ -157,7 +225,7 @@ export function createCrossing3D(root, playerSheet) {
       }
     }
     if (row.kind === "median") {
-      for (const dx of [-1.6, 0, 1.6]) {
+      for (const dx of [-2.0, -1.1, 1.1, 2.0]) {
         const tree = new THREE.Mesh(
           new THREE.ConeGeometry(0.5 * S, 1.1 * S, 6),
           new THREE.MeshLambertMaterial({ color: 0x3f7a4a })
@@ -166,24 +234,50 @@ export function createCrossing3D(root, playerSheet) {
         roadGroup.add(tree);
       }
     }
-    if (row.kind === "goal") {
-      const door = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.1 * S, 1.8 * S),
-        new THREE.MeshBasicMaterial({ color: 0x8a5a32 })
-      );
-      door.position.set(ROAD_WIDTH / 2 - 1.2 * S, 0.9 * S, z + LANE_DEPTH * 0.3);
-      roadGroup.add(door);
-    }
   });
 
-  // ---- Jugadora: mismo sprite que en el piso ----
+  // ---- El edificio del banco, al fondo: es lo que da sentido a caminar
+  // hacia allá. Con la cámara detrás, es lo único que llena el horizonte.
+  const facade = new THREE.Mesh(
+    new THREE.BoxGeometry(ROAD_WIDTH * 1.6, 12 * S, 4 * S),
+    new THREE.MeshLambertMaterial({ color: 0x2a3347 })
+  );
+  facade.position.set(0, 6 * S, GOAL_ROW * LANE_DEPTH + 3.2 * S);
+  roadGroup.add(facade);
+
+  // Ventanas encendidas, en rejilla: el piso 10 ya está trabajando sin ti.
+  const windowGeo = new THREE.PlaneGeometry(0.42 * S, 0.3 * S);
+  const windowMat = new THREE.MeshBasicMaterial({
+    color: 0xf2c744,
+    toneMapped: false,
+    side: THREE.DoubleSide,
+  });
+  for (let r = 0; r < 8; r++) {
+    for (let c = -3; c <= 3; c++) {
+      if ((r + c) % 3 === 0) continue; // algunas apagadas, para que no sea una cuadrícula muerta
+      const w = new THREE.Mesh(windowGeo, windowMat);
+      w.position.set(c * 0.95 * S, (1.9 + r * 1.25) * S, GOAL_ROW * LANE_DEPTH + 1.19 * S);
+      roadGroup.add(w);
+    }
+  }
+
+  const door = new THREE.Mesh(
+    new THREE.PlaneGeometry(1.6 * S, 1.9 * S),
+    new THREE.MeshBasicMaterial({ color: 0x8a5a32, side: THREE.DoubleSide })
+  );
+  door.position.set(0, 0.95 * S, GOAL_ROW * LANE_DEPTH + 1.19 * S);
+  roadGroup.add(door);
+
+  // ---- Jugadora: mismo sprite que en el piso, de espaldas ----
   const player = new CharacterSprite(playerSheet, { height: 1.45 * S });
+  player.setFacing("north"); // avanza alejándose de la cámara
   scene.add(player.object);
 
   let vehicles = [];
   let nextSpawnByRow = ROWS.map(() => 0);
   let playerCell = { row: 0, col: Math.floor(COLS / 2) };
   let lastMove = 0;
+  let stepTimer = 0; // ráfaga corta de animación de caminar tras cada paso
   let running = false;
   let resolveFn = null;
   let rafId = null;
@@ -197,17 +291,11 @@ export function createCrossing3D(root, playerSheet) {
     const row = ROWS[rowIndex];
     if (row.kind !== "car" && row.kind !== "bike") return;
     const color = row.colors[Math.floor(Math.random() * row.colors.length)];
-    const sprite = new THREE.Sprite(
-      new THREE.SpriteMaterial({ map: vehicleTexture(row.kind, color), transparent: true, toneMapped: false })
-    );
-    const scale = row.kind === "bike" ? 0.9 * S : 1.3 * S;
-    sprite.scale.set(scale * (row.kind === "bike" ? 1 : 1.4), scale, 1);
-    sprite.scale.x *= row.dir > 0 ? 1 : -1; // mira hacia donde avanza
-    const startX = (row.dir > 0 ? -1 : 1) * (ROAD_WIDTH / 2 + VEHICLE_WIDTH);
-    sprite.position.set(startX, 0.4 * S, rowIndex * LANE_DEPTH);
-    roadGroup.add(sprite);
-    const v = { row: rowIndex, x: startX, dir: row.dir, speed: row.speed, sprite };
-    vehicles.push(v);
+    const mesh = vehicleMesh(row.kind, color, row.dir);
+    const startX = (row.dir > 0 ? -1 : 1) * (ROAD_WIDTH / 2 + VEHICLE_WIDTH * 2);
+    mesh.position.set(startX, 0, rowIndex * LANE_DEPTH);
+    roadGroup.add(mesh);
+    vehicles.push({ row: rowIndex, x: startX, dir: row.dir, speed: row.speed, mesh });
   }
 
   function randomGap(row) {
@@ -216,9 +304,12 @@ export function createCrossing3D(root, playerSheet) {
   }
 
   function resetGame() {
-    vehicles.forEach((v) => v.sprite.parent?.remove(v.sprite));
+    vehicles.forEach((v) => v.mesh.parent?.remove(v.mesh));
     vehicles = [];
     playerCell = { row: 0, col: Math.floor(COLS / 2) };
+    player.setFacing("north");
+    player.setMoving(false);
+    stepTimer = 0;
     layoutPlayer();
     camTarget.set(0, 0, 0);
     placeCamera();
@@ -227,8 +318,9 @@ export function createCrossing3D(root, playerSheet) {
       // Un vehículo ya en marcha, repartido por la calle, para que el
       // carril no arranque completamente vacío.
       spawnFor(i);
-      vehicles[vehicles.length - 1].x = (Math.random() - 0.5) * ROAD_WIDTH;
-      vehicles[vehicles.length - 1].sprite.position.x = vehicles[vehicles.length - 1].x;
+      const v = vehicles[vehicles.length - 1];
+      v.x = (Math.random() - 0.5) * ROAD_WIDTH;
+      v.mesh.position.x = v.x;
       nextSpawnByRow[i] = randomGap(row);
     });
   }
@@ -242,6 +334,14 @@ export function createCrossing3D(root, playerSheet) {
     lastMove = now;
     playerCell.row = nr;
     playerCell.col = nc;
+    // Mirar hacia donde se dio el paso. Avanzar es "north" (de espaldas a la
+    // cámara); la columna crece hacia -X, o sea hacia la derecha de pantalla.
+    if (dr > 0) player.setFacing("north");
+    else if (dr < 0) player.setFacing("south");
+    else if (dc > 0) player.setFacing("east");
+    else if (dc < 0) player.setFacing("west");
+    player.setMoving(true);
+    stepTimer = 0.28;
     layoutPlayer();
     if (playerCell.row === GOAL_ROW) finish("safe");
   }
@@ -269,7 +369,7 @@ export function createCrossing3D(root, playerSheet) {
 
     vehicles.forEach((v) => {
       v.x += v.dir * v.speed * dt;
-      v.sprite.position.x = v.x;
+      v.mesh.position.x = v.x;
     });
     ROWS.forEach((row, i) => {
       if (row.kind !== "car" && row.kind !== "bike") return;
@@ -281,8 +381,9 @@ export function createCrossing3D(root, playerSheet) {
       nextSpawnByRow[i] = randomGap(row);
     });
     vehicles = vehicles.filter((v) => {
-      const gone = v.dir > 0 ? v.x > ROAD_WIDTH / 2 + VEHICLE_WIDTH : v.x < -ROAD_WIDTH / 2 - VEHICLE_WIDTH;
-      if (gone) v.sprite.parent?.remove(v.sprite);
+      const limit = ROAD_WIDTH / 2 + VEHICLE_WIDTH * 2;
+      const gone = v.dir > 0 ? v.x > limit : v.x < -limit;
+      if (gone) v.mesh.parent?.remove(v.mesh);
       return !gone;
     });
 
@@ -296,12 +397,15 @@ export function createCrossing3D(root, playerSheet) {
       return;
     }
 
-    // Cámara: sigue la fila de la jugadora con suavizado.
-    // La cámara mira un poco más adelante que la jugadora, no encima de
-    // ella, para que se vea venir el tráfico en vez de solo lo ya cruzado.
-    const lookAheadRow = Math.min(GOAL_ROW, playerCell.row + 1.5);
-    camTarget.z += (lookAheadRow * LANE_DEPTH - camTarget.z) * Math.min(1, dt * 4);
+    // Cámara: sigue a la jugadora con suavizado, siempre por detrás.
+    camTarget.z += (playerCell.row * LANE_DEPTH - camTarget.z) * Math.min(1, dt * 4);
+    camTarget.x += (playerX - camTarget.x) * Math.min(1, dt * 6);
     placeCamera();
+
+    if (stepTimer > 0) {
+      stepTimer -= dt;
+      if (stepTimer <= 0) player.setMoving(false);
+    }
     player.update(dt);
 
     rafId = requestAnimationFrame(frame);
@@ -356,8 +460,21 @@ export function createCrossing3D(root, playerSheet) {
       col: playerCell.col,
       goalRow: GOAL_ROW,
       vehicles: vehicles.map((v) => ({ row: v.row, x: v.x, dir: v.dir })),
+      // El encuadre, para poder comprobar que la cámara mira de verdad hacia
+      // adelante y por detrás de la jugadora (ver tools/check-crossing.mjs).
+      camera: {
+        z: camera.position.z,
+        y: camera.position.y,
+        playerZ: playerCell.row * LANE_DEPTH,
+      },
     };
   }
 
-  return { scene, camera, play, resize, dispose, getState };
+  /** Cambiar de personaje jugable sin rehacer la escena. */
+  function setPlayerSheet(sheet) {
+    player.setSheet(sheet);
+    player.setFacing("north");
+  }
+
+  return { scene, camera, play, resize, dispose, getState, setPlayerSheet };
 }

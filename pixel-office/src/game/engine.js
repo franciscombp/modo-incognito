@@ -17,6 +17,7 @@ import {
   locationEggs,
   activityStations,
 } from "../scene/floorplan.js";
+import { WORLD_SCALE as S } from "../scene/config.js";
 
 // Gabo te escribe por Teams cada tanto, sin que importe dónde esté él en el
 // piso — es un chat, no un encuentro. El rango evita que se sienta ni un
@@ -54,6 +55,7 @@ export function createEngine({
   onPopup = null,
   minigames = createMinigameRegistry(),
   pixels = null,
+  onCharacter = null,
 }) {
   const hud = createHud(app);
   const guides = createGuides(app, camera.camera);
@@ -174,6 +176,17 @@ export function createEngine({
     // personaje, no los reemplaza.
     boss.dayTuning = { vision: boss.baseVisionRange * visionMul, speedMul: mul };
 
+    // `bossRoute` acota su ronda a un ala concreta (ver scenes/*.json ->
+    // routes) y `bossTether` lo ata a la jugadora: en vez de dar la vuelta al
+    // piso, Gabo se pasa el día "casualmente" cerca de ella.
+    if (rules.bossRoute && routes[rules.bossRoute]) boss.setRoute(routes[rules.bossRoute]);
+    if (rules.bossTether) {
+      const [near, far] = rules.bossTether;
+      boss.setTether(player.position, { near: near * S, far: far * S });
+    } else {
+      boss.setTether(null);
+    }
+
     // He drifts toward wherever the day's tasks are, so no wing is ever a
     // safe corner to farm quietly.
     const wanted = rules.objectives;
@@ -195,7 +208,12 @@ export function createEngine({
       resume: () => resumeFromMenu(),
       restart: () => startDay(dayIndex),
       toTitle: () => openTitle(),
-      selectCharacter: (id) => save.setCharacter(id),
+      selectCharacter: (id) => {
+        save.setCharacter(id);
+        // El sprite se cambia en caliente: elegir personaje pasa con el juego
+        // ya montado, no al arrancar.
+        onCharacter?.(id);
+      },
     },
   });
 
@@ -301,23 +319,32 @@ export function createEngine({
     player.isDoingActivity = false;
 
     // Start him at the patrol waypoint furthest from the lifts, so the day
-    // doesn't open with the boss standing on top of the player.
-    let far = 0;
-    let farD = -Infinity;
+    // doesn't open with the boss standing on top of the player. Con correa
+    // (bossTether) es justo al revés: el chiste del día es que Gabo ya está
+    // ahí cuando sales del ascensor, así que arranca en el punto más cercano.
+    const tethered = !!levels[dayIndex].rules?.bossTether;
+    let pick = 0;
+    let pickD = tethered ? Infinity : -Infinity;
     patrolRoute.forEach((p, i) => {
       const d = Math.hypot(p.x - spawn.x, p.z - spawn.z);
-      if (d > farD) {
-        farD = d;
-        far = i;
+      if (tethered ? d < pickD : d > pickD) {
+        pickD = d;
+        pick = i;
       }
     });
-    boss.position.x = patrolRoute[far].x;
-    boss.position.z = patrolRoute[far].z;
-    boss.routeIndex = far;
+    boss.position.x = patrolRoute[pick].x;
+    boss.position.z = patrolRoute[pick].z;
+    boss.routeIndex = pick;
     boss.resetToPatrol();
   }
 
-  async function startDay(index) {
+  /**
+   * `skipMinigame` es una costura para las comprobaciones de tools/: el día 1
+   * abre con el cruce de la avenida, que es un bucle propio esperando a que
+   * alguien juegue, y ninguna prueba de la IA del piso llegaría nunca a
+   * empezar. En la partida de verdad nadie lo pasa.
+   */
+  async function startDay(index, { skipMinigame = false } = {}) {
     dayIndex = Math.min(Math.max(index, 0), levels.length - 1);
     save.setDayIndex(dayIndex);
     const day = levels[dayIndex];
@@ -329,7 +356,7 @@ export function createEngine({
     // edificio: ni el vestíbulo ni el piso existen todavía para la jugadora.
     // Cada uno es una escena propia con su bucle; mientras dura, main.js deja
     // de dibujar el piso (ver engine.crossingActive).
-    const mini = minigames.forDay(day);
+    const mini = skipMinigame ? null : minigames.forDay(day);
     if (mini) {
       if (mini.spec.intro) await dialogue.play(withSprites(mini.spec.intro), ctx);
       if (mini.bodyClass) document.body.classList.add(mini.bodyClass);
@@ -564,7 +591,11 @@ export function createEngine({
 
     hud.showResult({
       icon: result.win ? (isLast ? "🏆" : "🎉") : "🚪",
-      title: result.win ? (isLast ? "Semana completada" : `${day.title}: superado`) : "Te ascendieron a cliente",
+      // `winTitle` deja que el día ponga su propio titular: con la campaña
+      // recortada al día 1 (ver manifest.json), "Semana completada" mentía.
+      title: result.win
+        ? day.winTitle ?? (isLast ? "Semana completada" : `${day.title}: superado`)
+        : "Te ascendieron a cliente",
       rank: result.win ? rank : null,
       score: result.score,
       target,

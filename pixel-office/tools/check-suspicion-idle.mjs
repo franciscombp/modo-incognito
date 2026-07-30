@@ -7,7 +7,7 @@ p.on("pageerror", (e) => console.log("ERR", String(e)));
 
 await p.goto("http://localhost:4173/", { waitUntil: "networkidle" });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
-await p.evaluate(() => { window.__game.engine.startDay(0); });
+await p.evaluate(() => { window.__game.engine.startDay(0, { skipMinigame: true }); });
 await p.waitForTimeout(400);
 // Skip any boot dialogue quickly.
 for (let i = 0; i < 10; i++) {

@@ -8,14 +8,65 @@
   "rules": {
     "duration": 240,
     "maxWarnings": 3,
-    "objectives": ["coffee","chat","print","window"],
+    "objectives": [
+      "coffee",
+      "movie",
+      "snack"
+    ],
     "bossSpeedMul": 0.85,
     "visionMul": 0.9,
-    "targetScore": 850
+    "targetScore": 540,
+    "bossRoute": "sur",
+    "bossTether": [
+      5,
+      9
+    ]
   },
   "minions": [
-    {"id":"crispo","route":"centro"}
+    {
+      "id": "crispo",
+      "route": "sur"
+    }
   ],
+  "minigame": {
+    "id": "crossing",
+    "intro": [
+      {
+        "speaker": "Steven el Daddy",
+        "narrator": true,
+        "text": "Antes que nada: hay que cruzar la Amazonas. Seis carriles, dos ciclovías y un parterre. El banco está al otro lado; tú, todavía no."
+      },
+      {
+        "speaker": "Tú",
+        "portrait": "🙂",
+        "text": "Nadie pone esto en la oferta de trabajo. «Se valorará experiencia esquivando busetas.»"
+      }
+    ],
+    "onFail": {
+      "icon": "🚑",
+      "title": "Te ascendieron a cliente",
+      "body": "Nunca llegaste a cruzar la avenida.",
+      "dialogue": [
+        {
+          "speaker": "Tú",
+          "portrait": "😰",
+          "text": "Jefe... me atropellaron cruzando la Amazonas. No voy a poder entrar."
+        },
+        {
+          "speaker": "Gabo",
+          "portrait": "🕴️",
+          "mood": "angry",
+          "text": "¿Perdón? Eso se avisa CON TIEMPO. No se improvisa un atropello."
+        },
+        {
+          "speaker": "Gabo",
+          "portrait": "🕴️",
+          "mood": "angry",
+          "text": "Quedas ascendida a cliente. Con efecto inmediato."
+        }
+      ]
+    }
+  },
   "intro": [
     {
       "speaker": "Steven el Daddy",
@@ -25,7 +76,7 @@
     {
       "speaker": "Recepción",
       "portrait": "🛗",
-      "text": "Piso 10, Centro Digital. Tu escritorio está por el ala sur… si es que lo encuentras."
+      "text": "Piso 10, Centro Digital. Ala sur. Del muro para allá no pase: llevan dos años «remodelando» el ala norte."
     },
     {
       "speaker": "Tú",
@@ -47,7 +98,11 @@
       "prompt": "Te pregunta qué vas a hacer primero.",
       "portrait": "🕴️",
       "options": [
-        {"label":"«Revisar el backlog, obvio.»","reply":"Revisar el backlog, obvio.","flag":"mentirosa"},
+        {
+          "label": "«Revisar el backlog, obvio.»",
+          "reply": "Revisar el backlog, obvio.",
+          "flag": "mentirosa"
+        },
         {
           "label": "«Buscar la cafetera.»",
           "reply": "Buscar la cafetera. Es una prioridad estratégica.",
@@ -58,29 +113,44 @@
     {
       "speaker": "Gabo",
       "portrait": "🕴️",
-      "text": "Perfecto. Te estaré observando… de forma completamente normal."
+      "text": "Perfecto. Te estaré observando… de forma completamente normal. Desde cerquita. Como una familia."
+    },
+    {
+      "speaker": "Tú",
+      "portrait": "😐",
+      "text": "¿Va a estar así todo el día?"
     },
     {
       "speaker": "Gabo",
       "portrait": "🕴️",
-      "text": "Ah, y ese de ahí es Crispo. No te preocupes por él. Bueno, un poco sí."
+      "text": "Yo no superviso, yo acompaño. Ah, y ese de ahí es Crispo. No te preocupes por él. Bueno, un poco sí."
+    },
+    {
+      "speaker": "Steven el Daddy",
+      "narrator": true,
+      "text": "Tu jornada de hoy: un café, una película y algo de comer. Tres cosas. Ninguna es tu trabajo. Mantén presionada la E para hacerlas, y la F para fingir que trabajas cuando Gabo respire cerca."
     },
     {
       "speaker": "Tú",
       "portrait": "🙂",
-      "text": "Genial. Un jefe y un vigía. Día uno y ya tengo público."
+      "text": "Día uno y ya tengo público. Vamo a calmarno."
     }
   ],
   "outroWin": [
     {
       "speaker": "Tú",
       "portrait": "😌",
-      "text": "Café tomado, chisme recolectado, ventana admirada. Día uno: productividad cero, moral intacta."
+      "text": "Café tomado, película vista, almuerzo cometido. Día uno: productividad cero, moral intacta."
     },
     {
       "speaker": "Gabo",
       "portrait": "🕴️",
-      "text": "Mañana te toca conocer a más gente del piso. Que descanses… si es que puedes."
+      "text": "Excelente primer día. No sé exactamente qué hiciste, pero te vi ocupadísima. Eso aquí es lo que cuenta."
+    },
+    {
+      "speaker": "Tú",
+      "portrait": "🤫",
+      "text": "Es literalmente lo único que cuenta. Y ese es el chiste."
     }
   ],
   "outroLose": [
@@ -110,10 +180,23 @@
       "prompt": "¿Cómo subes al piso 10?",
       "portrait": "🛗",
       "options": [
-        {"label":"Esperar el ascensor","reply":"Espero. Con dignidad.","effect":"wait"},
-        {"label":"Subir por las escaleras","reply":"Siete pisos. Puedo.","effect":"stairs"},
-        {"label":"Colarte adelante","reply":"Permiso, permiso, es urgente.","effect":"cut"}
+        {
+          "label": "Esperar el ascensor",
+          "reply": "Espero. Con dignidad.",
+          "effect": "wait"
+        },
+        {
+          "label": "Subir por las escaleras",
+          "reply": "Siete pisos. Puedo.",
+          "effect": "stairs"
+        },
+        {
+          "label": "Colarte adelante",
+          "reply": "Permiso, permiso, es urgente.",
+          "effect": "cut"
+        }
       ]
     }
-  }
+  },
+  "winTitle": "Día uno: superado"
 }

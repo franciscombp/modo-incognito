@@ -1414,7 +1414,10 @@ body.touch-device #hint {
   width: 192px;
   height: 264px;
   background-repeat: no-repeat;
-  background-size: 768px 1056px;
+  /* 400% = una celda de la rejilla 4x4, sea cual sea la resolución del
+     pliego. Los dibujados a mano son de 512x704 y los generados de 128x176:
+     con un tamaño en píxeles fijo, unos salían recortados y otros diminutos. */
+  background-size: 400% 400%;
   image-rendering: pixelated;
   transform: translateY(10%) scale(2.35);
   transform-origin: center 65%;
@@ -2785,6 +2788,11 @@ body.vn-open #hint {
   will-change: transform;
 }
 
+/* En pantalla no hace falta flecha: se ve al propio personaje (ver tracker.js). */
+.track-marker.hidden {
+  display: none;
+}
+
 .track-red .track-marker {
   color: var(--red);
   text-shadow: 0 0 10px rgba(255, 77, 94, 0.85), 2px 2px 0 rgba(0, 0, 0, 0.7);
@@ -3135,5 +3143,20 @@ body.crossing-open #hint {
   }
   .lobby-sign-floor {
     font-size: 26px;
+  }
+}
+
+/* Pantallas bajas en vertical (iPhone SE y compañía). Ahí la columna central
+   del HUD llega tan abajo que su última fila —el aviso— coincide de alto con
+   la rejilla de utilidades de la derecha, y no hay banda libre donde mover
+   los botones: por arriba está el aviso y por abajo la tarjeta de tarea. Así
+   que lo que se estrecha es el aviso, que se queda a la izquierda de la
+   columna de botones en vez de pasar por debajo. */
+@media (max-height: 700px) and (orientation: portrait) {
+  .hud-toast,
+  .hud-status-badge {
+    width: auto;
+    max-width: calc(100% - 140px);
+    margin-right: 130px;
   }
 }

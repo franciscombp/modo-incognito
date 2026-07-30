@@ -5,6 +5,19 @@ Para el mapa completo de "quiero cambiar X → edito Y" con enlaces a GitHub,
 usa la tabla del [README.md](https://github.com/franciscombp/modo-incognito/blob/main/README.md#quiero-cambiar-x--edito-y) —
 no la dupliques aquí.
 
+## Estado: MVP del día 1
+
+La campaña publicada es **solo el día 1** y está pulida de punta a punta:
+cruce de la avenida → ascensor → tres actividades (café, película, comer) en
+el **ala sur**, con Gabo atado a la jugadora. Los archivos `dia-2`..`dia-5`
+siguen en `public/data/levels/` pero **no están en `manifest.json` →
+`levels`**, así que el juego no los ve. Si te piden reactivar un día, es
+añadir su id a esa lista y nada más — no hay código que tocar.
+
+Si te piden algo del día 1, revisa que no rompas ninguna de sus tres piezas:
+`levels/dia-1.json` (reglas y guion), `scenes/piso7.json` (plano, muro,
+actividades) y `src/scene/crossing3d.js` (el cruce).
+
 ## Qué es esto
 
 Juego web isométrico (Vite + Three.js) de sigilo/comedia de oficina. Todo el
@@ -64,6 +77,21 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
   la derrota es JSON** (`minigame.onFail`), no código. El motor nunca debe
   volver a tener un `if (day.loQueSea)` para un minijuego concreto.
 
+### Sprites dibujados a mano
+
+Los pliegos que sube el equipo a `public/sprites/` (`gabo-camina.png`,
+`guili-acciones.png`…) **no vienen en una rejilla regular**: cortarlos por
+«ancho / 4» mete la cabeza de una fila en los pies de la anterior. Antes de
+usarlos hay que pasarlos por `python3 tools/pack-sprites.py`, que los detecta
+por las franjas transparentes y los deja en 4x4 celdas de 128x176. Es
+idempotente. Los `*-acciones.png` son la misma rejilla leída como 8 poses de
+2 fotogramas — el orden está en `POSES`, en `src/entities/sprite.js`, y es el
+contrato entre el JSON (`activities[].pose`) y el arte.
+
+Ojo: `tools/sync-root.mjs` hace `rm -rf` de `sprites/` en la raíz del repo,
+así que un PNG puesto solo ahí lo borra el siguiente build. El sitio bueno es
+siempre `pixel-office/public/sprites/`.
+
 Si tocas el HUD o el CSS, corre `npm run check:layout` antes de darlo por
 bueno: comprueba en seis tamaños de pantalla que nada se solape, se recorte
 ni se salga. Este tipo de fallo no se ve en el diff y es fácil que se cuele
@@ -74,6 +102,12 @@ en una captura.
 - **`scenes/piso7.json` → `areas`**: los rectángulos de zona no deben
   solaparse. Si añades o mueves una zona, revisa `x/z/w/d` contra las
   vecinas antes de dar por bueno el cambio.
+- **`scenes/piso7.json` → `barriers`**: el muro que separa las alas. Su
+  `door` es un hueco de verdad, y el navmesh cuenta con él: si lo cierras,
+  medio piso deja de ser alcanzable y `npm run check:reachable` lo canta.
+- **Las comprobaciones de `tools/` arrancan el día 1 con
+  `startDay(0, { skipMinigame: true })`**. No quites esa costura: sin ella
+  se quedan esperando a que alguien juegue el cruce de la avenida.
 - **Unidades del plano vs. mundo**: las coordenadas en los JSON de escena
   están en "unidades de plano" (≈ un puesto de trabajo); el motor las
   multiplica por `WORLD_SCALE` (en `src/scene/config.js`). No mezcles

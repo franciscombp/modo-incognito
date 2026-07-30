@@ -45,6 +45,7 @@ export let safeSpots = [];
 export let distractions = [];
 export let npcs = [];
 export let locationEggs = [];
+export let barriers = [];
 
 export function setActiveScene(prepared) {
   scene = prepared;
@@ -63,6 +64,7 @@ export function setActiveScene(prepared) {
   distractions = prepared.distractions;
   npcs = prepared.npcs;
   locationEggs = prepared.locationEggs;
+  barriers = prepared.barriers ?? [];
   return prepared;
 }
 

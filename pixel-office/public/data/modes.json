@@ -23,17 +23,24 @@
       "difficulty": "normal",
       "blurb": "Tiene antigüedad. Puede acumular hasta 3 amonestaciones y a los secuaces cuesta más hacerles caso.",
       "playable": true,
-      "rules": {"maxWarnings":3,"minionSuspicionMul":0.7}
+      "rules": {
+        "maxWarnings": 3,
+        "minionSuspicionMul": 0.7
+      }
     },
     "giu": {
-      "name": "Giu",
+      "name": "Giuli",
       "role": "Diseñadora",
       "portrait": "🧑‍🎨",
-      "sheet": "employee",
+      "sheet": "guili-camina",
       "difficulty": "difícil",
       "blurb": "Solo dos amonestaciones. Los secuaces están encima de ella todo el día.",
       "playable": true,
-      "rules": {"maxWarnings":2,"minionSuspicionMul":1.4}
+      "rules": {
+        "maxWarnings": 2,
+        "minionSuspicionMul": 1.4
+      },
+      "actionSheet": "guili-acciones"
     },
     "kiara": {
       "name": "Kiara",
@@ -43,14 +50,16 @@
       "difficulty": "fácil",
       "blurb": "Ya no le afecta nada. Modo exploración libre: sin sospecha, sin despido.",
       "playable": true,
-      "rules": {"explore":true}
+      "rules": {
+        "explore": true
+      }
     },
     "gabo": {
       "name": "Gabo",
       "alias": "Barbie Malibú",
       "role": "El jefe",
       "portrait": "💅",
-      "sheet": "boss",
+      "sheet": "gabo-camina",
       "difficulty": "chicuelo",
       "blurb": "Su objetivo: repartir 3 amonestaciones e irse lo antes posible. Chispita y los DOPs no lo dejan en paz.",
       "playable": false,

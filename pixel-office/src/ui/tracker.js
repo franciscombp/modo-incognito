@@ -125,6 +125,11 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
       angle = Math.atan2(nx, ny) * (180 / Math.PI);
     }
 
+    // El marcador es una FLECHA para lo que no se ve. Si el objetivo está en
+    // pantalla ya se ve solo (su halo, su sprite) y la chapa acaba flotando
+    // encima del HUD — cosa que pasa constantemente desde que Gabo va pegado
+    // a la jugadora. Fuera de pantalla, aparece.
+    marker.classList.toggle("hidden", onScreen);
     marker.classList.toggle("edge", !onScreen);
     marker.style.transform = `translate(-50%, -50%) translate(${sx}px, ${sy}px)`;
     arrow.style.transform = `rotate(${angle}deg)`;

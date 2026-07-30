@@ -20,6 +20,9 @@ export class Player {
     this.isPretending = false;
     this.isDoingActivity = false;
     this.facing = "south";
+    // Clave de POSES (sprite.js) mientras hace algo — la pone game.js a
+    // partir de la actividad en curso. Sin hoja de acciones se ignora sola.
+    this.pose = null;
 
     this.sprite = new CharacterSprite(sheet, { height });
     this.sprite.setPosition(x, z);
@@ -74,6 +77,8 @@ export class Player {
     if (world) world.resolveCircle(this.position, this.radius);
 
     // Standing still while "working" still shows the idle pose, not a walk.
+    // Moverse cancela la pose: no puedes tomar café mientras caminas.
+    this.sprite.setPose(moving ? null : this.pose);
     this.sprite.setFacing(this.facing);
     this.sprite.setMoving(moving && !this.isPretending);
     this.sprite.setPosition(this.position.x, this.position.z);
