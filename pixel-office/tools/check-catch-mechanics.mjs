@@ -62,10 +62,24 @@ const minionSetup = await page.evaluate(() => {
     crispo.playerVisible = true;
     crispo.redAlert = true;
   };
+  // The dialogue no longer fires on the very first redAlert frame — it has
+  // to hold for CATCH_DIALOGUE_DELAY (currently 1.1s) so the minion visibly
+  // gives chase first. A single frame must NOT be enough; several seconds
+  // of sustained redAlert must.
   game.update(1 / 30);
   return { found: true };
 });
-await page.waitForTimeout(200);
+out.dialogueOpenRightAway = await page.evaluate(() => window.__game.engine.dialogue.isOpen);
+await page.evaluate(async () => {
+  const { engine } = window.__game;
+  const game = engine.game;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  for (let i = 0; i < 24 && !engine.dialogue.isOpen; i++) {
+    game.update(1 / 15); // ~1.6s total, comfortably past the 1.1s delay
+    await sleep(10);
+  }
+});
+await page.waitForTimeout(150);
 out.dialogueOpenAfterCatch = await page.evaluate(() => window.__game.engine.dialogue.isOpen);
 out.noCrispoOnDuty = !minionSetup.found;
 await clearDialogue(page);
@@ -101,13 +115,14 @@ out.graceAfter = await page.evaluate(() => {
 console.log(JSON.stringify(out, null, 1));
 
 const checks = [
-  ["dialogueOpenAfterCatch", "minion catch opens its interrogation dialogue"],
-  ["warnedOnce", "boss catch registers exactly one warning"],
-  ["graceAfter", "boss grants a grace window after warning"],
+  ["!dialogueOpenRightAway", "minion catch is NOT instant (gives chase first)", !out.dialogueOpenRightAway],
+  ["dialogueOpenAfterCatch", "minion catch opens its interrogation dialogue after the delay", out.dialogueOpenAfterCatch],
+  ["warnedOnce", "boss catch registers exactly one warning", out.warnedOnce],
+  ["graceAfter", "boss grants a grace window after warning", out.graceAfter],
 ];
 let ok = true;
-for (const [key, label] of checks) {
-  const pass = !!out[key];
+for (const [key, label, value] of checks) {
+  const pass = !!value;
   ok = ok && pass;
   console.log(pass ? "PASS" : "FAIL", " ", label);
 }
