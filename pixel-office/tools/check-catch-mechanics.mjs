@@ -36,6 +36,12 @@ async function clearDialogue(page, maxSteps = 40) {
 }
 
 await clearDialogue(page); // past the day-1 intro
+// The day-start cinematic (lobby doors + one intro card per on-duty
+// minion) sits silently between the prologue and the arrival dialogue —
+// dialogue.isOpen is briefly false in that gap, so give it room to finish
+// and then clear whatever dialogue opens after it too.
+await page.waitForTimeout(4500);
+await clearDialogue(page);
 
 const out = await page.evaluate(() => {
   const { engine } = window.__game;

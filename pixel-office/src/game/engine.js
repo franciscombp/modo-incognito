@@ -8,6 +8,7 @@ import { applyTheme } from "./themes.js";
 import { createMenus, rankFor } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
+import { createLobby } from "../ui/lobby.js";
 import {
   spawn,
   patrolRoute,
@@ -15,6 +16,11 @@ import {
   locationEggs,
   activityStations,
 } from "../scene/floorplan.js";
+
+// Gabo te escribe por Teams cada tanto, sin que importe dónde esté él en el
+// piso — es un chat, no un encuentro. El rango evita que se sienta ni un
+// spam ni un evento raro que solo pasa una vez.
+const GABO_TEAMS_INTERVAL = [22, 42];
 
 /**
  * Campaign engine. Owns the flow — title menu, story beat, play the level,
@@ -52,6 +58,7 @@ export function createEngine({
     isTouch: matchMedia("(pointer: coarse)").matches,
   });
   const dialogue = createDialogue(app);
+  const lobby = createLobby(app);
   const save = createSave();
 
   const eggIds = [...locationEggs.map((e) => e.id), ...codeEggs.map((e) => e.id)];
@@ -87,6 +94,8 @@ export function createEngine({
   let bossSpeedBonus = 1;
   let menuPaused = false;
   let inLevel = false;
+  let teamsTimer = null;
+  let lastTeamsMessage = null;
 
   const ctx = {
     setFlag: (name, value) => save.setFlag(name, value),
@@ -311,6 +320,8 @@ export function createEngine({
     hud.setVisible(true);
     hud.hideResult();
     setMood("calm");
+    teamsTimer = null;
+    lastTeamsMessage = null;
     resetEntities();
     applyBossTuning();
 
@@ -334,9 +345,13 @@ export function createEngine({
 
     camera.setFraming(1);
 
-    // The lift queue first, then the day proper.
+    // The lift queue first, then the day proper. The lobby overlay hides the
+    // 3D floor while it plays — you have not "arrived" yet — and its doors
+    // open right before the arrival narration, so the floor is revealed as
+    // a beat instead of always sitting visible behind the dialogue scrim.
     prologueChoice = null;
     if (day.prologue) {
+      lobby.show();
       const nodes = [...(day.prologue.intro ?? [])];
       if (save.hadWarningYesterday) {
         // Una amonestación se nota al día siguiente: nunca te toca el
@@ -350,10 +365,34 @@ export function createEngine({
       if (day.prologue.choice) nodes.push(day.prologue.choice);
       await dialogue.play(withSprites(nodes), ctx);
       applyPrologue(day);
+      await lobby.hide();
     }
 
+    await introduceMinions(onDuty);
     await dialogue.play(withSprites(day.intro ?? []), ctx);
     if (!menuPaused) game.setPaused(false);
+  }
+
+  /**
+   * Un breve zoom de cámara a cada secuaz de turno, con su nombre y su forma
+   * de vigilar, antes de que empiece el día — así se presentan como
+   * amenazas propias en vez de aparecer de la nada en mitad de la partida.
+   */
+  async function introduceMinions(onDuty) {
+    if (!onDuty.length) return;
+    camera.setFraming(0.55);
+    for (const m of onDuty) {
+      camera.setFocus(m.position);
+      hud.showIntroCard({ icon: m.name ? "👁️" : "❓", name: m.name, blurb: dialogues.cast[m.cast]?.blurb });
+      await wait(1250);
+    }
+    hud.hideIntroCard();
+    camera.setFocus(null);
+    camera.setFraming(1);
+  }
+
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /** Turns the lift-queue choice into a real handicap for the day. */
@@ -489,7 +528,32 @@ export function createEngine({
     const live = game && !menus.isOpen ? game.lastSnapshot : null;
     guides.update(live);
     worldPrompt.update(dialogue.isOpen ? null : live);
-    if (live && !dialogue.isOpen) updateMoodFromSnapshot(live);
+    if (live && !dialogue.isOpen) {
+      updateMoodFromSnapshot(live);
+      updateGabo(dt, live);
+    }
+  }
+
+  /** Gabo's Teams messages: fire on a timer, independent of his position. */
+  function updateGabo(dt, live) {
+    if (live.gameOver || game.rules.explore) return;
+    if (teamsTimer == null) teamsTimer = randomTeamsDelay();
+    teamsTimer -= dt;
+    if (teamsTimer > 0) return;
+    teamsTimer = randomTeamsDelay();
+    const pool = dialogues.teamsMessages?.gabo ?? [];
+    if (!pool.length) return;
+    let text = pool[Math.floor(Math.random() * pool.length)];
+    if (pool.length > 1) {
+      while (text === lastTeamsMessage) text = pool[Math.floor(Math.random() * pool.length)];
+    }
+    lastTeamsMessage = text;
+    hud.showTeamsMessage(text);
+  }
+
+  function randomTeamsDelay() {
+    const [min, max] = GABO_TEAMS_INTERVAL;
+    return min + Math.random() * (max - min);
   }
 
   return {

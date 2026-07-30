@@ -14,7 +14,11 @@
     "    { prompt, options: [{ label, reply, flag, effect, then }] }.",
     "  · effect admite: \"suspicion-\" (te calma), \"suspicion+\" (te delata),",
     "    \"score+\", \"reveal-boss\" (te marca dónde está el jefe), \"speed+\".",
-    "barks: frases sueltas que sueltan los secuaces al detectarte."
+    "barks: frases sueltas que sueltan los secuaces al detectarte.",
+    "teamsMessages.gabo: mensajes de Teams de Gabo — le llegan a la jugadora",
+    "  cada cierto tiempo SIN IMPORTAR dónde esté él en el mapa (es un chat,",
+    "  no un encuentro). Se eligen al azar sin repetir el último. Ver",
+    "  GABO_TEAMS_INTERVAL en src/game/engine.js."
   ],
   "cast": {
     "manu": {
@@ -672,6 +676,22 @@
       "No me muevo de aquí. Tú tampoco deberías moverte.",
       "Esa silla lleva veinte minutos vacía.",
       "Estoy contando. Solo eso. Contando."
+    ]
+  },
+  "teamsMessages": {
+    "gabo": [
+      "holis 🌴 alguien vio mi botella de agua con mi nombre?? la de cristal",
+      "recuerden que mañana es jueves de blanco. NO es opcional 💅",
+      "estoy en spinning bajo el escritorio, si preguntan no me viste",
+      "¿por qué la impresora del ala norte suena como yo cuando lloro?",
+      "actualización: seguimos sin encontrar la caja de donas del cumpleaños de RRHH",
+      "no relacionado pero: ¿alguien sabe si mi horóscopo dice algo de conflictos hoy?",
+      "les recuerdo que la cultura de la empresa es FAMILIA. y la familia no se esconde en el baño",
+      "estoy caminando y siento que alguien no está en su puesto. lo siento en el alma",
+      "psss. entre nos. el de sistemas se fue a fumar hace 40 min. no digan que yo dije",
+      "si alguien pregunta, estoy en 'una reunión estratégica'. la reunión es el gimnasio del piso 3",
+      "manifestando: que hoy nadie me haga alzar la voz. depende de ustedes 💅",
+      "dato curioso: mi mamá también le dice Barbie Malibú. no es un apodo del trabajo, es de nacimiento"
     ]
   }
 }

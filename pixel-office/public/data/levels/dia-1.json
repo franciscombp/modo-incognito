@@ -25,7 +25,7 @@
     {
       "speaker": "Recepción",
       "portrait": "🛗",
-      "text": "Piso 7, Tribu Canales. Tu escritorio está por el ala sur… si es que lo encuentras."
+      "text": "Piso 10, Centro Digital. Tu escritorio está por el ala sur… si es que lo encuentras."
     },
     {
       "speaker": "Tú",
@@ -102,7 +102,7 @@
       }
     ],
     "choice": {
-      "prompt": "¿Cómo subes al piso 7?",
+      "prompt": "¿Cómo subes al piso 10?",
       "portrait": "🛗",
       "options": [
         {"label":"Esperar el ascensor","reply":"Espero. Con dignidad.","effect":"wait"},

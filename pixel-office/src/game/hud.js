@@ -182,6 +182,56 @@ export function createHud(root) {
     }
   }
 
+  // ---- Tarjeta de presentación de secuaces ----
+  // Un cartel breve al empezar el día, uno por secuaz de turno, mientras la
+  // cámara hace zoom hacia él (ver introduceMinions() en engine.js) — así
+  // cada uno se presenta como una amenaza propia en vez de aparecer sin
+  // más en mitad de la partida.
+  const introCard = el("div", "intro-card hidden", hud);
+  const introIcon = el("div", "intro-card-icon", introCard);
+  const introName = el("div", "intro-card-name", introCard);
+  const introBlurb = el("div", "intro-card-blurb", introCard);
+
+  function showIntroCard({ icon, name, blurb }) {
+    introIcon.textContent = icon ?? "👁️";
+    introName.textContent = name ?? "";
+    introBlurb.textContent = blurb ?? "";
+    introCard.classList.remove("hidden");
+    // Reinicia la animación de entrada aunque el cartel ya estuviera visible
+    // (un secuaz seguido de otro no debe leerse como el mismo cartel).
+    introCard.classList.remove("pop");
+    void introCard.offsetWidth;
+    introCard.classList.add("pop");
+  }
+
+  function hideIntroCard() {
+    introCard.classList.add("hidden");
+  }
+
+  // ---- Mensaje de Teams de Gabo ----
+  // Una burbuja de chat que aparece sola, sin importar dónde esté el jefe
+  // en el mapa — es un mensaje, no algo que dependa de estar cerca — y se
+  // retira sola. Le da personalidad a Gabo fuera de los encuentros cara a
+  // cara (ver GABO_TEAMS_INTERVAL en game.js).
+  const teamsToast = el("div", "teams-toast hidden", hud);
+  const teamsHeader = el("div", "teams-toast-header", teamsToast);
+  el("span", "teams-toast-icon", teamsHeader, "💬");
+  el("span", "teams-toast-app", teamsHeader, "Teams");
+  const teamsFrom = el("div", "teams-toast-from", teamsToast);
+  const teamsText = el("div", "teams-toast-text", teamsToast);
+  let teamsTimer = null;
+
+  function showTeamsMessage(text, from = "Gabo (Barbie Malibú)") {
+    teamsFrom.textContent = from;
+    teamsText.textContent = text;
+    teamsToast.classList.remove("hidden");
+    teamsToast.classList.remove("pop");
+    void teamsToast.offsetWidth;
+    teamsToast.classList.add("pop");
+    clearTimeout(teamsTimer);
+    teamsTimer = setTimeout(() => teamsToast.classList.add("hidden"), 6000);
+  }
+
   // ---- End-of-day card ----
   const overlay = el("div", "hud-overlay hidden", hud);
   const overlayCard = el("div", "hud-overlay-card", overlay);
@@ -361,5 +411,15 @@ export function createHud(root) {
 
   }
 
-  return { render, setDay, setVisible, showResult, hideResult, root: hud };
+  return {
+    render,
+    setDay,
+    setVisible,
+    showResult,
+    hideResult,
+    showIntroCard,
+    hideIntroCard,
+    showTeamsMessage,
+    root: hud,
+  };
 }

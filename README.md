@@ -1,6 +1,6 @@
-# Modo Incógnito · Tribu Canales Piso 7
+# Modo Incógnito · Tribu Canales · Piso 10 · Centro Digital
 
-Juego web en Three.js: eres una empleada del piso 7 que intenta **no trabajar**
+Juego web en Three.js: eres una empleada del Piso 10 · Centro Digital que intenta **no trabajar**
 —café, chisme, siesta, televisión— mientras el jefe patrulla la planta.
 
 Se publica en <https://franciscombp.github.io/modo-incognito/> desde `main`.
@@ -59,6 +59,8 @@ código**.
 | La cámara (código) | [`src/scene/camera.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/camera.js) y [`src/scene/config.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/config.js) |
 | Los menús (título, elegir día, ajustes, pausa) (código) | [`src/ui/menus.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/menus.js) |
 | Los controles táctiles (código) | [`src/game/touchControls.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/touchControls.js) |
+| El vestíbulo de ascensores (segunda "escena", antes del piso) (código) | [`src/ui/lobby.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/lobby.js) |
+| Los mensajes de Teams de Gabo | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/dialogues.json) → `teamsMessages.gabo` |
 
 Cada JSON de `public/data/` trae su propio campo `"$comment"` al principio
 explicando su esquema — ábrelo y léelo antes de editarlo a ciegas.
@@ -202,14 +204,24 @@ cuáles salen y por qué ronda, en su JSON:
 
 ## La jornada
 
-Cada día abre en la **fila del ascensor**, en planta baja. Puedes esperar
-(pierdes minutos de jornada), subir por las escaleras (llegas entera pero
-lenta un rato) o colarte (ganas tiempo, con riesgo de empezar ya con una
-advertencia). Se edita en `prologue` dentro del JSON del día.
+Cada día abre en el **vestíbulo de ascensores** — una segunda "escena" propia
+(`src/ui/lobby.js`), no el piso: mientras eliges esperar (pierdes minutos de
+jornada), subir por las escaleras (llegas entera pero lenta un rato) o
+colarte (ganas tiempo, con riesgo de empezar ya con una advertencia), el piso
+de verdad no se ve todavía. Se edita en `prologue` dentro del JSON del día.
 
-Después sales al pasillo de ascensores, con el ala sur a un lado y la norte
-al otro. El piso es continuo a propósito: el jefe ronda por todas partes y
-las persecuciones cruzan la planta entera.
+Al cerrar esa elección, las puertas del ascensor se abren de verdad (una
+transición, no un corte) y la cámara hace un breve zoom de presentación a
+cada secuaz de turno ese día antes de soltarte a jugar — así Chispita, Washo
+o Crispo se presentan como una amenaza propia en vez de aparecer sin más a
+mitad de la partida. Después sales al pasillo de ascensores, con el ala sur a
+un lado y la norte al otro. El piso es continuo a propósito: el jefe ronda
+por todas partes y las persecuciones cruzan la planta entera.
+
+Gabo (el jefe) también te escribe por Teams durante el día — mensajes con
+personalidad propia que le llegan sin importar dónde esté él en el mapa,
+como cualquier chat de verdad. Se editan en `dialogues.json` →
+`teamsMessages.gabo`.
 
 ## Saber qué hacer
 
