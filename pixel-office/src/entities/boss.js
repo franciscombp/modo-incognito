@@ -370,7 +370,25 @@ export class Boss {
       this._resumeNearestRoutePoint();
     } else if (this.state === INVESTIGATE) {
       this.investigateTimer = 0;
+    } else if (this.state === CHASE) {
+      // El objetivo en persecución es la posición exacta del jugador, que
+      // puede quedar pegada a un mueble (justo lo que la hace un buen
+      // escondite): sin esta rama, el jefe o el secuaz se quedaba empujando
+      // esa esquina para siempre. Se rinde y barre la última posición vista,
+      // como al perderle la pista por línea de visión.
+      this.state = SEARCH;
+      this.searchTarget = this.lastSeenPlayerPos ?? { ...this.position };
+      this.searchTimer = 5;
     }
+
+    // Empujón lateral pequeño para salir de un bloqueo numérico exacto (dos
+    // colisionadores que se cancelan cada frame): sin esto, el cambio de
+    // objetivo de arriba no sirve de nada si la posición sigue exactamente
+    // encajada donde estaba.
+    const nudge = Math.random() * Math.PI * 2;
+    this.position.x += Math.cos(nudge) * 0.5 * S;
+    this.position.z += Math.sin(nudge) * 0.5 * S;
+    if (this.world) this.world.resolveCircle(this.position, this.radius);
   }
 
   _pickTarget(player) {

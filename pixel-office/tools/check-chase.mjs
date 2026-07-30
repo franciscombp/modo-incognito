@@ -92,8 +92,11 @@ const log = await page.evaluate(async () => {
   // otherwise the flag is overwritten and the boss keeps seeing her.
   player.position.x = px + 40 * S;
   // Generous: headless throttles frames, and the boss only accumulates
-  // "lost sight" time on frames that actually run.
-  await sleep(3000);
+  // "lost sight" time on frames that actually run. A single long sleep(3000)
+  // measurably starves requestAnimationFrame in headless Chromium (fewer
+  // frames actually execute than with the same total wait chunked into
+  // several shorter sleeps), so this polls instead of waiting once.
+  for (let i = 0; i < 15; i++) await sleep(200);
   out.stateWhenHidden = boss.state;
   out.gameOverWhenHidden = game.gameOver;
   out.loseSightTimer = +boss.loseSightTimer.toFixed(2);

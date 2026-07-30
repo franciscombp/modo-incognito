@@ -10,6 +10,13 @@ import { WORLD_SCALE as S } from "../scene/config.js";
 // convierte en flecha en el borde si no.
 
 const EDGE = 46; // px que se dejan libres en el borde de la pantalla
+// La barra superior del HUD (objetivos/sospecha/reloj/puntos) mide distinto
+// según el ancho de pantalla (el texto de objetivos se envuelve distinto,
+// el reloj apila la hora sobre la cuenta atrás, etc.), así que la franja
+// prohibida para la flecha de borde se mide del DOM en cada frame en vez de
+// asumir una altura fija que solo es correcta en un tamaño de pantalla.
+const TOP_SAFE_FALLBACK = 260;
+const TOP_SAFE_MARGIN = 18;
 
 export function createTracker(root, camera, { id, side = "right", accent = "cyan" }) {
   const layer = document.createElement("div");
@@ -43,6 +50,9 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
   const distEl = layer.querySelector(".track-dist");
 
   const v = new THREE.Vector3();
+  // Buscado perezosamente: hud.js crea `.hud-topbar` en el mismo tick que
+  // este tracker, pero el orden exacto no está garantizado.
+  let topbarEl = null;
 
   /**
    * @param {object|null} target  { x, z, icon, top, label, meta, urgency, level }
@@ -89,7 +99,12 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
       const halfH = h / 2 - EDGE;
       const scale = Math.min(halfW / Math.abs(nx || 1e-3), halfH / Math.abs(ny || 1e-3));
       sx = w / 2 + nx * scale;
-      sy = h / 2 - ny * scale;
+      if (!topbarEl) topbarEl = document.querySelector(".hud-topbar");
+      const barHeight = topbarEl?.getBoundingClientRect().height || TOP_SAFE_FALLBACK;
+      // En pantallas bajas (tablet/móvil apaisado) la franja no puede comerse
+      // media pantalla igual, así que cede proporcionalmente ahí.
+      const topSafe = Math.min(barHeight + TOP_SAFE_MARGIN, h * 0.55);
+      sy = Math.max(h / 2 - ny * scale, topSafe);
       angle = Math.atan2(nx, ny) * (180 / Math.PI);
     }
 

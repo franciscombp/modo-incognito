@@ -42,7 +42,7 @@ export const SETTINGS_SCHEMA = {
 
 const DEFAULTS = Object.freeze({
   quality: "auto",
-  pixelSize: 2,
+  pixelSize: 1,
   colorLevels: 24,
   showLabels: false,
   showMarkers: true,
