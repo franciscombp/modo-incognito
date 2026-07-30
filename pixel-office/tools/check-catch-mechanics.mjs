@@ -45,10 +45,12 @@ const out = await page.evaluate(() => {
   return { dialogueOpenBefore: engine.dialogue.isOpen };
 });
 
-// ---- Minion catch triggers interrogation dialogue ----
+// ---- Minion catch triggers interrogation dialogue, but only once it has
+// physically reached the player (not just from redAlert alone) ----
 const minionSetup = await page.evaluate(() => {
   const { engine } = window.__game;
   const game = engine.game;
+  const S = window.__floorplan.WORLD_SCALE;
   const crispo = game.minions.find((m) => m.cast === "crispo");
   if (!crispo) return { found: false };
   crispo.setActive(true);
@@ -62,22 +64,23 @@ const minionSetup = await page.evaluate(() => {
     crispo.playerVisible = true;
     crispo.redAlert = true;
   };
-  // The dialogue no longer fires on the very first redAlert frame — it has
-  // to hold for CATCH_DIALOGUE_DELAY (currently 1.1s) so the minion visibly
-  // gives chase first. A single frame must NOT be enough; several seconds
-  // of sustained redAlert must.
+
+  // Far away first: redAlert alone must not be enough.
+  crispo.position.x = game.player.position.x + 6 * S;
+  crispo.position.z = game.player.position.z;
   game.update(1 / 30);
   return { found: true };
 });
-out.dialogueOpenRightAway = await page.evaluate(() => window.__game.engine.dialogue.isOpen);
-await page.evaluate(async () => {
+out.dialogueOpenWhileFar = await page.evaluate(() => window.__game.engine.dialogue.isOpen);
+
+// Now put it right next to the player: only proximity should unlock it.
+await page.evaluate(() => {
   const { engine } = window.__game;
   const game = engine.game;
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  for (let i = 0; i < 24 && !engine.dialogue.isOpen; i++) {
-    game.update(1 / 15); // ~1.6s total, comfortably past the 1.1s delay
-    await sleep(10);
-  }
+  const crispo = game.minions.find((m) => m.cast === "crispo");
+  crispo.position.x = game.player.position.x;
+  crispo.position.z = game.player.position.z;
+  game.update(1 / 30);
 });
 await page.waitForTimeout(150);
 out.dialogueOpenAfterCatch = await page.evaluate(() => window.__game.engine.dialogue.isOpen);
@@ -115,8 +118,8 @@ out.graceAfter = await page.evaluate(() => {
 console.log(JSON.stringify(out, null, 1));
 
 const checks = [
-  ["!dialogueOpenRightAway", "minion catch is NOT instant (gives chase first)", !out.dialogueOpenRightAway],
-  ["dialogueOpenAfterCatch", "minion catch opens its interrogation dialogue after the delay", out.dialogueOpenAfterCatch],
+  ["!dialogueOpenWhileFar", "redAlert alone (far away) does not open the dialogue", !out.dialogueOpenWhileFar],
+  ["dialogueOpenAfterCatch", "dialogue opens once the minion physically reaches the player", out.dialogueOpenAfterCatch],
   ["warnedOnce", "boss catch registers exactly one warning", out.warnedOnce],
   ["graceAfter", "boss grants a grace window after warning", out.graceAfter],
 ];
