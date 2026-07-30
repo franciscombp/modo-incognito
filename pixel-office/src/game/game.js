@@ -12,6 +12,7 @@ import { WORLD_SCALE as S } from "../scene/config.js";
 import { BOSS_STATES } from "../entities/boss.js";
 import { buzz } from "./settings.js";
 import { sfxComplete, sfxWarn, sfxDistraction } from "./sfx.js";
+import { runEffect } from "./effects.js";
 
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
@@ -301,11 +302,11 @@ export class Game {
       const target = { x: this.nearDistraction.x, z: this.nearDistraction.z };
       if (this.boss.distract(target, DISTRACTION_EFFECT_DURATION)) {
         this.nearDistraction.cooldownLeft = this.nearDistraction.cooldown;
-        this._toast(`Distracción: ${this.nearDistraction.label}`);
+        this.toast(`Distracción: ${this.nearDistraction.label}`);
         sfxDistraction();
-        this._award(40, "Distracción", this.player.position);
+        this.award(40, "Distracción", this.player.position);
       } else {
-        this._toast("¡Ya te vio! Una distracción no lo detiene ahora.");
+        this.toast("¡Ya te vio! Una distracción no lo detiene ahora.");
       }
     }
     this._prevInteractKey = holdingE;
@@ -442,11 +443,11 @@ export class Game {
     this.combo = Math.min(COMBO_MAX, this.combo + COMBO_STEP);
     this.comboLeft = COMBO_WINDOW;
 
-    if (station.perk) this._applyPerk(station.perk);
+    if (station.perk) this.applyPerk(station.perk);
 
     buzz([12, 40, 18]);
     sfxComplete();
-    this._toast(`${station.label} ✔${nerveLabel}`);
+    this.toast(`${station.label} ✔${nerveLabel}`);
     this._actionFlash = { icon: station.icon ?? "❓", label: station.label, timer: 1.1 };
     this.onPopup?.({
       text: `+${gained}`,
@@ -457,19 +458,19 @@ export class Game {
     });
   }
 
-  _award(points, label, at) {
+  award(points, label, at) {
     const gained = Math.round(points * this.combo);
     this.score += gained;
     this.onPopup?.({ text: `+${gained}`, sub: label, x: at.x, z: at.z, kind: "minor" });
   }
 
-  _applyPerk(perk) {
+  applyPerk(perk) {
     this._clearPerk();
     this.perk = perk;
     this.perkLeft = PERK_DURATION;
     if (perk === "caffeine") {
       this._perkSpeedMul = 1.35;
-      this._toast("☕ Cafeína: +35% de velocidad");
+      this.toast("☕ Cafeína: +35% de velocidad");
     }
   }
 
@@ -500,7 +501,7 @@ export class Game {
     if (level !== this.heat) {
       if (level > this.heat) {
         buzz([20, 30, 20]);
-        this._toast(`Nivel de búsqueda ${level}`);
+        this.toast(`Nivel de búsqueda ${level}`);
       }
       this.heat = level;
     }
@@ -602,7 +603,7 @@ export class Game {
       state.usedFor += dt;
       if (state.usedFor >= HIDE_MAX_USE) {
         state.cooldownLeft = HIDE_COOLDOWN;
-        this._toast("Ese escondite se quemó. Busca otro.");
+        this.toast("Ese escondite se quemó. Busca otro.");
         buzz(30);
         return;
       }
@@ -636,7 +637,7 @@ export class Game {
       state.left = Math.max(0, state.left - dt);
       if (state.left === 0) {
         state.spent = true;
-        this._toast(`${spot.label ?? "Lugar seguro"}: gastaste tu tiempo ahí hoy.`);
+        this.toast(`${spot.label ?? "Lugar seguro"}: gastaste tu tiempo ahí hoy.`);
       }
     });
     return active;
@@ -680,9 +681,9 @@ export class Game {
 
     const final = this.warnings >= this.rules.maxWarnings;
     if (final) {
-      this._toast("Última advertencia: te ascienden a cliente.");
+      this.toast("Última advertencia: te ascienden a cliente.");
     } else {
-      this._toast(`Advertencia ${this.warnings}/${this.rules.maxWarnings}`);
+      this.toast(`Advertencia ${this.warnings}/${this.rules.maxWarnings}`);
     }
     // El motor (engine.js) muestra el diálogo del regaño y, cuando lo cierra,
     // le da al jefe unos segundos sin observar — si lo hiciéramos aquí, ese
@@ -714,40 +715,12 @@ export class Game {
     });
   }
 
-  /** Effects that dialogue options in the JSON are allowed to trigger. */
+  /**
+   * Effects that dialogue options in the JSON are allowed to trigger. El
+   * catálogo vive en effects.js: añadir uno nuevo no toca este archivo.
+   */
   applyEffect(name) {
-    switch (name) {
-      case "suspicion-":
-        this.suspicion = Math.max(0, this.suspicion - 45);
-        this._toast("La sospecha baja");
-        break;
-      case "suspicion+":
-        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + 30);
-        this._toast("Alguien levantó la voz…");
-        break;
-      case "score+":
-        this._award(120, "Buena conversación", this.player.position);
-        break;
-      case "speed+":
-        this._applyPerk("caffeine");
-        break;
-      case "reveal-boss":
-        this.revealBossUntil = 12;
-        this._toast("Sabes dónde está el jefe");
-        break;
-      case "time+":
-        // Farmear con Giuli finge tan bien que hasta el reloj se lo cree:
-        // el turno avanza de golpe.
-        this.timeLeft = Math.max(0, this.timeLeft - 45);
-        this._toast("El reloj corre más rápido…");
-        break;
-      case "chispita-report":
-        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + 30);
-        this._chispitaReport();
-        break;
-      default:
-        break;
-    }
+    runEffect(name, this);
   }
 
   /**
@@ -756,24 +729,24 @@ export class Game {
    * objetivo, o te abordó mientras fingías que trabajabas), se harta de ella
    * y la encierra en una sala de reuniones el resto del día.
    */
-  _chispitaReport() {
+  chispitaReport() {
     const chispita = this.minions.find((m) => m.cast === "chispita");
     if (Math.random() < 0.45) {
-      this._toast("Chispita corre a avisar al jefe… que pasa de ella.");
+      this.toast("Chispita corre a avisar al jefe… que pasa de ella.");
       return;
     }
     const objectivesStarted = this.objectives.some((o) => o.done);
     const falseAlarm = !objectivesStarted || this.player.isPretending;
     if (falseAlarm && chispita) {
       chispita.setActive(false);
-      this._toast("El jefe se harta de falsas alarmas: encierra a Chispita en una sala. Hoy no molesta más.");
+      this.toast("El jefe se harta de falsas alarmas: encierra a Chispita en una sala. Hoy no molesta más.");
     } else {
       this.boss.distract({ x: this.player.position.x, z: this.player.position.z }, 10);
-      this._toast("¡Chispita avisó al jefe! Viene para acá.");
+      this.toast("¡Chispita avisó al jefe! Viene para acá.");
     }
   }
 
-  _toast(text) {
+  toast(text) {
     this.message = { text, timer: 2.6 };
   }
 

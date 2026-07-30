@@ -5,14 +5,40 @@
   "subtitle": "Ya sabes dónde están las cámaras. Y las plantas.",
   "scene": "piso7",
   "theme": "morning",
-  "crossing": true,
-  "crossingIntro": [
-    {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "Antes que nada: hay que cruzar la Amazonas. Seis carriles, ciclovía a cada lado del parterre. Con cuidado."
+  "minigame": {
+    "id": "crossing",
+    "intro": [
+      {
+        "speaker": "Steven el Daddy",
+        "narrator": true,
+        "text": "Antes que nada: hay que cruzar la Amazonas. Seis carriles, ciclovía a cada lado del parterre. Con cuidado."
+      }
+    ],
+    "onFail": {
+      "icon": "🚑",
+      "title": "Te ascendieron a cliente",
+      "body": "Nunca llegaste a cruzar la avenida.",
+      "dialogue": [
+        {
+          "speaker": "Tú",
+          "portrait": "😰",
+          "text": "Jefe... me atropellaron cruzando la Amazonas. No voy a poder entrar."
+        },
+        {
+          "speaker": "Gabo",
+          "portrait": "🕴️",
+          "mood": "angry",
+          "text": "¿Perdón? Eso se avisa CON TIEMPO. No se improvisa un atropello."
+        },
+        {
+          "speaker": "Gabo",
+          "portrait": "🕴️",
+          "mood": "angry",
+          "text": "Quedas ascendida a cliente. Con efecto inmediato."
+        }
+      ]
     }
-  ],
+  },
   "rules": {
     "duration": 240,
     "maxWarnings": 3,

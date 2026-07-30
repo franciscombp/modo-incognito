@@ -9,6 +9,7 @@ import { createMenus, rankFor } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
+import { createMinigameRegistry } from "./minigames.js";
 import {
   spawn,
   patrolRoute,
@@ -51,7 +52,7 @@ export function createEngine({
   playerName = "Tú",
   minions = new Map(),
   onPopup = null,
-  crossing3D = null,
+  minigames = createMinigameRegistry(),
   pixels = null,
 }) {
   const hud = createHud(app);
@@ -133,7 +134,7 @@ export function createEngine({
   /** A sidekick spotting you sends the real boss to that spot. */
   function onMinionSpot(watcher, at) {
     boss.distract(at, 6);
-    game?._toast(`${watcher.name} te delató`);
+    game?.toast(`${watcher.name} te delató`);
   }
   minions.forEach((watcher) => {
     watcher.onSpot = onMinionSpot;
@@ -324,24 +325,24 @@ export function createEngine({
     menus.close();
     menuPaused = false;
 
-    // Cruzar la avenida pasa ANTES de entrar al edificio, así que ni el
-    // vestíbulo ni el piso existen todavía para la jugadora en este punto.
-    // Es una escena 3D propia (scene/crossing3d.js): mientras dura, main.js
-    // deja de dibujar el piso y deja que este minijuego pinte su propio
-    // fotograma (ver engine.crossingActive).
-    if (day.crossing && crossing3D) {
-      if (day.crossingIntro) await dialogue.play(withSprites(day.crossingIntro), ctx);
-      document.body.classList.add("crossing-open");
+    // Un minijuego del día (cruzar la avenida, etc.) pasa ANTES de entrar al
+    // edificio: ni el vestíbulo ni el piso existen todavía para la jugadora.
+    // Cada uno es una escena propia con su bucle; mientras dura, main.js deja
+    // de dibujar el piso (ver engine.crossingActive).
+    const mini = minigames.forDay(day);
+    if (mini) {
+      if (mini.spec.intro) await dialogue.play(withSprites(mini.spec.intro), ctx);
+      if (mini.bodyClass) document.body.classList.add(mini.bodyClass);
       crossingActive = true;
-      setMood("crossing");
-      const outcome = await crossing3D.play((s, c) => pixels?.render(s, c));
+      if (mini.mood) setMood(mini.mood);
+      const outcome = await mini.play((s, c) => pixels?.render(s, c));
       crossingActive = false;
-      document.body.classList.remove("crossing-open");
+      if (mini.bodyClass) document.body.classList.remove(mini.bodyClass);
       if (outcome === "hit") {
         // Nunca llegaste a entrar: se ve el vestíbulo con las puertas
         // cerradas de fondo, no el piso (todavía no has "llegado").
         lobby.show();
-        await crossingFailed(day);
+        await minigameFailed(day, mini.spec.onFail);
         return;
       }
     }
@@ -442,9 +443,9 @@ export function createEngine({
     }
     if (outcome.risky && Math.random() < 0.35) {
       game.warnings = 1;
-      game._toast("Te vieron colarte: advertencia 1");
+      game.toast("Te vieron colarte: advertencia 1");
     } else {
-      game._toast(outcome.toast);
+      game.toast(outcome.toast);
     }
   }
 
@@ -510,23 +511,20 @@ export function createEngine({
     boss.grantGrace(BOSS_GRACE_AFTER_WARN);
   }
 
-  /** Atropellada antes de llegar a entrar: se lo dices a Gabo y te "asciende". */
-  async function crossingFailed(day) {
+  /**
+   * Perder el minijuego del día. Todo lo que se ve aquí (el diálogo, el
+   * icono, el título y el cuerpo de la tarjeta) sale del JSON del día, en
+   * `minigame.onFail` — así un minijuego nuevo no necesita código nuevo.
+   */
+  async function minigameFailed(day, onFail = {}) {
     playStinger("defeat");
     hud.setDay(day);
     hud.setVisible(true);
-    await dialogue.play(
-      withSprites([
-        { speaker: "Tú", portrait: "😰", text: "Jefe... me atropellaron cruzando la Amazonas. No voy a poder entrar." },
-        { speaker: "Gabo", portrait: "🕴️", mood: "angry", text: "¿Perdón? Eso se avisa CON TIEMPO. No se improvisa un atropello." },
-        { speaker: "Gabo", portrait: "🕴️", mood: "angry", text: "Quedas ascendida a cliente. Con efecto inmediato." },
-      ]),
-      ctx
-    );
+    if (onFail.dialogue) await dialogue.play(withSprites(onFail.dialogue), ctx);
     hud.showResult({
-      icon: "🚑",
-      title: "Te ascendieron a cliente",
-      body: "Nunca llegaste a cruzar la avenida.",
+      icon: onFail.icon ?? "🚪",
+      title: onFail.title ?? "Te ascendieron a cliente",
+      body: onFail.body ?? "No llegaste a empezar la jornada.",
       win: false,
       actions: [
         { label: "Reintentar", primary: true, onClick: () => startDay(dayIndex) },
