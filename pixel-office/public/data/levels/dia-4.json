@@ -42,14 +42,14 @@
     }
   ],
   "outroLose": [
-    {"speaker":"Jefe","portrait":"🕴️","mood":"angry","text":"Sin impresora que culpar, ¿eh?"}
+    {"speaker":"Gabo","portrait":"🕴️","mood":"angry","text":"Sin impresora que culpar, ¿eh?"}
   ],
   "prologue": {
     "kind": "elevator",
     "title": "Planta baja · 8:52",
     "intro": [
       {
-        "speaker": "Narrador",
+        "speaker": "Steven el Daddy",
         "portrait": "🛗",
         "text": "Hoy llegaste temprano a propósito. Hay dos ascensores fuera de servicio."
       }

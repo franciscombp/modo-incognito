@@ -41,7 +41,7 @@
       "blurb": "Amiga tuya. Chapter del amor: vive por y para el chisme romántico de la tribu.",
       "friend": true
     },
-    "jefe": {"name":"Jefe","portrait":"🕴️","color":"#e6483f","sheet":"boss"},
+    "jefe": {"name":"Gabo","alias":"Barbie Malibú","portrait":"🕴️","color":"#e6483f","sheet":"boss"},
     "chispita": {
       "name": "Chispita",
       "portrait": "⚡",
@@ -87,6 +87,14 @@
       "portrait": "📞",
       "color": "#ff6b9d",
       "blurb": "Narrador. Habla desde el call center, guiándote a través del día."
+    },
+    "parce": {
+      "name": "El Parce",
+      "portrait": "🥃",
+      "color": "#e0a03c",
+      "sheet": "npc1",
+      "friend": true,
+      "blurb": "Amigo tuyo, ala norte. Siempre anda con una petaca de aguardiente escondida en el cajón del escritorio."
     }
   },
   "encounters": {
@@ -95,20 +103,20 @@
       "scenes": [
         [
           {
-            "speaker": "Jefe",
+            "speaker": "Gabo",
             "portrait": "🕴️",
             "mood": "angry",
             "text": "¡Te vi! No sé qué estabas haciendo, pero lo que sea que fuera, ya no lo hagas."
           },
           {
-            "speaker": "Jefe",
+            "speaker": "Gabo",
             "portrait": "🕴️",
             "text": "Quedas advertida. Voy a mirar para otro lado un momento, a ver si aprendes."
           }
         ],
         [
           {
-            "speaker": "Jefe",
+            "speaker": "Gabo",
             "portrait": "🕴️",
             "mood": "angry",
             "text": "Segunda vez. Empiezo a pensar que esto no es casualidad."
@@ -121,7 +129,7 @@
         ],
         [
           {
-            "speaker": "Jefe",
+            "speaker": "Gabo",
             "portrait": "🕴️",
             "mood": "angry",
             "text": "A este paso vamos a tener que hablar de tu futuro aquí. Literal, no en sentido figurado."
@@ -181,6 +189,13 @@
             "speaker": "Manu de la suerte",
             "portrait": "🍀",
             "text": "Me gané el sorteo del almuerzo otra vez. Ya me da vergüenza. Un poquito."
+          }
+        ],
+        [
+          {
+            "speaker": "Manu de la suerte",
+            "portrait": "🍀",
+            "text": "Mi secreto no es la suerte, es que nunca miro nervioso. Camina como si el pasillo fuera tuyo."
           }
         ]
       ]
@@ -246,6 +261,14 @@
             "portrait": "😤",
             "text": "Llevo tres sprints pidiendo un monitor curvo. Tres. Nadie me quiere en esta tribu."
           }
+        ],
+        [
+          {
+            "speaker": "César",
+            "portrait": "😤",
+            "mood": "tense",
+            "text": "¿Viste que en la cafetería ya no hay las galletas buenas? Voy a escalarlo. A quien sea. Hoy mismo."
+          }
         ]
       ]
     },
@@ -307,6 +330,13 @@
             "portrait": "💘",
             "text": "A ti te vi hablando mucho con la cafetera. No juzgo, mi amor. Documento con cariño."
           }
+        ],
+        [
+          {
+            "speaker": "Enriquetta",
+            "portrait": "💘",
+            "text": "Se rumora que Sistemas y Nómina se mandan mensajes con emoji de anillo. YO LO SÉ TODO, mi amor."
+          }
         ]
       ]
     },
@@ -358,6 +388,13 @@
             "portrait": "⚡",
             "text": "Hoy he dado catorce mil pasos. Catorce mil. Y no he hecho ni una tarea."
           }
+        ],
+        [
+          {
+            "speaker": "Chispita",
+            "portrait": "⚡",
+            "text": "¿Sabes qué es lo peor? Que me pagan lo mismo que a ti. Y yo sí hago cardio."
+          }
         ]
       ]
     },
@@ -395,6 +432,13 @@
             "speaker": "Washo",
             "portrait": "🧽",
             "text": "Yo no acuso a nadie. Yo documento. Es distinto. Legalmente es muy distinto."
+          }
+        ],
+        [
+          {
+            "speaker": "Washo",
+            "portrait": "🧽",
+            "text": "No parpadeo porque si parpadeo te pierdo. Y si te pierdo, ¿para qué existo?"
           }
         ]
       ]
@@ -446,6 +490,13 @@
             "portrait": "🥨",
             "text": "Llevo la cuenta de todo el mundo. En papel. El papel no se cae como el sistema."
           }
+        ],
+        [
+          {
+            "speaker": "Crispo",
+            "portrait": "🥨",
+            "text": "No hace falta correr. Si esperas lo suficiente, todo el mundo pasa por aquí."
+          }
         ]
       ]
     },
@@ -485,6 +536,13 @@
             "portrait": "🧑‍🎨",
             "text": "Dato curioso: si finges lo suficientemente bien, hasta el reloj de la oficina te cree."
           }
+        ],
+        [
+          {
+            "speaker": "Giuli",
+            "portrait": "🧑‍🎨",
+            "text": "Mi rider de Figma dice «en revisión» desde el martes pasado. Es arte conceptual, en realidad."
+          }
         ]
       ]
     },
@@ -522,6 +580,82 @@
             "speaker": "Fran",
             "portrait": "🕵️‍♂️",
             "text": "Con antigüedad uno aprende: nunca corras delante del jefe. Camina rápido, eso sí."
+          }
+        ],
+        [
+          {
+            "speaker": "Fran",
+            "portrait": "🕵️‍♂️",
+            "text": "Dora la criticona también critica: esa reunión pudo ser un correo. Todas pudieron ser un correo."
+          }
+        ]
+      ]
+    },
+    "parce": {
+      "cooldown": 40,
+      "scenes": [
+        [
+          {
+            "speaker": "El Parce",
+            "portrait": "🥃",
+            "text": "Ey, parcera, venga le cuento un secreto: tengo una petaca de Amarillo en el cajón. «El amarillo que nos unió», que dicen."
+          },
+          {
+            "prompt": "Te la ofrece, tapa ya destornillada.",
+            "portrait": "🥃",
+            "options": [
+              {
+                "label": "«Un traguito no hace daño.»",
+                "reply": "Un traguito no hace daño, Parce.",
+                "effect": "suspicion+",
+                "then": [
+                  {
+                    "speaker": "El Parce",
+                    "portrait": "🥃",
+                    "text": "¡Eso es! Al seco. Ahora sonría normal, que si el jefe la ve así de contenta sospecha."
+                  },
+                  {
+                    "speaker": "Tú",
+                    "portrait": "😵‍💫",
+                    "text": "Uf. Esto quema más que la reunión de las tres."
+                  }
+                ]
+              },
+              {
+                "label": "«Ahora no, que ando muy vigilada.»",
+                "reply": "Ahora no, Parce, que ando muy vigilada.",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "El Parce",
+                    "portrait": "🥃",
+                    "text": "Sabia decisión. La guardo pa' la hora del cierre. Esa sí es sagrada."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        [
+          {
+            "speaker": "El Parce",
+            "portrait": "🥃",
+            "text": "En mi pueblo dicen que el Amarillo no emborracha, «solo desinhibe». Yo lo tengo comprobado once veces."
+          }
+        ],
+        [
+          {
+            "speaker": "El Parce",
+            "portrait": "🥃",
+            "mood": "tense",
+            "text": "Shhh. Baje la voz que ayer casi me pilla el jefe con la petaca. Por poco la bautizo con aguardiente a él."
+          }
+        ],
+        [
+          {
+            "speaker": "El Parce",
+            "portrait": "🥃",
+            "text": "Un consejo de parcero: nunca mezcle Amarillo con café de la cafetería. Ya sé por qué lo digo."
           }
         ]
       ]

@@ -54,7 +54,7 @@ export class Boss {
     visionHalfAngleDeg = 30,
     speedMul = 1,
     role = "boss",
-    name = "Jefe",
+    name = "Gabo",
     coneColor = 0xf2c744,
     onSpot = null,
     config = null,
@@ -386,12 +386,15 @@ export class Boss {
       this._resumeNearestRoutePoint();
     } else if (this.state === INVESTIGATE) {
       this.investigateTimer = 0;
-    } else if (this.state === CHASE) {
+    } else if (this.state === CHASE && !this.playerVisible) {
       // El objetivo en persecución es la posición exacta del jugador, que
       // puede quedar pegada a un mueble (justo lo que la hace un buen
       // escondite): sin esta rama, el jefe o el secuaz se quedaba empujando
       // esa esquina para siempre. Se rinde y barre la última posición vista,
-      // como al perderle la pista por línea de visión.
+      // como al perderle la pista por línea de visión. Pero si TODAVÍA la
+      // ve (solo está atascado contra una esquina, o ya la alcanzó y no
+      // puede acercarse más), no debe soltarla: el empujón de abajo lo
+      // libera del atasco sin abandonar la persecución.
       this.state = SEARCH;
       this.searchTarget = this.lastSeenPlayerPos ?? { ...this.position };
       this.searchTimer = 5;

@@ -51,8 +51,11 @@ const PRETEND_OUT_OF_PLACE = 0.25; // fracción del alivio si finges donde no to
 // intocable. Por encima, "si estabas con más, valiste".
 const PRETEND_IMMUNE_THRESHOLD = 30;
 
-// Los secuaces no esperan a que les hables: te abordan.
-const MINION_APPROACH = 3.4 * S;
+// Los secuaces no esperan a que les hables: te abordan, pero solo si de
+// verdad estás a su lado — antes esto disparaba el diálogo a más del doble
+// de la distancia de "hablar con alguien" (INTERACT_RADIUS*1.3), así que se
+// sentía como que Crispo te abordaba sin estar cerca.
+const MINION_APPROACH = INTERACT_RADIUS * 1.4;
 
 // Washo casi no anda, pero mientras estés en su mira te pesan las piernas.
 const WASHO_SLOW_MUL = 0.55;
@@ -543,6 +546,10 @@ export class Game {
       if (dist > m.radius + this.player.radius + 0.3 * S) continue; // sigue persiguiendo
       this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
       this.onTalk(m, { caught: true });
+      // Ya te interrogó: vuelve a su ronda en vez de quedarse pegada a ti en
+      // plena persecución, que es donde el atasco físico la hacía "huir" al
+      // rato con un empujón aleatorio (ver _updateStuck en boss.js).
+      m.resetToPatrol();
       return;
     }
   }

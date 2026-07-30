@@ -16,7 +16,7 @@
   },
   "intro": [
     {
-      "speaker": "Jefe",
+      "speaker": "Gabo",
       "portrait": "🕴️",
       "mood": "tense",
       "text": "Hoy pasa el comité. Quiero ver a todo el mundo en su puesto. TODO el mundo."
@@ -31,18 +31,18 @@
     }
   ],
   "outroLose": [
-    {"speaker":"Jefe","portrait":"🕴️","mood":"angry","text":"¡Justo hoy! ¡JUSTO HOY!"}
+    {"speaker":"Gabo","portrait":"🕴️","mood":"angry","text":"¡Justo hoy! ¡JUSTO HOY!"}
   ],
   "prologue": {
     "kind": "elevator",
     "title": "Planta baja · 9:04",
     "intro": [
       {
-        "speaker": "Narrador",
+        "speaker": "Steven el Daddy",
         "portrait": "🛗",
         "text": "Vas tarde. El comité sube en el mismo ascensor y el jefe está con ellos."
       },
-      {"speaker":"Jefe","portrait":"🕴️","mood":"tense","text":"Buenos días. Qué puntual, ¿eh?"}
+      {"speaker":"Gabo","portrait":"🕴️","mood":"tense","text":"Buenos días. Qué puntual, ¿eh?"}
     ],
     "choice": {
       "prompt": "Está esperando una respuesta.",
