@@ -5,6 +5,14 @@
   "subtitle": "Ya sabes dónde están las cámaras. Y las plantas.",
   "scene": "piso7",
   "theme": "morning",
+  "crossing": true,
+  "crossingIntro": [
+    {
+      "speaker": "Steven el Daddy",
+      "narrator": true,
+      "text": "Antes que nada: hay que cruzar la Amazonas. Seis carriles, ciclovía a cada lado del parterre. Con cuidado."
+    }
+  ],
   "rules": {
     "duration": 240,
     "maxWarnings": 3,

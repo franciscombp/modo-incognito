@@ -680,7 +680,7 @@ export class Game {
 
     const final = this.warnings >= this.rules.maxWarnings;
     if (final) {
-      this._toast("Última advertencia: despedida.");
+      this._toast("Última advertencia: te ascienden a cliente.");
     } else {
       this._toast(`Advertencia ${this.warnings}/${this.rules.maxWarnings}`);
     }

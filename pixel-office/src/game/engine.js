@@ -9,6 +9,7 @@ import { createMenus, rankFor } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
+import { createCrossing } from "../ui/crossing.js";
 import {
   spawn,
   patrolRoute,
@@ -59,6 +60,7 @@ export function createEngine({
   });
   const dialogue = createDialogue(app);
   const lobby = createLobby(app);
+  const crossing = createCrossing(app);
   const save = createSave();
 
   const eggIds = [...locationEggs.map((e) => e.id), ...codeEggs.map((e) => e.id)];
@@ -313,6 +315,23 @@ export function createEngine({
 
     menus.close();
     menuPaused = false;
+
+    // Cruzar la avenida pasa ANTES de entrar al edificio, así que ni el
+    // vestíbulo ni el piso existen todavía para la jugadora en este punto.
+    if (day.crossing) {
+      document.body.classList.add("crossing-open");
+      if (day.crossingIntro) await dialogue.play(withSprites(day.crossingIntro), ctx);
+      const outcome = await crossing.play();
+      document.body.classList.remove("crossing-open");
+      if (outcome === "hit") {
+        // Nunca llegaste a entrar: se ve el vestíbulo con las puertas
+        // cerradas de fondo, no el piso (todavía no has "llegado").
+        lobby.show();
+        await crossingFailed(day);
+        return;
+      }
+    }
+
     inLevel = true;
     bossSpeedBonus = 1;
     applyTheme(day.theme, { renderer, scene, ...lights });
@@ -477,6 +496,30 @@ export function createEngine({
     boss.grantGrace(BOSS_GRACE_AFTER_WARN);
   }
 
+  /** Atropellada antes de llegar a entrar: se lo dices a Gabo y te "asciende". */
+  async function crossingFailed(day) {
+    hud.setDay(day);
+    hud.setVisible(true);
+    await dialogue.play(
+      withSprites([
+        { speaker: "Tú", portrait: "😰", text: "Jefe... me atropellaron cruzando la Amazonas. No voy a poder entrar." },
+        { speaker: "Gabo", portrait: "🕴️", mood: "angry", text: "¿Perdón? Eso se avisa CON TIEMPO. No se improvisa un atropello." },
+        { speaker: "Gabo", portrait: "🕴️", mood: "angry", text: "Quedas ascendida a cliente. Con efecto inmediato." },
+      ]),
+      ctx
+    );
+    hud.showResult({
+      icon: "🚑",
+      title: "Te ascendieron a cliente",
+      body: "Nunca llegaste a cruzar la avenida.",
+      win: false,
+      actions: [
+        { label: "Reintentar", primary: true, onClick: () => startDay(dayIndex) },
+        { label: "Menú", onClick: () => openTitle() },
+      ],
+    });
+  }
+
   async function finishDay(day, result) {
     inLevel = false;
     playStinger(result.win ? "victory" : "defeat");
@@ -508,14 +551,14 @@ export function createEngine({
 
     hud.showResult({
       icon: result.win ? (isLast ? "🏆" : "🎉") : "🚪",
-      title: result.win ? (isLast ? "Semana completada" : `${day.title}: superado`) : "Despedida",
+      title: result.win ? (isLast ? "Semana completada" : `${day.title}: superado`) : "Te ascendieron a cliente",
       rank: result.win ? rank : null,
       score: result.score,
       target,
       body: result.win
         ? `${done}/${result.objectives.length} actividades · ${result.eggsFound} secretos hoy · objetivo ${target} pts`
         : result.warnings >= (day.rules?.maxWarnings ?? 3)
-        ? "Te quedaste sin advertencias."
+        ? "Sin advertencias de sobra: te ascienden a cliente."
         : "Se acabó la jornada con objetivos pendientes.",
       win: result.win,
       actions,
@@ -581,6 +624,7 @@ export function createEngine({
     dispose() {
       window.removeEventListener("keydown", onKey);
       dialogue.dispose();
+      crossing.dispose();
     },
   };
 }

@@ -233,7 +233,11 @@ export function createHud(root) {
   }
 
   // ---- End-of-day card ----
-  const overlay = el("div", "hud-overlay hidden", hud);
+  // Vive fuera de hud-root a propósito: hud-root fija su propio contexto de
+  // apilamiento (z-index bajo, para quedar detrás del vestíbulo/diálogo), y
+  // el resultado de fin de día debe poder mostrarse incluso cuando ese
+  // vestíbulo está de fondo (ver crossingFailed() en engine.js).
+  const overlay = el("div", "hud-overlay hidden", root);
   const overlayCard = el("div", "hud-overlay-card", overlay);
   const overlayIcon = el("div", "hud-overlay-icon", overlayCard);
   const overlayTitle = el("div", "hud-overlay-title", overlayCard);

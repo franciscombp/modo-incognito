@@ -60,6 +60,7 @@ código**.
 | Los menús (título, elegir día, ajustes, pausa) (código) | [`src/ui/menus.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/menus.js) |
 | Los controles táctiles (código) | [`src/game/touchControls.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/touchControls.js) |
 | El vestíbulo de ascensores (segunda "escena", antes del piso) (código) | [`src/ui/lobby.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/lobby.js) |
+| El minijuego de cruzar la avenida (código) | [`src/ui/crossing.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/crossing.js) |
 | Los mensajes de Teams de Gabo | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/dialogues.json) → `teamsMessages.gabo` |
 
 Cada JSON de `public/data/` trae su propio campo `"$comment"` al principio
@@ -203,6 +204,15 @@ cuáles salen y por qué ronda, en su JSON:
 ```
 
 ## La jornada
+
+Algunos días abren antes con un minijuego aparte: **cruzar la avenida**
+(`src/ui/crossing.js`, campo `"crossing": true` en el JSON del día — hoy solo
+el día 2). Al estilo Crossy Road: seis carriles de tráfico separados por un
+parterre con ciclovía a cada lado, entre la acera y la puerta del edificio.
+Si te atropellan no hay reintento silencioso: se lo dices a Gabo, y su
+respuesta es la broma recurrente del juego — **"te ascienden a cliente"**,
+el eufemismo de toda la oficina para "te despidieron", que se usa en
+cualquier otro momento en que te echan (fin de las advertencias, etc.).
 
 Cada día abre en el **vestíbulo de ascensores** — una segunda "escena" propia
 (`src/ui/lobby.js`), no el piso: mientras eliges esperar (pierdes minutos de
