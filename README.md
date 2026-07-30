@@ -6,10 +6,22 @@ Juego web en Three.js: eres una empleada del Piso 10 · Centro Digital que inten
 **Lore, para quien escriba diálogos nuevos:** la Tribu Canales es el equipo de
 diseño del Centro Digital de un banco — creativos dentro de una empresa que
 no lo es tanto. El meta-chiste, para quien lo encuentre (código secreto
-`incognito`, ver `manifest.json` → `codeEggs`): "fingir que trabajas" es, en
-la ficción, la coartada del equipo para programar en secreto este mismo
-juego y mantener viva su creatividad. No lo spoilees en textos nuevos — que
-se descubra jugando.
+`incognito`, ver `manifest.json` → `codeEggs`, y el cierre del día 5 en
+`levels/dia-5.json`): "fingir que trabajas" es, en la ficción, la coartada
+del equipo para programar en secreto este mismo juego y mantener viva su
+creatividad. La idea original es de César y Manu; quien lo programa de
+verdad es Fran, con Claude Code de copiloto — un guiño real, no solo de
+ficción. No lo spoilees en textos nuevos fuera de esos dos momentos — que se
+descubra jugando.
+
+Esto es una **sátira de oficina con crítica de verdad**, no solo comedia
+ligera. Los personajes mezclan arquetipos típicos (el quejoso, el que
+siempre se salva de todo, el jefe inseguro con apodo ridículo) con guiños a
+gente real de la oficina — la gracia está en que cualquiera de la Tribu
+pueda reconocerse, y reconozca sobre todo lo malo: la microgestión, los
+favoritismos, el "banco innovador" que no lo es, la cultura de "familia" que
+se usa para pedir más sin dar más. Si escribes diálogo nuevo, que tenga
+filo — un chiste sin nada que criticar es solo relleno.
 
 Se publica en <https://franciscombp.github.io/modo-incognito/> desde `main`.
 **El repositorio usa una sola rama.**

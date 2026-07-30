@@ -55,6 +55,11 @@
       "narrator": true,
       "text": "…mientras programábamos, en secreto, el juego que acabas de terminar de jugar. Modo Incógnito no es solo el plan. Es el commit de hoy."
     },
+    {
+      "speaker": "Steven el Daddy",
+      "narrator": true,
+      "text": "La idea original fue de César y Manu — un día de queja en tiempo real que se convirtió en plan. Fran lo está programando de verdad, con Claude Code de copiloto."
+    },
     {"speaker":"Tú","portrait":"😏","text":"Si preguntan, esto también fue una reunión de innovación."}
   ],
   "outroLose": [

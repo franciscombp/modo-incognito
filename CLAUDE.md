@@ -15,10 +15,17 @@ código — mira primero si hay un JSON para eso.
 
 **Lore, para diálogo nuevo:** la Tribu Canales diseña en el Centro Digital de
 un banco. El meta-chiste (código secreto `incognito`, en
-`manifest.json` → `codeEggs`) es que "fingir que trabajas" es la coartada del
-equipo para programar en secreto este mismo juego. Si escribes diálogo
-nuevo, mantén el tono — y no reveles el chiste fuera del huevo de pascua ni
-del cierre del día 5 (`levels/dia-5.json`).
+`manifest.json` → `codeEggs`, y el cierre de `levels/dia-5.json`) es que
+"fingir que trabajas" es la coartada del equipo para programar en secreto
+este mismo juego — idea original de César y Manu, programado de verdad por
+Fran con Claude Code de copiloto. No reveles el chiste fuera de esos dos
+momentos.
+
+Es sátira de oficina con crítica real, no comedia inofensiva: arquetipos de
+oficina (el quejoso, el intocable, el jefe inseguro) cruzados con guiños a
+gente real, pensados para que el equipo se reconozca — sobre todo en lo
+malo (microgestión, favoritismos, "cultura de familia" hueca). Si generas
+diálogo nuevo, dale filo real; no lo suavices por defecto.
 
 ## Estructura del repo (dos partes, no la confundas)
 
