@@ -53,11 +53,6 @@ const PRETEND_IMMUNE_THRESHOLD = 30;
 // Los secuaces no esperan a que les hables: te abordan.
 const MINION_APPROACH = 3.4 * S;
 
-// Cuánto debe aguantar encendido el redAlert de un secuaz antes de que su
-// interrogatorio se dispare — el margen que te deja reaccionar (romper la
-// línea de visión, ponerte a fingir) antes de quedar atrapada en el diálogo.
-const CATCH_DIALOGUE_DELAY = 1.1;
-
 // Washo casi no anda, pero mientras estés en su mira te pesan las piernas.
 const WASHO_SLOW_MUL = 0.55;
 
@@ -201,7 +196,6 @@ export class Game {
     this._caughtCooldown = 0;
     this._eggDwell = new Map();
     this._foundEggs = new Set();
-    this._minionCatchTimer = new Map();
   }
 
   /** Story beats and menus freeze the world without tearing the level down. */
@@ -316,7 +310,7 @@ export class Game {
 
     this.boss.update(dt, this.player, this.npcs);
     this.minions.forEach((m) => m.update(dt, this.player, this.npcs));
-    this._updateMinionCatch(dt);
+    this._updateMinionCatch();
     this._updateMinionApproach();
     this._updateEggs(dt);
     this._updateSpeedMul();
@@ -519,31 +513,25 @@ export class Game {
   }
 
   /**
-   * Interrogatorio: cuando un secuaz te pilla (redAlert) dispara su diálogo
-   * en vez de subir la sospecha en silencio — la respuesta que elijas
-   * decide cuánto sube o baja. No es instantáneo: redAlert tiene que
-   * aguantar encendido un ratito (CATCH_DIALOGUE_DELAY) antes de disparar
-   * el diálogo, así el secuaz alcanza a perseguirte de verdad (se le ve
-   * venir, cierra distancia) en vez de congelar la partida en el mismo
-   * fotograma en que te ve — que es justo lo que hacía sentir que "no
-   * siguen": el diálogo tapaba la persecución antes de que empezara.
-   * Si dejas de estar en su mira antes de ese tiempo, no pasa nada: se
-   * resetea y toca escaparte de verdad, no solo aguantar un instante.
+   * Interrogatorio: un secuaz que te ve (redAlert) te sigue de verdad — está
+   * en CHASE, camina hacia ti — y su diálogo (la respuesta que elijas decide
+   * cuánto sube o baja la sospecha) solo se dispara cuando de verdad llega a
+   * tu lado, igual que la amonestación del jefe exige contacto real
+   * (boss.catches()). Antes bastaba con mantenerte un ratito en su mira
+   * aunque estuviera lejos (Washo te ve desde el otro extremo del ala y
+   * jamás llega a tiempo); ahora, si rompes la línea de visión o sales
+   * corriendo antes de que te alcance, no pasa nada — tienes que dejar que
+   * te agarre para que cuente.
    */
-  _updateMinionCatch(dt) {
+  _updateMinionCatch() {
     if (!this.onTalk) return;
+    const pos = this.player.position;
     for (const m of this.minions) {
-      const timer = this._minionCatchTimer.get(m) ?? 0;
-      if (!m.redAlert) {
-        if (timer > 0) this._minionCatchTimer.set(m, 0);
-        continue;
-      }
-      const next = timer + dt;
-      this._minionCatchTimer.set(m, next);
-      if (next < CATCH_DIALOGUE_DELAY) continue;
+      if (!m.redAlert) continue;
       if (m.active === false || !m.cast) continue;
       if ((this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
-      this._minionCatchTimer.set(m, 0);
+      const dist = Math.hypot(m.position.x - pos.x, m.position.z - pos.z);
+      if (dist > m.radius + this.player.radius + 0.3 * S) continue; // sigue persiguiendo
       this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
       this.onTalk(m, { caught: true });
       return;
