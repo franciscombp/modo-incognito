@@ -74,6 +74,7 @@ export class Boss {
     this.approachSpeedFast = config?.approachSpeedFast != null ? config.approachSpeedFast * S : null;
     this.suspicionThresholdFastApproach = config?.suspicionThresholdFastApproach ?? 90;
     this.suspicion = 0; // Game lo actualiza cada frame antes de update()
+    this._graceTimer = 0; // grantGrace(): unos segundos ciego tras amonestar
     this.world = world;
     this.navmesh = navmesh;
     this.route = route;
@@ -222,9 +223,24 @@ export class Boss {
     this.lastSeenPlayerPos = null;
   }
 
+  /**
+   * Unos segundos de gracia justo después de amonestarte: acaba de soltarte,
+   * así que mirar para otro lado un momento (en vez de clavarte los ojos de
+   * nuevo al instante) le da tiempo a alejarse antes de que la caza pueda
+   * reanudarse de verdad.
+   */
+  grantGrace(duration) {
+    this._graceTimer = duration;
+  }
+
+  get inGrace() {
+    return this._graceTimer > 0;
+  }
+
   update(dt, player, npcs) {
     if (this.active === false) return;
     if (this._reportCooldown > 0) this._reportCooldown -= dt;
+    if (this._graceTimer > 0) this._graceTimer -= dt;
     this._updateVision(player, npcs);
 
     // A minion that catches you slacking shouts for the boss instead of
@@ -496,7 +512,7 @@ export class Boss {
   _updateVision(player, npcs) {
     this.playerVisible = false;
     this.redAlert = false;
-    if (player.isHiding) return;
+    if (player.isHiding || this._graceTimer > 0) return;
 
     const dx = player.position.x - this.position.x;
     const dz = player.position.z - this.position.z;

@@ -90,6 +90,45 @@
     }
   },
   "encounters": {
+    "jefe": {
+      "$comment": "Se dispara cuando el jefe te atrapa de verdad (amonestación), no al hablarle. Ver _warn()/handleWarn().",
+      "scenes": [
+        [
+          {
+            "speaker": "Jefe",
+            "portrait": "🕴️",
+            "mood": "angry",
+            "text": "¡Te vi! No sé qué estabas haciendo, pero lo que sea que fuera, ya no lo hagas."
+          },
+          {
+            "speaker": "Jefe",
+            "portrait": "🕴️",
+            "text": "Quedas advertida. Voy a mirar para otro lado un momento, a ver si aprendes."
+          }
+        ],
+        [
+          {
+            "speaker": "Jefe",
+            "portrait": "🕴️",
+            "mood": "angry",
+            "text": "Segunda vez. Empiezo a pensar que esto no es casualidad."
+          },
+          {
+            "speaker": "Tú",
+            "portrait": "😬",
+            "text": "Definitivamente no lo es."
+          }
+        ],
+        [
+          {
+            "speaker": "Jefe",
+            "portrait": "🕴️",
+            "mood": "angry",
+            "text": "A este paso vamos a tener que hablar de tu futuro aquí. Literal, no en sentido figurado."
+          }
+        ]
+      ]
+    },
     "manu": {
       "cooldown": 45,
       "scenes": [

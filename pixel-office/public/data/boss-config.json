@@ -1,8 +1,8 @@
 {
   "suspicion": {
     "max": 100,
-    "seenOutOfPlaceRate": 8,
-    "seenOutOfPlaceHighHeatRate": 18,
+    "seenOutOfPlaceRate": 10,
+    "seenOutOfPlaceHighHeatRate": 22,
     "seenDoingActivityRate": 20,
     "decayHiddenOrPretending": 45,
     "decayIdle": 12,
@@ -12,9 +12,9 @@
   },
   "boss": {
     "approachSpeedSlow": 2,
-    "approachSpeedFast": 5,
+    "approachSpeedFast": 5.5,
     "suspicionThresholdFastApproach": 90,
-    "reportingCooldown": 8,
+    "reportingCooldown": 6.5,
     "alertDistance": 8,
     "alertDuration": 3
   },

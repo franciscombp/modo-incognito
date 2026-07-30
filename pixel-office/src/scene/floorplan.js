@@ -20,7 +20,10 @@ export const AREA_KINDS = {
 
 export const ACTIVITY_COLORS = {
   coffee: 0xd9a441,
-  chat: 0xf2c744,
+  // Antes compartía el mismo amarillo que las estrellas de distracción —
+  // dos marcadores de piso con el mismo color pero significados distintos,
+  // así que era imposible saber cuál era cuál de un vistazo.
+  chat: 0xc9a0e8,
   sleep: 0x5b9bd5,
   snack: 0x6fbf73,
   movie: 0xd9463b,

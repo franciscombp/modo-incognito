@@ -1,5 +1,6 @@
 import { Game } from "./game.js";
 import { createHud } from "./hud.js";
+import { buzz } from "./settings.js";
 import { createDialogue } from "./dialogue.js";
 import { createSave } from "./save.js";
 import { applyTheme } from "./themes.js";
@@ -323,7 +324,8 @@ export function createEngine({
       onFinish: (result) => finishDay(day, result),
       onEgg: (egg) => triggerEgg(egg),
       onPopup,
-      onTalk: (npc) => talkTo(npc),
+      onTalk: (npc, opts) => talkTo(npc, opts),
+      onWarn: (info) => handleWarn(info),
     });
     game.setPaused(true);
 
@@ -392,8 +394,8 @@ export function createEngine({
     return onDuty;
   }
 
-  /** A colleague you walked up to and pressed USAR on. */
-  async function talkTo(npc) {
+  /** A colleague you walked up to (or a sidekick who caught you) talking. */
+  async function talkTo(npc, opts) {
     const encounter = dialogues.encounters[npc.cast];
     if (!encounter?.scenes?.length) return;
     const seen = save.getFlag(`talk:${npc.cast}`) ?? 0;
@@ -406,6 +408,31 @@ export function createEngine({
         ctx
       )
     );
+    if (opts?.caught) buzz([15, 30, 15]);
+  }
+
+  // Segundos que el jefe pasa sin observar justo después de amonestar, para
+  // que la escena del regaño no se resuelva en "te vuelve a pillar en el
+  // mismo segundo".
+  const BOSS_GRACE_AFTER_WARN = 5;
+
+  /** El jefe te aborda de verdad: diálogo de regaño y luego un respiro. */
+  async function handleWarn({ final }) {
+    if (final) return; // el outro de "despedida" ya cubre este caso
+    const encounter = dialogues.encounters.jefe;
+    if (encounter?.scenes?.length) {
+      const seen = save.getFlag("talk:jefe_warn") ?? 0;
+      save.setFlag("talk:jefe_warn", seen + 1);
+      const scene = encounter.scenes[seen % encounter.scenes.length];
+      const persona = dialogues.cast.jefe;
+      await withPause(() =>
+        dialogue.play(
+          withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
+          ctx
+        )
+      );
+    }
+    boss.grantGrace(BOSS_GRACE_AFTER_WARN);
   }
 
   async function finishDay(day, result) {
