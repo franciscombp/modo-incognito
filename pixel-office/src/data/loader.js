@@ -92,10 +92,11 @@ function prepareCharacters(raw) {
 export async function loadGameData() {
   const manifest = await getJSON("manifest.json");
 
-  const [charactersRaw, dialoguesRaw, modesRaw, sceneList, levelList] = await Promise.all([
+  const [charactersRaw, dialoguesRaw, modesRaw, bossConfigRaw, sceneList, levelList] = await Promise.all([
     getJSON(manifest.characters ?? "characters.json"),
     getJSON(manifest.dialogues ?? "dialogues.json").catch(() => ({ cast: {}, encounters: {}, barks: {} })),
     getJSON(manifest.modes ?? "modes.json").catch(() => ({ characters: {} })),
+    getJSON(manifest.bossConfig ?? "boss-config.json").catch(() => null),
     Promise.all((manifest.scenes ?? []).map((id) => getJSON(`scenes/${id}.json`))),
     Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
   ]);
@@ -126,6 +127,7 @@ export async function loadGameData() {
     },
     characters: prepareCharacters(charactersRaw),
     modes: modesRaw.characters ?? {},
+    bossConfig: bossConfigRaw,
     scenes,
     levels,
     codeEggs: manifest.codeEggs ?? [],

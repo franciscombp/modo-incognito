@@ -19,6 +19,8 @@
     "alertDuration": 3
   },
   "gameplay": {
+    "dayStartHour": 9,
+    "dayEndHour": 19,
     "dayDuration": 600,
     "elevatorOpenTime": "17:30",
     "elevatorLastChance": "19:00",

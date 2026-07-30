@@ -57,6 +57,7 @@ export class Boss {
     name = "Jefe",
     coneColor = 0xf2c744,
     onSpot = null,
+    config = null,
   }) {
     // "minion" watchers never grab you themselves — they report you, which
     // sends the real boss to that spot. That makes them a different kind of
@@ -65,6 +66,14 @@ export class Boss {
     this.name = name;
     this.onSpot = onSpot;
     this._reportCooldown = 0;
+    // Aproximación en dos fases (data/boss-config.json): con poca sospecha el
+    // jefe tarda en llegar a la persecución a fondo, así que hay margen para
+    // esconderse o fingir; a partir del umbral viene con todo.
+    this.reportingCooldown = config?.reportingCooldown ?? 8;
+    this.approachSpeedSlow = config?.approachSpeedSlow != null ? config.approachSpeedSlow * S : null;
+    this.approachSpeedFast = config?.approachSpeedFast != null ? config.approachSpeedFast * S : null;
+    this.suspicionThresholdFastApproach = config?.suspicionThresholdFastApproach ?? 90;
+    this.suspicion = 0; // Game lo actualiza cada frame antes de update()
     this.world = world;
     this.navmesh = navmesh;
     this.route = route;
@@ -221,7 +230,7 @@ export class Boss {
     // A minion that catches you slacking shouts for the boss instead of
     // grabbing you, then goes back to its round.
     if (this.role === "minion" && this.redAlert && this._reportCooldown <= 0) {
-      this._reportCooldown = 8;
+      this._reportCooldown = this.reportingCooldown;
       this.onSpot?.(this, { x: player.position.x, z: player.position.z });
     }
 
@@ -413,7 +422,17 @@ export class Boss {
   }
 
   _speed() {
-    if (this.state === CHASE) return this.chaseSpeed;
+    if (this.state === CHASE) {
+      // El jefe (no los secuaces, que nunca persiguen) tarda en tomar
+      // velocidad mientras la sospecha no es crítica — eso da margen para
+      // escapar — y solo va a fondo una vez se cruza el umbral.
+      if (this.role === "boss" && this.approachSpeedSlow != null && this.approachSpeedFast != null) {
+        return this.suspicion >= this.suspicionThresholdFastApproach
+          ? this.approachSpeedFast
+          : this.approachSpeedSlow;
+      }
+      return this.chaseSpeed;
+    }
     if (this.state === SEARCH) return this.searchSpeed;
     if (this.state === INVESTIGATE) return this.investigateSpeed;
     return this.speed;

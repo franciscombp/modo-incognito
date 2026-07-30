@@ -120,6 +120,7 @@ async function boot() {
   const save = createSave();
   const excludedCasts = new Set();
   if (save.characterId === "giu") excludedCasts.add("giuli");
+  if (save.characterId === "fran" || !save.characterId) excludedCasts.add("fran_npc");
 
   const npcs = floorplan.npcs
     .filter((def) => !excludedCasts.has(def.cast))
@@ -145,6 +146,7 @@ async function boot() {
     speeds: chars.boss.speeds,
     visionRange: chars.boss.visionRange,
     visionHalfAngleDeg: chars.boss.visionHalfAngleDeg,
+    config: data.bossConfig?.boss,
   });
   scene.add(boss.object3D);
   scene.add(boss.cone);
@@ -167,6 +169,7 @@ async function boot() {
       speeds: def.speeds,
       visionRange: def.visionRange,
       visionHalfAngleDeg: def.visionHalfAngleDeg,
+      config: data.bossConfig?.boss,
     });
     // Sidekicks are characters, not just threats: you can walk up and talk.
     watcher.cast = id;
@@ -195,6 +198,7 @@ async function boot() {
     manifest: data.manifest,
     dialogues: data.dialogues,
     modes: data.modes,
+    bossConfig: data.bossConfig,
     playerSheet: chars.player.sheet,
     playerName: chars.player.name ?? "Tú",
     minions,

@@ -90,6 +90,12 @@ const DEFAULT_RULES = {
 // antes pero necesitas pasar tiempo fingiendo para bajar sospecha.
 const PRETEND_TIME_SPEED = 1.5; // 50% más rápido cuando finges
 
+// El reloj de la jornada: la duración del nivel (en segundos de juego) se
+// reparte proporcionalmente entre estas dos horas, así el HUD siempre puede
+// mostrar "9:14 a.m." aunque el nivel dure 4 minutos reales.
+const DAY_START_HOUR = 9;
+const DAY_END_HOUR = 19; // 7:00 p.m.
+
 /**
  * One workday. Owns the suspicion meter, the forbidden activities, scoring,
  * hiding/pretending, distractions and the win/lose conditions. Everything
@@ -107,6 +113,7 @@ export class Game {
     minions = [],
     hud,
     rules = {},
+    config = null,
     onFinish = null,
     onEgg = null,
     onPopup = null,
@@ -122,6 +129,24 @@ export class Game {
     this.onFinish = onFinish;
     this.onEgg = onEgg;
     this.onPopup = onPopup;
+
+    // data/boss-config.json, con los valores de siempre como respaldo si el
+    // archivo no carga (offline, typo, etc.) — el juego nunca debe romperse
+    // por un JSON de balance.
+    const sc = config?.suspicion ?? {};
+    this.suspicionConfig = {
+      max: sc.max ?? SUSPICION_MAX,
+      seenOutOfPlaceRate: sc.seenOutOfPlaceRate ?? SEEN_IDLE_BOSS_RATE,
+      seenOutOfPlaceHighHeatRate: sc.seenOutOfPlaceHighHeatRate ?? SEEN_IDLE_BOSS_RATE * 2,
+      seenDoingActivityRate: sc.seenDoingActivityRate ?? 20,
+      decayHiddenOrPretending: sc.decayHiddenOrPretending ?? DECAY_HIDDEN_OR_PRETENDING,
+      decayIdle: sc.decayIdle ?? DECAY_IDLE,
+      pretendImmuneThreshold: sc.pretendImmuneThreshold ?? PRETEND_IMMUNE_THRESHOLD,
+      captureThreshold: sc.captureThreshold ?? 90,
+    };
+    const gc = config?.gameplay ?? {};
+    this.dayStartHour = gc.dayStartHour ?? DAY_START_HOUR;
+    this.dayEndHour = gc.dayEndHour ?? DAY_END_HOUR;
 
     this.suspicion = 0;
     this.warnings = 0;
@@ -277,6 +302,10 @@ export class Game {
     }
     this._prevInteractKey = holdingE;
 
+    // El jefe necesita saber cuánta sospecha hay YA para decidir si tantea
+    // (fase lenta) o va con todo (fase rápida, ver boss.js/_speed()).
+    this.boss.suspicion = this.suspicion;
+
     this.boss.update(dt, this.player, this.npcs);
     this.minions.forEach((m) => m.update(dt, this.player, this.npcs));
     this._updateMinionApproach();
@@ -284,15 +313,17 @@ export class Game {
     this._updateSpeedMul();
 
     // ---- Suspicion ----
+    const susCfg = this.suspicionConfig;
     if (this.rules.explore) {
       // Kiara ya renunció: nada de esto le afecta.
       this.suspicion = 0;
     } else if (this.inSafeSpot) {
       // Bebedero / baño / tu propia mesa: el jefe puede verte ahí y no cuenta.
-      this.suspicion = Math.max(0, this.suspicion - DECAY_IDLE * this.rules.decayMul * dt);
+      this.suspicion = Math.max(0, this.suspicion - susCfg.decayIdle * this.rules.decayMul * dt);
     } else {
       const decay = this.rules.decayMul;
       const outOfPlace = !this.player.isPretending && !this.inWorkspace;
+      const highHeat = this.suspicion >= susCfg.captureThreshold;
 
       // Un secuaz te ve: si te pilla en una actividad prohibida sube fuerte;
       // si solo te ve fuera de tu puesto sin fingir, sube más despacio. Antes
@@ -302,37 +333,40 @@ export class Game {
       const minionSeenIdle = !minionCaught && outOfPlace && this.minions.some((m) => m.playerVisible);
       if (minionCaught && !this.boss.redAlert) {
         this.suspicion = Math.min(
-          SUSPICION_MAX,
+          susCfg.max,
           this.suspicion + MINION_CAUGHT_RATE * this.rules.minionSuspicionMul * dt
         );
       } else if (minionSeenIdle && !this.boss.redAlert) {
         this.suspicion = Math.min(
-          SUSPICION_MAX,
+          susCfg.max,
           this.suspicion + SEEN_IDLE_MINION_RATE * this.rules.minionSuspicionMul * dt
         );
       }
 
       if (this.boss.redAlert) {
-        const rate = this.nearStation?.riskRate ?? 20;
-        this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + rate * dt);
+        const rate = this.nearStation?.riskRate ?? susCfg.seenDoingActivityRate;
+        this.suspicion = Math.min(susCfg.max, this.suspicion + rate * dt);
       } else if (this.boss.state === BOSS_STATES.CHASE && this.boss.playerVisible) {
-        this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + SEEN_WHILE_HUNTED_RATE * dt);
+        this.suspicion = Math.min(susCfg.max, this.suspicion + SEEN_WHILE_HUNTED_RATE * dt);
       } else if (this.boss.playerVisible && outOfPlace) {
         // Te ve fuera de tu puesto sin fingir: sospecha, aunque no estés
-        // haciendo nada prohibido. El jefe tarda en acelerar (nivel de
-        // búsqueda), pero ya sabe que algo no cuadra.
-        this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + SEEN_IDLE_BOSS_RATE * dt);
+        // haciendo nada prohibido. Con la sospecha ya alta (>= umbral de
+        // captura) cada segundo cuenta el doble: no hay margen de sobra.
+        const rate = highHeat ? susCfg.seenOutOfPlaceHighHeatRate : susCfg.seenOutOfPlaceRate;
+        this.suspicion = Math.min(susCfg.max, this.suspicion + rate * dt);
       } else if (this.player.isHiding) {
-        this.suspicion = Math.max(0, this.suspicion - DECAY_HIDDEN_OR_PRETENDING * decay * dt);
+        this.suspicion = Math.max(0, this.suspicion - susCfg.decayHiddenOrPretending * decay * dt);
       } else if (this.player.isPretending) {
         const credible = this.inWorkspace ? 1 : PRETEND_OUT_OF_PLACE;
         this.suspicion = Math.max(
           0,
-          this.suspicion - DECAY_HIDDEN_OR_PRETENDING * credible * decay * dt
+          this.suspicion - susCfg.decayHiddenOrPretending * credible * decay * dt
         );
-      } else {
-        this.suspicion = Math.max(0, this.suspicion - DECAY_IDLE * decay * dt);
       }
+      // Sin escondite, sin fingir y sin lugar seguro: la sospecha se queda
+      // donde está. No baja sola por quedarte quieta o pasearte — solo la
+      // bajan las acciones que de verdad la justifican (fingir, esconderte,
+      // un lugar seguro o hablar con quien corresponda).
     }
 
     this._updateHeat(dt);
@@ -341,7 +375,7 @@ export class Game {
     // más, valiste". Un escondite o un lugar seguro también te cubren.
     const pretendImmune =
       this.player.isPretending &&
-      (this.rules.pretendAlways || this.suspicion < PRETEND_IMMUNE_THRESHOLD);
+      (this.rules.pretendAlways || this.suspicion < this.suspicionConfig.pretendImmuneThreshold);
     const caught =
       !this.rules.explore &&
       this._caughtCooldown <= 0 &&
@@ -628,7 +662,7 @@ export class Game {
         this._toast("La sospecha baja");
         break;
       case "suspicion+":
-        this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + 30);
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + 30);
         this._toast("Alguien levantó la voz…");
         break;
       case "score+":
@@ -648,7 +682,7 @@ export class Game {
         this._toast("El reloj corre más rápido…");
         break;
       case "chispita-report":
-        this.suspicion = Math.min(SUSPICION_MAX, this.suspicion + 30);
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + 30);
         this._chispitaReport();
         break;
       default:
@@ -689,14 +723,34 @@ export class Game {
    * allocating several objects per frame is exactly the kind of garbage that
    * shows up as stutter on a tablet.
    */
+  /** Hora actual del día (número, ej. 13.5 = 1:30 p.m.), según cuánto ha pasado. */
+  getCurrentHour() {
+    const elapsed = this.rules.duration - this.timeLeft;
+    const frac = this.rules.duration > 0 ? elapsed / this.rules.duration : 0;
+    return this.dayStartHour + frac * (this.dayEndHour - this.dayStartHour);
+  }
+
+  /** "9:05 a.m." / "5:42 p.m." — así se ve en el reloj del HUD. */
+  formatTime() {
+    const hour = this.getCurrentHour();
+    let h = Math.floor(hour);
+    const m = Math.floor((hour - h) * 60);
+    const suffix = h >= 12 ? "p.m." : "a.m.";
+    h = h % 12;
+    if (h === 0) h = 12;
+    return `${h}:${String(m).padStart(2, "0")} ${suffix}`;
+  }
+
   _snapshot() {
     this.lastSnapshot = {
       suspicion: this.suspicion,
-      suspicionMax: SUSPICION_MAX,
+      suspicionMax: this.suspicionConfig.max,
       warnings: this.warnings,
       maxWarnings: this.rules.maxWarnings,
       timeLeft: this.timeLeft,
       levelDuration: this.rules.duration,
+      currentHour: this.getCurrentHour(),
+      currentTime: this.formatTime(),
       objectives: this.objectives,
       nearStation: this.nearStation,
       nearDistraction: this.nearDistraction,
