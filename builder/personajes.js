@@ -152,6 +152,7 @@ const CAMPOS = [
   COLOR("eyes", "Ojos"),
   RANGO("build.width", "Complexión", 0.85, 1.25, 0.01),
   RANGO("build.belly", "Barriga", 0, 0.5, 0.02),
+  RANGO("build.bust", "Busto", 0, 1, 0.05),
 
   { grupo: "Pelo" },
   COLOR("hair.color", "Color"),
