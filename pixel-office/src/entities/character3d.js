@@ -35,6 +35,8 @@ export const POSES = {
   phone: 5,
   scared: 6,
   shrug: 7,
+  sit: 8,
+  sitWork: 9,
 };
 
 export const DEFAULT_RIG = {
@@ -81,7 +83,22 @@ const BONE_OF = {
   legR: "RightUpLeg",
   kneeL: "LeftLeg",
   kneeR: "RightLeg",
+  footL: "LeftFoot",
+  footR: "RightFoot",
 };
+
+/**
+ * Posturas de la mano. Se aplican a los diez huesos de los dedos a la vez,
+ * porque nadie quiere escribir veinte ángulos por pose: `curl` cierra los
+ * cuatro dedos y `thumb` el pulgar.
+ */
+const HAND_POSES = {
+  relax: { curl: 0.34, thumb: 0.26 },
+  open: { curl: 0.02, thumb: 0.05 },
+  grip: { curl: 1.15, thumb: 0.85 },
+  point: { curl: 1.25, thumb: 0.45, index: 0.05 },
+};
+const FINGERS = ["Index", "Middle", "Ring", "Pinky"];
 
 const REST = {
   torso: [0, 0, 0],
@@ -97,13 +114,17 @@ const REST = {
   legR: [0, 0, 0],
   kneeL: [0, 0, 0],
   kneeR: [0, 0, 0],
+  footL: [0, 0, 0],
+  footR: [0, 0, 0],
   lift: 0,
+  hands: "relax",
 };
 
 const POSE_LIBRARY = {
   work: {
     speed: 2.6,
     prop: null,
+    hands: "open",
     a: { torso: [0.14, 0, 0], head: [0.2, 0, 0], armL: [-1.35, 0, 0.25], armR: [-1.4, 0, -0.25], elbowL: [-0.75, 0, 0], elbowR: [-0.68, 0, 0] },
     b: { torso: [0.14, 0, 0], head: [0.22, 0, 0], armL: [-1.42, 0, 0.25], armR: [-1.32, 0, -0.25], elbowL: [-0.62, 0, 0], elbowR: [-0.82, 0, 0] },
   },
@@ -116,6 +137,7 @@ const POSE_LIBRARY = {
   coffee: {
     speed: 1.5,
     prop: "cup",
+    hands: "grip",
     a: { head: [0.06, -0.1, 0], armR: [-1.15, 0, -0.2], elbowR: [-1.5, 0, 0], armL: [0, 0, 0.22] },
     b: { head: [-0.04, -0.1, 0], armR: [-0.72, 0, -0.3], elbowR: [-1.05, 0, 0], armL: [0, 0, 0.22] },
   },
@@ -134,14 +156,35 @@ const POSE_LIBRARY = {
   phone: {
     speed: 1.7,
     prop: "phone",
+    hands: "grip",
     a: { head: [0.28, -0.1, 0], torso: [0.05, 0, 0], armR: [-1.0, 0, -0.25], elbowR: [-1.2, 0, 0], armL: [-0.6, 0, 0.3], elbowL: [-1.1, 0, 0] },
     b: { head: [0.24, -0.08, 0], torso: [0.05, 0, 0], armR: [-0.95, 0, -0.28], elbowR: [-1.32, 0, 0], armL: [-0.6, 0, 0.3], elbowL: [-1.1, 0, 0] },
   },
   scared: {
     speed: 5.5,
     prop: null,
+    hands: "open",
     a: { torso: [-0.2, 0, 0], head: [-0.22, 0.1, 0], armL: [-2.3, 0, 0.6], elbowL: [-0.5, 0, 0], armR: [-2.25, 0, -0.6], elbowR: [-0.5, 0, 0], lift: 0.01 },
     b: { torso: [-0.16, 0, 0], head: [-0.2, -0.1, 0], armL: [-2.4, 0, 0.7], elbowL: [-0.4, 0, 0], armR: [-2.35, 0, -0.7], elbowR: [-0.4, 0, 0], lift: 0 },
+  },
+  // Sentada. Los muslos van al frente y las rodillas devuelven la espinilla a
+  // la vertical; la cadera BAJA a la altura de una silla — sin eso el
+  // personaje se sienta en el aire, que es el fallo clásico de esta pose.
+  sit: {
+    speed: 0.7,
+    prop: null,
+    hands: "relax",
+    a: { torso: [0.04, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [0.1, 0, 0.16], armR: [0.1, 0, -0.16], lift: -0.082 },
+    b: { torso: [0.06, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [0.13, 0, 0.16], armR: [0.13, 0, -0.16], lift: -0.08 },
+  },
+  // Sentada y tecleando: es la postura real de la oficina, y la que hace que
+  // "fingir que trabajas" se lea de un vistazo.
+  sitWork: {
+    speed: 2.4,
+    prop: null,
+    hands: "open",
+    a: { torso: [0.16, 0, 0], head: [0.16, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [-1.2, 0, 0.22], armR: [-1.25, 0, -0.22], elbowL: [-0.7, 0, 0], elbowR: [-0.62, 0, 0], lift: -0.082 },
+    b: { torso: [0.16, 0, 0], head: [0.17, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [-1.27, 0, 0.22], armR: [-1.18, 0, -0.22], elbowL: [-0.58, 0, 0], elbowR: [-0.76, 0, 0], lift: -0.082 },
   },
   shrug: {
     speed: 1.3,
@@ -162,7 +205,7 @@ export const DEFAULT_RECIPE = {
   badge: "#7a5cc4",
   blush: "#e8a0a0",
   accessories: [],
-  build: { width: 1, belly: 0 },
+  build: { width: 1, belly: 0, bust: 0 },
 };
 
 function mergeRecipe(recipe) {
@@ -387,6 +430,7 @@ export class Character3D {
     // El cuerpo se construye ENTRE las articulaciones del esqueleto, no con
     // medidas propias: así el hueso siempre cae dentro de la carne.
     const at = (name) => byName.get(name).userData.segment.head;
+    const tailOf = (name) => byName.get(name).userData.segment.tail;
 
     const parts = [];
     /** @param bind ["skin", [huesos…]] o ["rigid", hueso] */
@@ -414,6 +458,25 @@ export class Character3D {
       ["Hips", "Spine", "Chest"],
     ]);
     add(ellipsoid(chest, torsoR, torsoR * 0.62, torsoR * 0.82), topColor, ["skin", ["Chest", "Spine"]]);
+
+    // Busto. Con un modelo fijo esto exigiría morph targets; generando el
+    // cuerpo es un número de la receta (`build.bust`, 0 = sin nada).
+    const bust = r.build.bust ?? 0;
+    if (bust > 0.01) {
+      const br = torsoR * (0.3 + bust * 0.28);
+      for (const dir of [-1, 1]) {
+        add(
+          ellipsoid(
+            new THREE.Vector3(dir * torsoR * 0.42, chest.y - 0.012 * H, torsoR * 0.52),
+            br,
+            br * 0.86,
+            br * 0.92
+          ),
+          topColor,
+          ["skin", ["Chest", "Spine"]]
+        );
+      }
+    }
 
     if (r.top.style === "hoodie") {
       const hood = ellipsoid(
@@ -456,7 +519,18 @@ export class Character3D {
       const armBones = [`${side}Arm`, `${side}ForeArm`, `${side}Hand`, "Chest"];
       add(limb(shoulder, hand, armR, armR * 0.86), skinColor, ["skin", armBones]);
       add(joint(elbow, armR * 0.96), skinColor, ["skin", [`${side}Arm`, `${side}ForeArm`]]);
-      add(joint(hand, armR * 1.25), skinColor, ["rigid", `${side}Hand`]);
+      // Palma y cinco dedos. Antes era una bola: a distancia de juego daba
+      // igual, pero al conversar de cerca una taza flotando junto a una
+      // manopla se ve enseguida.
+      add(ellipsoid(hand, armR * 1.05, armR * 1.0, armR * 1.3), skinColor, ["rigid", `${side}Hand`]);
+      const fingerR = armR * 0.26;
+      for (const f of ["Index", "Middle", "Ring", "Pinky", "Thumb"]) {
+        const b1 = `${side}${f}1`;
+        const b2 = `${side}${f}2`;
+        add(limb(at(b1), at(b2), fingerR, fingerR * 0.94), skinColor, ["skin", [b1, b2, `${side}Hand`]]);
+        add(limb(at(b2), tailOf(b2), fingerR * 0.94, fingerR * 0.8), skinColor, ["skin", [b2, b1]]);
+        add(joint(at(b2), fingerR * 0.95), skinColor, ["skin", [b2, b1]]);
+      }
 
       const sleeveEnd = sleeveLong
         ? elbow.clone().lerp(hand, 0.82)
@@ -482,14 +556,31 @@ export class Character3D {
         [`${side}Leg`, `${side}UpLeg`, `${side}Foot`],
       ]);
 
-      // Zapatones: piezas gordas y claras que anclan el muñeco al suelo.
-      const shoe = ellipsoid(
-        new THREE.Vector3(ankle.x, P.shoeH * H * 0.5, legR * 0.55),
-        legR * 1.15,
-        P.shoeH * H * 0.62,
-        legR * 2.0
+      // Zapatones: piezas gordas y claras que anclan el muñeco al suelo. Van
+      // en DOS partes, talón y puntera, cada una a su hueso: así el pie rueda
+      // al caminar y la puntera apoya al sentarse, en vez de quedarse el
+      // zapato rígido flotando en diagonal.
+      add(
+        ellipsoid(
+          new THREE.Vector3(ankle.x, P.shoeH * H * 0.52, ankle.z - legR * 0.1),
+          legR * 1.15,
+          P.shoeH * H * 0.6,
+          legR * 1.05
+        ),
+        r.shoes.color,
+        ["rigid", `${side}Foot`]
       );
-      add(shoe, r.shoes.color, ["rigid", `${side}Foot`]);
+      const toe = at(`${side}Toe`);
+      add(
+        ellipsoid(
+          new THREE.Vector3(toe.x, P.shoeH * H * 0.45, toe.z + legR * 0.35),
+          legR * 1.08,
+          P.shoeH * H * 0.5,
+          legR * 1.15
+        ),
+        r.shoes.color,
+        ["skin", [`${side}Toe`, `${side}Foot`]]
+      );
     }
 
     // ----- cabeza -----
@@ -802,6 +893,24 @@ export class Character3D {
     set("armR", swing * 0.55);
     set("elbowL");
     set("elbowR");
+    set("footL");
+    set("footR");
+
+    // Las manos: diez huesos por mano movidos con dos números. Se mezclan
+    // igual que el resto — al soltar el café los dedos se abren solos.
+    const hand = HAND_POSES[pose?.hands ?? REST.hands] ?? HAND_POSES.relax;
+    const relax = HAND_POSES.relax;
+    const mix = (a, b) => a + (b - a) * blend;
+    for (const side of ["Left", "Right"]) {
+      for (const f of FINGERS) {
+        const curl = mix(relax.curl, f === "Index" && hand.index != null ? hand.index : hand.curl);
+        byName.get(`${side}${f}1`)?.rotation.set(curl, 0, 0);
+        byName.get(`${side}${f}2`)?.rotation.set(curl * 0.85, 0, 0);
+      }
+      const th = mix(relax.thumb, hand.thumb);
+      byName.get(`${side}Thumb1`)?.rotation.set(th * 0.6, 0, 0);
+      byName.get(`${side}Thumb2`)?.rotation.set(th * 0.9, 0, 0);
+    }
 
     // El bote de la caminata sube y baja la cadera entera, que es de donde
     // cuelga todo lo demás.
