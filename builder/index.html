@@ -54,27 +54,52 @@
 
         <section class="tabpage" data-page="ayuda">
           <div class="help">
+            <h3>Herramientas de Edición</h3>
+            <dl>
+              <dt><b>S</b> — Spawn (Ingreso)</dt>
+              <dd>Haz clic en el mapa para mover el punto donde ingresa el jugador.</dd>
+
+              <dt><b>B</b> — Boss Spawn (Jefe)</dt>
+              <dd>Haz clic para mover el punto de inicio del jefe.</dd>
+
+              <dt><b>R</b> — Routes (Rutas)</dt>
+              <dd>Edita los caminos de los jefes y secuaces. Arrastra los nodos para mover.</dd>
+
+              <dt><b>F</b> — Footprint (Perímetro)</dt>
+              <dd>
+                Edita el contorno del piso:
+                <ul>
+                  <li>Clic en nodo: arrastra para mover</li>
+                  <li>Clic en espacio: crea nodo en el segmento más cercano</li>
+                  <li>Delete: elimina nodo seleccionado</li>
+                </ul>
+              </dd>
+            </dl>
+
+            <h3>Interacción General</h3>
+            <ul>
+              <li><b>Clic + Arrastrar</b> en objeto — mover objeto.</li>
+              <li><b>Tiradores en esquinas</b> de zona — redimensionar.</li>
+              <li><b>Clic en puerta</b> (círculo amarillo) — arrastra para mover entre muros.</li>
+              <li><b>Rueda del ratón</b> — zoom (acerca/aleja).</li>
+              <li><b>Espacio + Arrastrar</b> (o botón central) — desplazar vista.</li>
+              <li><b>Mayús + Arrastrar</b> — mover sin ajuste a rejilla.</li>
+              <li><b>Delete / Backspace</b> — borrar lo seleccionado.</li>
+            </ul>
+
+            <h3>Información</h3>
             <p>
               Editor del <b>plano</b> (<code>scenes/*.json</code>) y del
               <b>día</b> (<code>levels/*.json</code>). Todo en unidades de
-              plano — el motor las multiplica por <code>WORLD_SCALE</code>, así
-              que aquí se escriben tal cual salen del JSON.
+              plano — el motor las multiplica por <code>WORLD_SCALE</code>.
             </p>
-            <ul>
-              <li><b>Clic</b> — seleccionar.</li>
-              <li><b>Arrastrar</b> — mover. Los tiradores de las esquinas redimensionan zonas.</li>
-              <li><b>Supr</b> — borrar lo seleccionado.</li>
-              <li><b>Rueda</b> — zoom. <b>Espacio + arrastrar</b> (o botón central) — desplazar.</li>
-              <li><b>Mayús</b> mientras arrastras — sin ajuste a rejilla.</li>
-            </ul>
             <p>
-              El aviso rojo de <b>zonas solapadas</b> vigila la invariante que
-              documenta <code>CLAUDE.md</code>: los rectángulos de
-              <code>areas</code> no deben pisarse.
+              El <b>aviso rojo de zonas solapadas</b> vigila que los rectángulos
+              de <code>areas</code> no se pisen entre sí.
             </p>
             <p>
               El builder <b>no escribe en el repo</b>. Copia el JSON y pégalo en
-              <code>pixel-office/public/data/…</code>, y después corre
+              <code>pixel-office/public/data/…</code>, después corre
               <code>npm run build:pages</code>.
             </p>
           </div>
@@ -85,6 +110,27 @@
         <canvas id="canvas"></canvas>
         <div class="hud" id="stage-hud"></div>
         <div class="warn hidden" id="warn"></div>
+
+        <div class="toolbar">
+          <div class="tool-group">
+            <button class="tool" id="tool-spawn" title="Spawn (S)" data-key="S">
+              <span>🚪</span>
+              <span class="label">Ingreso</span>
+            </button>
+            <button class="tool" id="tool-boss" title="Boss Spawn (B)" data-key="B">
+              <span>👿</span>
+              <span class="label">Jefe</span>
+            </button>
+            <button class="tool" id="tool-routes" title="Routes (R)" data-key="R">
+              <span>🛤️</span>
+              <span class="label">Rutas</span>
+            </button>
+            <button class="tool" id="tool-footprint" title="Footprint (F)" data-key="F">
+              <span>🟨</span>
+              <span class="label">Piso</span>
+            </button>
+          </div>
+        </div>
       </div>
 
       <aside class="panel right">
