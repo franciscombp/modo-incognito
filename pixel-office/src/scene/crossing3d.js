@@ -275,7 +275,7 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
   roadGroup.add(door);
 
   // ---- Jugadora: mismo sprite que en el piso, de espaldas ----
-  const player = new CharacterSprite(playerSheet, { height: 1.45 * S });
+  const player = new CharacterSprite(playerSheet, { height: 1.45 * S, rig: sheets.playerRig });
   player.setFacing("north"); // avanza alejándose de la cámara
   if (sheets.playerAction) player.setActionSheet(sheets.playerAction);
   scene.add(player.object);
@@ -528,8 +528,9 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
   }
 
   /** Cambiar de personaje jugable sin rehacer la escena. */
-  function setPlayerSheet(sheet, actionSheet) {
+  function setPlayerSheet(sheet, actionSheet, rig) {
     player.setSheet(sheet);
+    if (rig !== undefined) player.setRig(rig);
     if (actionSheet) player.setActionSheet(actionSheet);
     player.setFacing("north");
   }

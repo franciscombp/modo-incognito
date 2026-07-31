@@ -107,6 +107,8 @@ código**.
 | Que el jefe se quede pegado a la jugadora | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/levels) → `rules.bossTether` |
 | Qué pose hace la jugadora en cada actividad | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) → `activities[].pose` |
 | Meter pliegos de sprites dibujados a mano (los normaliza a la rejilla 4x4) | [`tools/pack-sprites.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/pack-sprites.py) |
+| Qué hay en cada celda del pliego de un personaje, y su animación de espera | [`data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/sprites) |
+| Las plantillas en blanco para dibujar un personaje nuevo | [`art/plantillas/`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/art/plantillas) · las genera [`tools/make-sprite-template.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/make-sprite-template.py) |
 | Los mensajes de Teams de Gabo | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/dialogues.json) → `teamsMessages.gabo` |
 
 Cada JSON de `public/data/` trae su propio campo `"$comment"` al principio
@@ -251,12 +253,56 @@ Una actividad puede decir qué pose hace la jugadora mientras la ejecuta:
 { "id": "coffee", "label": "Tomar café", "type": "coffee", "pose": "coffee", ... }
 ```
 
-Las poses salen del pliego `*-acciones.png` del personaje (`actionSheet` en
-`modes.json` / `characters.json`). Son ocho — `work`, `sleep`, `coffee`,
-`eat`, `movie`, `phone`, `scared`, `shrug` — y su orden en la rejilla está
-documentado en `POSES`, dentro de
-[`src/entities/sprite.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/sprite.js). Un personaje sin
-`actionSheet` simplemente se queda con su pose de caminar; no rompe nada.
+Las poses salen del pliego `*-acciones.png` del personaje, y **qué pose hay
+en cada celda lo decide su rig** (ver abajo). Mientras la haces, el panel
+grande de acción deja de enseñar un emoji y dibuja a tu personaje haciéndola,
+con sus dos fotogramas alternándose.
+
+### El rig de un personaje
+
+Cada personaje con arte propio tiene un archivo en
+[`public/data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/sprites) que dice **qué hay
+en cada celda de sus dos pliegos**. Antes esto vivía repartido entre
+`characters.json` y unas constantes dentro del motor; ahora se edita aquí:
+
+```json
+{
+  "id": "giuli",
+  "walk":    { "sheet": "guili-camina",   "fps": 8,
+               "rows": { "south": 0, "west": 1, "east": 2, "north": 3 } },
+  "actions": { "sheet": "guili-acciones", "fps": 3,
+               "poses": { "work": 0, "sleep": 1, "coffee": 2, "eat": 3,
+                          "movie": 4, "phone": 5, "scared": 6, "shrug": 7 } },
+  "idle":    { "after": 4.5, "hold": 2.2, "every": 9, "poses": ["phone", "shrug"] }
+}
+```
+
+`actions.poses` mapea nombre → índice 0..7; la pose `p` ocupa la fila `p>>1` y
+**dos columnas seguidas**, que son sus dos fotogramas. Por eso el pliego de
+Gabo puede tener `point`, `angry` y `sit` donde el de Giuli tiene `coffee`,
+`eat` y `movie`: es el mismo sitio, distinto dibujo.
+
+`idle` es la animación de espera, al estilo del Sonic que se cansa de que no
+le pulses nada: si llevas `after` segundos sin moverte, saca el móvil o se
+encoge de hombros durante `hold` segundos, y lo repite cada `every`. Quita el
+bloque y el personaje simplemente se queda quieto. Una pose de verdad (tomar
+café) siempre manda sobre la espera.
+
+Añade el id del rig a `manifest.json` → `sprites` y apúntalo desde el
+personaje con `"rig": "<id>"`.
+
+### Dibujar un personaje nuevo
+
+```bash
+cd pixel-office
+python3 tools/make-sprite-template.py
+```
+
+Deja en `art/plantillas/` dos PNG a la resolución exacta del motor (512x704),
+con cada celda rotulada —qué dirección, qué pose, qué fotograma— y guías de
+suelo, altura de ojos y ancho útil para que todos los personajes salgan a la
+misma escala. Se dibuja encima y se borran las guías; con `--sin-guias` salen
+los lienzos limpios.
 
 ## Personajes
 
@@ -273,6 +319,10 @@ varias escenas que se van alternando, con opciones que hacen algo de verdad:
 
 Manu, César, Enriquetta y El Parce son **amigos tuyos**. Los secuaces no lo
 son, pero también puedes hablarles: según lo que elijas te cubren o te delatan.
+
+A los amigos les hablas tú; **los secuaces te abordan ellos, pero solo cuando
+te tocan de verdad** — la suma de los dos radios más un dedo de margen. No
+basta con que te vean desde el otro lado del pasillo.
 
 ### Sprites dibujados a mano
 
@@ -354,6 +404,23 @@ Tres capas que no compiten entre sí:
   jefe —que late cuando te está cazando—, la de sus secuaces, las tareas
   pendientes y los escondites cargados. Con la distancia al jefe en metros,
   así que el zoom nunca te deja a ciegas.
+
+## El halo: de dónde sale y hacia dónde mira
+
+El cono de visión **nace en los ojos**, no en el suelo: el vértice está a la
+altura de la mirada y un poco por delante del pecho, y el haz cae hasta el
+suelo en la punta. Cuando estaba pegado al suelo, con la cámara oblicua el
+cono se dibujaba por encima del propio sprite y parecía salirle de la espalda
+o de un costado.
+
+El sprite solo tiene cuatro direcciones y el cono gira de forma continua, así
+que nunca coinciden del todo; lo que no puede pasar es que discrepen más de
+lo que separa a dos direcciones vecinas. `npm run check:vision` mide las dos
+cosas — dónde está el vértice y cuánto se desvía el haz del sprite en
+dieciséis direcciones distintas.
+
+El de Washo no es un cono sino un radar: círculo completo con ondas que
+salen de él, porque su peligro no depende de hacia dónde mire.
 
 ## Persecución: una vez te fichan, no te sueltan
 

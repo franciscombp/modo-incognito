@@ -52,11 +52,16 @@ const PRETEND_OUT_OF_PLACE = 0.25; // fracción del alivio si finges donde no to
 // intocable. Por encima, "si estabas con más, valiste".
 const PRETEND_IMMUNE_THRESHOLD = 30;
 
-// Los secuaces no esperan a que les hables: te abordan, pero solo si de
-// verdad estás a su lado — antes esto disparaba el diálogo a más del doble
-// de la distancia de "hablar con alguien" (INTERACT_RADIUS*1.3), así que se
-// sentía como que Crispo te abordaba sin estar cerca.
-const MINION_APPROACH = INTERACT_RADIUS * 1.4;
+// Los secuaces no esperan a que les hables: te abordan ellos. Pero solo
+// cuando TE TOCAN, no cuando te ven de lejos. Antes el umbral era
+// INTERACT_RADIUS * 1.4 (unas dos unidades de plano) y Crispo abordaba desde
+// el otro lado del pasillo, sin haberse acercado siquiera. Ahora es contacto
+// de verdad: la suma de los dos radios más un dedo de margen.
+const MINION_TOUCH_PAD = 0.3 * S;
+function minionTouches(minion, player) {
+  const d = Math.hypot(minion.position.x - player.position.x, minion.position.z - player.position.z);
+  return d <= minion.radius + player.radius + MINION_TOUCH_PAD;
+}
 
 // Washo casi no anda, pero mientras estés en su mira te pesan las piernas.
 const WASHO_SLOW_MUL = 0.55;
@@ -463,7 +468,12 @@ export class Game {
     buzz([12, 40, 18]);
     sfxComplete();
     this.toast(`${station.label} ✔${nerveLabel}`);
-    this._actionFlash = { icon: station.icon ?? "❓", label: station.label, timer: 1.1 };
+    this._actionFlash = {
+      icon: station.icon ?? "❓",
+      label: station.label,
+      pose: station.pose ?? null,
+      timer: 1.1,
+    };
     this.onPopup?.({
       text: `+${gained}`,
       sub: this.combo > 1 ? `x${this.combo.toFixed(1)}` : "",
@@ -575,8 +585,7 @@ export class Game {
       if (!m.redAlert && !m.lockedOn) continue;
       if (m.active === false || !m.cast) continue;
       if ((this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
-      const dist = Math.hypot(m.position.x - pos.x, m.position.z - pos.z);
-      if (dist > m.radius + this.player.radius + 0.3 * S) continue; // sigue persiguiendo
+      if (!minionTouches(m, this.player)) continue; // sigue persiguiendo
       this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
       this.onTalk(m, { caught: true });
       // Ya te interrogó: vuelve a su ronda en vez de quedarse pegada a ti en
@@ -602,7 +611,7 @@ export class Game {
       if (m.active === false) continue; // no está de turno / desactivado
       if (m.redAlert) continue; // eso lo resuelve _updateMinionCatch
       if (!m.cast || (this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
-      if (Math.hypot(m.position.x - pos.x, m.position.z - pos.z) > MINION_APPROACH) continue;
+      if (!minionTouches(m, this.player)) continue;
       this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
       this.onTalk(m, { unsolicited: true });
       return;
@@ -818,6 +827,7 @@ export class Game {
         id: this.nearStation.id,
         icon: this.nearStation.icon ?? "❓",
         label: this.nearStation.label,
+        pose: this.nearStation.pose ?? null,
         progress: this.nearStation.progress / this.nearStation.time,
         done: false,
       };
@@ -827,12 +837,20 @@ export class Game {
         id: `done-${this._actionFlash.label}`,
         icon: this._actionFlash.icon,
         label: this._actionFlash.label,
+        pose: this._actionFlash.pose ?? null,
         progress: 1,
         done: true,
       };
     }
     if (this.player.isPretending) {
-      return { id: "pretend", icon: "⌨️", label: "Fingiendo que trabajas", progress: null, done: false };
+      return {
+        id: "pretend",
+        icon: "⌨️",
+        label: "Fingiendo que trabajas",
+        pose: "work",
+        progress: null,
+        done: false,
+      };
     }
     return null;
   }

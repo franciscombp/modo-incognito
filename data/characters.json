@@ -34,7 +34,8 @@
       "chase": 4.9,
       "search": 3
     },
-    "actionSheet": "gabo-acciones"
+    "actionSheet": "gabo-acciones",
+    "rig": "gabo"
   },
   "$minions": [
     "SECUACES DEL JEFE. No te atrapan: te delatan. Si te ven haciendo algo",
@@ -91,7 +92,8 @@
         "search": 1.4
       },
       "trait": "Casi no se mueve, pero abarca medio pasillo con la mirada.",
-      "actionSheet": "crispo-acciones"
+      "actionSheet": "crispo-acciones",
+      "rig": "crispo"
     }
   },
   "npcs": {

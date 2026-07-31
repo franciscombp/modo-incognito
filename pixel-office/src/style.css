@@ -1124,6 +1124,21 @@ body.touch-device #hint {
   overflow: hidden;
 }
 
+.action-pose {
+  width: 100%;
+  height: 100%;
+  /* 400% = una celda de la rejilla 4x4, sea cual sea la resolución del
+     pliego (igual que el retrato del diálogo). */
+  background-size: 400% 400%;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  transform: scale(1.15);
+}
+
+.action-pose.hidden {
+  display: none;
+}
+
 .action-img {
   width: 100%;
   height: 100%;

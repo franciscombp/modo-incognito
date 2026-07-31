@@ -4,6 +4,8 @@
     "No hace falta tocar ningún archivo del motor.",
     "- scenes[]: archivos en data/scenes/<id>.json",
     "- levels[]: archivos en data/levels/<id>.json, en orden de campaña",
+    "- sprites[]: rigs de personaje en data/sprites/<id>.json (rejilla, poses,",
+    "  animación de espera)",
     "",
     "MVP: la campaña es SOLO el día 1. Los archivos dia-2..dia-5 siguen en",
     "data/levels/ pero están fuera de la lista a propósito — para reactivarlos",
@@ -16,6 +18,11 @@
   "bossConfig": "boss-config.json",
   "scenes": [
     "piso7"
+  ],
+  "sprites": [
+    "giuli",
+    "gabo",
+    "crispo"
   ],
   "levels": [
     "dia-1"

@@ -40,7 +40,8 @@
         "maxWarnings": 2,
         "minionSuspicionMul": 1.4
       },
-      "actionSheet": "guili-acciones"
+      "actionSheet": "guili-acciones",
+      "rig": "giuli"
     },
     "kiara": {
       "name": "Kiara",
@@ -63,7 +64,8 @@
       "difficulty": "chicuelo",
       "blurb": "Su objetivo: repartir 3 amonestaciones e irse lo antes posible. Chispita y los DOPs no lo dejan en paz.",
       "playable": false,
-      "lockedReason": "Llega el próximo Q"
+      "lockedReason": "Llega el próximo Q",
+      "rig": "gabo"
     }
   }
 }
