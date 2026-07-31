@@ -3,7 +3,13 @@ let currentTheme = null;
 let currentThemeName = null;
 let isPlaying = false;
 let audioContext = null;
-let oscillators = [];
+let stepIndex = 0;
+let stepTimer = null;
+
+// Layers que son "notas" (se leen del sequencer nota a nota). "perc" no está
+// aquí: es un golpe fijo de percusión que solo sube o baja de volumen, igual
+// que en el soundtrack real del juego (src/game/soundtrack.js).
+const NOTE_LAYERS = ["bass", "lead", "pad", "brass"];
 
 const THEMES = {
   main: {
@@ -27,7 +33,16 @@ const THEMES = {
       ["Bb3", "D4", "F4"], null, null, null, null, null, null, null,
       ["Ab3", "C4", "Eb4"], null, null, null, null, null, null, null
     ],
-    mix: { bass: 0.8, lead: 0.75, pad: 0.4, perc: 0.5 },
+    // Trompetas de fanfarria: un golpe corto al arrancar cada frase de 8
+    // pasos, como una entrada de metales puntuando el riff — no una
+    // melodía propia, solo el "¡ta-ta!" que remata cada vuelta.
+    brass: [
+      ["Bb4", "D5", "F5"], null, "F5", null, null, null, null, null,
+      ["C5", "Eb5", "G5"], null, "G5", null, null, null, null, null,
+      ["Bb4", "D5", "F5"], null, "F5", null, null, null, null, null,
+      ["Ab4", "C5", "Eb5"], null, "Eb5", null, null, null, null, null
+    ],
+    mix: { bass: 0.8, lead: 0.75, pad: 0.4, perc: 0.5, brass: 0.6 },
   },
   title: {
     bpm: 104,
@@ -35,7 +50,8 @@ const THEMES = {
     bass: ["C2", null, "G2", null, "A2", null, "F2", null],
     lead: ["E4", "G4", null, "C5", "B4", null, "G4", null, "A4", "C5", null, "E5", "D5", null, "C5", null],
     pad: [["C3", "E3", "G3"], null, null, null, ["A2", "C3", "E3"], null, null, null],
-    mix: { bass: 0.6, lead: 0.65, pad: 0.25, perc: 0 },
+    brass: [null, null, null, null, null, null, null, null],
+    mix: { bass: 0.6, lead: 0.65, pad: 0.25, perc: 0, brass: 0 },
   },
   calm: {
     bpm: 112,
@@ -43,7 +59,8 @@ const THEMES = {
     bass: ["C2", null, "E2", null, "G2", null, "E2", null],
     lead: ["C5", null, "E5", "D5", null, "C5", null, "G4", "A4", null, "C5", "B4", null, "A4", null, "G4"],
     pad: [],
-    mix: { bass: 0.55, lead: 0.6, pad: 0, perc: 0 },
+    brass: [],
+    mix: { bass: 0.55, lead: 0.6, pad: 0, perc: 0, brass: 0 },
   },
   tense: {
     bpm: 118,
@@ -51,7 +68,8 @@ const THEMES = {
     bass: ["C2", "C2", "Eb2", null, "G2", "G2", "Ab2", null],
     lead: ["C5", null, "Eb5", "D5", null, "C5", null, "G4", "Ab4", null, "C5", "B4", null, "Bb4", null, "G4"],
     pad: [["C3", "Eb3", "G3"], null, null, null, null, null, null, null],
-    mix: { bass: 0.6, lead: 0.55, pad: 0.4, perc: 0.2 },
+    brass: [],
+    mix: { bass: 0.6, lead: 0.55, pad: 0.4, perc: 0.2, brass: 0 },
   },
   chase: {
     bpm: 150,
@@ -59,7 +77,13 @@ const THEMES = {
     bass: ["C2", "C2", "C2", "C2", "Bb1", "Bb1", "G1", "G1"],
     lead: ["C5", "Eb5", "F5", "G5", "F5", "Eb5", "C5", "D5", "Bb4", "D5", "Eb5", "F5", "Eb5", "D5", "Bb4", "C5"],
     pad: [["C3", "Eb3", "G3"], null, null, null, ["Bb2", "D3", "F3"], null, null, null],
-    mix: { bass: 0.85, lead: 0.85, pad: 0.35, perc: 0.65 },
+    // La persecución también se gana a fanfarrias: golpes de metal marcando
+    // cada mitad del compás, más densos que en "main".
+    brass: [
+      ["C5", "Eb5", "G5"], null, null, null, ["Bb4", "D5", "F5"], null, null, null,
+      ["C5", "Eb5", "G5"], null, null, null, ["Bb4", "D5", "F5"], null, null, null,
+    ],
+    mix: { bass: 0.85, lead: 0.85, pad: 0.35, perc: 0.65, brass: 0.55 },
   },
   crossing: {
     bpm: 132,
@@ -67,24 +91,45 @@ const THEMES = {
     bass: ["C2", null, "C2", null, "F2", null, "G2", null],
     lead: ["C5", "C5", null, "Eb5", "D5", "D5", null, "C5", "F5", "F5", null, "Eb5", "D5", null, "G4", null],
     pad: [],
-    mix: { bass: 0.65, lead: 0.7, pad: 0, perc: 0.35 },
+    brass: [],
+    mix: { bass: 0.65, lead: 0.7, pad: 0, perc: 0.35, brass: 0 },
   },
 };
 
-// Notas MIDI
-const NOTE_FREQS = {
-  "C1": 32.70, "C#1": 34.65, "D1": 36.71, "Eb1": 38.89, "E1": 41.20, "F1": 43.65,
-  "F#1": 46.25, "G1": 49.00, "Ab1": 51.91, "A1": 55.00, "Bb1": 58.27, "B1": 61.74,
-  "C2": 65.41, "C#2": 69.30, "D2": 73.42, "Eb2": 77.78, "E2": 82.41, "F2": 87.31,
-  "F#2": 92.50, "G2": 98.00, "Ab2": 103.83, "A2": 110.00, "Bb2": 116.54, "B2": 123.47,
-  "C3": 130.81, "C#3": 138.59, "D3": 146.83, "Eb3": 155.56, "E3": 164.81, "F3": 174.61,
-  "F#3": 185.00, "G3": 196.00, "Ab3": 207.65, "A3": 220.00, "Bb3": 246.94, "B3": 246.94,
-  "C4": 261.63, "C#4": 277.18, "D4": 293.66, "Eb4": 311.13, "E4": 329.63, "F4": 349.23,
-  "F#4": 369.99, "G4": 392.00, "Ab4": 415.30, "A4": 440.00, "Bb4": 466.16, "B4": 493.88,
-  "C5": 523.25, "C#5": 554.37, "D5": 587.33, "Eb5": 622.25, "E5": 659.25, "F5": 698.46,
-  "F#5": 739.99, "G5": 783.99, "Ab5": 830.61, "A5": 880.00, "Bb5": 932.33, "B5": 987.77,
-  "C6": 1046.50,
-};
+// Escala cromática con la misma ortografía (sostenidos/bemoles) que usan los
+// patrones de arriba, en orden — el índice ES el semitono dentro de la
+// octava. Sirve tanto para las flechitas de semitono como para calcular la
+// frecuencia sin depender de una tabla fija por nota.
+const NOTE_ORDER = ["C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab", "A", "Bb", "B"];
+
+function parseNote(note) {
+  const m = /^([A-G](?:#|b)?)(-?\d+)$/.exec(note);
+  if (!m) return null;
+  const [, name, octave] = m;
+  const idx = NOTE_ORDER.indexOf(name);
+  if (idx < 0) return null;
+  return { idx, octave: parseInt(octave, 10) };
+}
+
+/** C0 = 16.3516 Hz (afinación estándar, A4 = 440); de ahí sale cualquier nota
+ * por fórmula, así que subir/bajar de semitono nunca necesita una tabla. */
+function noteToFreq(note) {
+  const parsed = parseNote(note);
+  if (!parsed) return null;
+  const semitoneFromC0 = parsed.octave * 12 + parsed.idx;
+  return 16.3516 * Math.pow(2, semitoneFromC0 / 12);
+}
+
+/** Sube (delta=1) o baja (delta=-1) una nota o acorde un semitono. */
+function shiftSemitone(note, delta) {
+  if (Array.isArray(note)) return note.map((n) => shiftSemitone(n, delta));
+  const parsed = parseNote(note);
+  if (!parsed) return note;
+  const abs = parsed.octave * 12 + parsed.idx + delta;
+  const octave = Math.floor(abs / 12);
+  const idx = ((abs % 12) + 12) % 12;
+  return `${NOTE_ORDER[idx]}${octave}`;
+}
 
 function getAudioContext() {
   if (!audioContext) {
@@ -96,56 +141,129 @@ function getAudioContext() {
   return audioContext;
 }
 
-function playNote(freq, duration = 0.5) {
+// Un timbre por capa, no un tono sinusoidal genérico para todo: el bajo es
+// triangular y grave, el lead más brillante, el pad se sostiene, y las
+// trompetas usan diente de sierra con un ataque duro — lo que de verdad
+// distingue una fanfarria de un pitido.
+const TIMBRES = {
+  bass: { type: "triangle", attack: 0.005, decay: 0.15, gain: 0.22 },
+  lead: { type: "square", attack: 0.005, decay: 0.22, gain: 0.14 },
+  pad: { type: "sine", attack: 0.08, decay: 0.5, gain: 0.1 },
+  brass: { type: "sawtooth", attack: 0.008, decay: 0.28, gain: 0.16 },
+};
+
+function playNote(freq, duration, layer, volume) {
+  if (!freq || volume <= 0) return;
   const ctx = getAudioContext();
   const now = ctx.currentTime;
+  const timbre = TIMBRES[layer] ?? TIMBRES.lead;
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
 
   osc.frequency.value = freq;
-  osc.type = "sine";
-  gain.gain.setValueAtTime(0.1, now);
-  gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
+  osc.type = timbre.type;
+  const peak = timbre.gain * volume;
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(Math.max(peak, 0.0001), now + timbre.attack);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + Math.min(duration, timbre.decay + timbre.attack));
 
   osc.connect(gain);
   gain.connect(ctx.destination);
   osc.start(now);
-  osc.stop(now + duration);
+  osc.stop(now + duration + 0.05);
 }
 
-function playTheme(theme) {
-  if (!theme || !theme.bass) return;
+function playPercussion(volume) {
+  if (volume <= 0) return;
+  const ctx = getAudioContext();
+  const now = ctx.currentTime;
+  const bufferSize = ctx.sampleRate * 0.05;
+  const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
 
-  toast("▶ Reproduciendo tema…");
-  isPlaying = true;
+  const noise = ctx.createBufferSource();
+  noise.buffer = buffer;
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0.25 * volume, now);
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
 
-  // Duración por nota en segundos (basado en BPM)
-  const beatDuration = (60 / theme.bpm) * 0.5; // semicorchea
+  noise.connect(gain);
+  gain.connect(ctx.destination);
+  noise.start(now);
+  noise.stop(now + 0.06);
+}
 
-  // Reproducir simplificado: solo bass
-  if (theme.bass && theme.bass.length) {
-    theme.bass.forEach((note, i) => {
-      if (note && NOTE_FREQS[note]) {
-        setTimeout(() => {
-          if (isPlaying) playNote(NOTE_FREQS[note], beatDuration);
-        }, i * beatDuration * 1000);
-      }
-    });
+/** Un paso del bucle: toca la nota de cada capa activa en este instante y
+ * marca visualmente en qué columna del secuenciador va la reproducción. */
+function tick() {
+  if (!currentTheme) return;
+  const maxLen = Math.max(
+    ...NOTE_LAYERS.map((l) => currentTheme[l]?.length || 0),
+    currentTheme.steps || 8
+  );
+  const i = stepIndex % maxLen;
+  const stepDuration = (60 / currentTheme.bpm) * 0.5; // corchea
+
+  NOTE_LAYERS.forEach((layer) => {
+    const enabled = document.getElementById(`layer-${layer}`)?.checked;
+    if (!enabled) return;
+    const pattern = currentTheme[layer];
+    if (!pattern || !pattern.length) return;
+    const note = pattern[i % pattern.length];
+    if (note == null) return;
+    const volume = currentTheme.mix?.[layer] ?? 0.5;
+    if (Array.isArray(note)) {
+      note.forEach((n) => playNote(noteToFreq(n), stepDuration, layer, volume));
+    } else {
+      playNote(noteToFreq(note), stepDuration, layer, volume);
+    }
+  });
+
+  if (document.getElementById("layer-perc")?.checked) {
+    playPercussion(currentTheme.mix?.perc ?? 0);
   }
 
+  highlightStep(i);
+  stepIndex++;
+}
+
+function highlightStep(i) {
+  document.querySelectorAll(".step").forEach((el) => {
+    el.classList.toggle("playing", Number(el.dataset.index) === i);
+  });
+}
+
+function clearHighlight() {
+  document.querySelectorAll(".step.playing").forEach((el) => el.classList.remove("playing"));
+}
+
+function startLoop() {
+  if (!currentTheme) return;
+  stopTimerOnly();
+  stepIndex = 0;
   isPlaying = true;
+  const stepMs = (60 / currentTheme.bpm) * 0.5 * 1000;
+  tick();
+  stepTimer = setInterval(tick, stepMs);
   updateUI();
+  toast("▶ Reproduciendo en bucle…");
+  document.getElementById("playing-indicator").classList.remove("hidden");
+}
+
+function stopTimerOnly() {
+  if (stepTimer) {
+    clearInterval(stepTimer);
+    stepTimer = null;
+  }
 }
 
 function stopPlayback() {
   isPlaying = false;
-  const ctx = getAudioContext();
-  if (ctx) {
-    ctx.close();
-    audioContext = null;
-  }
+  stopTimerOnly();
+  clearHighlight();
+  document.getElementById("playing-indicator").classList.add("hidden");
   updateUI();
-  toast("⏹ Detenido");
 }
 
 function renderSequencer() {
@@ -154,7 +272,7 @@ function renderSequencer() {
 
   if (!currentTheme) return;
 
-  ["bass", "lead", "pad"].forEach(layer => {
+  NOTE_LAYERS.forEach((layer) => {
     const pattern = currentTheme[layer];
     if (!pattern || !pattern.length) return;
 
@@ -172,21 +290,56 @@ function renderSequencer() {
     pattern.forEach((note, i) => {
       const step = document.createElement("div");
       step.className = "step";
+      step.dataset.index = String(i);
+
+      const label = document.createElement("div");
+      label.className = "step-label";
 
       if (note === null) {
         step.classList.add("null");
-        step.textContent = "∅";
+        label.textContent = "∅";
       } else if (Array.isArray(note)) {
         step.classList.add("chord");
-        step.textContent = note.join(" ");
+        label.textContent = note.join(" ");
       } else {
-        step.textContent = note;
+        label.textContent = note;
+      }
+      step.appendChild(label);
+
+      // Flechitas de semitono: solo tienen sentido si hay una nota o acorde
+      // que subir/bajar, no sobre un silencio.
+      if (note !== null) {
+        const arrows = document.createElement("div");
+        arrows.className = "step-arrows";
+        const up = document.createElement("button");
+        up.className = "step-arrow";
+        up.type = "button";
+        up.textContent = "▲";
+        up.title = "Subir un semitono";
+        up.addEventListener("click", (e) => {
+          e.stopPropagation();
+          currentTheme[layer][i] = shiftSemitone(currentTheme[layer][i], 1);
+          renderSequencer();
+        });
+        const down = document.createElement("button");
+        down.className = "step-arrow";
+        down.type = "button";
+        down.textContent = "▼";
+        down.title = "Bajar un semitono";
+        down.addEventListener("click", (e) => {
+          e.stopPropagation();
+          currentTheme[layer][i] = shiftSemitone(currentTheme[layer][i], -1);
+          renderSequencer();
+        });
+        arrows.appendChild(up);
+        arrows.appendChild(down);
+        step.appendChild(arrows);
       }
 
-      step.addEventListener("click", () => {
+      label.addEventListener("click", () => {
         const input = document.createElement("input");
         input.type = "text";
-        input.value = step.textContent === "∅" ? "" : step.textContent;
+        input.value = label.textContent === "∅" ? "" : label.textContent;
         input.maxLength = 20;
 
         input.onblur = () => {
@@ -196,7 +349,9 @@ function renderSequencer() {
           } else if (val.startsWith("[") && val.endsWith("]")) {
             try {
               currentTheme[layer][i] = JSON.parse(val);
-            } catch {}
+            } catch {
+              /* deja la nota como estaba si el JSON del acorde es inválido */
+            }
           } else {
             currentTheme[layer][i] = val;
           }
@@ -208,8 +363,8 @@ function renderSequencer() {
           if (e.key === "Escape") renderSequencer();
         };
 
-        step.textContent = "";
-        step.appendChild(input);
+        label.textContent = "";
+        label.appendChild(input);
         input.focus();
         input.select();
       });
@@ -232,7 +387,7 @@ function updateUI() {
   document.getElementById("bpm").disabled = !hasTheme;
   document.getElementById("steps").disabled = !hasTheme;
 
-  ["bass", "lead", "pad", "perc"].forEach(layer => {
+  ["bass", "lead", "pad", "perc", "brass"].forEach((layer) => {
     document.getElementById(`layer-${layer}`).disabled = !hasTheme;
     document.getElementById(`mix-${layer}`).disabled = !hasTheme;
   });
@@ -241,7 +396,7 @@ function updateUI() {
     document.getElementById("bpm").value = currentTheme.bpm || 120;
     document.getElementById("steps").value = currentTheme.steps || 8;
 
-    ["bass", "lead", "pad", "perc"].forEach(layer => {
+    ["bass", "lead", "pad", "perc", "brass"].forEach((layer) => {
       const val = currentTheme.mix?.[layer] || 0;
       document.getElementById(`mix-${layer}`).value = val;
       document.getElementById(`mix-${layer}-val`).textContent = val.toFixed(2);
@@ -266,11 +421,13 @@ function loadTheme(name) {
       theme.bass?.length ? "Bass" : null,
       theme.lead?.length ? "Lead" : null,
       theme.pad?.length ? "Pad" : null,
+      theme.brass?.length ? "Brass" : null,
     ]
       .filter(Boolean)
       .join(", ")}<br/>
     <br/>
-    Haz clic en los pasos para editar notas.
+    Haz clic en los pasos para editar notas. Las flechitas ▲▼ suben o bajan
+    de semitono sin tener que reescribir la nota.
   `;
 
   updateUI();
@@ -345,10 +502,13 @@ document.getElementById("play-theme").addEventListener("click", () => {
     toast("❌ Selecciona un tema primero");
     return;
   }
-  playTheme(currentTheme);
+  startLoop();
 });
 
-document.getElementById("stop-play").addEventListener("click", stopPlayback);
+document.getElementById("stop-play").addEventListener("click", () => {
+  stopPlayback();
+  toast("⏹ Detenido");
+});
 
 document.getElementById("export-theme").addEventListener("click", exportJSON);
 
@@ -364,15 +524,18 @@ document.getElementById("clear-theme").addEventListener("click", () => {
   }
 });
 
-["bpm", "steps"].forEach(id => {
+["bpm", "steps"].forEach((id) => {
   document.getElementById(id).addEventListener("change", (e) => {
     if (currentTheme) {
-      currentTheme[id] = parseInt(e.target.value);
+      currentTheme[id] = parseInt(e.target.value, 10);
+      // El tempo cambió: si está sonando, el bucle debe reprogramarse con el
+      // intervalo nuevo en vez de seguir al ritmo viejo.
+      if (isPlaying) startLoop();
     }
   });
 });
 
-["bass", "lead", "pad", "perc"].forEach(layer => {
+["bass", "lead", "pad", "perc", "brass"].forEach((layer) => {
   document.getElementById(`mix-${layer}`).addEventListener("input", (e) => {
     if (currentTheme?.mix) {
       currentTheme.mix[layer] = parseFloat(e.target.value);

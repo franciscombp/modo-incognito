@@ -10,6 +10,7 @@
   <body>
     <header class="bar">
       <h1>MUSIC BUILDER · <span>Modo Incógnito</span></h1>
+      <span id="playing-indicator" class="playing-indicator hidden">● EN VIVO</span>
       <div class="bar-group">
         <select id="theme-select">
           <option value="">-- Selecciona un tema --</option>
@@ -26,7 +27,7 @@
         </label>
       </div>
       <div class="bar-group right">
-        <button id="play-theme" class="primary" disabled>▶ Escuchar</button>
+        <button id="play-theme" class="primary" disabled>▶ Reproducir en bucle</button>
         <button id="export-theme" class="primary" disabled>⬇ Exportar JSON</button>
       </div>
     </header>
@@ -64,6 +65,10 @@
               <input type="checkbox" id="layer-perc" disabled />
               <label for="layer-perc">Perc (Percusión)</label>
             </div>
+            <div class="layer">
+              <input type="checkbox" id="layer-brass" checked disabled />
+              <label for="layer-brass">Brass (Trompetas)</label>
+            </div>
           </div>
 
           <h2>Mix</h2>
@@ -84,6 +89,10 @@
               Perc: <span id="mix-perc-val">0.5</span>
               <input type="range" id="mix-perc" min="0" max="1" step="0.05" value="0.5" disabled />
             </label>
+            <label>
+              Brass: <span id="mix-brass-val">0.6</span>
+              <input type="range" id="mix-brass" min="0" max="1" step="0.05" value="0.6" disabled />
+            </label>
           </div>
 
           <h2>Notas de Referencia</h2>
@@ -92,6 +101,8 @@
             <p><strong>Semitonos:</strong> C, C#, D, Eb, E, F, F#, G, Ab, A, Bb, B</p>
             <p><strong>Ejemplo:</strong> "C4", "Eb4", "Ab2"</p>
             <p><strong>Silencio:</strong> null</p>
+            <p><strong>▲ / ▼</strong> en cada paso suben o bajan la nota un semitono.</p>
+            <p>▶ Escuchar repite el tema en bucle hasta que le des a ⏹ Detener.</p>
           </div>
         </section>
       </aside>

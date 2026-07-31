@@ -120,15 +120,18 @@ function ensureLoops() {
     mainLoop = new Tone.Loop((time) => {
       const theme = THEMES[currentThemeName];
       if (!theme) return;
-      const steps = theme.steps || 8;
-      const i = stepIndex % steps;
-      const bassNote = theme.bass?.[i];
+      // Cada capa lee su PROPIA longitud, no `theme.steps`: lead trae el
+      // doble de pasos que bass (una frase de dos vueltas de bajo en vez de
+      // una), y modular todo por `theme.steps` (8) recortaba esa segunda
+      // mitad de la melodía sin que sonara ningún error — simplemente nunca
+      // se tocaba.
+      const bassNote = theme.bass?.length ? theme.bass[stepIndex % theme.bass.length] : null;
       if (bassNote != null) safeTrigger(bassSynth, "bass", bassNote, "8n", time);
-      const leadNote = theme.lead?.[i];
+      const leadNote = theme.lead?.length ? theme.lead[stepIndex % theme.lead.length] : null;
       if (leadNote != null) safeTrigger(leadSynth, "lead", leadNote, "8n", time);
-      const padNote = theme.pad?.[i];
+      const padNote = theme.pad?.length ? theme.pad[stepIndex % theme.pad.length] : null;
       if (padNote != null) safeTrigger(padSynth, "pad", padNote, "8n", time);
-      stepIndex = (stepIndex + 1) % steps;
+      stepIndex++;
     }, "8n").start(0);
   }
   // La percusión de la persecución es una capa fija de corcheas, no un
