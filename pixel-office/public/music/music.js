@@ -12,40 +12,44 @@ let stepTimer = null;
 const NOTE_LAYERS = ["bass", "lead", "pad", "brass"];
 
 const THEMES = {
+  // Progresión pop-rock bien conocida (I-V-vi-IV, "la de las cuatro
+  // canciones") en Do mayor: C - G - Am - F, un compás por acorde. Antes era
+  // un riff en Sib menor con bajo caminante serio — esto es más rápido, en
+  // mayor, sincopado y pensado para bailar, no para sonar a videojuego de
+  // sigilo.
   main: {
-    bpm: 135,
+    bpm: 140,
     steps: 8,
     bass: [
-      "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2",
       "C2", "C3", "C2", "C3", "C2", "C3", "C2", "C3",
-      "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2",
-      "Ab1", "Ab2", "Ab1", "Ab2", "Ab1", "Ab2", "Ab1", "Ab2"
+      "G1", "G2", "G1", "G2", "G1", "G2", "G1", "G2",
+      "A1", "A2", "A1", "A2", "A1", "A2", "A1", "A2",
+      "F1", "F2", "F1", "F2", "F1", "F2", "F1", "F2"
     ],
     lead: [
-      null, "F4", null, "F4", "F4", null, "F4", null,
-      null, "G4", null, "G4", "G4", null, "G4", null,
-      null, "F4", null, "F4", "F4", null, "F4", null,
-      null, "Eb4", null, "Eb4", "Eb4", null, "Eb4", null
+      null, "G4", null, "E4", "G4", null, "E4", null,
+      null, "D5", null, "B4", "D5", null, "B4", null,
+      null, "E5", null, "C5", "E5", null, "C5", null,
+      null, "C5", null, "A4", "C5", null, "A4", null
     ],
     pad: [
-      ["Bb3", "D4", "F4"], null, null, null, null, null, null, null,
-      ["C4", "Eb4", "G4"], null, null, null, null, null, null, null,
-      ["Bb3", "D4", "F4"], null, null, null, null, null, null, null,
-      ["Ab3", "C4", "Eb4"], null, null, null, null, null, null, null
+      ["C4", "E4", "G4"], null, null, null, null, null, null, null,
+      ["G3", "B3", "D4"], null, null, null, null, null, null, null,
+      ["A3", "C4", "E4"], null, null, null, null, null, null, null,
+      ["F3", "A3", "C4"], null, null, null, null, null, null, null
     ],
-    // Trompetas de fanfarria: un golpe corto al arrancar cada frase de 8
-    // pasos, como una entrada de metales puntuando el riff — no una
-    // melodía propia, solo el "¡ta-ta!" que remata cada vuelta.
+    // Trompetas de fanfarria en el contratiempo: el "¡pa-pa!" festivo de una
+    // banda de pop-rock rematando cada compás, no una melodía propia.
     brass: [
-      ["Bb4", "D5", "F5"], null, "F5", null, null, null, null, null,
-      ["C5", "Eb5", "G5"], null, "G5", null, null, null, null, null,
-      ["Bb4", "D5", "F5"], null, "F5", null, null, null, null, null,
-      ["Ab4", "C5", "Eb5"], null, "Eb5", null, null, null, null, null
+      ["C5", "E5", "G5"], null, null, "G5", null, null, null, null,
+      ["G4", "B4", "D5"], null, null, "D5", null, null, null, null,
+      ["A4", "C5", "E5"], null, null, "E5", null, null, null, null,
+      ["F4", "A4", "C5"], null, null, "C5", null, null, null, null
     ],
-    mix: { bass: 0.8, lead: 0.75, pad: 0.4, perc: 0.5, brass: 0.6 },
+    mix: { bass: 0.85, lead: 0.8, pad: 0.35, perc: 0.6, brass: 0.65 },
   },
   title: {
-    bpm: 104,
+    bpm: 110,
     steps: 8,
     bass: ["C2", null, "G2", null, "A2", null, "F2", null],
     lead: ["E4", "G4", null, "C5", "B4", null, "G4", null, "A4", "C5", null, "E5", "D5", null, "C5", null],
@@ -54,7 +58,7 @@ const THEMES = {
     mix: { bass: 0.6, lead: 0.65, pad: 0.25, perc: 0, brass: 0 },
   },
   calm: {
-    bpm: 112,
+    bpm: 118,
     steps: 8,
     bass: ["C2", null, "E2", null, "G2", null, "E2", null],
     lead: ["C5", null, "E5", "D5", null, "C5", null, "G4", "A4", null, "C5", "B4", null, "A4", null, "G4"],
@@ -410,6 +414,12 @@ function loadTheme(name) {
   const theme = THEMES[name];
   if (!theme) return;
 
+  // Si ya estaba sonando un tema, cambiar de selector NO debe cortar el
+  // audio: el juego real cambia de ánimo (calm/tense/chase...) sin silencio
+  // de por medio, y este builder tiene que poder simular justo eso — el
+  // bucle sigue, solo cambian bpm y patrones al vuelo.
+  const wasPlaying = isPlaying;
+
   currentThemeName = name;
   currentTheme = JSON.parse(JSON.stringify(theme));
 
@@ -431,7 +441,8 @@ function loadTheme(name) {
   `;
 
   updateUI();
-  stopPlayback();
+  if (wasPlaying) startLoop();
+  else stopPlayback();
 }
 
 function exportJSON() {
