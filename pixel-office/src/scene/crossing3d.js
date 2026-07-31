@@ -43,13 +43,14 @@ const ROWS = [
 const GOAL_ROW = ROWS.length - 1;
 
 // De día, no de madrugada: el asfalto casi negro de antes desentonaba con el
-// cielo claro. Se aclaran unos puntos sin perder el contraste con las líneas.
+// cielo claro. Colores más saturados que un gris neutro plano — esta escena
+// es la primera que ve cualquiera que abra el juego, no puede leerse apagada.
 const ROAD_COLORS = {
-  sidewalk: 0x8a92a0,
-  goal: 0x8a92a0,
-  car: 0x4b5058,
-  bike: 0x3c4d38,
-  median: 0x3c6b34,
+  sidewalk: 0xd8cfc0,
+  goal: 0xd8cfc0,
+  car: 0x4d5568,
+  bike: 0x33473a,
+  median: 0x2f8f3e,
 };
 
 // Carga de texturas sprite
@@ -121,11 +122,11 @@ function vehicleSprite(kind, dir) {
   // Dimensiones fijas por tipo de vehículo, medidas sobre el arte real (no
   // inventadas): los autos dibujados miden ~1.9:1 de ancho/alto y las bicis
   // ~0.78:1 — con proporciones distintas a las de la celda se veían
-  // aplastados o estirados. Con la calle a 13*S de ancho, un auto de solo
-  // 1.35*S se perdía como un icono diminuto sobre un asfalto vacío — se
-  // escalan ambos ~1.7x para que ocupen su carril como un auto de verdad.
-  const height = isAuto ? 1.22 * S : 1.85 * S;
-  const width = isAuto ? 2.3 * S : 1.45 * S;
+  // aplastados o estirados. Con la calle a 13*S de ancho seguían leyéndose
+  // como iconos diminutos, así que se escalan bastante más: un auto real
+  // ocupa buena parte de su carril, no una miniatura sobre asfalto vacío.
+  const height = isAuto ? 1.75 * S : 2.55 * S;
+  const width = isAuto ? 3.3 * S : 2.0 * S;
 
   // Fallback: si no cargó la textura, usar geometría simple de color
   if (!texture) {
@@ -228,7 +229,7 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
   scene.background = new THREE.Color(SKY);
   scene.fog = new THREE.Fog(SKY, 34 * S, 70 * S);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+  scene.add(new THREE.AmbientLight(0xffffff, 1.9));
   const key = new THREE.DirectionalLight(0xfff2d6, 1.3);
   key.position.set(10 * S, 30 * S, 6 * S);
   scene.add(key);
