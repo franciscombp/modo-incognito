@@ -1124,6 +1124,46 @@ body.touch-device #hint {
   overflow: hidden;
 }
 
+/* Aviso de sospecha crítica: viñeta roja que late por los bordes. Va detrás
+   de todo el HUD y no captura el ratón, así que no tapa ni un botón — y por
+   eso tampoco entra en el auditor de solapamientos. */
+.hud-danger {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.45s ease;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 40, 60, 0) 42%,
+    rgba(255, 30, 55, 0.28) 78%,
+    rgba(180, 10, 30, 0.55) 100%
+  );
+}
+
+.hud-danger.on {
+  opacity: 1;
+  animation: danger-pulse 1s ease-in-out infinite;
+}
+
+@keyframes danger-pulse {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-danger.on {
+    animation: none;
+    opacity: 0.85;
+  }
+}
+
 .action-pose {
   width: 100%;
   height: 100%;

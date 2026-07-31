@@ -1,0 +1,342 @@
+:root {
+  --bg: #0b0e16;
+  --panel: #121826;
+  --panel-2: #182034;
+  --line: #26314c;
+  --ink: #e6ecfb;
+  --dim: #8ea0c4;
+  --cyan: #45e0d0;
+  --amber: #f2c744;
+  --red: #ff4d5e;
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--ink);
+  font: 13px/1.5 var(--mono);
+  overflow: hidden;
+}
+
+/* ---------------- Barra superior ---------------- */
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #161d2e, #101623);
+  border-bottom: 1px solid var(--line);
+}
+
+.bar h1 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+}
+
+.bar h1 span {
+  color: var(--dim);
+}
+
+.bar-group {
+  display: flex;
+  gap: 8px;
+}
+
+.bar-group.right {
+  margin-left: auto;
+}
+
+button,
+.file {
+  font: inherit;
+  color: var(--ink);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+
+button:hover,
+.file:hover {
+  border-color: var(--cyan);
+}
+
+button.primary {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+button.danger {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* ---------------- Estructura ---------------- */
+main {
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  height: calc(100% - 49px);
+}
+
+.panel {
+  background: var(--panel);
+  overflow-y: auto;
+  padding: 0 0 40px;
+}
+
+.panel.left {
+  border-right: 1px solid var(--line);
+}
+
+.panel.right {
+  border-left: 1px solid var(--line);
+  padding: 12px;
+}
+
+.panel h2 {
+  margin: 16px 12px 8px;
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--dim);
+  text-transform: uppercase;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--line);
+}
+
+.tab {
+  flex: 1;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--dim);
+  padding: 10px 0;
+}
+
+.tab.on {
+  color: var(--cyan);
+  border-bottom-color: var(--cyan);
+}
+
+.tabpage {
+  display: none;
+}
+
+.tabpage.on {
+  display: block;
+}
+
+.help {
+  padding: 12px;
+  color: var(--dim);
+  line-height: 1.6;
+}
+
+.help code {
+  color: var(--amber);
+}
+
+.help b {
+  color: var(--ink);
+}
+
+/* ---------------- Paleta y listas ---------------- */
+.add-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  padding: 0 12px;
+}
+
+.add-grid button {
+  text-align: left;
+  font-size: 11px;
+  padding: 7px 8px;
+}
+
+#layers,
+#level-form {
+  padding: 0 12px;
+}
+
+.layer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.layer .swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+
+.list {
+  padding: 0 12px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.row:hover {
+  background: var(--panel-2);
+}
+
+.row.on {
+  border-color: var(--cyan);
+  color: var(--ink);
+  background: var(--panel-2);
+}
+
+.row .tag {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+
+/* ---------------- Lienzo ---------------- */
+.stage {
+  position: relative;
+  background: #070a11;
+  overflow: hidden;
+}
+
+#canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.hud {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  color: var(--dim);
+  font-size: 11px;
+  pointer-events: none;
+  text-shadow: 0 1px 2px #000;
+}
+
+.warn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  max-width: 320px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: #ffd7dc;
+  background: rgba(120, 12, 26, 0.9);
+  border: 1px solid var(--red);
+  border-radius: 3px;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ---------------- Formularios ---------------- */
+.field {
+  margin-bottom: 9px;
+}
+
+.field label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--dim);
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.field input,
+.field select,
+.field textarea {
+  width: 100%;
+  font: inherit;
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  padding: 5px 7px;
+  border-radius: 3px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 0;
+  border-color: var(--cyan);
+}
+
+.field.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.field.pair > div > label {
+  margin-bottom: 3px;
+}
+
+.checks label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 0;
+  font-size: 11px;
+  color: var(--dim);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.checks input {
+  width: auto;
+}
+
+.hint {
+  font-size: 10px;
+  color: var(--dim);
+  opacity: 0.8;
+  margin: -4px 0 10px;
+  line-height: 1.5;
+}
+
+/* ---------------- Toast ---------------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  padding: 9px 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  border-radius: 3px;
+  z-index: 50;
+}

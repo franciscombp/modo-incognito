@@ -32,6 +32,11 @@ const WING_LABEL = { sur: "Ala Sur", norte: "Ala Norte", centro: "Centro" };
 // Qué tan minimizado está cada panel del HUD, recordado entre sesiones —
 // en móvil el espacio es escaso y en desktop a veces solo estorba.
 const COLLAPSE_KEY = "modo-incognito:hud-collapse:v1";
+
+// A partir de esta fracción de sospecha la pantalla avisa en rojo. Coincide
+// con el umbral de captura de boss-config.json: por encima, el jefe ya viene
+// con todo y el siguiente encuentro es la amonestación.
+const DANGER_AT = 0.9;
 function readCollapse() {
   try {
     return JSON.parse(localStorage.getItem(COLLAPSE_KEY) ?? "{}");
@@ -136,6 +141,12 @@ export function createHud(root) {
   // mientras finges), con una imagen por acción. Las imágenes reales llegan
   // después (public/actions/<id>.png); hasta entonces, o si a alguna le
   // falta el archivo, cae en el emoji de la actividad sin romper nada.
+  // Aviso de peligro: por encima del 90% de sospecha la pantalla se tiñe de
+  // rojo por los bordes y late. No es decoración — es el único aviso de que
+  // el siguiente encontronazo es la amonestación, y de que toca salir
+  // pitando a una sala o a tu puesto.
+  const danger = el("div", "hud-danger", hud);
+
   const actionScene = el("div", "action-scene hidden", hud);
   const actionFrame = el("div", "action-frame", actionScene);
   const actionImg = el("img", "action-img hidden", actionFrame);
@@ -370,6 +381,9 @@ export function createHud(root) {
 
   function render(state) {
     setAction(state.currentAction);
+
+    const heat = state.suspicionMax ? state.suspicion / state.suspicionMax : 0;
+    danger.classList.toggle("on", heat >= DANGER_AT && !state.gameOver);
 
     if (state.maxWarnings !== maxWarningsRendered) {
       maxWarningsRendered = state.maxWarnings;

@@ -140,6 +140,7 @@ async function boot() {
     player.sprite.setActionSheet(actionSheet);
     player.sprite.setRig(rig);
     crossing3D.setPlayerSheet(walkSheetOf(id), actionSheet, rig);
+    hideOwnDouble(id);
     // El panel grande de acción dibuja la misma pose animada que el sprite.
     hudRef?.setActionRig(
       rig?.actions ? { sheet: rig.actions.sheet, poses: rig.actions.poses } : null
@@ -176,15 +177,13 @@ async function boot() {
     speed: chars.player.speed,
   });
   scene.add(player.object3D);
-  applyCharacterSprite(save.characterId);
 
-  // Exclude NPCs that are the current playable character
-  const excludedCasts = new Set();
-  if (save.characterId === "giu") excludedCasts.add("giuli");
-  if (save.characterId === "fran" || !save.characterId) excludedCasts.add("fran_npc");
-
+  // Todos los NPC se crean siempre; el que coincide con el personaje elegido
+  // se APAGA en caliente. Antes se filtraban aquí una sola vez, al arrancar,
+  // usando el personaje guardado — pero elegir personaje pasa después, con el
+  // juego ya montado, así que quien empezaba de cero y escogía a Giuli se
+  // encontraba a Giuli paseando por el piso mientras la jugaba.
   const npcs = floorplan.npcs
-    .filter((def) => !excludedCasts.has(def.cast))
     .map((def) => {
       const stats = chars.npcs[def.sheet] ?? {};
       const persona = data.dialogues.cast[def.cast];
@@ -197,6 +196,18 @@ async function boot() {
       return npc;
     });
   npcs.forEach((npc) => scene.add(npc.object3D));
+
+  /** Apaga al doble del personaje elegido: no puede haber dos Giulis. */
+  function hideOwnDouble(id) {
+    const cast = modeOf(id)?.npc ?? null;
+    npcs.forEach((npc) => {
+      const isDouble = !!cast && npc.cast === cast;
+      npc.active = !isDouble;
+      npc.object3D.visible = !isDouble;
+    });
+  }
+
+  applyCharacterSprite(save.characterId);
 
   const boss = new Boss(sheets.get(chars.boss.sheet), {
     world,

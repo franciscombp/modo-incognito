@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Builder · Modo Incógnito</title>
+    <link rel="icon" href="../favicon.png" />
+    <link rel="stylesheet" href="builder.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <h1>BUILDER · <span>Modo Incógnito</span></h1>
+      <div class="bar-group">
+        <label class="file">
+          Abrir escena…
+          <input type="file" id="open-scene" accept=".json" hidden />
+        </label>
+        <label class="file">
+          Abrir día…
+          <input type="file" id="open-level" accept=".json" hidden />
+        </label>
+        <button id="reload">Recargar del juego</button>
+      </div>
+      <div class="bar-group right">
+        <button id="copy-scene" class="primary">Copiar escena JSON</button>
+        <button id="copy-level" class="primary">Copiar día JSON</button>
+        <button id="download">Descargar los dos</button>
+      </div>
+    </header>
+
+    <main>
+      <aside class="panel left">
+        <div class="tabs" id="tabs">
+          <button class="tab on" data-tab="plano">Plano</button>
+          <button class="tab" data-tab="dia">Día</button>
+          <button class="tab" data-tab="ayuda">Ayuda</button>
+        </div>
+
+        <section class="tabpage on" data-page="plano">
+          <h2>Añadir</h2>
+          <div class="add-grid" id="add-grid"></div>
+
+          <h2>Capas</h2>
+          <div id="layers"></div>
+
+          <h2>Objetos</h2>
+          <div class="list" id="object-list"></div>
+        </section>
+
+        <section class="tabpage" data-page="dia">
+          <h2>El día</h2>
+          <div id="level-form"></div>
+        </section>
+
+        <section class="tabpage" data-page="ayuda">
+          <div class="help">
+            <p>
+              Editor del <b>plano</b> (<code>scenes/*.json</code>) y del
+              <b>día</b> (<code>levels/*.json</code>). Todo en unidades de
+              plano — el motor las multiplica por <code>WORLD_SCALE</code>, así
+              que aquí se escriben tal cual salen del JSON.
+            </p>
+            <ul>
+              <li><b>Clic</b> — seleccionar.</li>
+              <li><b>Arrastrar</b> — mover. Los tiradores de las esquinas redimensionan zonas.</li>
+              <li><b>Supr</b> — borrar lo seleccionado.</li>
+              <li><b>Rueda</b> — zoom. <b>Espacio + arrastrar</b> (o botón central) — desplazar.</li>
+              <li><b>Mayús</b> mientras arrastras — sin ajuste a rejilla.</li>
+            </ul>
+            <p>
+              El aviso rojo de <b>zonas solapadas</b> vigila la invariante que
+              documenta <code>CLAUDE.md</code>: los rectángulos de
+              <code>areas</code> no deben pisarse.
+            </p>
+            <p>
+              El builder <b>no escribe en el repo</b>. Copia el JSON y pégalo en
+              <code>pixel-office/public/data/…</code>, y después corre
+              <code>npm run build:pages</code>.
+            </p>
+          </div>
+        </section>
+      </aside>
+
+      <div class="stage">
+        <canvas id="canvas"></canvas>
+        <div class="hud" id="stage-hud"></div>
+        <div class="warn hidden" id="warn"></div>
+      </div>
+
+      <aside class="panel right">
+        <h2 id="prop-title">Nada seleccionado</h2>
+        <div id="props"></div>
+      </aside>
+    </main>
+
+    <div class="toast hidden" id="toast"></div>
+    <script type="module" src="builder.js"></script>
+  </body>
+</html>
