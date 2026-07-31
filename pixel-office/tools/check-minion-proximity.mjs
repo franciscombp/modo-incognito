@@ -79,11 +79,73 @@ for (let i = 0; i < 10; i++) {
   if (dialogueOnceAdjacent) break;
 }
 
-console.log(JSON.stringify({ ...out, dialogueWhileFar, afterMovingClose, dialogueOnceAdjacent }, null, 1));
+// ---- La OTRA vía por la que un secuaz te habla: la cháchara sin alerta
+// roja (_updateMinionApproach). Esta era la que abría el diálogo a más de
+// dos unidades de plano, y es la que se sentía como "Crispo me aborda sin
+// haberse acercado". Tiene que exigir contacto igual que la anterior.
+await clearDialogue(page);
+await page.evaluate(() => {
+  const game = window.__game.engine.game;
+  const crispo = game.minions.find((m) => m.cast === "crispo");
+  // Sin alerta: pura charla casual.
+  crispo._updateVision = () => {
+    crispo.playerVisible = false;
+    crispo.redAlert = false;
+  };
+  crispo.lockedOn = false;
+  crispo.resetToPatrol();
+  game.talkCooldowns.delete(crispo.id ?? crispo.cast);
+});
+
+/**
+ * Planta a Crispo a `units` unidades de plano y mira si TE HABLA ÉL. Se mira
+ * su enfriamiento de charla, no `dialogue.isOpen`: quedarse quieta junto a un
+ * secreto del plano también abre un diálogo, y eso daba un falso positivo.
+ */
+async function talksAt(units) {
+  // Recolocar y limpiar el enfriamiento TIENEN que ir en la misma evaluación:
+  // si se limpia primero y se mueve después, entre las dos corren frames con
+  // Crispo todavía encima de la jugadora y vuelve a hablar — un falso
+  // positivo que costó un rato entender.
+  await page.evaluate((u) => {
+    const game = window.__game.engine.game;
+    const crispo = game.minions.find((m) => m.cast === "crispo");
+    const S = window.__floorplan.WORLD_SCALE;
+    crispo.position.x = game.player.position.x + u * S;
+    crispo.position.z = game.player.position.z;
+    crispo._pickTarget = () => ({ x: crispo.position.x, z: crispo.position.z }); // que no se mueva
+    game.talkCooldowns.delete(crispo.id ?? crispo.cast);
+  }, units);
+  for (let i = 0; i < 12; i++) {
+    await page.waitForTimeout(120);
+    const talked = await page.evaluate(() => {
+      const game = window.__game.engine.game;
+      const crispo = game.minions.find((m) => m.cast === "crispo");
+      return (game.talkCooldowns.get(crispo.id ?? crispo.cast) ?? 0) > 0;
+    });
+    if (talked) return true;
+  }
+  return false;
+}
+
+// Dos unidades de plano es "en el mismo pasillo", no "encima". Antes bastaba.
+const chatsFromAcrossTheRoom = await talksAt(2);
+await clearDialogue(page);
+const chatsOnContact = await talksAt(0);
+
+console.log(
+  JSON.stringify(
+    { ...out, dialogueWhileFar, afterMovingClose, dialogueOnceAdjacent, chatsFromAcrossTheRoom, chatsOnContact },
+    null,
+    1
+  )
+);
 
 const checks = [
   ["!dialogueWhileFar", "no dialogue while the minion is still far away", !dialogueWhileFar],
   ["dialogueOnceAdjacent", "dialogue fires once the minion actually reaches you", dialogueOnceAdjacent],
+  ["!chatsFromAcrossTheRoom", "un secuaz NO te da charla desde dos unidades de plano", !chatsFromAcrossTheRoom],
+  ["chatsOnContact", "un secuaz te da charla cuando te toca", chatsOnContact],
 ];
 let ok = true;
 for (const [key, label, value] of checks) {

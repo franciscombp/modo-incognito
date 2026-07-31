@@ -17,8 +17,10 @@ const POSE_FPS = 3; // las poses de "acciones" son de dos fotogramas, sin prisa
  * Las hojas de ACCIONES (`*-acciones.png`) usan la misma rejilla 4x4, pero
  * leida distinto: son 8 poses de 2 fotogramas cada una, en lectura normal.
  * La pose `p` ocupa la fila `p>>1` y las columnas `(p%2)*2` y `+1`.
- * Los nombres de abajo son el contrato entre el JSON y el arte — si dibujas
- * un pliego nuevo, respeta este orden y no hay que tocar codigo.
+ *
+ * Este es solo el reparto POR DEFECTO. Cada personaje puede traer el suyo en
+ * data/sprites/<id>.json (su "rig"), que es donde se edita ahora — el pliego
+ * de Gabo no tiene las mismas poses que el de Giuli.
  */
 export const POSES = {
   work: 0,
@@ -29,6 +31,14 @@ export const POSES = {
   phone: 5,
   scared: 6,
   shrug: 7,
+};
+
+/** El rig por defecto, equivalente a lo que hacía el motor antes de que los
+ *  personajes pudieran traer el suyo. */
+export const DEFAULT_RIG = {
+  walk: { fps: WALK_FPS, rows: ROW_BY_FACING },
+  actions: { fps: POSE_FPS, poses: POSES },
+  idle: null,
 };
 
 const loader = new THREE.TextureLoader();
@@ -62,7 +72,7 @@ export function loadSheets(urls) {
 }
 
 export class CharacterSprite {
-  constructor(sheet, { height = 1.5, y = 0 } = {}) {
+  constructor(sheet, { height = 1.5, y = 0, rig = null } = {}) {
     // Clone so every character owns its own UV offset; the underlying image
     // data is still shared.
     this.texture = sheet.clone();
@@ -83,10 +93,20 @@ export class CharacterSprite {
     this.baseY = y + height / 2;
     this.object.position.y = this.baseY;
 
+    this.setRig(rig);
+
     this.facing = "south";
     this.frame = 0;
     this._timer = 0;
     this._moving = false;
+
+    // Animación de espera, al estilo del Sonic al que dejas de pulsarle: si
+    // lleva un rato quieta y nadie le ha pedido otra pose, saca el móvil o se
+    // encoge de hombros. Sale del rig (data/sprites/<id>.json -> idle); sin
+    // ese bloque, el personaje simplemente se queda quieto como antes.
+    this._stillFor = 0;
+    this._idlePose = null;
+    this._idleLeft = 0;
 
     // Pose de accion en curso (cafe, peli, dormir...). Mientras haya una, el
     // sprite deja de mirar la hoja de caminar y anima esa pose en bucle.
@@ -96,6 +116,21 @@ export class CharacterSprite {
     this._poseTimer = 0;
 
     this._applyFrame();
+  }
+
+  /**
+   * El mapa de la rejilla de ESTE personaje: filas de caminata, poses de
+   * acción y animación de espera. Ver data/sprites/<id>.json.
+   */
+  setRig(rig) {
+    this.rig = {
+      walk: { ...DEFAULT_RIG.walk, ...(rig?.walk ?? {}) },
+      actions: { ...DEFAULT_RIG.actions, ...(rig?.actions ?? {}) },
+      idle: rig?.idle ?? null,
+    };
+    this._stillFor = 0;
+    this._idlePose = null;
+    this._idleLeft = 0;
   }
 
   /**
@@ -130,9 +165,13 @@ export class CharacterSprite {
     return !!this._poseSheet;
   }
 
-  /** `name` es una clave de POSES, o null para volver a la hoja de caminar. */
+  /** `name` es una pose del rig, o null para volver a la hoja de caminar. */
   setPose(name) {
-    const pose = name == null ? null : POSES[name];
+    // Mientras corre la animación de espera, un "sin pose" no la tumba: quien
+    // la pide es el bucle del jugador, que manda `null` en cada frame en que
+    // no estás haciendo nada. La corta _updateIdle cuando toca.
+    if (name == null && this._idlePose) return;
+    const pose = name == null ? null : this.rig.actions.poses[name];
     if (pose === this._pose) return;
     this._pose = pose ?? null;
     this._poseFrame = 0;
@@ -174,9 +213,11 @@ export class CharacterSprite {
   }
 
   update(dt) {
+    this._updateIdle(dt);
+
     if (this._pose != null && this._poseSheet) {
       this._poseTimer += dt;
-      const step = 1 / POSE_FPS;
+      const step = 1 / (this.rig.actions.fps || POSE_FPS);
       while (this._poseTimer >= step) {
         this._poseTimer -= step;
         this._poseFrame = 1 - this._poseFrame;
@@ -186,12 +227,54 @@ export class CharacterSprite {
     }
     if (!this._moving) return;
     this._timer += dt;
-    const step = 1 / WALK_FPS;
+    const step = 1 / (this.rig.walk.fps || WALK_FPS);
     while (this._timer >= step) {
       this._timer -= step;
       this.frame = (this.frame + 1) % FRAME_COLS;
       this._applyFrame();
     }
+  }
+
+  /**
+   * Cuenta cuánto lleva quieta y, pasado el umbral, le pone una pose de
+   * espera un par de segundos. Se corta en cuanto se mueve o alguien pide una
+   * pose de verdad (tomar café), que siempre manda sobre esto.
+   */
+  _updateIdle(dt) {
+    const idle = this.rig.idle;
+    if (!idle || !this._poseSheet || this._moving) {
+      if (this._idlePose) {
+        this._idlePose = null;
+        this.setPose(null);
+      }
+      this._stillFor = 0;
+      this._idleLeft = 0;
+      return;
+    }
+    // Alguien pidió una pose que no es la de espera: manda ella.
+    if (this._pose != null && !this._idlePose) {
+      this._stillFor = 0;
+      return;
+    }
+
+    if (this._idlePose) {
+      this._idleLeft -= dt;
+      if (this._idleLeft <= 0) {
+        this._idlePose = null;
+        this.setPose(null);
+        this._stillFor = -(idle.every ?? 9) + (idle.after ?? 4.5);
+      }
+      return;
+    }
+
+    this._stillFor += dt;
+    if (this._stillFor < (idle.after ?? 4.5)) return;
+    const options = (idle.poses ?? []).filter((p) => this.rig.actions.poses[p] != null);
+    if (!options.length) return;
+    this._idlePose = options[Math.floor(Math.random() * options.length)];
+    this._idleLeft = idle.hold ?? 2.2;
+    this._stillFor = 0;
+    this.setPose(this._idlePose);
   }
 
   _applyFrame() {
