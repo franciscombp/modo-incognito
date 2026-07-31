@@ -10,7 +10,7 @@ import { getCameraSettings, subscribeCameraSettings } from "./cameraSettings.js"
 
 const COLS = 5;
 const LANE_DEPTH = 2.4 * S;
-const ROAD_WIDTH = 5.2 * S;
+const ROAD_WIDTH = 8.0 * S; // Aumentado para cubrir más de la pantalla
 const VEHICLE_WIDTH = 0.85 * S;
 const PLAYER_RADIUS = 0.3 * S;
 const MOVE_COOLDOWN = 105;
@@ -88,10 +88,12 @@ function vehicleSprite(kind, dir) {
   const isAuto = kind === "car";
   const texture = isAuto ? autosTexture : bicisTexture;
 
+  // Dimensiones fijas para cada tipo de vehículo
+  const height = isAuto ? 0.7 * S : 1.1 * S;
+  const width = isAuto ? 1.8 * S : 0.55 * S;
+
   // Fallback: si no cargó la textura, usar geometría simple de color
   if (!texture) {
-    const height = isAuto ? 0.7 * S : 1.2 * S;
-    const width = isAuto ? 2.0 * S : 0.6 * S;
     const geometry = new THREE.PlaneGeometry(width, height);
     const material = new THREE.MeshLambertMaterial({
       color: isAuto ? 0x4a90e2 : 0x2ecc71,
@@ -103,15 +105,12 @@ function vehicleSprite(kind, dir) {
     return mesh;
   }
 
-  // Con textura: plano que muestra el sprite
-  const height = isAuto ? 0.8 * S : 1.3 * S;
-  const width = (texture.image.width / texture.image.height) * height;
-
+  // Con textura: plano que muestra el sprite con dimensiones fijas
   const geometry = new THREE.PlaneGeometry(width, height);
   const material = new THREE.MeshLambertMaterial({
     map: texture,
     transparent: true,
-    alphaTest: 0.3,
+    alphaTest: 0.2,
     side: THREE.DoubleSide,
   });
 
@@ -126,6 +125,10 @@ function vehicleSprite(kind, dir) {
  * Crea un sprite de árbol o arbusto para la mediana.
  */
 function treeSprite() {
+  // Dimensiones fijas para árboles
+  const height = 1.5 * S;
+  const width = 0.9 * S;
+
   if (!arbolesTexture) {
     // Fallback: cono simple
     const geometry = new THREE.ConeGeometry(0.5 * S, 1.5 * S, 8);
@@ -133,15 +136,12 @@ function treeSprite() {
     return new THREE.Mesh(geometry, material);
   }
 
-  // Con textura
-  const height = 1.5 * S;
-  const width = (arbolesTexture.image.width / arbolesTexture.image.height) * height;
-
+  // Con textura: plano con dimensiones fijas
   const geometry = new THREE.PlaneGeometry(width, height);
   const material = new THREE.MeshLambertMaterial({
     map: arbolesTexture,
     transparent: true,
-    alphaTest: 0.3,
+    alphaTest: 0.2,
     side: THREE.DoubleSide,
   });
 
@@ -337,7 +337,8 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
     if (row.kind !== "car" && row.kind !== "bike") return;
     const mesh = vehicleSprite(row.kind, row.dir);
     const startX = (row.dir > 0 ? -1 : 1) * (ROAD_WIDTH / 2 + VEHICLE_WIDTH * 2);
-    mesh.position.set(startX, 0.6 * S, rowIndex * LANE_DEPTH);
+    // Altura aumentada para que se vea mejor en pantalla
+    mesh.position.set(startX, 0.65 * S, rowIndex * LANE_DEPTH);
     roadGroup.add(mesh);
     vehicles.push({ row: rowIndex, x: startX, dir: row.dir, speed: row.speed, mesh });
   }
