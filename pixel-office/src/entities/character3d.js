@@ -536,16 +536,19 @@ export class Character3D {
     // cuerpo es un número de la receta (`build.bust`, 0 = sin nada).
     const bust = r.build.bust ?? 0;
     if (bust > 0.01) {
-      // Juntas, aplastadas y metidas en el pecho. Separadas y redondas se leen
-      // como dos bolas pegadas encima de la camiseta en vez de como el pecho.
-      const br = torsoR * (0.26 + bust * 0.2);
+      // SUTIL, y a propósito. El reparto va con ropa de oficina y de abrigo:
+      // lo que se ve no es el pecho, es cómo cae la tela por encima. Un bulto
+      // marcado con dos mitades separadas no se lee como una prenda gruesa,
+      // se lee como un escote — que no es lo que tiene puesto nadie aquí.
+      // Por eso van muy juntas, muy planas y metidas dentro del torso.
+      const br = torsoR * (0.22 + bust * 0.12);
       for (const dir of [-1, 1]) {
         add(
           ellipsoid(
-            new THREE.Vector3(dir * torsoR * 0.3, chest.y - 0.016 * H, torsoR * 0.3),
-            br * 1.15,
-            br * 0.8,
-            br * 0.62
+            new THREE.Vector3(dir * torsoR * 0.22, chest.y - 0.02 * H, torsoR * 0.2),
+            br * 1.5,
+            br * 0.62,
+            br * 0.42
           ),
           topColor,
           ["skin", ["Chest", "Spine"]]

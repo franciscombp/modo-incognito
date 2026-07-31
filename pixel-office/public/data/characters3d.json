@@ -26,9 +26,11 @@
     "  badge     color del cordón de la credencial (lo lleva todo el mundo en",
     "            los pliegos; null se lo quita)",
     "  accessories  glasses | sunglasses | hoops | cap",
-    "  build     { width, belly, bust }  1 = complexión normal; `bust` va de",
-    "            0 a 1 y añade geometría al pecho — con un modelo fijo esto",
-    "            exigiría morph targets, generándolo es un número",
+    "  build     { width, belly, bust }  1 = complexión normal. `bust` va",
+    "            de 0 a 1 y es SUTIL a propósito: el reparto lleva ropa de",
+    "            oficina y de abrigo, así que lo que se insinúa es la caída",
+    "            de la tela, no el pecho. Por encima de 0.5 empieza a",
+    "            leerse como escote, que aquí no lleva nadie.",
     "",
     "aliases: nombres alternativos que apuntan a la misma receta. Están para",
     "  que el motor pueda buscar por id de personaje (giu), por id de cast",
@@ -105,7 +107,7 @@
       ],
       "build": {
         "width": 0.94,
-        "bust": 0.62
+        "bust": 0.4
       },
       "$note": "Cintura estrecha y melena con volumen: la silueta la hace el contraste, no el tamaño."
     },
@@ -133,7 +135,7 @@
       ],
       "build": {
         "width": 0.92,
-        "bust": 0.4
+        "bust": 0.3
       }
     },
     "manu": {
@@ -207,7 +209,7 @@
       },
       "build": {
         "width": 0.9,
-        "bust": 0.45
+        "bust": 0.3
       }
     },
     "washo": {
@@ -283,7 +285,7 @@
       ],
       "build": {
         "width": 0.96,
-        "bust": 0.6
+        "bust": 0.42
       }
     },
     "parce": {
@@ -335,7 +337,7 @@
       ],
       "build": {
         "width": 0.97,
-        "bust": 0.5
+        "bust": 0.35
       }
     },
     "generic": {
@@ -378,7 +380,7 @@
       },
       "build": {
         "width": 0.94,
-        "bust": 0.5
+        "bust": 0.32
       }
     },
     {
@@ -447,7 +449,7 @@
       },
       "build": {
         "width": 0.92,
-        "bust": 0.6
+        "bust": 0.4
       }
     },
     {
@@ -469,7 +471,7 @@
       },
       "build": {
         "width": 0.99,
-        "bust": 0.45
+        "bust": 0.3
       }
     },
     {
