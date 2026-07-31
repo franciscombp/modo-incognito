@@ -63,18 +63,28 @@ export function createDialogue(root) {
   layer.appendChild(narratorEl);
   const narratorText = narratorEl.querySelector(".vn-narrator-text");
 
-  /** Retrato: sprite del personaje si lo tenemos, si no el emoji de siempre. */
+  /** Retrato: sprite del personaje. Siempre usa sheets, nunca emojis. */
   function setPortrait(node) {
-    if (node.sheet) {
-      portraitSprite.style.backgroundImage = `url(${spriteUrl(node.sheet)})`;
-      portraitSprite.style.backgroundPosition = "0 0";
-      portraitSprite.classList.remove("hidden");
-      portraitEmoji.classList.add("hidden");
-    } else {
-      portraitSprite.classList.add("hidden");
-      portraitEmoji.classList.remove("hidden");
-      portraitEmoji.textContent = node.portrait ?? "🗨️";
+    let sheet = node.sheet;
+
+    // Si no hay sheet, usar sprite específico basado en portrait o npc-camina como fallback
+    if (!sheet && node.portrait) {
+      const emojiMap = {
+        "🛎️": "reception",
+        "📞": "reception",
+        "🎙️": "narrator",
+        "🥚": "placeholder-1",
+        "🗨️": "placeholder-2",
+      };
+      sheet = emojiMap[node.portrait] || "npc-camina";
+    } else if (!sheet) {
+      sheet = "npc-camina";
     }
+
+    portraitSprite.style.backgroundImage = `url(${spriteUrl(sheet)})`;
+    portraitSprite.style.backgroundPosition = "0 0";
+    portraitSprite.classList.remove("hidden");
+    portraitEmoji.classList.add("hidden");
   }
 
   /** Mostrar narrador Steven el Daddy con mensaje. */
@@ -254,7 +264,7 @@ export function createDialogue(root) {
           else if (opt.effect) ctx.applyEffect?.(opt.effect);
           if (opt.reply) {
             await playLine(
-              { speaker: opt.replySpeaker ?? "Tú", portrait: "🙂", sheet: opt.replySheet ?? "employee", text: opt.reply },
+              { speaker: opt.replySpeaker ?? "Tú", portrait: "🙂", sheet: opt.replySheet ?? "npc-camina", text: opt.reply },
               ctx
             );
           }
