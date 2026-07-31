@@ -440,7 +440,8 @@ function drawRoutes() {
   const routeNames = Object.keys(routes);
   routeNames.forEach((name, i) => {
     const pts = routes[name];
-    const isSelected = routeEditMode && selectedRoute === i;
+    if (!pts || pts.length === 0) return;
+    const isSelected = routeEditMode && selectedRouteName === name;
     ctx.strokeStyle = hexA(colors[i % colors.length], isSelected ? 1 : 0.5);
     ctx.lineWidth = isSelected ? 3 * devicePixelRatio : 1.5 * devicePixelRatio;
     ctx.setLineDash([5 * devicePixelRatio, 5 * devicePixelRatio]);
@@ -465,21 +466,6 @@ function drawRoutes() {
       });
     }
   });
-
-  // Mostrar selector visual de rutas en modo edición
-  if (routeEditMode) {
-    const routeNames = Object.keys(routes);
-    routeNames.forEach((name, i) => {
-      if (!routes[name] || routes[name].length === 0) return;
-      const colors_list = ["#ff6b81", "#45a0e0", "#a8e05f", "#cbb3ff"];
-      const p = toScreen(routes[name][0].x, routes[name][0].z);
-      ctx.fillStyle = selectedRoute === i ? colors_list[i % colors_list.length] : hexA(colors_list[i % colors_list.length], 0.3);
-      ctx.fillRect(p.x + 12, p.y - 12, 16, 16);
-      ctx.strokeStyle = selectedRoute === i ? colors_list[i % colors_list.length] : hexA(colors_list[i % colors_list.length], 0.5);
-      ctx.lineWidth = 1.5 * devicePixelRatio;
-      ctx.strokeRect(p.x + 12, p.y - 12, 16, 16);
-    });
-  }
 }
 
 function drawSpawn() {
@@ -582,7 +568,7 @@ let selectedFootprintNode = null;
 let spawnEditMode = false;
 let bossSpawnEditMode = false;
 let routeEditMode = false;
-let selectedRoute = null;
+let selectedRouteName = null; // Nombre de la ruta, no índice
 let selectedRouteNode = null;
 let selectedBarrier = null;
 let selectedBarrierHandle = null; // "from", "to", o null
@@ -652,6 +638,7 @@ function routeAt(plan) {
   const routeNames = Object.keys(routes);
   for (let i = 0; i < routeNames.length; i++) {
     const pts = routes[routeNames[i]];
+    if (!pts || pts.length < 2) continue;
     for (let j = 0; j < pts.length - 1; j++) {
       const x1 = pts[j].x, z1 = pts[j].z;
       const x2 = pts[j + 1].x, z2 = pts[j + 1].z;
@@ -662,7 +649,7 @@ function routeAt(plan) {
       t = Math.max(0, Math.min(1, t));
       const px = x1 + t * dx, pz = z1 + t * dz;
       const dist = Math.hypot(plan.x - px, plan.z - pz);
-      if (dist < grab) return i;
+      if (dist < grab) return routeNames[i]; // Retornar nombre en lugar de índice
     }
   }
   return null;
@@ -793,35 +780,34 @@ canvas.addEventListener("pointerdown", (e) => {
   // Modo edición rutas
   if (routeEditMode) {
     // Intentar seleccionar una ruta haciendo clic en ella
-    const clickedRoute = routeAt(plan);
-    if (clickedRoute !== null) {
-      selectedRoute = clickedRoute;
+    const clickedRouteName = routeAt(plan);
+    if (clickedRouteName !== null) {
+      selectedRouteName = clickedRouteName;
       selectedRouteNode = null;
-      toast(`Ruta ${Object.keys(state.scene.routes ?? {})[selectedRoute]} seleccionada`);
+      toast(`Ruta "${selectedRouteName}" seleccionada`);
       draw();
       return;
     }
 
     // Si hay una ruta seleccionada, intentar mover un nodo o agregar uno nuevo
-    if (selectedRoute !== null) {
-      const routeName = Object.keys(state.scene.routes ?? {})[selectedRoute];
-      const nodeIdx = routeNodeAt(plan, routeName);
+    if (selectedRouteName !== null) {
+      const nodeIdx = routeNodeAt(plan, selectedRouteName);
       if (nodeIdx !== null) {
         selectedRouteNode = nodeIdx;
-        drag = { mode: "route-node-drag", routeIndex: selectedRoute, nodeIndex: nodeIdx };
+        drag = { mode: "route-node-drag", routeName: selectedRouteName, nodeIndex: nodeIdx };
         draw();
         return;
       }
       // Si se hace clic con botón izquierdo, intentar agregar nodo
       if (e.button === 0) {
-        const segment = closestRouteSegment(plan, routeName);
+        const segment = closestRouteSegment(plan, selectedRouteName);
         if (segment) {
           // Insertar nodo en el segmento más cercano
           const insertIdx = segment.segment + 1;
-          const route = state.scene.routes[routeName];
+          const route = state.scene.routes[selectedRouteName];
           route.splice(insertIdx, 0, { x: snap(segment.px, e.shiftKey), z: snap(segment.pz, e.shiftKey) });
           selectedRouteNode = insertIdx;
-          toast(`Nodo ${insertIdx} insertado en ruta ${routeName}`);
+          toast(`Nodo insertado en ruta "${selectedRouteName}"`);
           draw();
           return;
         }
@@ -957,8 +943,7 @@ canvas.addEventListener("pointermove", (e) => {
     return;
   }
   if (drag.mode === "route-node-drag") {
-    const routes = Object.values(state.scene.routes ?? {});
-    const route = routes[drag.routeIndex];
+    const route = state.scene.routes?.[drag.routeName];
     if (route && route[drag.nodeIndex]) {
       route[drag.nodeIndex].x = snap(plan.x, e.shiftKey);
       route[drag.nodeIndex].z = snap(plan.z, e.shiftKey);
@@ -1048,10 +1033,11 @@ window.addEventListener("keydown", (e) => {
     e.preventDefault();
     routeEditMode = !routeEditMode;
     if (routeEditMode) {
-      selectedRoute = 0;
-      toast("Modo RUTAS activado (elige ruta en el panel derecho)");
+      selectedRouteName = null;
+      selectedRouteNode = null;
+      toast("Modo RUTAS activado - haz clic en una ruta para editarla");
     } else {
-      selectedRoute = null;
+      selectedRouteName = null;
       selectedRouteNode = null;
       toast("Modo rutas desactivado");
     }
@@ -1079,10 +1065,9 @@ window.addEventListener("keydown", (e) => {
     return;
   }
   // Delete para nodos de rutas seleccionados
-  if ((e.key === "Delete" || e.key === "Backspace") && routeEditMode && selectedRoute !== null && selectedRouteNode !== null) {
+  if ((e.key === "Delete" || e.key === "Backspace") && routeEditMode && selectedRouteName !== null && selectedRouteNode !== null) {
     e.preventDefault();
-    const routeName = Object.keys(state.scene.routes ?? {})[selectedRoute];
-    const route = state.scene.routes[routeName];
+    const route = state.scene.routes[selectedRouteName];
     if (route && route.length > 1) {
       route.splice(selectedRouteNode, 1);
       selectedRouteNode = null;
