@@ -43,22 +43,37 @@ const FRAG = /* glsl */ `
     vec2 uv = (floor(vUv * uResolution) + 0.5) * texel;
     vec3 c = toSRGB(texture2D(tDiffuse, uv).rgb);
 
-    if (uLevels > 1.5) {
+    // La cuantización de color sigue disponible (es un ajuste del menú), pero
+    // por defecto está fuera: escalonar los degradados era lo que vendía el
+    // pixel art, y ahora lo que hace es cortar en bandas las superficies
+    // planas y las caras de los personajes.
+    if (uLevels > 1.5 && uLevels < 63.0) {
       c = floor(c * uLevels + 0.5) / uLevels;
     }
 
     float grey = dot(c, vec3(0.299, 0.587, 0.114));
     c = mix(vec3(grey), c, uSaturation);
 
+    // Grado cozy: una viñeta muy suave y un punto de calidez hacia los bordes.
+    // Es lo que hace que la escena parezca un diorama iluminado y no una
+    // captura plana de un visor 3D.
+    float d = distance(vUv, vec2(0.5));
+    float vignette = 1.0 - smoothstep(0.42, 0.95, d) * 0.22;
+    c *= vignette;
+    c = mix(c, c * vec3(1.03, 0.995, 0.965), smoothstep(0.2, 0.9, d));
+
     gl_FragColor = vec4(c, 1.0);
   }
 `;
 
 export class PixelPipeline {
-  constructor(renderer, { pixelSize = 2, levels = 24, saturation = 1.12 } = {}) {
+  constructor(renderer, { pixelSize = 1, levels = 64, saturation = 1.06 } = {}) {
     this.renderer = renderer;
     this.pixelSize = pixelSize;
-    this.enabled = pixelSize > 1;
+    // La pasada corre SIEMPRE, también con pixelSize 1. Antes se saltaba
+    // entera cuando no había que pixelar, pero ahora es también quien pone la
+    // viñeta y la calidez de los bordes — sin ella el diorama se ve plano.
+    this.enabled = true;
 
     this.target = new THREE.WebGLRenderTarget(1, 1, {
       minFilter: THREE.NearestFilter,
@@ -95,7 +110,6 @@ export class PixelPipeline {
 
   setPixelSize(pixelSize) {
     this.pixelSize = Math.max(1, Math.round(pixelSize));
-    this.enabled = this.pixelSize > 1;
     this._resizeTarget();
   }
 

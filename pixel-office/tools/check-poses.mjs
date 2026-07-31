@@ -1,11 +1,14 @@
-// Las poses de acción tienen DOS fotogramas cada una en el pliego
-// `*-acciones.png`, y la gracia es que se alternen: tomando café la taza sube
-// y baja, comiendo la mano va y viene. Si alguien toca sprite.js y deja la
-// pose congelada en el primer fotograma, en una captura no se nota y en el
-// diff tampoco — aquí sí.
+// Las poses de acción van y vienen entre dos posturas, y la gracia es que se
+// note: tomando café la taza sube y baja, comiendo la mano va a la boca y
+// vuelve. Si alguien toca character3d.js y deja la pose congelada, en una
+// captura no se nota y en el diff tampoco — aquí sí.
 //
 // Comprueba, para cada actividad del día 1, que la pose que sale del JSON es
-// la que se aplica Y que el fotograma cambia solo con el tiempo.
+// la que se aplica Y que el muñeco se sigue moviendo con el tiempo.
+//
+// Antes esto se medía en el desplazamiento UV del pliego `*-acciones.png`.
+// Ya no hay pliego: las poses son rotaciones de las articulaciones, así que
+// lo que se muestrea es la huella del rig (`sprite.poseSignature()`).
 //
 // Uso: node tools/check-poses.mjs [url]
 import { chromium } from "playwright";
@@ -34,7 +37,7 @@ const result = await page.evaluate(async () => {
   game.setPaused(false);
   document.querySelector(".vn-layer")?.classList.add("hidden");
 
-  const out = { hasActionSheet: player.sprite.hasPoses, activities: [] };
+  const out = { hasPoses: player.sprite.hasPoses, activities: [] };
 
   for (const station of game.objectives) {
     player.keys.clear();
@@ -43,12 +46,11 @@ const result = await page.evaluate(async () => {
     player.keys.add("e");
     await sleep(500);
 
-    // El desplazamiento UV de la hoja de acciones ES el fotograma. Se muestrea
-    // durante un segundo largo: con dos fotogramas a 3 fps tiene que cambiar.
+    // La huella del rig ES la postura del momento. Se muestrea durante un
+    // segundo largo: una pose viva tiene que dar varias distintas.
     const seen = new Set();
     for (let i = 0; i < 14; i++) {
-      const t = player.sprite.material.map;
-      seen.add(`${t.offset.x.toFixed(3)},${t.offset.y.toFixed(3)}`);
+      seen.add(player.sprite.poseSignature());
       await sleep(100);
     }
     out.activities.push({
@@ -71,10 +73,10 @@ function assert(label, ok) {
   if (!ok) failed++;
 }
 
-assert("Giuli trae su pliego de acciones", result.hasActionSheet === true);
+assert("Giuli puede hacer poses de acción", result.hasPoses === true);
 for (const a of result.activities) {
   assert(`${a.id}: usa la pose "${a.wanted}" del JSON`, !!a.wanted && a.applied === a.wanted);
-  assert(`${a.id}: la pose se anima (${a.frames} fotogramas distintos)`, a.frames >= 2);
+  assert(`${a.id}: la pose se anima (${a.frames} posturas distintas)`, a.frames >= 2);
 }
 assert("las tres actividades del día 1 tienen pose", result.activities.length === 3);
 

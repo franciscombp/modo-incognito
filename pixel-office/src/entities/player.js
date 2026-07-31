@@ -1,4 +1,4 @@
-import { CharacterSprite } from "./sprite.js";
+import { Character3D } from "./character3d.js";
 import { screenToGround, facingFromGround } from "../scene/iso.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
 
@@ -8,7 +8,7 @@ import { WORLD_SCALE as S } from "../scene/config.js";
 export class Player {
   // Sizes and speeds arrive already in world units (the data loader scales
   // them by WORLD_SCALE), so nothing is multiplied twice.
-  constructor(sheet, { x = 0, z = 12.6, radius = 0.26 * S, height = 1.45 * S, speed = 4.4 * S } = {}) {
+  constructor(look, { x = 0, z = 12.6, radius = 0.26 * S, height = 1.45 * S, speed = 4.4 * S } = {}) {
     this.speed = speed;
     this.radius = radius;
     this.position = { x, z };
@@ -24,7 +24,7 @@ export class Player {
     // partir de la actividad en curso. Sin hoja de acciones se ignora sola.
     this.pose = null;
 
-    this.sprite = new CharacterSprite(sheet, { height });
+    this.sprite = new Character3D(look, { height });
     this.sprite.setPosition(x, z);
 
     this._onKeyDown = (e) => {
@@ -71,6 +71,10 @@ export class Player {
       this.position.x += (dx / len) * step;
       this.position.z += (dz / len) * step;
       this.facing = facingFromGround(dx, dz, this.facing);
+      // El muñeco 3D gira de verdad, así que se le pasa la dirección exacta en
+      // vez de redondearla a una de las cuatro de siempre. `this.facing` se
+      // sigue calculando porque el resto del juego lo lee.
+      this.sprite.setHeading(dx / len, dz / len);
       moving = true;
     }
 
@@ -79,7 +83,7 @@ export class Player {
     // Standing still while "working" still shows the idle pose, not a walk.
     // Moverse cancela la pose: no puedes tomar café mientras caminas.
     this.sprite.setPose(moving ? null : this.pose);
-    this.sprite.setFacing(this.facing);
+    if (!moving) this.sprite.setFacing(this.facing);
     this.sprite.setMoving(moving && !this.isPretending);
     this.sprite.setPosition(this.position.x, this.position.z);
     this.sprite.setTint(this.isHiding ? 0.6 : 1);

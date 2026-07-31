@@ -6,12 +6,20 @@
 // without breaking any proportion.
 export const WORLD_SCALE = 1.2;
 
-/** Oblique JRPG-diorama framing: a high, tilted, narrow-FOV perspective. */
+/**
+ * Encuadre de diorama oblicuo, con la cámara más baja de lo que estaba.
+ *
+ * Con 52° se veía sobre todo la coronilla de la gente. Daba igual mientras los
+ * personajes eran sprites planos (siempre encarados a la cámara), pero los
+ * muñecos 3D tienen nuca, y a esa altura la cara — que es donde está toda la
+ * expresión — no se veía. A 44° se sigue leyendo el plano del piso y además se
+ * les ve la cara, como en los juegos cozy de referencia.
+ */
 export const CAMERA_PRESET = {
   type: "perspective",
   fov: 40,
   yawDeg: 0,
-  pitchDeg: 52,
+  pitchDeg: 44,
   distance: 14,
   lookAtYOffset: 2.1,
   followLerp: 0.08,

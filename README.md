@@ -73,7 +73,12 @@ código**.
 | Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) |
 | Colocar zonas, tareas, lugares seguros… con el ratón | [`builder/`](https://github.com/franciscombp/modo-incognito/tree/main/builder) — ver «El builder» más abajo |
 | Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/style.css) |
-| Sprites de personajes | [`public/sprites/*.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/sprites) |
+| **Cómo es cada personaje en 3D** (piel, pelo, ropa, complexión) | [`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/characters3d.json) — se edita con [`builder/personajes.html`](https://github.com/franciscombp/modo-incognito/tree/main/builder) |
+| Cómo se monta un muñeco 3D y sus poses (código) | [`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/character3d.js) |
+| La paleta cozy del decorado (suelos, muebles, cielo, niebla) | [`src/scene/cozy.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/cozy.js) |
+| Sacar los colores de un personaje de su pliego dibujado | [`tools/extract-palette.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/extract-palette.py) · `npm run palette` |
+| Ver el reparto 3D entero, o un personaje en sus 8 poses | [`tools/shoot-cast.mjs`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/shoot-cast.mjs) · `npm run check:cast` |
+| Los pliegos dibujados (retratos de diálogo, selección de personaje, y de donde salió el color de cada receta 3D) | [`public/sprites/*.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/sprites) |
 | Ilustraciones grandes de actividades (opcional, con emoji de respaldo) | [`public/actions/<id>.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/actions) |
 | Cómo decide y persigue el jefe/los secuaces (código) | [`src/entities/boss.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/boss.js) |
 | Reglas centrales de una jornada (código) | [`src/game/game.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/game.js) |
@@ -91,7 +96,7 @@ código**.
 | Que el jefe se quede pegado a la jugadora | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/levels) → `rules.bossTether` |
 | Qué pose hace la jugadora en cada actividad | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) → `activities[].pose` |
 | Meter pliegos de sprites dibujados a mano (los normaliza a la rejilla 4x4) | [`tools/pack-sprites.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/pack-sprites.py) |
-| Qué hay en cada celda del pliego de un personaje, y su animación de espera | [`data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/sprites) |
+| La animación de espera de un personaje (qué hace si lo dejas quieto) | [`data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/sprites) |
 | Las plantillas en blanco para dibujar un personaje nuevo | [`art/plantillas/`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/art/plantillas) · las genera [`tools/make-sprite-template.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/make-sprite-template.py) |
 | Los mensajes de Teams de Gabo | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/dialogues.json) → `teamsMessages.gabo` |
 
@@ -129,6 +134,33 @@ El builder **no escribe en el repo a propósito**. Cuando termines, «Copiar
 escena JSON» / «Copiar día JSON» (o «Descargar los dos»), pegas en
 `pixel-office/public/data/…` y haces commit. Así nunca te pisa un archivo por
 accidente y el diff lo revisas tú.
+
+### El builder de personajes
+
+En el mismo servidor, `/builder/personajes.html` es el editor del **reparto
+3D**. Un personaje no es un modelo: es una receta en
+[`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/characters3d.json)
+(piel, pelo y su estilo, prenda de arriba, pantalón, zapatos, complementos,
+complexión), y el motor monta el muñeco con primitivas a partir de ella. Por
+eso **añadir a alguien al reparto son diez líneas de JSON** y no modelar nada.
+
+El editor tiene vista previa 3D en vivo — se gira arrastrando, se acerca con
+la rueda, y hay un desplegable para verlo en cualquiera de sus ocho poses o
+caminando. Importa el **mismo módulo que usa el juego**, no una copia: si
+alguien añade un peinado al motor, aparece aquí solo.
+
+```bash
+python3 -m http.server 8000   # desde la raíz del repo
+# → http://localhost:8000/builder/personajes.html
+```
+
+Para verlos todos de golpe sin abrir el navegador, con el juego servido en
+`:4173`:
+
+```bash
+npm run check:cast                                   # el reparto entero
+node tools/shoot-cast.mjs poses.png poses:giuli      # uno, en sus 8 poses
+```
 
 ## Arquitectura del repo
 
@@ -253,10 +285,16 @@ Una actividad puede decir qué pose hace la jugadora mientras la ejecuta:
 { "id": "coffee", "label": "Tomar café", "type": "coffee", "pose": "coffee", ... }
 ```
 
-Las poses salen del pliego `*-acciones.png` del personaje, y **qué pose hay
-en cada celda lo decide su rig** (ver abajo). Mientras la haces, el panel
-grande de acción deja de enseñar un emoji y dibuja a tu personaje haciéndola,
-con sus dos fotogramas alternándose.
+Las poses son **procedurales y comunes a todo el reparto**: viven en
+`POSE_LIBRARY`, dentro de
+[`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/character3d.js),
+como dos posturas entre las que el muñeco va y viene (tomando café la taza
+sube y baja, comiendo la mano va a la boca y vuelve). Ya no dependen de que el
+pliego de ese personaje las tenga dibujadas: **todos pueden hacerlas todas**.
+
+Para ver si una pose quedó bien, `node tools/shoot-cast.mjs salida.png
+poses:giuli` la saca en las ocho. Y `npm run check:poses` comprueba, sin
+mirar la imagen, que la pose del JSON se aplica y que sigue moviéndose.
 
 ### El rig de un personaje
 
