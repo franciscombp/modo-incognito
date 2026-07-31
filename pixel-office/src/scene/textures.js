@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { cozyMaterial } from "./cozy.js";
 
 // Procedural pixel-art textures. Everything is drawn into small canvases
 // (16-48px) and sampled with NearestFilter so it keeps hard pixel edges at
@@ -174,12 +175,21 @@ export function getTexture(name) {
   return cache.get(name);
 }
 
-/** Convenience: a MeshStandardMaterial using one of the textures above. */
-export function texturedMaterial(name, { color = 0xffffff, roughness = 0.85, ...rest } = {}) {
-  return new THREE.MeshStandardMaterial({
-    map: getTexture(name),
-    color,
-    roughness,
-    ...rest,
-  });
+/**
+ * El material de una superficie del set.
+ *
+ * Ya NO devuelve la textura de píxeles de arriba: devuelve un color plano de
+ * la paleta cozy (ver scene/cozy.js). Las tramas existían para que el 3D
+ * pasara por pixel art visto en ángulo; con personajes 3D delante, esa trama
+ * pelea con ellos y ensucia la imagen.
+ *
+ * Se mantiene el nombre y la firma porque builder.js y furniture.js llaman
+ * aquí desde una veintena de sitios, y porque los NOMBRES de superficie
+ * ("tileLight", "woodPot"...) siguen describiendo bien qué es cada cosa.
+ * `color` sigue mandando sobre la paleta, igual que antes mandaba sobre la
+ * textura. Las recetas de textura se quedan por si algún día vuelve a hacer
+ * falta una superficie con trama (el suelo del cruce, por ejemplo).
+ */
+export function texturedMaterial(name, opts = {}) {
+  return cozyMaterial(name, opts);
 }

@@ -101,16 +101,27 @@ function prepareCharacters(raw) {
 export async function loadGameData() {
   const manifest = await getJSON("manifest.json");
 
-  const [charactersRaw, dialoguesRaw, modesRaw, bossConfigRaw, sceneList, levelList, rigList] =
-    await Promise.all([
+  const [
+    charactersRaw,
+    looksRaw,
+    dialoguesRaw,
+    modesRaw,
+    bossConfigRaw,
+    sceneList,
+    levelList,
+    rigList,
+  ] = await Promise.all([
     getJSON(manifest.characters ?? "characters.json"),
+    // Recetas de los muñecos 3D. Si faltan, cada personaje se monta con la
+    // receta por defecto de character3d.js: el juego se ve gris, pero arranca.
+    getJSON(manifest.characters3d ?? "characters3d.json").catch(() => ({ characters: {} })),
     getJSON(manifest.dialogues ?? "dialogues.json").catch(() => ({ cast: {}, encounters: {}, barks: {} })),
     getJSON(manifest.modes ?? "modes.json").catch(() => ({ characters: {} })),
     getJSON(manifest.bossConfig ?? "boss-config.json").catch(() => null),
     Promise.all((manifest.scenes ?? []).map((id) => getJSON(`scenes/${id}.json`))),
     Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
-    // Rigs de sprites: un archivo por personaje con su rejilla, sus poses y su
-    // animación de espera. Ver data/sprites/*.json.
+    // Rigs de personaje: qué poses usa cada uno y cómo se queda esperando.
+    // Ver data/sprites/*.json.
     Promise.all((manifest.sprites ?? []).map((id) => getJSON(`sprites/${id}.json`))),
   ]);
 
@@ -144,6 +155,34 @@ export async function loadGameData() {
     scenes,
     levels,
     rigs: new Map(rigList.map((r) => [r.id, r])),
+    looks: prepareLooks(looksRaw),
     codeEggs: manifest.codeEggs ?? [],
+  };
+}
+
+/**
+ * Las recetas de los muñecos 3D, con la búsqueda ya resuelta.
+ *
+ * El motor pregunta por un personaje de muchas maneras según de dónde venga
+ * (id de personaje jugable, id de cast del diálogo, o el nombre del pliego que
+ * traía el plano), así que aquí se aplanan los alias y se devuelve un `get()`
+ * que responde a todos ellos y nunca deja a nadie sin cara.
+ */
+function prepareLooks(raw) {
+  const characters = raw.characters ?? {};
+  const aliases = raw.aliases ?? {};
+  const extras = raw.extras ?? [];
+
+  const get = (name) => {
+    if (!name) return characters.generic ?? null;
+    return characters[name] ?? characters[aliases[name]] ?? characters.generic ?? null;
+  };
+
+  return {
+    characters,
+    extras,
+    get,
+    /** Variante de relleno, para que los NPC sin nombre no salgan clonados. */
+    extra: (i) => (extras.length ? extras[i % extras.length] : get(null)),
   };
 }

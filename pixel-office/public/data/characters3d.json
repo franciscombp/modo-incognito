@@ -1,0 +1,229 @@
+{
+  "$comment": [
+    "RECETAS DE PERSONAJE 3D. Un personaje no es un modelo: es esta receta.",
+    "El motor (src/entities/character3d.js) monta el muñeco con primitivas a",
+    "partir de estos campos, así que añadir a alguien al reparto son ~10 líneas",
+    "aquí y nada de código. Para verlo mientras lo editas: builder/personajes.html.",
+    "",
+    "Los colores salen del arte que ya dibujó el equipo: los sembró",
+    "`python3 tools/extract-palette.py`, que lee los pliegos de public/sprites/",
+    "y saca el color dominante de pelo, piel, prenda, pantalón y zapatos. Si",
+    "alguien redibuja un pliego, se vuelve a correr y se comparan.",
+    "",
+    "CAMPOS",
+    "  skin      color de la piel",
+    "  eyes      color de los ojos",
+    "  hair      { color, style, streak }",
+    "            style: short | fade | spiky | wavy | long | afro | bun | bald",
+    "            streak: mechas de otro color (solo en wavy y long)",
+    "  beard     color de la barba, o null",
+    "  top       { color, style, print, printColor }",
+    "            style: tee | polo | sweater | hoodie  (sweater y hoodie llevan",
+    "            manga larga; hoodie añade capucha y bolsillo)",
+    "            print: texto estampado en el pecho (\"COSA 1\")",
+    "  bottom    { color, style }   style: pants | jeans | cargo | skirt",
+    "  shoes     { color }",
+    "  badge     color del cordón de la credencial (lo lleva todo el mundo en",
+    "            los pliegos; null se lo quita)",
+    "  accessories  glasses | sunglasses | hoops | cap",
+    "  build     { width, belly }  1 = complexión normal",
+    "",
+    "aliases: nombres alternativos que apuntan a la misma receta. Están para",
+    "  que el motor pueda buscar por id de personaje (giu), por id de cast",
+    "  (fran_npc) o por nombre de pliego heredado (guili-camina) sin que haya",
+    "  que duplicar la receta.",
+    "",
+    "extras: el relleno de la oficina. Los NPC sin nombre del plano van",
+    "  repartiéndose estas variantes en orden, para que el piso no parezca",
+    "  lleno de clones."
+  ],
+  "aliases": {
+    "giu": "giuli",
+    "guili-camina": "giuli",
+    "jefe": "gabo",
+    "gabo-camina": "gabo",
+    "fran_npc": "fran",
+    "fran-camina": "fran",
+    "manu_npc": "manu",
+    "manu-camina": "manu",
+    "crispo-camina": "crispo",
+    "npc-camina": "generic",
+    "npc1": "generic",
+    "npc2": "generic",
+    "npc3": "generic",
+    "npc4": "generic"
+  },
+  "characters": {
+    "gabo": {
+      "$note": "El jefe. Gafas de sol dentro de la oficina, que es todo lo que hay que saber de él.",
+      "skin": "#e0a860",
+      "hair": { "color": "#302828", "style": "spiky" },
+      "beard": "#2a221e",
+      "top": { "color": "#2a2a30", "style": "tee" },
+      "bottom": { "color": "#686040", "style": "cargo" },
+      "shoes": { "color": "#2f2f34" },
+      "accessories": ["sunglasses"],
+      "build": { "width": 1.12, "belly": 0.16 }
+    },
+    "giuli": {
+      "skin": "#e8a060",
+      "hair": { "color": "#3a2c20", "style": "wavy" },
+      "top": { "color": "#302820", "style": "tee" },
+      "bottom": { "color": "#303038", "style": "jeans" },
+      "shoes": { "color": "#302828" },
+      "accessories": ["hoops"],
+      "build": { "width": 0.98 }
+    },
+    "fran": {
+      "$note": "Melena larga y gafas redondas. La mecha azul sale de la referencia nueva.",
+      "skin": "#e8a060",
+      "hair": { "color": "#302828", "style": "long", "streak": "#2a3fb8" },
+      "top": { "color": "#706868", "style": "sweater" },
+      "bottom": { "color": "#303030", "style": "pants" },
+      "shoes": { "color": "#302820" },
+      "accessories": ["glasses"],
+      "build": { "width": 0.92 }
+    },
+    "manu": {
+      "skin": "#d09050",
+      "hair": { "color": "#302828", "style": "fade" },
+      "beard": "#2a221e",
+      "top": { "color": "#c02018", "style": "hoodie", "print": "COSA 1", "printColor": "#f4efe6" },
+      "bottom": { "color": "#283040", "style": "jeans" },
+      "shoes": { "color": "#f0e8e0" },
+      "build": { "width": 1.08, "belly": 0.12 }
+    },
+    "crispo": {
+      "$note": "El afro es su silueta: se le reconoce a tres mesas de distancia.",
+      "skin": "#f8e0d0",
+      "hair": { "color": "#6b4526", "style": "afro" },
+      "top": { "color": "#d89820", "style": "polo" },
+      "bottom": { "color": "#383840", "style": "jeans" },
+      "shoes": { "color": "#302828" },
+      "accessories": ["sunglasses"],
+      "build": { "width": 0.95 }
+    },
+    "chispita": {
+      "$note": "Corre por todo el piso. Amarillo, como su cono de visión.",
+      "skin": "#d9a06a",
+      "hair": { "color": "#4a2f1c", "style": "bun" },
+      "top": { "color": "#f2c744", "style": "tee" },
+      "bottom": { "color": "#3d4358", "style": "pants" },
+      "shoes": { "color": "#e8e2d8" },
+      "build": { "width": 0.9 }
+    },
+    "washo": {
+      "$note": "No mira: barre. Turquesa, como su radar.",
+      "skin": "#b57a4d",
+      "hair": { "color": "#2c2c33", "style": "short" },
+      "top": { "color": "#3fbfb2", "style": "polo" },
+      "bottom": { "color": "#4a4f60", "style": "pants" },
+      "shoes": { "color": "#d8d2c6" },
+      "accessories": ["cap"],
+      "capColor": "#2f7a72",
+      "build": { "width": 1.04 }
+    },
+    "cesar": {
+      "skin": "#c98d5c",
+      "hair": { "color": "#2a2119", "style": "short" },
+      "beard": "#241c15",
+      "top": { "color": "#4a6fa5", "style": "sweater" },
+      "bottom": { "color": "#2f3440", "style": "pants" },
+      "shoes": { "color": "#e2ded4" },
+      "accessories": ["glasses"],
+      "build": { "width": 1.02 }
+    },
+    "enriquetta": {
+      "skin": "#e8c49c",
+      "hair": { "color": "#5a3a22", "style": "bun" },
+      "top": { "color": "#c56b8a", "style": "tee" },
+      "bottom": { "color": "#46506b", "style": "skirt" },
+      "shoes": { "color": "#efe8de" },
+      "accessories": ["glasses"],
+      "build": { "width": 0.96 }
+    },
+    "parce": {
+      "skin": "#a9714a",
+      "hair": { "color": "#241c16", "style": "spiky" },
+      "top": { "color": "#6fae62", "style": "tee" },
+      "bottom": { "color": "#3a4152", "style": "jeans" },
+      "shoes": { "color": "#dfd8cc" },
+      "accessories": ["cap"],
+      "capColor": "#3a4152",
+      "build": { "width": 1.05 }
+    },
+    "kiara": {
+      "$note": "Ya renunció. Se le nota en la ropa.",
+      "skin": "#d2a173",
+      "hair": { "color": "#2d2018", "style": "long" },
+      "top": { "color": "#f2a65a", "style": "tee" },
+      "bottom": { "color": "#e8ddc8", "style": "pants" },
+      "shoes": { "color": "#f4efe6" },
+      "badge": null,
+      "accessories": ["hoops"],
+      "build": { "width": 0.97 }
+    },
+    "generic": {
+      "$note": "El compañero de fondo por defecto, para quien no traiga receta.",
+      "skin": "#e0ac82",
+      "hair": { "color": "#3a2c26", "style": "short" },
+      "top": { "color": "#8fa8bd", "style": "tee" },
+      "bottom": { "color": "#3d4358", "style": "pants" },
+      "shoes": { "color": "#e8e2d8" }
+    }
+  },
+  "extras": [
+    {
+      "skin": "#f2d3b0",
+      "hair": { "color": "#8a5a2c", "style": "wavy" },
+      "top": { "color": "#7fa9c9", "style": "sweater" },
+      "bottom": { "color": "#3a4152", "style": "jeans" },
+      "shoes": { "color": "#ded7cb" },
+      "build": { "width": 0.94 }
+    },
+    {
+      "skin": "#8d5a38",
+      "hair": { "color": "#1e1a18", "style": "afro" },
+      "top": { "color": "#c9805f", "style": "polo" },
+      "bottom": { "color": "#4b5262", "style": "pants" },
+      "shoes": { "color": "#2f2f34" },
+      "build": { "width": 1.03 }
+    },
+    {
+      "skin": "#e7bd93",
+      "hair": { "color": "#4a4a52", "style": "short" },
+      "beard": "#43434b",
+      "top": { "color": "#9db98a", "style": "tee" },
+      "bottom": { "color": "#333a48", "style": "pants" },
+      "shoes": { "color": "#e6e0d4" },
+      "accessories": ["glasses"],
+      "build": { "width": 1.09, "belly": 0.2 }
+    },
+    {
+      "skin": "#c98f66",
+      "hair": { "color": "#2b1f1a", "style": "bun" },
+      "top": { "color": "#b48ac9", "style": "tee" },
+      "bottom": { "color": "#404860", "style": "skirt" },
+      "shoes": { "color": "#f0eae0" },
+      "build": { "width": 0.92 }
+    },
+    {
+      "skin": "#f0cfa8",
+      "hair": { "color": "#c99a4a", "style": "long" },
+      "top": { "color": "#6b7f9e", "style": "hoodie" },
+      "bottom": { "color": "#2f3440", "style": "jeans" },
+      "shoes": { "color": "#d5cec2" },
+      "build": { "width": 0.99 }
+    },
+    {
+      "skin": "#a06a45",
+      "hair": { "color": "#20191a", "style": "fade" },
+      "top": { "color": "#e0a95c", "style": "tee" },
+      "bottom": { "color": "#3d4358", "style": "cargo" },
+      "shoes": { "color": "#33333a" },
+      "accessories": ["cap"],
+      "capColor": "#8a5a2c",
+      "build": { "width": 1.06 }
+    }
+  ]
+}

@@ -77,27 +77,64 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
   la derrota es JSON** (`minigame.onFail`), no código. El motor nunca debe
   volver a tener un `if (day.loQueSea)` para un minijuego concreto.
 
-### Sprites dibujados a mano
+### Personajes 3D (ya no son sprites)
 
-Los pliegos que sube el equipo a `public/sprites/` (`gabo-camina.png`,
-`guili-acciones.png`…) **no vienen en una rejilla regular**: cortarlos por
-«ancho / 4» mete la cabeza de una fila en los pies de la anterior. Antes de
-usarlos hay que pasarlos por `python3 tools/pack-sprites.py`, que los detecta
-por las franjas transparentes y los deja en 4x4 celdas de 128x176. Es
-idempotente. Los `*-acciones.png` son la misma rejilla leída como 8 poses de
-2 fotogramas — el orden está en `POSES`, en `src/entities/sprite.js`, y es el
-contrato entre el JSON (`activities[].pose`) y el arte.
+El reparto **no son pliegos de dibujo**: son muñecos low-poly que
+`src/entities/character3d.js` monta con primitivas de Three.js a partir de una
+**receta** en `public/data/characters3d.json` (piel, pelo + estilo, prenda,
+pantalón, zapatos, accesorios, complexión). No hay ningún `.glb` ni PNG de
+personaje detrás. Por eso añadir a alguien al reparto son ~10 líneas de JSON
+y **nunca** hace falta tocar código.
 
-Qué pose hay en cada celda ya **no está en el código**: cada personaje trae
-su rig en `public/data/sprites/<id>.json` (filas de caminata, mapa de poses,
-animación de espera), listado en `manifest.json` → `sprites` y referenciado
-desde `characters.json`/`modes.json` con `"rig"`. `POSES` en `sprite.js` es
-solo el reparto por defecto para quien no traiga rig. Las plantillas en
-blanco para dibujar un personaje nuevo las genera
-`python3 tools/make-sprite-template.py` en `art/plantillas/`.
+- **Para editarlos**: `builder/personajes.html` — vista previa 3D en vivo,
+  selectores por pieza y visor de poses. Importa el módulo REAL del juego con
+  un import map, así que no puede desincronizarse del motor. No escribe en el
+  repo, igual que el builder del plano.
+- **Colores**: salieron de los pliegos que dibujó el equipo, con
+  `npm run palette` (`tools/extract-palette.py`, que lee `public/sprites/` y
+  saca el color dominante de pelo, piel, prenda, pantalón y zapatos). Si
+  alguien redibuja un pliego, se vuelve a correr y se comparan.
+- **Para mirarlos**: `npm run check:cast` saca un retrato de grupo del reparto
+  entero, y `node tools/shoot-cast.mjs salida.png poses:giuli` saca a uno en
+  sus ocho poses. El diff de una receta no dice nada; la imagen sí.
+- **Las poses son procedurales y comunes** (`POSE_LIBRARY` en character3d.js):
+  todos los personajes pueden hacerlas todas, ya no dependen de que su pliego
+  las tenga dibujadas. `data/sprites/<id>.json` sigue existiendo, pero ahora
+  solo aporta la **animación de espera** (`idle`).
+- Si tocas las proporciones (`P`) o una pose, mira que **CapsuleGeometry(1,1)
+  mide 3 de alto**, no 1 — usa el helper `capsule(material, radio, alto)`. Sin
+  él las piernas atraviesan el suelo, que es exactamente lo que pasó.
+- La cámara está a **44° de inclinación** (`CAMERA_PRESET`) y los muñecos
+  llevan la cabeza fija un poco alzada. Las dos cosas están para lo mismo: con
+  la cámara alta de antes solo se les veía la coronilla. Si subes el pitch, se
+  pierde la cara — que es donde está toda la expresión.
 
-El sitio bueno para los pliegos es siempre `pixel-office/public/sprites/` —
-no hay una copia en la raíz del repo que pueda desincronizarse.
+Los pliegos de `public/sprites/` **siguen en uso** para los retratos del
+diálogo y la pantalla de selección de personaje, y son la referencia de la que
+salió el color de cada receta. `tools/pack-sprites.py` los normaliza a la
+rejilla 4x4 de 128x176 (no vienen regulares: cortarlos por «ancho / 4» mete la
+cabeza de una fila en los pies de la anterior). Su sitio es siempre
+`pixel-office/public/sprites/`.
+
+### La estética cozy
+
+El decorado va en tonos cálidos, apagados y **sin textura**; todo el color
+saturado se reserva para los personajes. La paleta entera está en
+`src/scene/cozy.js` y es el único sitio donde tocarla:
+
+- `texturedMaterial()` (en `textures.js`) ya no devuelve las tramas de píxeles
+  que había: delega en `cozyMaterial()` y devuelve color plano. Es el
+  embudo por el que pasan builder.js y furniture.js, así que cambiar una
+  superficie ahí la cambia en todo el piso. Las recetas de textura se quedan
+  por si vuelve a hacer falta una superficie con trama.
+- El fondo es un degradado de cielo con niebla del mismo color
+  (`skyTexture()` + `scene.fog`, por tema en `game/themes.js`). Con el negro
+  de antes el piso flotaba en el vacío y ninguna cantidad de luz cálida
+  arreglaba eso.
+- `pixelPipeline.js` corre **siempre**, también con `pixelSize` 1: además de
+  pixelar es quien pone la viñeta y la calidez de los bordes.
+- Si pasas un `color` explícito a `texturedMaterial()`, pisa la paleta. Es lo
+  que dejaba los pasillos y los núcleos en gris frío después del cambio.
 
 Si tocas el HUD o el CSS, corre `npm run check:layout` antes de darlo por
 bueno: comprueba en seis tamaños de pantalla que nada se solape, se recorte
@@ -170,6 +207,12 @@ en una captura.
   `characters.json`/`modes.json`, mismo pliego 4x4 que el retrato de
   diálogo), no un emoji — no reintroduzcas emojis genéricos en la selección
   de personaje.
+- **`startDay(index, { skipMinigame: true })` también salta el prólogo** del
+  ascensor (`skipPrologue` lo sigue por defecto). Las dos escenas esperan un
+  clic, y cuando se añadió el prólogo dejó colgadas a diez comprobaciones de
+  `tools/` en el `waitForFunction` del `engine.game`, sin que el fallo dijera
+  por qué. Si separas otra vez esas dos banderas, comprueba que la suite
+  entera sigue entrando al piso.
 
 ## El builder (`builder/`)
 
