@@ -634,24 +634,37 @@ function routeNodeAt(plan, routeName) {
 
 function routeAt(plan) {
   const routes = state.scene?.routes ?? {};
-  const grab = 15 / state.view.scale;
   const routeNames = Object.keys(routes);
+  if (routeNames.length === 0) return null;
+
+  const grab = 20 / state.view.scale; // Aumentado para detectar mejor
+
   for (let i = 0; i < routeNames.length; i++) {
-    const pts = routes[routeNames[i]];
+    const name = routeNames[i];
+    const pts = routes[name];
     if (!pts || pts.length < 2) continue;
+
     for (let j = 0; j < pts.length - 1; j++) {
       const x1 = pts[j].x, z1 = pts[j].z;
       const x2 = pts[j + 1].x, z2 = pts[j + 1].z;
       const dx = x2 - x1, dz = z2 - z1;
       const len2 = dx * dx + dz * dz;
       if (len2 === 0) continue;
+
       let t = ((plan.x - x1) * dx + (plan.z - z1) * dz) / len2;
       t = Math.max(0, Math.min(1, t));
-      const px = x1 + t * dx, pz = z1 + t * dz;
+
+      const px = x1 + t * dx;
+      const pz = z1 + t * dz;
       const dist = Math.hypot(plan.x - px, plan.z - pz);
-      if (dist < grab) return routeNames[i]; // Retornar nombre en lugar de índice
+
+      if (dist < grab) {
+        console.log(`Ruta encontrada: ${name}, distancia: ${dist.toFixed(2)}, grab: ${grab.toFixed(2)}`);
+        return name;
+      }
     }
   }
+  console.log(`No se encontró ruta. Routes: ${routeNames.join(", ")}, grab: ${(20 / state.view.scale).toFixed(2)}`);
   return null;
 }
 
@@ -779,8 +792,10 @@ canvas.addEventListener("pointerdown", (e) => {
 
   // Modo edición rutas
   if (routeEditMode) {
+    console.log("Modo rutas activo, buscando ruta...");
     // Intentar seleccionar una ruta haciendo clic en ella
     const clickedRouteName = routeAt(plan);
+    console.log("Resultado de routeAt:", clickedRouteName);
     if (clickedRouteName !== null) {
       selectedRouteName = clickedRouteName;
       selectedRouteNode = null;
