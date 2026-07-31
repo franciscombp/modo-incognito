@@ -42,12 +42,14 @@ const ROWS = [
 ];
 const GOAL_ROW = ROWS.length - 1;
 
+// De día, no de madrugada: el asfalto casi negro de antes desentonaba con el
+// cielo claro. Se aclaran unos puntos sin perder el contraste con las líneas.
 const ROAD_COLORS = {
-  sidewalk: 0x3b4152,
-  goal: 0x3b4152,
-  car: 0x26272c,
-  bike: 0x2e3a2c,
-  median: 0x234029,
+  sidewalk: 0x8a92a0,
+  goal: 0x8a92a0,
+  car: 0x4b5058,
+  bike: 0x3c4d38,
+  median: 0x3c6b34,
 };
 
 // Carga de texturas sprite
@@ -119,9 +121,11 @@ function vehicleSprite(kind, dir) {
   // Dimensiones fijas por tipo de vehículo, medidas sobre el arte real (no
   // inventadas): los autos dibujados miden ~1.9:1 de ancho/alto y las bicis
   // ~0.78:1 — con proporciones distintas a las de la celda se veían
-  // aplastados o estirados.
-  const height = isAuto ? 0.72 * S : 1.1 * S;
-  const width = isAuto ? 1.35 * S : 0.86 * S;
+  // aplastados o estirados. Con la calle a 13*S de ancho, un auto de solo
+  // 1.35*S se perdía como un icono diminuto sobre un asfalto vacío — se
+  // escalan ambos ~1.7x para que ocupen su carril como un auto de verdad.
+  const height = isAuto ? 1.22 * S : 1.85 * S;
+  const width = isAuto ? 2.3 * S : 1.45 * S;
 
   // Fallback: si no cargó la textura, usar geometría simple de color
   if (!texture) {
@@ -249,12 +253,28 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
   }
 
   // ---- Calle: una franja ancha por fila, apiladas a lo largo de Z ----
+  // Cada franja mide solo ROAD_WIDTH, así que a los lados —donde antes
+  // empezaban los edificios— se veía cielo colándose por el hueco, y detrás
+  // de la jugadora (entre la cámara y la primera fila) no había suelo en
+  // absoluto. GROUND_WIDTH extiende el terreno hasta que se solapa con los
+  // edificios laterales, y una franja extra antes de la fila 0 cubre el
+  // tramo que queda a espaldas de la jugadora.
+  const GROUND_WIDTH = ROAD_WIDTH * 2.6;
   const roadGroup = new THREE.Group();
   scene.add(roadGroup);
+
+  const apron = new THREE.Mesh(
+    new THREE.PlaneGeometry(GROUND_WIDTH, LANE_DEPTH * 4),
+    new THREE.MeshLambertMaterial({ color: ROAD_COLORS.sidewalk })
+  );
+  apron.rotation.x = -Math.PI / 2;
+  apron.position.set(0, 0, -LANE_DEPTH * 2);
+  roadGroup.add(apron);
+
   ROWS.forEach((row, i) => {
     const z = i * LANE_DEPTH;
     const mesh = new THREE.Mesh(
-      new THREE.PlaneGeometry(ROAD_WIDTH, LANE_DEPTH),
+      new THREE.PlaneGeometry(GROUND_WIDTH, LANE_DEPTH),
       new THREE.MeshLambertMaterial({ color: ROAD_COLORS[row.kind] })
     );
     mesh.rotation.x = -Math.PI / 2;
@@ -262,22 +282,32 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
     roadGroup.add(mesh);
 
     if (row.kind === "car" || row.kind === "bike") {
-      // Línea discontinua central del carril, de puro detalle.
+      // Línea discontinua central del carril, de puro detalle. Se reparte a
+      // todo el ancho de la calle (antes se quedaba agrupada en el centro,
+      // dejando el resto del carril desnudo).
       const dashColor = row.kind === "bike" ? 0xa8e05f : 0xffffff;
-      for (let d = -2; d <= 2; d++) {
+      const dashSpan = ROAD_WIDTH * 0.9;
+      const dashCount = Math.round(dashSpan / (1.1 * S));
+      for (let d = 0; d < dashCount; d++) {
+        const dx = -dashSpan / 2 + (d / (dashCount - 1)) * dashSpan;
         const dash = new THREE.Mesh(
           new THREE.PlaneGeometry(0.5 * S, 0.06 * S),
           new THREE.MeshBasicMaterial({ color: dashColor, transparent: true, opacity: 0.5 })
         );
         dash.rotation.x = -Math.PI / 2;
-        dash.position.set(d * 0.9 * S, 0.01, z);
+        dash.position.set(dx, 0.01, z);
         roadGroup.add(dash);
       }
     }
     if (row.kind === "median") {
-      for (const dx of [-2.0, -1.1, 1.1, 2.0]) {
+      // Igual que las líneas: árboles a todo el ancho de la mediana, no solo
+      // en el centro, para que la calle ancha no se lea como medio vacía.
+      const treeSpan = ROAD_WIDTH * 0.92;
+      const treeCount = Math.round(treeSpan / (1.7 * S));
+      for (let t = 0; t < treeCount; t++) {
+        const dx = -treeSpan / 2 + (t / (treeCount - 1)) * treeSpan;
         const tree = treeSprite();
-        tree.position.set(dx * S, 0.75 * S, z);
+        tree.position.set(dx, 0.75 * S, z);
         roadGroup.add(tree);
       }
     }
@@ -314,6 +344,46 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
   );
   door.position.set(0, 0.95 * S, GOAL_ROW * LANE_DEPTH + 1.19 * S);
   roadGroup.add(door);
+
+  // ---- Fondo de ciudad, para que no se vea cielo alrededor del banco ----
+  // El edificio del banco por sí solo, por ancho que sea, se ve al fondo como
+  // una caja flotando en cielo abierto por los lados: a esa distancia
+  // subtiende pocos grados de cámara. Una franja baja y MUY ancha detrás
+  // cierra el horizonte con un perfil de azotea sin competir con el banco.
+  const skyline = new THREE.Mesh(
+    new THREE.BoxGeometry(ROAD_WIDTH * 6, 9 * S, 3 * S),
+    new THREE.MeshLambertMaterial({ color: 0x3a4256 })
+  );
+  skyline.position.set(0, 4.5 * S, GOAL_ROW * LANE_DEPTH + 7 * S);
+  roadGroup.add(skyline);
+
+  // Edificios que flanquean la calle, a los lados, para que la avenida se
+  // lea como una calle de ciudad y no como una pista sobre fondo vacío.
+  const SIDE_BUILDINGS = [
+    { side: -1, z: 1, h: 10, d: 4 },
+    { side: -1, z: 4, h: 7, d: 3.4 },
+    { side: -1, z: 7.4, h: 12, d: 4.4 },
+    { side: 1, z: 0.4, h: 8, d: 3.6 },
+    { side: 1, z: 3.6, h: 11, d: 4 },
+    { side: 1, z: 7, h: 6.5, d: 3.2 },
+  ];
+  for (const b of SIDE_BUILDINGS) {
+    const bx = b.side * (ROAD_WIDTH / 2 + b.d * S * 0.5 + 0.6 * S);
+    const bz = b.z * LANE_DEPTH * (GOAL_ROW / 8);
+    const building = new THREE.Mesh(
+      new THREE.BoxGeometry(b.d * S, b.h * S, b.d * S),
+      new THREE.MeshLambertMaterial({ color: 0x232a3a })
+    );
+    building.position.set(bx, (b.h / 2) * S, bz);
+    roadGroup.add(building);
+    // Un par de ventanas encendidas por edificio, de puro ambiente.
+    for (let r = 1; r < b.h - 1; r += 1.4) {
+      const w = new THREE.Mesh(windowGeo, windowMat);
+      w.position.set(bx + (b.side < 0 ? b.d * S * 0.5 + 0.01 : -b.d * S * 0.5 - 0.01), r * S, bz);
+      w.rotation.y = Math.PI / 2;
+      roadGroup.add(w);
+    }
+  }
 
   // ---- Jugadora: mismo sprite que en el piso, de espaldas ----
   const player = new CharacterSprite(playerSheet, { height: 1.45 * S, rig: sheets.playerRig });
