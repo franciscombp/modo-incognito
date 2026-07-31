@@ -3,14 +3,10 @@ import { CharacterSprite } from "../entities/sprite.js";
 import { WORLD_SCALE as S } from "./config.js";
 import { getCameraSettings, subscribeCameraSettings } from "./cameraSettings.js";
 
-// Cruzar la Amazonas, en 3D: mismo motor y el mismo sprite de personaje que
-// el resto del juego, pero con una cámara propia — aquí NO se usa la vista
-// oblicua del piso. Vas de espaldas, avanzando hacia el fondo, con la cámara
-// detrás y un poco por encima del hombro: se ve venir el tráfico de frente,
-// que es de lo que va el minijuego.
+// Cruzar la Amazonas con sprites: mismo motor pero ahora con sprites 2D
+// de autos, bicis y árboles. Pantalla completa para máximo impacto.
 //
-// Editable aquí mismo: ROWS describe cada carril, de la acera de salida
-// (fila 0) a la puerta del edificio (última fila).
+// ROWS describe cada carril, de la acera de salida (fila 0) a la puerta (última fila).
 
 const COLS = 5;
 const LANE_DEPTH = 2.4 * S;
@@ -23,22 +19,19 @@ const MOVE_COOLDOWN = 150;
 const CAM_BACK = 9.6 * S;
 const CAM_HEIGHT = 6.2 * S;
 const CAM_AHEAD = 2.6 * S;
-const CAM_SIDE_FOLLOW = 0.45; // cuánto acompaña la cámara al moverte de lado
+const CAM_SIDE_FOLLOW = 0.45;
 
-// Huecos generosos a propósito: es un chiste sobre que te despidan, no un
-// examen de reflejos — la caminata debe ganarse con lectura de tráfico, no
-// con pixel-perfect timing.
 const ROWS = [
   { kind: "sidewalk" },
-  { kind: "car", dir: 1, speed: 2.4 * S, gap: [2.0, 2.9], colors: [0xe6483f, 0x45a0e0, 0xf2c744] },
-  { kind: "car", dir: 1, speed: 2.9 * S, gap: [1.9, 2.7], colors: [0xe6483f, 0xe8e8e8, 0x45a0e0] },
-  { kind: "car", dir: 1, speed: 2.6 * S, gap: [2.1, 3.0], colors: [0xf2c744, 0xe6483f] },
-  { kind: "bike", dir: -1, speed: 3.4 * S, gap: [1.7, 2.4], colors: [0xa8e05f, 0x45e0d0] },
+  { kind: "car", dir: 1, speed: 2.4 * S, gap: [2.0, 2.9] },
+  { kind: "car", dir: 1, speed: 2.9 * S, gap: [1.9, 2.7] },
+  { kind: "car", dir: 1, speed: 2.6 * S, gap: [2.1, 3.0] },
+  { kind: "bike", dir: -1, speed: 3.4 * S, gap: [1.7, 2.4] },
   { kind: "median" },
-  { kind: "bike", dir: 1, speed: 3.4 * S, gap: [1.7, 2.4], colors: [0xa8e05f, 0x45e0d0] },
-  { kind: "car", dir: -1, speed: 2.7 * S, gap: [2.0, 2.9], colors: [0x8b5cf6, 0xe8e8e8] },
-  { kind: "car", dir: -1, speed: 3.0 * S, gap: [1.9, 2.7], colors: [0xe6483f, 0x45a0e0, 0xf2c744] },
-  { kind: "car", dir: -1, speed: 2.4 * S, gap: [2.1, 3.0], colors: [0xf2c744, 0x8b5cf6] },
+  { kind: "bike", dir: 1, speed: 3.4 * S, gap: [1.7, 2.4] },
+  { kind: "car", dir: -1, speed: 2.7 * S, gap: [2.0, 2.9] },
+  { kind: "car", dir: -1, speed: 3.0 * S, gap: [1.9, 2.7] },
+  { kind: "car", dir: -1, speed: 2.4 * S, gap: [2.1, 3.0] },
   { kind: "goal" },
 ];
 const GOAL_ROW = ROWS.length - 1;
@@ -51,6 +44,26 @@ const ROAD_COLORS = {
   median: 0x234029,
 };
 
+// Carga de texturas sprite
+const textureLoader = new THREE.TextureLoader();
+let autosTexture = null;
+let bicisTexture = null;
+let arbolesTexture = null;
+
+// Precarga de texturas
+Promise.all([
+  textureLoader.loadAsync(`${import.meta.env.BASE_URL}sprites/autos.png`).catch(() => null),
+  textureLoader.loadAsync(`${import.meta.env.BASE_URL}sprites/bicis.png`).catch(() => null),
+  textureLoader.loadAsync(`${import.meta.env.BASE_URL}sprites/arboles.png`).catch(() => null),
+]).then(([a, b, ab]) => {
+  autosTexture = a;
+  bicisTexture = b;
+  arbolesTexture = ab;
+  if (autosTexture) autosTexture.magFilter = THREE.NearestFilter;
+  if (bicisTexture) bicisTexture.magFilter = THREE.NearestFilter;
+  if (arbolesTexture) arbolesTexture.magFilter = THREE.NearestFilter;
+});
+
 // La cámara mira hacia +Z, así que su "derecha" es -X: por eso la columna
 // crece hacia -X y la tecla izquierda mueve, de verdad, hacia la izquierda de
 // la pantalla. Si algún día se gira la cámara, este signo es lo único a tocar.
@@ -58,108 +71,76 @@ function colToX(col) {
   return -(col - (COLS - 1) / 2) * (ROAD_WIDTH / COLS);
 }
 
-// ---- Vehículos: geometría 3D mejorada con detalles ----
-// Se construyen una sola vez por tipo y se comparten entre todos los coches;
-// lo único propio de cada uno es el material de la carrocería (el color).
-const geomCache = new Map();
-function cached(key, build) {
-  if (!geomCache.has(key)) geomCache.set(key, build());
-  return geomCache.get(key);
-}
-
-const DARK = new THREE.MeshLambertMaterial({ color: 0x14151a });
-const GLASS = new THREE.MeshLambertMaterial({ color: 0x9fd8f2 });
-const SKIN = new THREE.MeshLambertMaterial({ color: 0xe8c9a0 });
+// ---- Vehículos: Sprites 2D para autos y bicis ----
+// Los sprites cargados de autos.png, bicis.png son planos texturizados
+// que mantienen altura fija mientras se mueven.
 
 /**
- * Vehículos mejorados: autos con mejor detalle, bicis con animación implícita.
- * Mira siempre a lo largo de X, que es como corren los carriles; `dir` solo
- * decide hacia qué lado se gira. Los vehículos pueden reflejarse para simular
- * movimiento en ambas direcciones.
+ * Crea un sprite de vehículo (auto o bici) con textura sprite.
+ * Los sprites son planos con texturas que se ven desde la cámara frontal.
  */
-function vehicleMesh(kind, color, dir) {
-  const group = new THREE.Group();
-  const paint = new THREE.MeshLambertMaterial({ color });
+function vehicleSprite(kind, dir) {
+  const isAuto = kind === "car";
+  const texture = isAuto ? autosTexture : bicisTexture;
 
-  if (kind === "bike") {
-    // Bicis: simulan animación con ligera inclinación
-    const wheel = cached("bikeWheel", () =>
-      new THREE.TorusGeometry(0.28 * S, 0.07 * S, 8, 16)
-    );
-    [-0.42, 0.42].forEach((dx) => {
-      const w = new THREE.Mesh(wheel, DARK);
-      w.position.set(dx * S, 0.28 * S, 0);
-      group.add(w);
+  // Fallback: si no cargó la textura, usar geometría simple de color
+  if (!texture) {
+    const height = isAuto ? 0.7 * S : 1.2 * S;
+    const width = isAuto ? 2.0 * S : 0.6 * S;
+    const geometry = new THREE.PlaneGeometry(width, height);
+    const material = new THREE.MeshLambertMaterial({
+      color: isAuto ? 0x4a90e2 : 0x2ecc71,
+      transparent: true,
+      alphaTest: 0.5,
     });
-    const frame = new THREE.Mesh(
-      cached("bikeFrame", () => new THREE.BoxGeometry(0.9 * S, 0.1 * S, 0.1 * S)),
-      paint
-    );
-    frame.position.y = 0.5 * S;
-    group.add(frame);
-
-    const torso = new THREE.Mesh(
-      cached("bikeTorso", () => new THREE.BoxGeometry(0.34 * S, 0.5 * S, 0.3 * S)),
-      paint
-    );
-    torso.position.set(-0.05 * S, 0.85 * S, 0);
-    group.add(torso);
-    const head = new THREE.Mesh(
-      cached("bikeHead", () => new THREE.BoxGeometry(0.26 * S, 0.26 * S, 0.26 * S)),
-      SKIN
-    );
-    head.position.set(0.02 * S, 1.22 * S, 0);
-    group.add(head);
-  } else {
-    // Autos: diseño mejorado con proporciones mejor
-    const body = new THREE.Mesh(
-      cached("carBody", () => new THREE.BoxGeometry(2.1 * S, 0.55 * S, 0.95 * S)),
-      paint
-    );
-    body.position.y = 0.42 * S;
-    group.add(body);
-
-    const cabin = new THREE.Mesh(
-      cached("carCabin", () => new THREE.BoxGeometry(1.2 * S, 0.45 * S, 0.86 * S)),
-      paint
-    );
-    cabin.position.set(-0.05 * S, 0.9 * S, 0);
-    group.add(cabin);
-
-    const windshield = new THREE.Mesh(
-      cached("carGlass", () => new THREE.BoxGeometry(1.12 * S, 0.28 * S, 0.92 * S)),
-      GLASS
-    );
-    windshield.position.set(-0.05 * S, 0.95 * S, 0);
-    group.add(windshield);
-
-    // Faros
-    const headlight = cached("carHeadlight", () =>
-      new THREE.SphereGeometry(0.1 * S, 6, 6)
-    );
-    const headlightMat = new THREE.MeshLambertMaterial({ color: 0xffffcc });
-    [-0.3, 0.3].forEach((dx) => {
-      const light = new THREE.Mesh(headlight, headlightMat);
-      light.position.set(dx * S, 0.5 * S, 1.0 * S);
-      group.add(light);
-    });
-
-    const wheel = cached("carWheel", () =>
-      new THREE.CylinderGeometry(0.26 * S, 0.26 * S, 0.18 * S, 10).rotateX(Math.PI / 2)
-    );
-    const wheelRim = new THREE.MeshLambertMaterial({ color: 0x333333 });
-    [-0.68, 0.68].forEach((dx) => {
-      [-0.5, 0.5].forEach((dz) => {
-        const w = new THREE.Mesh(wheel, wheelRim);
-        w.position.set(dx * S, 0.26 * S, dz * S);
-        group.add(w);
-      });
-    });
+    const mesh = new THREE.Mesh(geometry, material);
+    if (dir < 0) mesh.scale.x = -1;
+    return mesh;
   }
 
-  // Reflexión para dirección opuesta: voltear en Y
-  if (dir < 0) group.rotation.y = Math.PI;
-  return group;
+  // Con textura: plano que muestra el sprite
+  const height = isAuto ? 0.8 * S : 1.3 * S;
+  const width = (texture.image.width / texture.image.height) * height;
+
+  const geometry = new THREE.PlaneGeometry(width, height);
+  const material = new THREE.MeshLambertMaterial({
+    map: texture,
+    transparent: true,
+    alphaTest: 0.3,
+    side: THREE.DoubleSide,
+  });
+
+  const mesh = new THREE.Mesh(geometry, material);
+  // Voltear sprite para dirección opuesta
+  if (dir < 0) mesh.scale.x = -1;
+
+  return mesh;
+}
+
+/**
+ * Crea un sprite de árbol o arbusto para la mediana.
+ */
+function treeSprite() {
+  if (!arbolesTexture) {
+    // Fallback: cono simple
+    const geometry = new THREE.ConeGeometry(0.5 * S, 1.5 * S, 8);
+    const material = new THREE.MeshLambertMaterial({ color: 0x2d5016 });
+    return new THREE.Mesh(geometry, material);
+  }
+
+  // Con textura
+  const height = 1.5 * S;
+  const width = (arbolesTexture.image.width / arbolesTexture.image.height) * height;
+
+  const geometry = new THREE.PlaneGeometry(width, height);
+  const material = new THREE.MeshLambertMaterial({
+    map: arbolesTexture,
+    transparent: true,
+    alphaTest: 0.3,
+    side: THREE.DoubleSide,
+  });
+
+  return new THREE.Mesh(geometry, material);
 }
 
 function el(tag, className, parent) {
@@ -242,28 +223,9 @@ export function createCrossing3D(root, playerSheet) {
     }
     if (row.kind === "median") {
       for (const dx of [-2.0, -1.1, 1.1, 2.0]) {
-        // Árbol: tronco + follaje en capas
-        const trunk = new THREE.Mesh(
-          new THREE.CylinderGeometry(0.12 * S, 0.15 * S, 0.6 * S, 6),
-          new THREE.MeshLambertMaterial({ color: 0x5d4037 })
-        );
-        trunk.position.set(dx * S, 0.3 * S, z);
-
-        const foliage1 = new THREE.Mesh(
-          new THREE.ConeGeometry(0.5 * S, 0.8 * S, 8),
-          new THREE.MeshLambertMaterial({ color: 0x2d5016 })
-        );
-        foliage1.position.set(dx * S, 0.8 * S, z);
-
-        const foliage2 = new THREE.Mesh(
-          new THREE.ConeGeometry(0.35 * S, 0.6 * S, 8),
-          new THREE.MeshLambertMaterial({ color: 0x3f7a4a })
-        );
-        foliage2.position.set(dx * S, 1.25 * S, z);
-
-        roadGroup.add(trunk);
-        roadGroup.add(foliage1);
-        roadGroup.add(foliage2);
+        const tree = treeSprite();
+        tree.position.set(dx * S, 0.75 * S, z);
+        roadGroup.add(tree);
       }
     }
   });
@@ -322,10 +284,9 @@ export function createCrossing3D(root, playerSheet) {
   function spawnFor(rowIndex) {
     const row = ROWS[rowIndex];
     if (row.kind !== "car" && row.kind !== "bike") return;
-    const color = row.colors[Math.floor(Math.random() * row.colors.length)];
-    const mesh = vehicleMesh(row.kind, color, row.dir);
+    const mesh = vehicleSprite(row.kind, row.dir);
     const startX = (row.dir > 0 ? -1 : 1) * (ROAD_WIDTH / 2 + VEHICLE_WIDTH * 2);
-    mesh.position.set(startX, 0, rowIndex * LANE_DEPTH);
+    mesh.position.set(startX, 0.6 * S, rowIndex * LANE_DEPTH);
     roadGroup.add(mesh);
     vehicles.push({ row: rowIndex, x: startX, dir: row.dir, speed: row.speed, mesh });
   }
@@ -453,6 +414,7 @@ export function createCrossing3D(root, playerSheet) {
     const delay = outcome === "hit" ? 550 : 150;
     setTimeout(() => {
       ui.classList.add("hidden");
+      document.body.classList.remove("crossing-open");
       resolveFn?.(outcome);
       resolveFn = null;
     }, delay);
@@ -462,6 +424,8 @@ export function createCrossing3D(root, playerSheet) {
   function play(renderFn) {
     render = renderFn;
     ui.classList.remove("hidden");
+    // Crossing ocupa pantalla completa
+    document.body.classList.add("crossing-open");
     return new Promise((resolve) => {
       resolveFn = resolve;
       resetGame();
@@ -480,6 +444,7 @@ export function createCrossing3D(root, playerSheet) {
     window.removeEventListener("keydown", onKey);
     if (rafId) cancelAnimationFrame(rafId);
     unsubscribe?.();
+    document.body.classList.remove("crossing-open");
   }
 
   placeCamera();
