@@ -8,7 +8,7 @@
 // Todo se trabaja en UNIDADES DE PLANO, las mismas que hay en los archivos;
 // el motor las multiplica por WORLD_SCALE al cargar, y eso aquí no se toca.
 
-const DATA = "../pixel-office/public/data/";
+const DATA = "../data/";
 const GRID = 0.1; // ajuste al mover, en unidades de plano
 
 // ---------------------------------------------------------------- registro
