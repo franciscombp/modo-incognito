@@ -1,13 +1,9 @@
-import * as Tone from "https://cdn.jsdelivr.net/npm/tone@14/build/Tone.js";
-
-// Tema actual cargado en el editor
+// Music Builder - Reproductor simple sin Tone.js
 let currentTheme = null;
 let currentThemeName = null;
 let isPlaying = false;
-let currentSequences = { bass: null, lead: null, pad: null };
-let synths = {};
-let synthsInitialized = false;
-let audioStarted = false;
+let audioContext = null;
+let oscillators = [];
 
 const THEMES = {
   main: {
@@ -75,129 +71,81 @@ const THEMES = {
   },
 };
 
-async function initSynths() {
-  if (synthsInitialized) return;
-  try {
-    // Tone.js v14 usa API de sintetizadores directo
-    synths.bass = new Tone.Synth({
-      oscillator: { type: "triangle" },
-      envelope: { attack: 0.01, decay: 0.15, sustain: 0.2, release: 0.2 },
-    });
-    synths.bass.toDestination();
+// Notas MIDI
+const NOTE_FREQS = {
+  "C1": 32.70, "C#1": 34.65, "D1": 36.71, "Eb1": 38.89, "E1": 41.20, "F1": 43.65,
+  "F#1": 46.25, "G1": 49.00, "Ab1": 51.91, "A1": 55.00, "Bb1": 58.27, "B1": 61.74,
+  "C2": 65.41, "C#2": 69.30, "D2": 73.42, "Eb2": 77.78, "E2": 82.41, "F2": 87.31,
+  "F#2": 92.50, "G2": 98.00, "Ab2": 103.83, "A2": 110.00, "Bb2": 116.54, "B2": 123.47,
+  "C3": 130.81, "C#3": 138.59, "D3": 146.83, "Eb3": 155.56, "E3": 164.81, "F3": 174.61,
+  "F#3": 185.00, "G3": 196.00, "Ab3": 207.65, "A3": 220.00, "Bb3": 246.94, "B3": 246.94,
+  "C4": 261.63, "C#4": 277.18, "D4": 293.66, "Eb4": 311.13, "E4": 329.63, "F4": 349.23,
+  "F#4": 369.99, "G4": 392.00, "Ab4": 415.30, "A4": 440.00, "Bb4": 466.16, "B4": 493.88,
+  "C5": 523.25, "C#5": 554.37, "D5": 587.33, "Eb5": 622.25, "E5": 659.25, "F5": 698.46,
+  "F#5": 739.99, "G5": 783.99, "Ab5": 830.61, "A5": 880.00, "Bb5": 932.33, "B5": 987.77,
+  "C6": 1046.50,
+};
 
-    synths.lead = new Tone.PluckSynth({ attackNoise: 0.6, dampening: 3200, resonance: 0.82 });
-    synths.lead.toDestination();
-
-    synths.pad = new Tone.PolySynth(Tone.Synth, {
-      oscillator: { type: "sine" },
-      envelope: { attack: 0.4, decay: 0.3, sustain: 0.6, release: 1.2 },
-    });
-    synths.pad.toDestination();
-
-    synthsInitialized = true;
-  } catch (e) {
-    console.error("Error inicializando sintetizadores:", e);
-    synthsInitialized = false;
+function getAudioContext() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
   }
+  if (audioContext.state === "suspended") {
+    audioContext.resume().catch(() => {});
+  }
+  return audioContext;
 }
 
-async function startAudio() {
-  if (audioStarted) return;
-  try {
-    // Tone.js v14 inicia automáticamente al interactuar con synths
-    // Solo necesitamos inicializar synths
-    await initSynths();
-    audioStarted = true;
+function playNote(freq, duration = 0.5) {
+  const ctx = getAudioContext();
+  const now = ctx.currentTime;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
 
-    // Asegurarse de que el Transport esté corriendo
-    if (Tone.Transport && Tone.Transport.state !== "started") {
-      Tone.Transport.start();
-    }
-  } catch (e) {
-    console.error("Error iniciando audio:", e);
-  }
-}
+  osc.frequency.value = freq;
+  osc.type = "sine";
+  gain.gain.setValueAtTime(0.1, now);
+  gain.gain.exponentialRampToValueAtTime(0.01, now + duration);
 
-function stopSequences() {
-  Object.values(currentSequences).forEach(seq => {
-    if (seq) {
-      try {
-        seq.stop();
-        seq.dispose();
-      } catch (e) {
-        console.error("Error deteniendo secuencia:", e);
-      }
-    }
-  });
-  currentSequences = { bass: null, lead: null, pad: null };
-
-  // Cancelar todas las notas programadas
-  try {
-    if (Tone.Transport && Tone.Transport.cancel) {
-      Tone.Transport.cancel();
-    }
-  } catch (e) {
-    console.error("Error cancelando Transport:", e);
-  }
-}
-
-function makeSequence(pattern, steps, synth) {
-  if (!pattern || !pattern.length || !synth) return null;
-  try {
-    return new Tone.Loop((time) => {
-      pattern.forEach((note, i) => {
-        if (note == null || !synth) return;
-        try {
-          const stepTime = time + (i / pattern.length) * 0.5;
-          if (Array.isArray(note)) {
-            synth.triggerAttackRelease(note, "8n", stepTime);
-          } else {
-            synth.triggerAttackRelease(note, "8n", stepTime);
-          }
-        } catch (e) {
-          console.error("Error en nota:", e);
-        }
-      });
-    }, "4n").start(0);
-  } catch (e) {
-    console.error("Error creando Loop:", e);
-    return null;
-  }
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(now);
+  osc.stop(now + duration);
 }
 
 function playTheme(theme) {
-  if (!theme || !synthsInitialized) return;
+  if (!theme || !theme.bass) return;
 
-  try {
-    stopSequences();
+  toast("▶ Reproduciendo tema…");
+  isPlaying = true;
 
-    if (Tone.Transport && Tone.Transport.bpm) {
-      Tone.Transport.bpm.rampTo(theme.bpm, 0.6);
-    }
+  // Duración por nota en segundos (basado en BPM)
+  const beatDuration = (60 / theme.bpm) * 0.5; // semicorchea
 
-    if (theme.bass?.length && synths.bass) {
-      currentSequences.bass = makeSequence(theme.bass, theme.steps, synths.bass);
-    }
-    if (theme.lead?.length && synths.lead) {
-      currentSequences.lead = makeSequence(theme.lead, theme.steps, synths.lead);
-    }
-    if (theme.pad?.length && synths.pad) {
-      currentSequences.pad = makeSequence(theme.pad, theme.steps, synths.pad);
-    }
-
-    isPlaying = true;
-    updateUI();
-  } catch (e) {
-    console.error("Error reproduciendo tema:", e);
-    isPlaying = false;
-    updateUI();
+  // Reproducir simplificado: solo bass
+  if (theme.bass && theme.bass.length) {
+    theme.bass.forEach((note, i) => {
+      if (note && NOTE_FREQS[note]) {
+        setTimeout(() => {
+          if (isPlaying) playNote(NOTE_FREQS[note], beatDuration);
+        }, i * beatDuration * 1000);
+      }
+    });
   }
+
+  isPlaying = true;
+  updateUI();
 }
 
 function stopPlayback() {
-  stopSequences();
   isPlaying = false;
+  const ctx = getAudioContext();
+  if (ctx) {
+    ctx.close();
+    audioContext = null;
+  }
   updateUI();
+  toast("⏹ Detenido");
 }
 
 function renderSequencer() {
@@ -248,14 +196,11 @@ function renderSequencer() {
           } else if (val.startsWith("[") && val.endsWith("]")) {
             try {
               currentTheme[layer][i] = JSON.parse(val);
-            } catch {
-              // ignorar JSON inválido
-            }
+            } catch {}
           } else {
             currentTheme[layer][i] = val;
           }
           renderSequencer();
-          if (isPlaying) playTheme(currentTheme);
         };
 
         input.onkeydown = (e) => {
@@ -311,7 +256,7 @@ function loadTheme(name) {
   if (!theme) return;
 
   currentThemeName = name;
-  currentTheme = JSON.parse(JSON.stringify(theme)); // deep clone
+  currentTheme = JSON.parse(JSON.stringify(theme));
 
   document.getElementById("info-title").textContent = `Tema: ${name}`;
   document.getElementById("info-content").innerHTML = `
@@ -325,7 +270,7 @@ function loadTheme(name) {
       .filter(Boolean)
       .join(", ")}<br/>
     <br/>
-    Haz clic en los pasos para editar notas. Usa null para silencio, o ["Bb3", "D4"] para acordes.
+    Haz clic en los pasos para editar notas.
   `;
 
   updateUI();
@@ -360,7 +305,7 @@ function importJSON(file) {
       const { name, ...rest } = data;
 
       if (!rest.bpm || !rest.bass) {
-        toast("❌ JSON inválido: necesita bpm, bass, lead, pad");
+        toast("❌ JSON inválido");
         return;
       }
 
@@ -392,29 +337,18 @@ document.getElementById("theme-select").addEventListener("change", (e) => {
 
 document.getElementById("import-theme").addEventListener("change", (e) => {
   if (e.target.files[0]) importJSON(e.target.files[0]);
-  e.target.value = ""; // reset
+  e.target.value = "";
 });
 
-document.getElementById("play-theme").addEventListener("click", async () => {
+document.getElementById("play-theme").addEventListener("click", () => {
   if (!currentTheme) {
     toast("❌ Selecciona un tema primero");
     return;
   }
-  try {
-    await startAudio();
-    await new Promise(r => setTimeout(r, 100)); // espera a que synthsInitialized
-    playTheme(currentTheme);
-    toast("▶ Reproduciendo…");
-  } catch (e) {
-    console.error("Error reproduciendo:", e);
-    toast("❌ Error al reproducir");
-  }
+  playTheme(currentTheme);
 });
 
-document.getElementById("stop-play").addEventListener("click", () => {
-  stopPlayback();
-  toast("⏹ Detenido");
-});
+document.getElementById("stop-play").addEventListener("click", stopPlayback);
 
 document.getElementById("export-theme").addEventListener("click", exportJSON);
 
@@ -448,9 +382,4 @@ document.getElementById("clear-theme").addEventListener("click", () => {
 });
 
 // Startup
-const safeStartAudio = () => {
-  startAudio().catch(e => console.error("Audio startup error:", e));
-};
-document.addEventListener("click", safeStartAudio, { once: true });
-document.addEventListener("keydown", safeStartAudio, { once: true });
 updateUI();
