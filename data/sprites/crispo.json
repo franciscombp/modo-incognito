@@ -1,0 +1,60 @@
+{
+  "$comment": [
+    "RIG DE UN PERSONAJE: qué pliego usa y qué hay en cada celda.",
+    "Antes esto vivía repartido entre characters.json (`sheet`) y unas",
+    "constantes dentro de src/entities/sprite.js. Ahora está aquí, junto,",
+    "y se puede cambiar sin tocar código.",
+    "",
+    "Los dos pliegos son rejillas 4x4 de 128x176 px (ver tools/pack-sprites.py).",
+    "",
+    "walk.rows  · qué FILA del pliego de caminar corresponde a cada dirección.",
+    "             Las 4 columnas de la fila son el ciclo de paso.",
+    "walk.fps   · fotogramas por segundo del ciclo de caminar.",
+    "",
+    "actions.poses · nombre de pose -> índice 0..7. La pose `p` ocupa la fila",
+    "             `p>>1` y las columnas `(p%2)*2` y `(p%2)*2+1`: DOS fotogramas,",
+    "             que el motor alterna para que la pose esté viva.",
+    "actions.fps · a qué ritmo se alternan esos dos fotogramas.",
+    "",
+    "idle · la animación de espera, al estilo del Sonic que se cansa de que no",
+    "       pulses nada. `after` son los segundos quieta antes de que arranque,",
+    "       `hold` lo que dura el gesto y `every` cada cuánto se repite si",
+    "       sigues sin moverte. `poses` es de dónde se elige (al azar, sin",
+    "       repetir la anterior). Quita el bloque y no hay animación de espera."
+  ],
+  "id": "crispo",
+  "name": "Crispo",
+  "walk": {
+    "sheet": "crispo-camina",
+    "fps": 8,
+    "rows": {
+      "south": 0,
+      "west": 1,
+      "east": 2,
+      "north": 3
+    }
+  },
+  "actions": {
+    "sheet": "crispo-acciones",
+    "fps": 3,
+    "poses": {
+      "work": 0,
+      "think": 1,
+      "point": 2,
+      "angry": 3,
+      "spill": 4,
+      "stand": 5,
+      "phone": 6,
+      "sit": 7
+    }
+  },
+  "idle": {
+    "after": 5.5,
+    "hold": 2.2,
+    "every": 12,
+    "poses": [
+      "phone",
+      "stand"
+    ]
+  }
+}
