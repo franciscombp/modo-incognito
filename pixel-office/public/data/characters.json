@@ -124,6 +124,22 @@
       "portrait": "🧢",
       "height": 1.4,
       "radius": 0.28
+    },
+    "fran_npc": {
+      "sheet": "fran-camina",
+      "name": "Fran",
+      "portrait": "🕵️‍♂️",
+      "height": 1.42,
+      "radius": 0.28,
+      "rig": "fran"
+    },
+    "manu_npc": {
+      "sheet": "manu-camina",
+      "name": "Manu",
+      "portrait": "👨‍💻",
+      "height": 1.4,
+      "radius": 0.28,
+      "rig": "manu"
     }
   }
 }
