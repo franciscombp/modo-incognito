@@ -9,14 +9,21 @@
 //   node tools/shoot-cast.mjs salida.png                 todo el reparto
 //   node tools/shoot-cast.mjs salida.png gabo,giuli      solo esos
 //   node tools/shoot-cast.mjs salida.png poses:giuli     un personaje, sus 8 poses
+//   node tools/shoot-cast.mjs salida.png front:giuli     uno grande y de frente
 import { chromium } from "playwright";
 
 const out = process.argv[2] ?? "cast.png";
 const arg = process.argv[3] ?? "";
 const posesOf = arg.startsWith("poses:") ? arg.slice(6) : null;
-const only = !posesOf && arg ? arg.split(",") : null;
+// La vista de frente y a media altura es la única en la que se juzga una
+// cara. La cámara del juego mira desde arriba y a esa distancia da igual
+// cómo sean los ojos — pero de cerca es lo único que se mira.
+const frontOf = arg.startsWith("front:") ? arg.slice(6) : null;
+const only = !posesOf && !frontOf && arg ? arg.split(",") : null;
 
-const VIEW = { width: 1400, height: posesOf ? 520 : 460 };
+const VIEW = frontOf
+  ? { width: 900, height: 900 }
+  : { width: 1400, height: posesOf ? 520 : 460 };
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium",
@@ -31,7 +38,7 @@ await page.goto("http://localhost:4173/", { waitUntil: "networkidle" });
 await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
 
 const shown = await page.evaluate(
-  ({ only, posesOf, VIEW }) => {
+  ({ only, posesOf, frontOf, VIEW }) => {
     const THREE = window.__three;
     const { Character3D } = window.__char3d;
     const looks = window.__game.data.looks;
@@ -61,7 +68,10 @@ const shown = await page.evaluate(
     // sus poses (que es como se ve si una pose quedó rota).
     let labels;
     let build;
-    if (posesOf) {
+    if (frontOf) {
+      labels = [frontOf];
+      build = (name) => ({ look: looks.get(name), pose: null });
+    } else if (posesOf) {
       labels = ALL_POSES;
       build = (pose) => ({ look: looks.get(posesOf), pose });
     } else {
@@ -82,23 +92,26 @@ const shown = await page.evaluate(
       scene.add(c.object);
     });
 
-    // MISMA cámara que el juego (picada 52°, ver CAMERA_PRESET). Con una
-    // cámara a la altura de los ojos, todo lo que un brazo hace hacia delante
-    // queda escorzado y parece que la pose no se mueve — se afinaron poses
-    // enteras contra una vista que en el juego no ve nadie.
+    // Con una cámara a la altura de los ojos, todo lo que un brazo hace hacia
+    // delante queda escorzado y parece que la pose no se mueve — se afinaron
+    // poses enteras contra una vista que en el juego no ve nadie.
     const aspect = VIEW.width / VIEW.height;
     const fov = 30;
-    const pitch = (52 * Math.PI) / 180;
+    // MISMA cámara que el juego (picada 44°, ver CAMERA_PRESET), salvo en el
+    // modo `front:`, que baja a la altura del pecho porque es la única vista
+    // en la que se puede juzgar una cara.
+    const pitch = ((frontOf ? 8 : 44) * Math.PI) / 180;
     const width = labels.length * step;
     const hfov = 2 * Math.atan(Math.tan((fov * Math.PI) / 360) * aspect);
-    const dist = width / 2 / Math.tan(hfov / 2) + H;
+    const dist = (frontOf ? H * 2.1 : width / 2 / Math.tan(hfov / 2) + H);
+    const lookY = frontOf ? H * 0.72 : H * 0.5;
     const camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 100);
-    camera.position.set(0, H * 0.5 + Math.sin(pitch) * dist, Math.cos(pitch) * dist);
-    camera.lookAt(0, H * 0.5, 0);
+    camera.position.set(0, lookY + Math.sin(pitch) * dist, Math.cos(pitch) * dist);
+    camera.lookAt(0, lookY, 0);
     renderer.render(scene, camera);
     return labels;
   },
-  { only, posesOf, VIEW }
+  { only, posesOf, frontOf, VIEW }
 );
 
 await page.screenshot({ path: out });
