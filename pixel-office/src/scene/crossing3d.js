@@ -10,10 +10,11 @@ import { getCameraSettings, subscribeCameraSettings } from "./cameraSettings.js"
 
 const COLS = 5;
 const LANE_DEPTH = 2.4 * S;
-const ROAD_WIDTH = 8.0 * S; // Aumentado para cubrir más de la pantalla
+const ROAD_WIDTH = 13.0 * S; // Ancho para llenar la pantalla de lado a lado
 const VEHICLE_WIDTH = 0.85 * S;
 const PLAYER_RADIUS = 0.3 * S;
 const MOVE_COOLDOWN = 105;
+const STEP_DURATION = 0.16; // segundos que tarda en deslizarse de una celda a la siguiente
 
 // Cámara: detrás de la jugadora y algo elevada, mirando calle adelante.
 const CAM_BACK = 9.6 * S;
@@ -115,9 +116,12 @@ function vehicleSprite(kind, dir) {
   const isAuto = kind === "car";
   const texture = isAuto ? autosTexture : bicisTexture;
 
-  // Dimensiones fijas para cada tipo de vehículo
-  const height = isAuto ? 0.7 * S : 1.1 * S;
-  const width = isAuto ? 1.8 * S : 0.55 * S;
+  // Dimensiones fijas por tipo de vehículo, medidas sobre el arte real (no
+  // inventadas): los autos dibujados miden ~1.9:1 de ancho/alto y las bicis
+  // ~0.78:1 — con proporciones distintas a las de la celda se veían
+  // aplastados o estirados.
+  const height = isAuto ? 0.72 * S : 1.1 * S;
+  const width = isAuto ? 1.35 * S : 0.86 * S;
 
   // Fallback: si no cargó la textura, usar geometría simple de color
   if (!texture) {
@@ -145,10 +149,12 @@ function vehicleSprite(kind, dir) {
   });
 
   const mesh = new THREE.Mesh(geometry, material);
-  // Los coches del pliego miran a la izquierda; solo se voltea si el carril
-  // avanza a la derecha (antes se volteaba al revés, "dir < 0", así que el
-  // carril de sentido normal enseñaba el auto marcha atrás).
-  if (dir > 0) mesh.scale.x = -1;
+  // Los coches del pliego miran hacia +X (pantalla-izquierda, ver colToX: la
+  // cámara mira a +Z así que su derecha de pantalla es -X mundo). Un carril
+  // dir>0 avanza hacia +X (pantalla-izquierda) y no necesita voltearse; solo
+  // dir<0 (avanza hacia pantalla-derecha) necesita el espejo para no ir de
+  // reversa.
+  if (dir < 0) mesh.scale.x = -1;
 
   return mesh;
 }
@@ -196,6 +202,8 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
   // Cromo mínimo en HTML por encima del lienzo 3D: el pie de foto y los
   // botones táctiles no necesitan ser parte de la escena.
   const ui = el("div", "crossing-ui hidden", root);
+  const clock = el("div", "crossing-clock", ui);
+  clock.textContent = "8:45 a.m.";
   const hint = el("div", "crossing-hint", ui);
   hint.textContent = "CRUZA LA AMAZONAS — WASD / flechas";
   const touchPad = el("div", "crossing-touchpad", ui);
@@ -209,17 +217,20 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
   const btnRight = el("button", "crossing-btn", midRow);
   btnRight.textContent = "▶";
 
+  // Son las 8:45 de la mañana, no medianoche: cielo claro y luz de sol, no el
+  // azul casi negro de antes.
+  const SKY = 0x9fd4ec;
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x11151f);
-  scene.fog = new THREE.Fog(0x11151f, 26 * S, 60 * S);
+  scene.background = new THREE.Color(SKY);
+  scene.fog = new THREE.Fog(SKY, 34 * S, 70 * S);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 1.1));
-  const key = new THREE.DirectionalLight(0xfff2d6, 1.05);
+  scene.add(new THREE.AmbientLight(0xffffff, 1.5));
+  const key = new THREE.DirectionalLight(0xfff2d6, 1.3);
   key.position.set(10 * S, 30 * S, 6 * S);
   scene.add(key);
   // Relleno desde el lado de la cámara: la fachada del banco mira hacia -Z y
   // sin esto se veía como un rectángulo negro al fondo de la calle.
-  const fill = new THREE.DirectionalLight(0xbcd4ff, 0.75);
+  const fill = new THREE.DirectionalLight(0xbcd4ff, 0.9);
   fill.position.set(-4 * S, 12 * S, -20 * S);
   scene.add(fill);
 
@@ -361,8 +372,23 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
   let rafId = null;
   let lastTime = 0;
 
+  // La jugadora se movía por celdas pero `layoutPlayer` la teleportaba de una
+  // a otra sin transición, así que cada paso se veía como un salto en vez de
+  // una zancada. Ahora la posición renderizada (`playerPos`) se desliza desde
+  // la celda de origen hasta la de destino en STEP_DURATION segundos; la
+  // lógica de juego (colisión, meta) sigue usando `playerCell`, que cambia al
+  // instante.
+  let playerPos = { x: 0, z: 0 };
+  let playerFrom = { x: 0, z: 0 };
+  let stepElapsed = STEP_DURATION;
+
   function layoutPlayer() {
-    player.setPosition(colToX(playerCell.col), playerCell.row * LANE_DEPTH);
+    const x = colToX(playerCell.col);
+    const z = playerCell.row * LANE_DEPTH;
+    playerPos = { x, z };
+    playerFrom = { x, z };
+    stepElapsed = STEP_DURATION;
+    player.setPosition(x, z);
   }
 
   function spawnFor(rowIndex) {
@@ -423,7 +449,8 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
     // Un poco más que el enfriamiento entre pasos: si encadenas pasos, la
     // animación no se corta entre uno y otro y se ve caminar de verdad.
     stepTimer = 0.34;
-    layoutPlayer();
+    playerFrom = { ...playerPos };
+    stepElapsed = 0;
     if (playerCell.row === GOAL_ROW) finish("safe");
   }
 
@@ -491,6 +518,15 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
     if (stepTimer > 0) {
       stepTimer -= dt;
       if (stepTimer <= 0) player.setMoving(false);
+    }
+    if (stepElapsed < STEP_DURATION) {
+      stepElapsed = Math.min(STEP_DURATION, stepElapsed + dt);
+      const t = stepElapsed / STEP_DURATION;
+      const targetX = colToX(playerCell.col);
+      const targetZ = playerCell.row * LANE_DEPTH;
+      playerPos.x = playerFrom.x + (targetX - playerFrom.x) * t;
+      playerPos.z = playerFrom.z + (targetZ - playerFrom.z) * t;
+      player.setPosition(playerPos.x, playerPos.z);
     }
     player.update(dt);
     updatePedestrians(dt);

@@ -152,13 +152,20 @@ en una captura.
   no cuando te ve. Es un radio de contacto, no de interacción; subirlo
   reintroduce el "Crispo me habla desde el otro lado del pasillo".
 - Audio: los efectos (`src/game/sfx.js`) son sintetizados con WebAudio, sin
-  archivos. La música sí es una pista real
-  (`public/audio/*.mp3` + `src/game/soundtrackTrack.js`) a la que se le hace
-  remezcla por ánimo (filtro/volumen/velocidad), con el soundtrack procedural
-  de `soundtrackThemes.js` como respaldo si el mp3 no carga — no rompas ese
-  respaldo. Al cambiar de pista hay que recalcular `TRACK.bpm` y
-  `TRACK.loopEnd` o el bucle se oye cortado; luego corre `npm run check:music`,
-  que comprueba que suena de verdad y no solo que el archivo exista.
+  archivos. La música también es 100% procedural (`src/game/soundtrack.js` +
+  `soundtrackThemes.js`, con Tone.js) — no hay ningún mp3 grabado. Hubo uno
+  (`stapler-sprint.mp3` + `soundtrackTrack.js`) que se remezclaba por ánimo
+  *además* de los riffs procedurales, y sonaba encima de ellos; se quitó del
+  todo, no lo reintroduzcas. Cada capa (bajo/lead/pad/perc) corre en un único
+  `Tone.Loop` que vive desde que arranca el audio y nunca se destruye —
+  cambiar de ánimo solo cambia qué nota lee cada capa en el paso actual, no
+  reconstruye el loop. Si vuelves a construir Sequences/Loops por tema y los
+  destruyes al cambiar de ánimo, Tone tira "Start time must be strictly
+  greater than previous start time" en cuanto el cambio de ánimo coincide con
+  una rampa de tempo, y eso se oye como notas rotas — exactamente el bug que
+  arregló este diseño. Corre `npm run check:music` tras tocar esto: comprueba
+  que suena de verdad, que el ánimo sube tempo/mezcla, y que no hay errores de
+  consola.
 - Los personajes jugables usan su sprite real (campo `sheet` en
   `characters.json`/`modes.json`, mismo pliego 4x4 que el retrato de
   diálogo), no un emoji — no reintroduzcas emojis genéricos en la selección
