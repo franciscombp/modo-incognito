@@ -419,9 +419,12 @@ function drawBarriers() {
 function drawRoutes() {
   const routes = state.scene.routes ?? {};
   const colors = ["#ff6b81", "#45a0e0", "#a8e05f", "#cbb3ff"];
-  Object.entries(routes).forEach(([name, pts], i) => {
-    ctx.strokeStyle = hexA(colors[i % colors.length], 0.5);
-    ctx.lineWidth = routeEditMode && selectedRoute === i ? 3 * devicePixelRatio : 1.5 * devicePixelRatio;
+  const routeNames = Object.keys(routes);
+  routeNames.forEach((name, i) => {
+    const pts = routes[name];
+    const isSelected = routeEditMode && selectedRoute === i;
+    ctx.strokeStyle = hexA(colors[i % colors.length], isSelected ? 1 : 0.5);
+    ctx.lineWidth = isSelected ? 3 * devicePixelRatio : 1.5 * devicePixelRatio;
     ctx.setLineDash([5 * devicePixelRatio, 5 * devicePixelRatio]);
     ctx.beginPath();
     pts.forEach((pt, j) => {
@@ -434,16 +437,31 @@ function drawRoutes() {
     if (pts[0]) label(name, toScreen(pts[0].x, pts[0].z).x + 8, toScreen(pts[0].x, pts[0].z).y - 6, colors[i % colors.length]);
 
     // Mostrar nodos de la ruta en modo edición
-    if (routeEditMode && selectedRoute === i) {
+    if (routeEditMode && isSelected) {
       pts.forEach((pt, j) => {
         const p = toScreen(pt.x, pt.z);
-        ctx.fillStyle = selectedRouteNode === j ? "#ff6b81" : colors[i % colors.length];
+        ctx.fillStyle = selectedRouteNode === j ? colors[i % colors.length] : hexA(colors[i % colors.length], 0.6);
         ctx.beginPath();
         ctx.arc(p.x, p.y, (selectedRouteNode === j ? 8 : 5) * devicePixelRatio, 0, Math.PI * 2);
         ctx.fill();
       });
     }
   });
+
+  // Mostrar selector visual de rutas en modo edición
+  if (routeEditMode) {
+    const routeNames = Object.keys(routes);
+    routeNames.forEach((name, i) => {
+      if (!routes[name] || routes[name].length === 0) return;
+      const colors_list = ["#ff6b81", "#45a0e0", "#a8e05f", "#cbb3ff"];
+      const p = toScreen(routes[name][0].x, routes[name][0].z);
+      ctx.fillStyle = selectedRoute === i ? colors_list[i % colors_list.length] : hexA(colors_list[i % colors_list.length], 0.3);
+      ctx.fillRect(p.x + 12, p.y - 12, 16, 16);
+      ctx.strokeStyle = selectedRoute === i ? colors_list[i % colors_list.length] : hexA(colors_list[i % colors_list.length], 0.5);
+      ctx.lineWidth = 1.5 * devicePixelRatio;
+      ctx.strokeRect(p.x + 12, p.y - 12, 16, 16);
+    });
+  }
 }
 
 function drawSpawn() {
@@ -609,6 +627,45 @@ function routeNodeAt(plan, routeName) {
   return null;
 }
 
+function routeAt(plan) {
+  const routes = state.scene?.routes ?? {};
+  const grab = 15 / state.view.scale;
+  const routeNames = Object.keys(routes);
+  for (let i = 0; i < routeNames.length; i++) {
+    const pts = routes[routeNames[i]];
+    for (let j = 0; j < pts.length - 1; j++) {
+      const x1 = pts[j].x, z1 = pts[j].z;
+      const x2 = pts[j + 1].x, z2 = pts[j + 1].z;
+      const dx = x2 - x1, dz = z2 - z1;
+      const len2 = dx * dx + dz * dz;
+      if (len2 === 0) continue;
+      let t = ((plan.x - x1) * dx + (plan.z - z1) * dz) / len2;
+      t = Math.max(0, Math.min(1, t));
+      const px = x1 + t * dx, pz = z1 + t * dz;
+      const dist = Math.hypot(plan.x - px, plan.z - pz);
+      if (dist < grab) return i;
+    }
+  }
+  return null;
+}
+
+function barrierAt(plan) {
+  const barriers = state.scene?.barriers ?? [];
+  const grab = 15 / state.view.scale;
+  for (let i = 0; i < barriers.length; i++) {
+    const b = barriers[i];
+    const axis = b.axis; // "x" o "z"
+    const along = axis === "x" ? "z" : "x"; // Eje a lo largo del cual se extiende
+    const perp = axis; // Eje perpendicular (donde está fija)
+    const bmin = Math.min(b.from, b.to);
+    const bmax = Math.max(b.from, b.to);
+    const pval = plan[perp];
+    const aval = plan[along];
+    if (Math.abs(pval - b.at) < grab && aval >= bmin - grab && aval <= bmax + grab) return i;
+  }
+  return null;
+}
+
 function doorAt(plan) {
   const barriers = state.scene?.barriers ?? [];
   const grab = 10 / state.view.scale;
@@ -677,13 +734,26 @@ canvas.addEventListener("pointerdown", (e) => {
   }
 
   // Modo edición rutas
-  if (routeEditMode && selectedRoute !== null) {
-    const nodeIdx = routeNodeAt(plan, Object.keys(state.scene.routes ?? {})[selectedRoute]);
-    if (nodeIdx !== null) {
-      selectedRouteNode = nodeIdx;
-      drag = { mode: "route-node-drag", routeIndex: selectedRoute, nodeIndex: nodeIdx };
+  if (routeEditMode) {
+    // Intentar seleccionar una ruta haciendo clic en ella
+    const clickedRoute = routeAt(plan);
+    if (clickedRoute !== null) {
+      selectedRoute = clickedRoute;
+      selectedRouteNode = null;
+      toast(`Ruta ${Object.keys(state.scene.routes ?? {})[selectedRoute]} seleccionada`);
       draw();
       return;
+    }
+
+    // Si hay una ruta seleccionada, intentar mover un nodo
+    if (selectedRoute !== null) {
+      const nodeIdx = routeNodeAt(plan, Object.keys(state.scene.routes ?? {})[selectedRoute]);
+      if (nodeIdx !== null) {
+        selectedRouteNode = nodeIdx;
+        drag = { mode: "route-node-drag", routeIndex: selectedRoute, nodeIndex: nodeIdx };
+        draw();
+        return;
+      }
     }
   }
 
@@ -731,6 +801,21 @@ canvas.addEventListener("pointerdown", (e) => {
     return;
   }
 
+  // Detectar clic en pared (para mover toda la pared)
+  const barrierIdx = barrierAt(plan);
+  if (barrierIdx !== null && e.button === 0) {
+    selectedBarrier = barrierIdx;
+    const b = state.scene.barriers[barrierIdx];
+    const axis = b.axis; // "x" o "z"
+    drag = {
+      mode: "barrier-drag",
+      barrierIndex: barrierIdx,
+      axis: axis
+    };
+    draw();
+    return;
+  }
+
   // Botón central o derecho (y espacio + arrastrar) desplazan la vista.
   if (e.button === 1 || e.button === 2 || spaceHeld) {
     drag = { mode: "pan", from: plan };
@@ -761,6 +846,13 @@ canvas.addEventListener("pointermove", (e) => {
   if (drag.mode === "door-drag") {
     const b = state.scene.barriers[drag.barrierIndex];
     b.door.at = snap(plan[b.axis === "z" ? "z" : "x"], e.shiftKey);
+    draw();
+    return;
+  }
+  if (drag.mode === "barrier-drag") {
+    const b = state.scene.barriers[drag.barrierIndex];
+    // Si axis es "x", moverse en x; si es "z", moverse en z
+    b.at = snap(plan[drag.axis], e.shiftKey);
     draw();
     return;
   }

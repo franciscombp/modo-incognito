@@ -57,22 +57,94 @@
             <h3>Herramientas de Edición</h3>
             <dl>
               <dt><b>S</b> — Spawn (Ingreso)</dt>
-              <dd>Haz clic en el mapa para mover el punto donde ingresa el jugador.</dd>
+              <dd>Edita dónde aparece el jugador al comenzar el nivel. Haz clic para mover.</dd>
 
               <dt><b>B</b> — Boss Spawn (Jefe)</dt>
-              <dd>Haz clic para mover el punto de inicio del jefe.</dd>
+              <dd>Edita dónde aparece el jefe al comenzar. Haz clic para mover.</dd>
 
               <dt><b>R</b> — Routes (Rutas)</dt>
-              <dd>Edita los caminos de los jefes y secuaces. Arrastra los nodos para mover.</dd>
+              <dd>
+                Edita las rutas que siguen los jefes y secuaces.
+                <ul>
+                  <li>Clic en ruta punteada — selecciona esa ruta (se resalta en color)</li>
+                  <li>Clic + Arrastrar en nodo — mueve ese punto de la ruta</li>
+                  <li>Mayús + Arrastrar — mueve sin ajuste a rejilla</li>
+                  <li>Delete — borra el nodo seleccionado</li>
+                </ul>
+              </dd>
 
               <dt><b>F</b> — Footprint (Perímetro)</dt>
               <dd>
-                Edita el contorno del piso:
+                Edita el contorno del piso (la forma del espacio jugable).
                 <ul>
                   <li>Clic en nodo: arrastra para mover</li>
                   <li>Clic en espacio: crea nodo en el segmento más cercano</li>
                   <li>Delete: elimina nodo seleccionado</li>
+                  <li>Mayús + Arrastrar — mueve sin rejilla</li>
                 </ul>
+              </dd>
+            </dl>
+
+            <h3>Edición de Paredes</h3>
+            <dl>
+              <dt>Paredes (líneas grises)</dt>
+              <dd>
+                Son muros que dividen el espacio. Pueden tener puertas.
+                <ul>
+                  <li>Clic + Arrastrar en pared — mueve toda la pared</li>
+                  <li>Clic + Arrastrar en puerta (círculo amarillo) — mueve solo la puerta</li>
+                  <li>Mayús + Arrastrar — mueve sin rejilla</li>
+                </ul>
+              </dd>
+            </dl>
+
+            <h3>Tipos de Objetos en el Plano</h3>
+            <dl>
+              <dt>Zonas (rectángulos azules claro)</dt>
+              <dd>
+                Son áreas del piso con nombre y características.
+                <ul>
+                  <li>Pueden ser salas (open-office, meeting, etc.)</li>
+                  <li>Tienen sillas, color, nivel de riesgo</li>
+                  <li>Arrastra para mover, tira de esquinas para redimensionar</li>
+                </ul>
+              </dd>
+
+              <dt>Pasillos (rectángulos gris claro)</dt>
+              <dd>
+                Son espacios de circulación entre zonas. Se usan para conectar áreas.
+              </dd>
+
+              <dt>Actividades (puntos amarillos)</dt>
+              <dd>
+                Son tareas que el jugador puede realizar (café, película, comer, etc.).
+                <ul>
+                  <li>Cada actividad tiene tiempo, puntos y riesgo</li>
+                  <li>Se vinculan a una zona específica</li>
+                </ul>
+              </dd>
+
+              <dt>Lugares Seguros (círculos cyan)</dt>
+              <dd>
+                Son zonas donde el jugador puede fingir que trabaja sin ser visto.
+                <ul>
+                  <li>Tienen radio de cobertura</li>
+                  <li>Pueden ser permanentes (desk) o temporales (meeting)</li>
+                </ul>
+              </dd>
+
+              <dt>Rutas (líneas punteadas de color)</dt>
+              <dd>
+                Son caminos que siguen los jefes y secuaces.
+                <ul>
+                  <li>Cada ruta es una serie de puntos conectados</li>
+                  <li>Los personajes IA las patrullan</li>
+                </ul>
+              </dd>
+
+              <dt>Footprint (perímetro)</dt>
+              <dd>
+                Es el borde del piso donde termina el espacio jugable.
               </dd>
             </dl>
 
@@ -80,14 +152,13 @@
             <ul>
               <li><b>Clic + Arrastrar</b> en objeto — mover objeto.</li>
               <li><b>Tiradores en esquinas</b> de zona — redimensionar.</li>
-              <li><b>Clic en puerta</b> (círculo amarillo) — arrastra para mover entre muros.</li>
               <li><b>Rueda del ratón</b> — zoom (acerca/aleja).</li>
               <li><b>Espacio + Arrastrar</b> (o botón central) — desplazar vista.</li>
               <li><b>Mayús + Arrastrar</b> — mover sin ajuste a rejilla.</li>
               <li><b>Delete / Backspace</b> — borrar lo seleccionado.</li>
             </ul>
 
-            <h3>Información</h3>
+            <h3>Información Técnica</h3>
             <p>
               Editor del <b>plano</b> (<code>scenes/*.json</code>) y del
               <b>día</b> (<code>levels/*.json</code>). Todo en unidades de
