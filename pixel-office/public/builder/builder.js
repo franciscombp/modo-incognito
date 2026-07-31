@@ -635,8 +635,13 @@ function routeNodeAt(plan, routeName) {
 function routeAt(plan) {
   const routes = state.scene?.routes ?? {};
   const routeNames = Object.keys(routes);
-  if (routeNames.length === 0) return null;
+  if (routeNames.length === 0) {
+    console.log("routeAt: NO HAY RUTAS EN state.scene.routes");
+    console.log("state.scene.routes:", state.scene?.routes);
+    return null;
+  }
 
+  console.log("routeAt: Rutas disponibles:", routeNames, "Routes object:", routes);
   const grab = 20 / state.view.scale; // Aumentado para detectar mejor
 
   for (let i = 0; i < routeNames.length; i++) {
