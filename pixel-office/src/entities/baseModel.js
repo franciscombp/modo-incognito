@@ -88,11 +88,38 @@ export function loadBaseModel(url) {
   return loading;
 }
 
+/**
+ * Normaliza un nombre de nodo igual que hace Three al cargar.
+ *
+ * `GLTFLoader` sanea los nombres (`PropertyBinding.sanitizeNodeName`): los
+ * espacios pasan a guion bajo y los puntos y corchetes desaparecen, porque
+ * esos caracteres son sintaxis en las rutas de animación. Así, el hueso que en
+ * el archivo se llama "lower_leg L.001_34" llega como "lower_leg_L001_34".
+ *
+ * Se aplica la misma transformación a las claves del mapa, para que BONE_MAP
+ * se pueda escribir con los nombres TAL COMO SE VEN en el .gltf — que es
+ * donde alguien va a ir a comprobarlos — y aun así encuentren su hueso.
+ */
+const sanitize = (name) => name.replace(/\s/g, "_").replace(/[\\[\]./:]/g, "");
+
+const BONE_LOOKUP = new Map(Object.entries(BONE_MAP).map(([k, v]) => [sanitize(k), v]));
+
 /** Reetiqueta el esqueleto importado con nuestros nombres. */
 function renameBones(root) {
+  const missing = new Set(BONE_LOOKUP.values());
   root.traverse((obj) => {
-    if (obj.isBone && BONE_MAP[obj.name]) obj.name = BONE_MAP[obj.name];
+    if (!obj.isBone) return;
+    const ours = BONE_LOOKUP.get(sanitize(obj.name));
+    if (ours) {
+      obj.name = ours;
+      missing.delete(ours);
+    }
   });
+  // Un hueso que no aparece deja poses a medias sin decir nada: la pierna no
+  // se dobla y no hay error en ninguna parte. Mejor que lo cante.
+  if (missing.size) {
+    console.warn(`baseModel: no se encontraron estos huesos en el modelo: ${[...missing].join(", ")}`);
+  }
 }
 
 /**
