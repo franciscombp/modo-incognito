@@ -795,7 +795,7 @@ canvas.addEventListener("pointerdown", (e) => {
     console.log("Modo rutas activo, buscando ruta...");
     // Intentar seleccionar una ruta haciendo clic en ella
     const clickedRouteName = routeAt(plan);
-    console.log("Resultado de routeAt:", clickedRouteName);
+    console.log("Resultado de routeAt:", clickedRouteName, "tipo:", typeof clickedRouteName, "es null?", clickedRouteName === null, "!== null?", clickedRouteName !== null);
     if (clickedRouteName !== null) {
       console.log("Seleccionando ruta:", clickedRouteName);
       selectedRouteName = clickedRouteName;
