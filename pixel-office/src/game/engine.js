@@ -49,7 +49,7 @@ export function createEngine({
   dialogues = { cast: {}, encounters: {}, barks: {} },
   modes = {},
   bossConfig = null,
-  playerSheet = "employee",
+  playerSheet = "npc-camina",
   playerName = "Tú",
   minions = new Map(),
   onPopup = null,

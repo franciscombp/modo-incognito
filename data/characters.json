@@ -11,7 +11,7 @@
     "multiplica por WORLD_SCALE."
   ],
   "player": {
-    "sheet": "employee",
+    "sheet": "npc-camina",
     "name": "Tú",
     "portrait": "🙂",
     "height": 1.45,
@@ -44,7 +44,7 @@
   ],
   "minions": {
     "chispita": {
-      "sheet": "npc3",
+      "sheet": "npc-camina",
       "name": "Chispita",
       "portrait": "⚡",
       "height": 1.38,
@@ -60,7 +60,7 @@
       "trait": "Corre por todo el piso. Cono corto, pero llega enseguida."
     },
     "washo": {
-      "sheet": "npc2",
+      "sheet": "npc-camina",
       "name": "Washo",
       "portrait": "🧽",
       "height": 1.44,
@@ -96,28 +96,28 @@
   },
   "npcs": {
     "npc1": {
-      "sheet": "npc1",
+      "sheet": "npc-camina",
       "name": "Compañera",
       "portrait": "💬",
       "height": 1.4,
       "radius": 0.28
     },
     "npc2": {
-      "sheet": "npc2",
+      "sheet": "npc-camina",
       "name": "Compañero",
       "portrait": "🧑‍💻",
       "height": 1.4,
       "radius": 0.28
     },
     "npc3": {
-      "sheet": "npc3",
+      "sheet": "npc-camina",
       "name": "Analista",
       "portrait": "📊",
       "height": 1.4,
       "radius": 0.28
     },
     "npc4": {
-      "sheet": "npc4",
+      "sheet": "npc-camina",
       "name": "Becario",
       "portrait": "🧢",
       "height": 1.4,

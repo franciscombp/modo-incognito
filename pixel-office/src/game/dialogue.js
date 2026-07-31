@@ -67,7 +67,7 @@ export function createDialogue(root) {
   function setPortrait(node) {
     let sheet = node.sheet;
 
-    // Si no hay sheet, usar placeholder basado en portrait (si es un emoji, mapear a placeholder)
+    // Si no hay sheet, usar sprite específico basado en portrait o npc-camina como fallback
     if (!sheet && node.portrait) {
       const emojiMap = {
         "🛎️": "reception",
@@ -76,9 +76,9 @@ export function createDialogue(root) {
         "🥚": "placeholder-1",
         "🗨️": "placeholder-2",
       };
-      sheet = emojiMap[node.portrait] || "placeholder-2";
+      sheet = emojiMap[node.portrait] || "npc-camina";
     } else if (!sheet) {
-      sheet = "placeholder-2";
+      sheet = "npc-camina";
     }
 
     portraitSprite.style.backgroundImage = `url(${spriteUrl(sheet)})`;
@@ -264,7 +264,7 @@ export function createDialogue(root) {
           else if (opt.effect) ctx.applyEffect?.(opt.effect);
           if (opt.reply) {
             await playLine(
-              { speaker: opt.replySpeaker ?? "Tú", portrait: "🙂", sheet: opt.replySheet ?? "employee", text: opt.reply },
+              { speaker: opt.replySpeaker ?? "Tú", portrait: "🙂", sheet: opt.replySheet ?? "npc-camina", text: opt.reply },
               ctx
             );
           }
