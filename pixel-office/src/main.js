@@ -9,6 +9,7 @@ import { createMinigameRegistry } from "./game/minigames.js";
 import { WORLD_SCALE as S } from "./scene/config.js";
 import * as floorplan from "./scene/floorplan.js";
 import { setActiveScene } from "./scene/floorplan.js";
+import * as iso from "./scene/iso.js";
 import { loadGameData } from "./data/loader.js";
 import { Player } from "./entities/player.js";
 import { NPC } from "./entities/npc.js";
@@ -122,13 +123,26 @@ async function boot() {
   // El personaje elegido manda sobre el sprite base de characters.json.
   const modeOf = (id) => data.modes?.[id] ?? data.modes?.giu ?? null;
   const walkSheetOf = (id) => sheets.get(modeOf(id)?.sheet ?? chars.player.sheet);
+  // El rig (data/sprites/<id>.json) dice qué hay en cada celda del pliego y
+  // cómo se anima: filas de caminata, poses de acción y la espera.
+  const rigOf = (who) => (who?.rig ? data.rigs.get(who.rig) : null) ?? null;
+  // El HUD todavía no existe cuando esto corre por primera vez (el jugador se
+  // crea antes que el motor), así que se rellena más abajo y se vuelve a
+  // aplicar. Un `engine?.` aquí no valdría: `engine` es un const posterior y
+  // tocarlo antes revienta por zona muerta temporal.
+  let hudRef = null;
+
   function applyCharacterSprite(id) {
     const mode = modeOf(id);
+    const rig = rigOf(mode);
+    const actionSheet = sheets.get(mode?.actionSheet ?? chars.player.actionSheet);
     player.sprite.setSheet(walkSheetOf(id));
-    player.sprite.setActionSheet(sheets.get(mode?.actionSheet ?? chars.player.actionSheet));
-    crossing3D.setPlayerSheet(
-      walkSheetOf(id),
-      sheets.get(mode?.actionSheet ?? chars.player.actionSheet)
+    player.sprite.setActionSheet(actionSheet);
+    player.sprite.setRig(rig);
+    crossing3D.setPlayerSheet(walkSheetOf(id), actionSheet, rig);
+    // El panel grande de acción dibuja la misma pose animada que el sprite.
+    hudRef?.setActionRig(
+      rig?.actions ? { sheet: rig.actions.sheet, poses: rig.actions.poses } : null
     );
   }
 
@@ -139,6 +153,7 @@ async function boot() {
     playerAction: sheets.get(modeOf(save.characterId)?.actionSheet ?? chars.player.actionSheet),
     // Gente de la oficina llenando la acera: los mismos pliegos de compañeros
     // que se usan en el piso, sin cargar nada nuevo.
+    playerRig: rigOf(modeOf(save.characterId)),
     crowd: ["npc1", "npc2", "npc3", "npc4"].map((n) => sheets.get(n)),
   });
   crossing3D.resize(window.innerWidth / window.innerHeight);
@@ -195,6 +210,7 @@ async function boot() {
     config: data.bossConfig?.boss,
   });
   boss.sprite.setActionSheet(sheets.get(chars.boss.actionSheet));
+  boss.sprite.setRig(rigOf(chars.boss));
   scene.add(boss.object3D);
   scene.add(boss.cone);
 
@@ -225,6 +241,7 @@ async function boot() {
     watcher.displayName = def.name ?? id;
     watcher.talkCooldown = data.dialogues.encounters[id]?.cooldown ?? 35;
     watcher.sprite.setActionSheet(sheets.get(def.actionSheet));
+    watcher.sprite.setRig(rigOf(def));
     watcher.setActive(false);
     scene.add(watcher.object3D);
     scene.add(watcher.cone);
@@ -256,6 +273,11 @@ async function boot() {
     minigames,
     pixels,
   });
+
+  // El primer applyCharacterSprite() corrió antes de que existiera el motor
+  // (el jugador se crea antes que el HUD), así que aquí se le pasa el rig.
+  hudRef = engine.hud;
+  applyCharacterSprite(save.characterId);
 
   // -------- Labels: three tiers, so the diorama never drowns in signage ----
   let inspectMode = false;
@@ -556,6 +578,9 @@ async function boot() {
   // Exposed for the automated checks in tools/.
   window.__game = { world, navmesh, player, boss, engine, camera, scene, view, pixels, data, crossing3D, soundtrackState };
   window.__floorplan = floorplan;
+  // Solo para las comprobaciones de tools/: poder pasar de coordenadas de
+  // suelo a pantalla sin duplicar la matriz de la cámara oblicua.
+  window.__iso = iso;
 }
 
 boot().catch((err) => {

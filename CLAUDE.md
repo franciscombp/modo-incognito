@@ -88,6 +88,14 @@ idempotente. Los `*-acciones.png` son la misma rejilla leída como 8 poses de
 2 fotogramas — el orden está en `POSES`, en `src/entities/sprite.js`, y es el
 contrato entre el JSON (`activities[].pose`) y el arte.
 
+Qué pose hay en cada celda ya **no está en el código**: cada personaje trae
+su rig en `public/data/sprites/<id>.json` (filas de caminata, mapa de poses,
+animación de espera), listado en `manifest.json` → `sprites` y referenciado
+desde `characters.json`/`modes.json` con `"rig"`. `POSES` en `sprite.js` es
+solo el reparto por defecto para quien no traiga rig. Las plantillas en
+blanco para dibujar un personaje nuevo las genera
+`python3 tools/make-sprite-template.py` en `art/plantillas/`.
+
 Ojo: `tools/sync-root.mjs` hace `rm -rf` de `sprites/` en la raíz del repo,
 así que un PNG puesto solo ahí lo borra el siguiente build. El sitio bueno es
 siempre `pixel-office/public/sprites/`.
@@ -129,6 +137,14 @@ en una captura.
   dentro, no solo al entrar). Si tocas `_advanceState` o `_updateStuck`, corre
   `npm run check:pursuit`: las cuatro reglas se pisan entre sí con facilidad
   y el fallo típico es que el jefe vuelva a rendirse solo.
+- **El halo nace en los ojos**, no en el suelo: el vértice del cono va a la
+  altura de la mirada y por delante del pecho (ver `EYE_HEIGHT`/`EYE_FORWARD`
+  en `boss.js`). Bajarlo al suelo hace que, con la cámara oblicua, se dibuje
+  encima del sprite y parezca salirle de la espalda. `npm run check:vision`
+  vigila eso y que el haz no se desvíe del sprite más de media dirección.
+- **Un secuaz te aborda solo cuando te TOCA** (`minionTouches` en `game.js`),
+  no cuando te ve. Es un radio de contacto, no de interacción; subirlo
+  reintroduce el "Crispo me habla desde el otro lado del pasillo".
 - Audio: los efectos (`src/game/sfx.js`) son sintetizados con WebAudio, sin
   archivos. La música sí es una pista real
   (`public/audio/*.mp3` + `src/game/soundtrackTrack.js`) a la que se le hace
