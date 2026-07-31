@@ -323,6 +323,25 @@ function drawFootprint() {
   ctx.strokeStyle = "#2c3a5c";
   ctx.lineWidth = 2 * devicePixelRatio;
   ctx.stroke();
+
+  // Mostrar nodos interactivos cuando está activo el modo edición
+  if (footprintEditMode && state.view.scale > 5) {
+    fp.forEach(([x, z], i) => {
+      const p = toScreen(x, z);
+      const isSelected = i === selectedFootprintNode;
+      ctx.fillStyle = isSelected ? "#45e0d0" : "#8ea0c4";
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, (isSelected ? 8 : 6) * devicePixelRatio, 0, Math.PI * 2);
+      ctx.fill();
+      if (state.view.scale > 15) {
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `${8 * devicePixelRatio}px ui-monospace, monospace`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(i), p.x, p.y);
+      }
+    });
+  }
 }
 
 function rectOf(obj) {
@@ -498,6 +517,20 @@ function checkOverlaps() {
 // ----------------------------------------------------------- interacciones
 let drag = null;
 let spaceHeld = false;
+let footprintEditMode = false;
+let selectedFootprintNode = null;
+
+function footprintNodeAt(plan) {
+  const fp = state.scene?.footprint ?? [];
+  const grab = 10 / state.view.scale;
+  for (let i = 0; i < fp.length; i++) {
+    const [x, z] = fp[i];
+    if (Math.abs(x - plan.x) < grab && Math.abs(z - plan.z) < grab) {
+      return i;
+    }
+  }
+  return null;
+}
 
 function hitTest(plan) {
   // De arriba abajo en la pila de capas, para que un punto encima de una zona
@@ -532,6 +565,27 @@ function handleAt(plan) {
 canvas.addEventListener("pointerdown", (e) => {
   canvas.setPointerCapture(e.pointerId);
   const plan = toPlan(e.offsetX * devicePixelRatio, e.offsetY * devicePixelRatio);
+
+  // Si estamos en modo edición de footprint, manejar clics en nodos
+  if (footprintEditMode) {
+    const nodeIdx = footprintNodeAt(plan);
+    if (nodeIdx !== null) {
+      selectedFootprintNode = nodeIdx;
+      drag = { mode: "footprint-drag", nodeIndex: nodeIdx, start: [...state.scene.footprint[nodeIdx]] };
+      draw();
+      return;
+    }
+    // Si no clickeamos en un nodo, añadir uno nuevo
+    if (e.button === 0) {
+      state.scene.footprint = state.scene.footprint ?? [];
+      state.scene.footprint.push([snap(plan.x, e.shiftKey), snap(plan.z, e.shiftKey)]);
+      selectedFootprintNode = state.scene.footprint.length - 1;
+      toast(`Nodo ${selectedFootprintNode} añadido`);
+      draw();
+      return;
+    }
+  }
+
   // Botón central o derecho (y espacio + arrastrar) desplazan la vista.
   if (e.button === 1 || e.button === 2 || spaceHeld) {
     drag = { mode: "pan", from: plan };
@@ -559,6 +613,11 @@ canvas.addEventListener("pointermove", (e) => {
   $("#stage-hud").textContent = `x ${plan.x.toFixed(1)}  z ${plan.z.toFixed(1)}`;
   if (!drag) return;
 
+  if (drag.mode === "footprint-drag") {
+    state.scene.footprint[drag.nodeIndex] = [snap(plan.x, e.shiftKey), snap(plan.z, e.shiftKey)];
+    draw();
+    return;
+  }
   if (drag.mode === "pan") {
     state.view.x -= plan.x - drag.from.x;
     state.view.y -= plan.z - drag.from.z;
@@ -613,6 +672,25 @@ window.addEventListener("keydown", (e) => {
     spaceHeld = true;
     e.preventDefault();
   }
+  // F para toggle del modo de edición de footprint
+  if (e.key.toLowerCase() === "f") {
+    e.preventDefault();
+    footprintEditMode = !footprintEditMode;
+    selectedFootprintNode = null;
+    toast(footprintEditMode ? "Modo edición de piso: ACTIVADO (F para desactivar)" : "Modo edición de piso: desactivado");
+    draw();
+    return;
+  }
+  // Delete para nodos del footprint seleccionados
+  if ((e.key === "Delete" || e.key === "Backspace") && footprintEditMode && selectedFootprintNode !== null) {
+    e.preventDefault();
+    state.scene.footprint.splice(selectedFootprintNode, 1);
+    selectedFootprintNode = null;
+    toast("Nodo eliminado");
+    draw();
+    return;
+  }
+  // Delete para objetos seleccionados
   if ((e.key === "Delete" || e.key === "Backspace") && state.sel) {
     e.preventDefault();
     state.scene[state.sel.kind].splice(state.sel.index, 1);
