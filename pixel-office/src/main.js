@@ -7,6 +7,7 @@ import { PixelPipeline } from "./scene/pixelPipeline.js";
 import { createCrossing3D } from "./scene/crossing3d.js";
 import { createMinigameRegistry } from "./game/minigames.js";
 import { WORLD_SCALE as S } from "./scene/config.js";
+import { skyTexture, ATMOSPHERE } from "./scene/cozy.js";
 import * as floorplan from "./scene/floorplan.js";
 import { setActiveScene } from "./scene/floorplan.js";
 import * as iso from "./scene/iso.js";
@@ -14,7 +15,7 @@ import { loadGameData } from "./data/loader.js";
 import { Player } from "./entities/player.js";
 import { NPC } from "./entities/npc.js";
 import { Boss } from "./entities/boss.js";
-import { loadSheet } from "./entities/sprite.js";
+import { Character3D } from "./entities/character3d.js";
 import { createEngine } from "./game/engine.js";
 import { createSave } from "./game/save.js";
 import { createTouchControls } from "./game/touchControls.js";
@@ -35,21 +36,25 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality0.maxPixelRatio)
 renderer.shadowMap.enabled = quality0.shadows;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.15;
+renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x05060a);
+// Cielo y niebla cálidos desde el primer frame: el tema del día los reajusta
+// (ver game/themes.js), pero el arranque ya no es una pantalla negra.
+scene.background = skyTexture();
+scene.fog = new THREE.Fog(new THREE.Color(ATMOSPHERE.fog), 60, 190);
 
-// -------- Lighting: bright, flat fill so the flat art reads cleanly, plus
-// one soft key light for diorama depth. The day theme re-tints these. -----
-const ambient = new THREE.AmbientLight(0xffffff, 1.0);
+// -------- Luz cozy: mucho relleno suave y cálido, y una key floja que apenas
+// marca sombras. Un contraste fuerte endurece los muñecos de color plano y
+// rompe justo la sensación que buscamos. El tema del día la re-tinta. -----
+const ambient = new THREE.AmbientLight(0xfff6ea, 1.15);
 scene.add(ambient);
-const hemi = new THREE.HemisphereLight(0xdfe8ff, 0x50493a, 0.85);
+const hemi = new THREE.HemisphereLight(0xf0e6ff, 0xd8c4a8, 0.95);
 scene.add(hemi);
 
-const key = new THREE.DirectionalLight(0xfff2d6, 1.35);
+const key = new THREE.DirectionalLight(0xfff0d4, 1.1);
 key.position.set(26 * S, 40 * S, 20 * S);
 key.castShadow = true;
 key.shadow.mapSize.set(quality0.shadowMap, quality0.shadowMap);
@@ -100,31 +105,23 @@ async function boot() {
 
   // ---- Characters, straight from data/characters.json ----
   const chars = data.characters;
-  // Se cargan también los pliegos de ACCIONES (café, peli, comer...) y los de
-  // todos los personajes jugables: la selección de personaje ocurre con el
-  // juego ya montado, así que su sprite se cambia en caliente, sin recargar.
-  const needed = new Set(
-    [
-      chars.player.sheet,
-      chars.player.actionSheet,
-      chars.boss.sheet,
-      chars.boss.actionSheet,
-      ...Object.values(chars.minions ?? {}).flatMap((m) => [m.sheet, m.actionSheet]),
-      ...Object.values(data.modes ?? {}).flatMap((m) => [m.sheet, m.actionSheet]),
-      ...floorplan.npcs.map((n) => n.sheet),
-    ].filter(Boolean)
-  );
-  const sheets = new Map();
-  await Promise.all(
-    [...needed].map(async (name) => sheets.set(name, await loadSheet(sheetUrl(name))))
-  );
+  // Ya no hay pliegos que precargar: un personaje es su RECETA (ver
+  // data/characters3d.json) y el muñeco se monta con primitivas en el momento.
+  // Por eso cambiar de personaje en caliente es gratis.
+  const looks = data.looks;
 
   const save = createSave();
-  // El personaje elegido manda sobre el sprite base de characters.json.
-  const modeOf = (id) => data.modes?.[id] ?? data.modes?.giu ?? null;
-  const walkSheetOf = (id) => sheets.get(modeOf(id)?.sheet ?? chars.player.sheet);
-  // El rig (data/sprites/<id>.json) dice qué hay en cada celda del pliego y
-  // cómo se anima: filas de caminata, poses de acción y la espera.
+  // El personaje elegido manda sobre la receta base de characters.json. Hasta
+  // que se pasa por la pantalla de selección, `save.characterId` es null, así
+  // que el id se resuelve UNA vez aquí y de ahí salen tanto el modo como la
+  // receta — si no, `looks.get(null)` devolvía el compañero genérico y la
+  // jugadora empezaba la partida con cara de figurante.
+  const DEFAULT_MODE = "giu";
+  const modeIdOf = (id) => (data.modes?.[id] ? id : DEFAULT_MODE);
+  const modeOf = (id) => data.modes?.[modeIdOf(id)] ?? null;
+  const lookOf = (id) => looks.get(modeIdOf(id));
+  // El rig (data/sprites/<id>.json) dice qué poses usa cada personaje y cómo
+  // se queda esperando cuando lleva un rato sin hacer nada.
   const rigOf = (who) => (who?.rig ? data.rigs.get(who.rig) : null) ?? null;
   // El HUD todavía no existe cuando esto corre por primera vez (el jugador se
   // crea antes que el motor), así que se rellena más abajo y se vuelve a
@@ -135,11 +132,10 @@ async function boot() {
   function applyCharacterSprite(id) {
     const mode = modeOf(id);
     const rig = rigOf(mode);
-    const actionSheet = sheets.get(mode?.actionSheet ?? chars.player.actionSheet);
-    player.sprite.setSheet(walkSheetOf(id));
-    player.sprite.setActionSheet(actionSheet);
+    const look = lookOf(id);
+    player.sprite.setRecipe(look);
     player.sprite.setRig(rig);
-    crossing3D.setPlayerSheet(walkSheetOf(id), actionSheet, rig);
+    crossing3D.setPlayerLook(look, rig);
     hideOwnDouble(id);
     // El panel grande de acción dibuja la misma pose animada que el sprite.
     hudRef?.setActionRig(
@@ -150,12 +146,11 @@ async function boot() {
   // Cruzar la avenida es una escena 3D aparte, con cámara propia (por detrás
   // del hombro) pero los mismos sprites — se crea aquí, donde ya tenemos las
   // hojas cargadas.
-  const crossing3D = createCrossing3D(app, walkSheetOf(save.characterId), {
-    playerAction: sheets.get(modeOf(save.characterId)?.actionSheet ?? chars.player.actionSheet),
-    // Gente de la oficina llenando la acera: los mismos pliegos de compañeros
-    // que se usan en el piso, sin cargar nada nuevo.
+  const crossing3D = createCrossing3D(app, lookOf(save.characterId), {
     playerRig: rigOf(modeOf(save.characterId)),
-    crowd: ["npc1", "npc2", "npc3", "npc4"].map((n) => sheets.get(n)),
+    // Gente llenando la acera: las mismas variantes de relleno que pueblan el
+    // piso, así que la calle y la oficina parecen la misma ciudad.
+    crowd: [0, 1, 2, 3, 4, 5].map((i) => looks.extra(i)),
   });
   crossing3D.resize(window.innerWidth / window.innerHeight);
 
@@ -169,7 +164,7 @@ async function boot() {
     bodyClass: "crossing-open",
   });
 
-  const player = new Player(sheets.get(chars.player.sheet), {
+  const player = new Player(lookOf(save.characterId), {
     x: floorplan.spawn.x,
     z: floorplan.spawn.z,
     radius: chars.player.radius,
@@ -184,11 +179,14 @@ async function boot() {
   // juego ya montado, así que quien empezaba de cero y escogía a Giuli se
   // encontraba a Giuli paseando por el piso mientras la jugaba.
   const npcs = floorplan.npcs
-    .map((def) => {
+    .map((def, i) => {
       const stats = chars.npcs[def.sheet] ?? {};
       const persona = data.dialogues.cast[def.cast];
-      const sheet = sheets.get(persona?.sheet ?? def.sheet) ?? sheets.values().next().value;
-      const npc = new NPC(sheet, { ...def, radius: stats.radius, height: stats.height });
+      // Los compañeros con nombre llevan su receta; el relleno va rotando
+      // entre las variantes de `extras` para que el piso no salga clonado
+      // (en el plano, nueve de los diez NPC compartían el mismo pliego gris).
+      const look = def.cast ? looks.get(def.cast) : looks.extra(i);
+      const npc = new NPC(look, { ...def, radius: stats.radius, height: stats.height });
       // Named colleagues can be talked to; the rest are set dressing.
       npc.cast = def.cast ?? null;
       npc.displayName = persona?.name ?? stats.name ?? "Compañero";
@@ -209,7 +207,7 @@ async function boot() {
 
   applyCharacterSprite(save.characterId);
 
-  const boss = new Boss(sheets.get(chars.boss.sheet), {
+  const boss = new Boss(looks.get("gabo"), {
     world,
     route: floorplan.patrolRoute,
     navmesh,
@@ -220,7 +218,6 @@ async function boot() {
     visionHalfAngleDeg: chars.boss.visionHalfAngleDeg,
     config: data.bossConfig?.boss,
   });
-  boss.sprite.setActionSheet(sheets.get(chars.boss.actionSheet));
   boss.sprite.setRig(rigOf(chars.boss));
   scene.add(boss.object3D);
   scene.add(boss.cone);
@@ -231,7 +228,7 @@ async function boot() {
   const minionColors = { chispita: 0xf2c744, washo: 0x45e0d0, crispo: 0xc08457 };
   const minions = new Map();
   for (const [id, def] of Object.entries(chars.minions ?? {})) {
-    const watcher = new Boss(sheets.get(def.sheet), {
+    const watcher = new Boss(looks.get(id), {
       world,
       route: floorplan.routes[id] ?? floorplan.patrolRoute,
       navmesh,
@@ -251,7 +248,6 @@ async function boot() {
     watcher.id = id;
     watcher.displayName = def.name ?? id;
     watcher.talkCooldown = data.dialogues.encounters[id]?.cooldown ?? 35;
-    watcher.sprite.setActionSheet(sheets.get(def.actionSheet));
     watcher.sprite.setRig(rigOf(def));
     watcher.setActive(false);
     scene.add(watcher.object3D);
@@ -590,6 +586,10 @@ async function boot() {
   // Exposed for the automated checks in tools/.
   window.__game = { world, navmesh, player, boss, engine, camera, scene, view, pixels, data, crossing3D, soundtrackState };
   window.__floorplan = floorplan;
+  // Para las herramientas de tools/ que montan personajes fuera del juego
+  // (retratos del reparto, comprobación de poses) sin rehacer el motor.
+  window.__three = THREE;
+  window.__char3d = { Character3D };
   // Solo para las comprobaciones de tools/: poder pasar de coordenadas de
   // suelo a pantalla sin duplicar la matriz de la cámara oblicua.
   window.__iso = iso;

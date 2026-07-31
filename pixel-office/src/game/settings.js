@@ -32,7 +32,7 @@ export const SETTINGS_SCHEMA = {
     min: 6,
     max: 64,
     step: 2,
-    hint: "Menos niveles = paleta más marcada",
+    hint: "64 = color continuo · menos niveles = paleta más marcada",
   },
   showLabels: { label: "Rótulos de zona", type: "toggle" },
   showMarkers: { label: "Marcas de suelo", type: "toggle" },
@@ -45,7 +45,7 @@ export const SETTINGS_SCHEMA = {
 const DEFAULTS = Object.freeze({
   quality: "auto",
   pixelSize: 1,
-  colorLevels: 24,
+  colorLevels: 64,
   showLabels: false,
   showMarkers: true,
   vibration: true,

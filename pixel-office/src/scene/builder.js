@@ -17,6 +17,7 @@ import {
 import { WORLD_SCALE as S } from "./config.js";
 import { createLabel } from "./labels.js";
 import { texturedMaterial, getTexture } from "./textures.js";
+import { cozyMaterial, SURFACES } from "./cozy.js";
 import { createFurnitureRegistry, placeSeatedTable, placeBistroTable } from "./furniture.js";
 
 const GLASS_WALL_H = 1.9 * S;
@@ -129,8 +130,22 @@ function applyPlanarUV(geometry, scale) {
   geometry.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
 }
 
-function paintGeometry(geometry, hexColor) {
+/**
+ * Cada zona trae su color en el JSON del plano y se pinta por vértice. Esos
+ * colores se eligieron contra un suelo gris y sobre el suelo cálido de ahora
+ * salían chillones, así que se llevan al pastel aquí — en un solo sitio, sin
+ * tener que reescribir el plano ni perder qué zona es cuál.
+ */
+function pastel(hexColor) {
   const color = new THREE.Color(hexColor);
+  const hsl = { h: 0, s: 0, l: 0 };
+  color.getHSL(hsl);
+  color.setHSL(hsl.h, Math.min(hsl.s, 0.32), Math.max(hsl.l, 0.78));
+  return color;
+}
+
+function paintGeometry(geometry, hexColor) {
+  const color = pastel(hexColor);
   const count = geometry.attributes.position.count;
   const colors = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
@@ -153,7 +168,7 @@ function buildCorridors() {
   if (!parts.length) return new THREE.Group();
   const mesh = new THREE.Mesh(
     mergeGeometries(parts, false),
-    texturedMaterial("tileLobby", { color: 0xf1f2f4, roughness: 0.85 })
+    texturedMaterial("tileLobby")
   );
   mesh.receiveShadow = true;
   parts.forEach((g) => g.dispose());
@@ -161,12 +176,10 @@ function buildCorridors() {
 }
 
 function interiorGlassMaterial() {
-  return new THREE.MeshStandardMaterial({
-    color: 0xcfe6ff,
+  return new THREE.MeshLambertMaterial({
+    color: new THREE.Color(SURFACES.glass),
     transparent: true,
-    opacity: 0.22,
-    roughness: 0.1,
-    metalness: 0,
+    opacity: 0.2,
     side: THREE.DoubleSide,
   });
 }
@@ -234,7 +247,7 @@ function buildBarriers(world) {
     group.add(
       new THREE.Mesh(
         mergeGeometries(trim, false),
-        new THREE.MeshStandardMaterial({ color: 0xe0a03c, roughness: 0.7 })
+        cozyMaterial("lintel", { color: "#d9a066" })
       )
     );
     trim.forEach((g) => g.dispose());
@@ -301,12 +314,10 @@ function buildPerimeterWalls(world) {
 
   const glass = new THREE.Mesh(
     mergeGeometries(panes, false),
-    new THREE.MeshStandardMaterial({
-      color: 0xbfe4f5,
+    new THREE.MeshLambertMaterial({
+      color: new THREE.Color(SURFACES.glass),
       transparent: true,
-      opacity: 0.16,
-      roughness: 0.08,
-      metalness: 0.1,
+      opacity: 0.14,
       side: THREE.DoubleSide,
       depthWrite: false,
     })
@@ -314,11 +325,7 @@ function buildPerimeterWalls(world) {
   glass.renderOrder = 3;
   group.add(glass);
 
-  const frameMat = new THREE.MeshStandardMaterial({
-    color: 0x8e97a6,
-    roughness: 0.4,
-    metalness: 0.5,
-  });
+  const frameMat = cozyMaterial("frame");
   const frame = new THREE.Mesh(mergeGeometries([...mullions, ...sills], false), frameMat);
   frame.castShadow = false;
   frame.receiveShadow = true;
@@ -336,7 +343,7 @@ function buildPerimeterWalls(world) {
 function buildEntranceMat() {
   const geo = new THREE.BoxGeometry(entrance.w, 0.06 * S, 1.6 * S);
   applyPlanarUV(geo, 0.5 / S);
-  const mark = new THREE.Mesh(geo, texturedMaterial("woodFloor", { color: 0xc9a8dd, roughness: 0.8 }));
+  const mark = new THREE.Mesh(geo, texturedMaterial("woodFloor"));
   mark.position.set(entrance.x, 0.06 * S, entrance.z + 1.4 * S);
   return mark;
 }
@@ -508,9 +515,9 @@ function addElevators(area, world, parts) {
 function buildCoreMeshes(parts) {
   const group = new THREE.Group();
   const specs = [
-    ["body", texturedMaterial("panelLight", { color: 0xdfe3e9, roughness: 0.8 })],
-    ["door", new THREE.MeshStandardMaterial({ color: 0x4d5663, roughness: 0.6 })],
-    ["metal", new THREE.MeshStandardMaterial({ color: 0xb9c0c9, metalness: 0.7, roughness: 0.3 })],
+    ["body", texturedMaterial("panelLight")],
+    ["door", cozyMaterial("door", { color: "#b99a76" })],
+    ["metal", cozyMaterial("metal")],
   ];
   for (const [kind, material] of specs) {
     if (!parts[kind].length) continue;
@@ -569,10 +576,10 @@ function addAuditorium(area, world, ctx) {
   // The lit screen is a one-off landmark, so it stays its own small mesh.
   const screen = new THREE.Mesh(
     new THREE.BoxGeometry(area.w * 0.5, 1.3 * S, 0.12 * S),
-    new THREE.MeshStandardMaterial({
-      color: 0x11141a,
-      emissive: 0x2a6f9e,
-      emissiveIntensity: 1.2,
+    new THREE.MeshLambertMaterial({
+      color: new THREE.Color(SURFACES.screen),
+      emissive: new THREE.Color("#7fb4c9"),
+      emissiveIntensity: 0.9,
     })
   );
   screen.position.set(area.x, 1.25 * S, area.z - area.d / 2 + 0.2 * S);
@@ -625,7 +632,7 @@ function buildPlants(world) {
 
   const leaves = new THREE.Mesh(
     mergeGeometries(leafParts, false),
-    new THREE.MeshStandardMaterial({ color: 0x3f7a4a, roughness: 0.85 })
+    cozyMaterial("leaves")
   );
   leaves.castShadow = true;
   group.add(leaves);

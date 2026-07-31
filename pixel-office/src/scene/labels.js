@@ -6,11 +6,16 @@ import * as THREE from "three";
 // Two visual styles, matching the reference image:
 //  - "solid": a bold color-filled pill for team/department areas (Canales,
 //    Segmentos, AdTech...), optionally with a dark instead of light label.
-//  - default: a dark pill with a colored accent bar, used for meeting
+//  - default: a light pill with a colored accent bar, used for meeting
 //    rooms / utility spaces (Sala 2, Baños, Elevadores...).
+//
+// El fondo era casi negro con borde duro: sobre un piso claro y cálido esos
+// rótulos se leían como notificaciones de una app pegadas encima del juego.
+// Ahora son pastillas de papel crema con texto oscuro, que es lo que hace que
+// pertenezcan al mismo mundo que el resto del decorado.
 export function createLabel(
   text,
-  { bg = "#1c1e24", fg = "#f4f1ea", accent = "#8b5cf6", solid = false, dark = false, icon = "" } = {},
+  { bg = "#f6efe2", fg = "#4a3f33", accent = "#c98b6b", solid = false, dark = false, icon = "" } = {},
   scaleMul = 1
 ) {
   const lines = text.split("\n");
@@ -29,7 +34,7 @@ export function createLabel(
   canvas.height = Math.ceil(lineHeight * lines.length + padding * 1.4);
 
   const fillColor = solid ? accent : bg;
-  const textColor = solid ? (dark ? "#241a06" : "#ffffff") : fg;
+  const textColor = solid ? (dark ? "#3a2c1d" : "#ffffff") : fg;
 
   roundRect(ctx, 0, 0, canvas.width, canvas.height, 12);
   ctx.fillStyle = fillColor;
@@ -41,10 +46,10 @@ export function createLabel(
   roundRect(ctx, 0, 0, canvas.width, canvas.height, 12);
   ctx.clip();
   const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-  grad.addColorStop(0, "rgba(255,255,255,0.22)");
-  grad.addColorStop(0.18, "rgba(255,255,255,0)");
+  grad.addColorStop(0, "rgba(255,255,255,0.35)");
+  grad.addColorStop(0.22, "rgba(255,255,255,0)");
   grad.addColorStop(0.85, "rgba(0,0,0,0)");
-  grad.addColorStop(1, "rgba(0,0,0,0.28)");
+  grad.addColorStop(1, "rgba(90,70,50,0.14)");
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.restore();
@@ -55,7 +60,7 @@ export function createLabel(
   }
 
   // Crisp outline for legibility against any floor color behind it.
-  ctx.strokeStyle = solid ? "rgba(0,0,0,0.35)" : "rgba(0,0,0,0.55)";
+  ctx.strokeStyle = solid ? "rgba(90,70,50,0.25)" : "rgba(120,98,74,0.35)";
   ctx.lineWidth = 2;
   roundRect(ctx, 1, 1, canvas.width - 2, canvas.height - 2, 11);
   ctx.stroke();
@@ -64,8 +69,8 @@ export function createLabel(
   ctx.textAlign = "center";
   ctx.font = `800 ${fontSize}px 'Segoe UI', sans-serif`;
   ctx.fillStyle = textColor;
-  ctx.shadowColor = "rgba(0,0,0,0.35)";
-  ctx.shadowBlur = 3;
+  ctx.shadowColor = "rgba(255,255,255,0.5)";
+  ctx.shadowBlur = 2;
   const textCenterX = canvas.width / 2 + iconGap / 2 + 3;
   lines.forEach((line, i) => {
     ctx.fillText(line, textCenterX, padding * 0.9 + lineHeight * (i + 0.5));
