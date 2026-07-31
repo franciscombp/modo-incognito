@@ -413,6 +413,24 @@ function drawBarriers() {
       ctx.fill();
       label("puerta", p.x + 9, p.y + 4, ctx.fillStyle);
     }
+
+    // Mostrar handles para redimensionar cuando la barrera está seleccionada
+    if (selectedBarrier === idx) {
+      const p1 = along === "z" ? toScreen(b.at, b.from) : toScreen(b.from, b.at);
+      const p2 = along === "z" ? toScreen(b.at, b.to) : toScreen(b.to, b.at);
+
+      // Handle en "from"
+      ctx.fillStyle = selectedBarrierHandle === "from" ? "#ff6b81" : "#45e0d0";
+      ctx.beginPath();
+      ctx.arc(p1.x, p1.y, (selectedBarrierHandle === "from" ? 8 : 6) * devicePixelRatio, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Handle en "to"
+      ctx.fillStyle = selectedBarrierHandle === "to" ? "#ff6b81" : "#45e0d0";
+      ctx.beginPath();
+      ctx.arc(p2.x, p2.y, (selectedBarrierHandle === "to" ? 8 : 6) * devicePixelRatio, 0, Math.PI * 2);
+      ctx.fill();
+    }
   });
 }
 
@@ -567,6 +585,7 @@ let routeEditMode = false;
 let selectedRoute = null;
 let selectedRouteNode = null;
 let selectedBarrier = null;
+let selectedBarrierHandle = null; // "from", "to", o null
 
 function footprintNodeAt(plan) {
   const fp = state.scene?.footprint ?? [];
@@ -686,6 +705,21 @@ function barrierAt(plan) {
     const aval = plan[along];
     if (Math.abs(pval - b.at) < grab && aval >= bmin - grab && aval <= bmax + grab) return i;
   }
+  return null;
+}
+
+function barrierHandleAt(plan) {
+  if (selectedBarrier === null) return null;
+  const b = state.scene?.barriers?.[selectedBarrier];
+  if (!b) return null;
+  const along = b.axis === "z" ? "x" : "z";
+  const grab = 8 / state.view.scale;
+
+  const p1 = along === "z" ? { x: b.at, z: b.from } : { x: b.from, z: b.at };
+  const p2 = along === "z" ? { x: b.at, z: b.to } : { x: b.to, z: b.at };
+
+  if (Math.abs(plan.x - p1.x) < grab && Math.abs(plan.z - p1.z) < grab) return "from";
+  if (Math.abs(plan.x - p2.x) < grab && Math.abs(plan.z - p2.z) < grab) return "to";
   return null;
 }
 
@@ -839,10 +873,27 @@ canvas.addEventListener("pointerdown", (e) => {
     return;
   }
 
+  // Detectar clic en handle de barrera (para redimensionar)
+  const handleType = barrierHandleAt(plan);
+  if (handleType !== null && e.button === 0) {
+    selectedBarrierHandle = handleType;
+    const b = state.scene.barriers[selectedBarrier];
+    const along = b.axis === "z" ? "z" : "x";
+    drag = {
+      mode: "barrier-handle-drag",
+      barrierIndex: selectedBarrier,
+      handle: handleType,
+      along: along
+    };
+    draw();
+    return;
+  }
+
   // Detectar clic en pared (para mover toda la pared)
   const barrierIdx = barrierAt(plan);
   if (barrierIdx !== null && e.button === 0) {
     selectedBarrier = barrierIdx;
+    selectedBarrierHandle = null;
     const b = state.scene.barriers[barrierIdx];
     const axis = b.axis; // "x" o "z"
     drag = {
@@ -884,6 +935,17 @@ canvas.addEventListener("pointermove", (e) => {
   if (drag.mode === "door-drag") {
     const b = state.scene.barriers[drag.barrierIndex];
     b.door.at = snap(plan[b.axis === "z" ? "z" : "x"], e.shiftKey);
+    draw();
+    return;
+  }
+  if (drag.mode === "barrier-handle-drag") {
+    const b = state.scene.barriers[drag.barrierIndex];
+    const val = snap(plan[drag.along], e.shiftKey);
+    if (drag.handle === "from") {
+      b.from = val;
+    } else {
+      b.to = val;
+    }
     draw();
     return;
   }
@@ -1028,6 +1090,16 @@ window.addEventListener("keydown", (e) => {
     } else {
       toast("No se puede eliminar el último nodo");
     }
+    draw();
+    return;
+  }
+  // Delete para barreras seleccionadas
+  if ((e.key === "Delete" || e.key === "Backspace") && selectedBarrier !== null) {
+    e.preventDefault();
+    state.scene.barriers.splice(selectedBarrier, 1);
+    selectedBarrier = null;
+    selectedBarrierHandle = null;
+    toast("Pared eliminada");
     draw();
     return;
   }
