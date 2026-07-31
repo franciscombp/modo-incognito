@@ -126,6 +126,21 @@
       "text": "Yo no superviso, yo acompaño. Ah, y esa de ahí es Crispo. No te preocupes por ella. Bueno, un poco sí."
     },
     {
+      "speaker": "Crispo",
+      "portrait": "🥨",
+      "text": "..."
+    },
+    {
+      "speaker": "Tú",
+      "portrait": "😐",
+      "text": "¿Es... amigable?"
+    },
+    {
+      "speaker": "Gabo",
+      "portrait": "🕴️",
+      "text": "Define amigable. Crispo es nuestro sistema de vigilancia con forma de persona. Apenas se mueve, pero lo ve absolutamente todo."
+    },
+    {
       "speaker": "Steven el Daddy",
       "narrator": true,
       "text": "Tu jornada de hoy: un café, una película y algo de comer. Tres cosas. Ninguna es tu trabajo. Mantén presionada la E para hacerlas, y la F para fingir que trabajas cuando Gabo respire cerca."
