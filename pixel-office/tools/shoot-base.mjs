@@ -12,7 +12,11 @@ import { chromium } from "playwright";
 
 const out = process.argv[2] ?? "base.png";
 const who = process.argv[3] ?? "giuli";
-const VIEW = { width: 1500, height: 760 };
+// `close` encuadra cabeza y hombros, que es como se ven en un diálogo. Es el
+// único encuadre en el que se decide si una cara aguanta: de cuerpo entero
+// todas las cabezas parecen aceptables.
+const close = process.argv[4] === "close";
+const VIEW = close ? { width: 1500, height: 620 } : { width: 1500, height: 760 };
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium",
@@ -27,7 +31,7 @@ await page.goto("http://localhost:4173/", { waitUntil: "networkidle" });
 await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
 
 const info = await page.evaluate(
-  async ({ who, VIEW }) => {
+  async ({ who, VIEW, close }) => {
     const THREE = window.__three;
     const { Character3D } = window.__char3d;
     const base = window.__base;
@@ -57,7 +61,7 @@ const info = await page.evaluate(
 
     // 1) El de siempre, como referencia de a dónde llegamos.
     const mine = new Character3D(recipe, { height: H });
-    mine.setPosition(-1.5 * step, 0);
+    mine.setPosition((close ? -0.5 : -1.5) * step, 0);
     mine.setHeading(0.25, 1);
     for (let f = 0; f < 20; f++) mine.update(0.05);
     scene.add(mine.object);
@@ -69,11 +73,15 @@ const info = await page.evaluate(
       if (o.isBone) stats.bones.push(o.name);
     });
 
-    const variants = [
-      { head: 1.0, width: 1, limbs: 1, x: -0.5 },
-      { head: 1.8, width: 1.05, limbs: 0.86, x: 0.5 },
-      { head: 2.4, width: 1.1, limbs: 0.74, x: 1.5 },
-    ];
+    // De cerca solo se comparan los dos candidatos de verdad; con cuatro en
+    // fila las caras salen tan pequeñas que no se decide nada.
+    const variants = close
+      ? [{ head: 1.8, width: 1.05, limbs: 0.86, x: 0.5 }]
+      : [
+          { head: 1.0, width: 1, limbs: 1, x: -0.5 },
+          { head: 1.8, width: 1.05, limbs: 0.86, x: 0.5 },
+          { head: 2.4, width: 1.1, limbs: 0.74, x: 1.5 },
+        ];
     stats.variants = [];
     for (const v of variants) {
       const inst = base.instantiateBase(gltf, { height: H });
@@ -87,17 +95,18 @@ const info = await page.evaluate(
 
     const aspect = VIEW.width / VIEW.height;
     const fov = 30;
-    const pitch = (14 * Math.PI) / 180;
-    const width = 4 * step;
+    const pitch = ((close ? 4 : 14) * Math.PI) / 180;
+    const width = (close ? 1.9 : 4) * step;
     const hfov = 2 * Math.atan(Math.tan((fov * Math.PI) / 360) * aspect);
-    const dist = width / 2 / Math.tan(hfov / 2) + H * 0.4;
+    const dist = width / 2 / Math.tan(hfov / 2) + H * 0.2;
+    const lookY = close ? H * 0.86 : H * 0.5;
     const camera = new THREE.PerspectiveCamera(fov, aspect, 0.1, 100);
-    camera.position.set(0, H * 0.5 + Math.sin(pitch) * dist, Math.cos(pitch) * dist);
-    camera.lookAt(0, H * 0.5, 0);
+    camera.position.set(0, lookY + Math.sin(pitch) * dist, Math.cos(pitch) * dist);
+    camera.lookAt(0, lookY, 0);
     renderer.render(scene, camera);
     return stats;
   },
-  { who, VIEW }
+  { who, VIEW, close }
 );
 
 await page.screenshot({ path: out });
