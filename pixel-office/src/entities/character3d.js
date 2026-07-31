@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { screenToGround, facingFromGround } from "../scene/iso.js";
 import { buildSkeleton, skinGeometry, rigidGeometry } from "./skinning.js";
+import { faceTexture, projectFaceUVs } from "./face.js";
 
 /**
  * PERSONAJES 3D COZY, CON ESQUELETO DE VERDAD.
@@ -34,6 +35,8 @@ export const POSES = {
   phone: 5,
   scared: 6,
   shrug: 7,
+  sit: 8,
+  sitWork: 9,
 };
 
 export const DEFAULT_RIG = {
@@ -80,7 +83,22 @@ const BONE_OF = {
   legR: "RightUpLeg",
   kneeL: "LeftLeg",
   kneeR: "RightLeg",
+  footL: "LeftFoot",
+  footR: "RightFoot",
 };
+
+/**
+ * Posturas de la mano. Se aplican a los diez huesos de los dedos a la vez,
+ * porque nadie quiere escribir veinte ángulos por pose: `curl` cierra los
+ * cuatro dedos y `thumb` el pulgar.
+ */
+const HAND_POSES = {
+  relax: { curl: 0.34, thumb: 0.26 },
+  open: { curl: 0.02, thumb: 0.05 },
+  grip: { curl: 1.15, thumb: 0.85 },
+  point: { curl: 1.25, thumb: 0.45, index: 0.05 },
+};
+const FINGERS = ["Index", "Middle", "Ring", "Pinky"];
 
 const REST = {
   torso: [0, 0, 0],
@@ -96,13 +114,17 @@ const REST = {
   legR: [0, 0, 0],
   kneeL: [0, 0, 0],
   kneeR: [0, 0, 0],
+  footL: [0, 0, 0],
+  footR: [0, 0, 0],
   lift: 0,
+  hands: "relax",
 };
 
 const POSE_LIBRARY = {
   work: {
     speed: 2.6,
     prop: null,
+    hands: "open",
     a: { torso: [0.14, 0, 0], head: [0.2, 0, 0], armL: [-1.35, 0, 0.25], armR: [-1.4, 0, -0.25], elbowL: [-0.75, 0, 0], elbowR: [-0.68, 0, 0] },
     b: { torso: [0.14, 0, 0], head: [0.22, 0, 0], armL: [-1.42, 0, 0.25], armR: [-1.32, 0, -0.25], elbowL: [-0.62, 0, 0], elbowR: [-0.82, 0, 0] },
   },
@@ -115,6 +137,7 @@ const POSE_LIBRARY = {
   coffee: {
     speed: 1.5,
     prop: "cup",
+    hands: "grip",
     a: { head: [0.06, -0.1, 0], armR: [-1.15, 0, -0.2], elbowR: [-1.5, 0, 0], armL: [0, 0, 0.22] },
     b: { head: [-0.04, -0.1, 0], armR: [-0.72, 0, -0.3], elbowR: [-1.05, 0, 0], armL: [0, 0, 0.22] },
   },
@@ -133,14 +156,35 @@ const POSE_LIBRARY = {
   phone: {
     speed: 1.7,
     prop: "phone",
+    hands: "grip",
     a: { head: [0.28, -0.1, 0], torso: [0.05, 0, 0], armR: [-1.0, 0, -0.25], elbowR: [-1.2, 0, 0], armL: [-0.6, 0, 0.3], elbowL: [-1.1, 0, 0] },
     b: { head: [0.24, -0.08, 0], torso: [0.05, 0, 0], armR: [-0.95, 0, -0.28], elbowR: [-1.32, 0, 0], armL: [-0.6, 0, 0.3], elbowL: [-1.1, 0, 0] },
   },
   scared: {
     speed: 5.5,
     prop: null,
+    hands: "open",
     a: { torso: [-0.2, 0, 0], head: [-0.22, 0.1, 0], armL: [-2.3, 0, 0.6], elbowL: [-0.5, 0, 0], armR: [-2.25, 0, -0.6], elbowR: [-0.5, 0, 0], lift: 0.01 },
     b: { torso: [-0.16, 0, 0], head: [-0.2, -0.1, 0], armL: [-2.4, 0, 0.7], elbowL: [-0.4, 0, 0], armR: [-2.35, 0, -0.7], elbowR: [-0.4, 0, 0], lift: 0 },
+  },
+  // Sentada. Los muslos van al frente y las rodillas devuelven la espinilla a
+  // la vertical; la cadera BAJA a la altura de una silla — sin eso el
+  // personaje se sienta en el aire, que es el fallo clásico de esta pose.
+  sit: {
+    speed: 0.7,
+    prop: null,
+    hands: "relax",
+    a: { torso: [0.04, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [0.1, 0, 0.16], armR: [0.1, 0, -0.16], lift: -0.082 },
+    b: { torso: [0.06, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [0.13, 0, 0.16], armR: [0.13, 0, -0.16], lift: -0.08 },
+  },
+  // Sentada y tecleando: es la postura real de la oficina, y la que hace que
+  // "fingir que trabajas" se lea de un vistazo.
+  sitWork: {
+    speed: 2.4,
+    prop: null,
+    hands: "open",
+    a: { torso: [0.16, 0, 0], head: [0.16, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [-1.2, 0, 0.22], armR: [-1.25, 0, -0.22], elbowL: [-0.7, 0, 0], elbowR: [-0.62, 0, 0], lift: -0.082 },
+    b: { torso: [0.16, 0, 0], head: [0.17, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [-1.27, 0, 0.22], armR: [-1.18, 0, -0.22], elbowL: [-0.58, 0, 0], elbowR: [-0.76, 0, 0], lift: -0.082 },
   },
   shrug: {
     speed: 1.3,
@@ -161,7 +205,7 @@ export const DEFAULT_RECIPE = {
   badge: "#7a5cc4",
   blush: "#e8a0a0",
   accessories: [],
-  build: { width: 1, belly: 0 },
+  build: { width: 1, belly: 0, bust: 0 },
 };
 
 function mergeRecipe(recipe) {
@@ -213,10 +257,31 @@ function paint(geometry, hex) {
  * propósito: sin vértices intermedios no hay nada que deformar y el codo
  * volvería a doblarse como una pieza rígida.
  */
-function limb(from, to, radiusTop, radiusBottom) {
+function limb(from, to, radiusTop, radiusBottom, profile = null, depth = 1) {
   const dir = new THREE.Vector3().subVectors(to, from);
   const len = dir.length();
-  const geo = new THREE.CylinderGeometry(radiusTop, radiusBottom, len, 14, 8);
+  const geo = new THREE.CylinderGeometry(radiusTop, radiusBottom, len, 16, 10);
+  // `depth` aplasta la sección: un torso es más ancho que hondo. Con sección
+  // redonda y sombreado plano, visto de frente se lee como un panel recto.
+  if (depth !== 1) geo.scale(1, 1, depth);
+
+  // El PERFIL es lo que separa un miembro de un tubo. Un brazo no tiene el
+  // mismo grosor de arriba abajo: se ensancha en el bíceps y se estrecha en
+  // la muñeca. Sin esto todo el muñeco son cilindros y por eso parece de
+  // piezas encajadas en vez de un cuerpo.
+  if (profile) {
+    const pos = geo.attributes.position;
+    const top = len / 2;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      const t = THREE.MathUtils.clamp((top - y) / len, 0, 1); // 0 arriba, 1 abajo
+      const k = profile(t);
+      pos.setX(i, pos.getX(i) * k);
+      pos.setZ(i, pos.getZ(i) * k);
+    }
+    geo.computeVertexNormals();
+  }
+
   geo.translate(0, -len / 2, 0);
   // La geometría nace mirando a +Y; se gira hacia donde va de verdad.
   const quat = new THREE.Quaternion().setFromUnitVectors(
@@ -226,6 +291,42 @@ function limb(from, to, radiusTop, radiusBottom) {
   geo.applyQuaternion(quat);
   geo.translate(from.x, from.y, from.z);
   return geo;
+}
+
+/**
+ * Perfiles de miembro. `t` va de 0 (arriba) a 1 (abajo).
+ * Son suaves a propósito: en un muñeco cabezón, un bíceps marcado se ve
+ * ridículo — basta con que el contorno no sea recto.
+ */
+const PROFILE = {
+  arm: (t) => 1 + Math.sin(t * Math.PI) * 0.1 - t * 0.06,
+  leg: (t) => 1 + Math.sin(Math.min(1, t * 1.35) * Math.PI) * 0.13 - t * 0.1,
+  // Hombros anchos, cintura marcada y cadera que vuelve a abrir. Es la curva
+  // que hace que un torso sea un torso y no un bidón.
+  torso: (t) => 1 - Math.sin(Math.min(1, t * 1.15) * Math.PI) * 0.16 - t * 0.03,
+};
+
+/**
+ * Una prenda: la misma forma que el miembro pero un poco más gorda, con un
+ * DOBLADILLO al final.
+ *
+ * Es lo que hace que la ropa se lea puesta encima y no pintada sobre la piel.
+ * El dobladillo es el truco: un reborde donde acaba la tela deja ver que hay
+ * dos capas, y sin él una manga es solo un tramo del brazo de otro color.
+ */
+function garment(from, to, rTop, rBottom, { hem = 1.06, profile = null, depth = 1 } = {}) {
+  const parts = [limb(from, to, rTop, rBottom, profile, depth)];
+  if (hem > 1.001) {
+    // UN anillo, corto y justo en el filo. Antes era otro cilindro solapado
+    // sobre la manga, y dos cilindros casi iguales uno dentro de otro se ven
+    // como un acordeón de aros, no como un dobladillo.
+    const dir = new THREE.Vector3().subVectors(to, from).normalize();
+    const edge = to.clone().addScaledVector(dir, -rBottom * 0.16);
+    parts.push(
+      limb(edge, to.clone().addScaledVector(dir, rBottom * 0.02), rBottom * hem, rBottom * hem, null, depth)
+    );
+  }
+  return mergeGeometries(parts, false);
 }
 
 /** Una bola en una articulación: es lo que redondea hombros, codos y rodillas. */
@@ -386,6 +487,7 @@ export class Character3D {
     // El cuerpo se construye ENTRE las articulaciones del esqueleto, no con
     // medidas propias: así el hueso siempre cae dentro de la carne.
     const at = (name) => byName.get(name).userData.segment.head;
+    const tailOf = (name) => byName.get(name).userData.segment.tail;
 
     const parts = [];
     /** @param bind ["skin", [huesos…]] o ["rigid", hueso] */
@@ -408,11 +510,51 @@ export class Character3D {
     const hips = at("Hips");
     const chest = at("Chest");
     const neck = at("Neck");
-    add(limb(neck, hips.clone().setY(hips.y - 0.03 * H), torsoR * 0.92, torsoR * 0.86), topColor, [
+    // Cuerpo de piel debajo y prenda ENCIMA con su dobladillo: es lo que hace
+    // que la ropa se lea puesta y no pintada. Antes el torso era directamente
+    // del color de la camiseta y por eso parecía una pieza de plástico.
+    const shoulderY = at("LeftArm").y;
+    const shoulderSpan = at("LeftArm").x + armR * 0.95;
+    const torsoTop = neck.clone().setY(neck.y - 0.01 * H);
+    const torsoBottom = hips.clone().setY(hips.y - 0.075 * H);
+    add(limb(torsoTop, torsoBottom, torsoR * 0.86, torsoR * 0.82, PROFILE.torso, 0.74), skinColor, [
       "skin",
       ["Hips", "Spine", "Chest"],
     ]);
-    add(ellipsoid(chest, torsoR, torsoR * 0.62, torsoR * 0.82), topColor, ["skin", ["Chest", "Spine"]]);
+    add(
+      garment(torsoTop.clone().setY(shoulderY + armR * 0.2), torsoBottom, torsoR * 0.99, torsoR * 0.92, {
+        profile: PROFILE.torso,
+        hem: 1.05,
+        depth: 0.74,
+      }),
+      topColor,
+      ["skin", ["Hips", "Spine", "Chest"]]
+    );
+    add(ellipsoid(chest, torsoR * 0.97, torsoR * 0.6, torsoR * 0.7), topColor, ["skin", ["Chest", "Spine"]]);
+
+    // Busto. Con un modelo fijo esto exigiría morph targets; generando el
+    // cuerpo es un número de la receta (`build.bust`, 0 = sin nada).
+    const bust = r.build.bust ?? 0;
+    if (bust > 0.01) {
+      // SUTIL, y a propósito. El reparto va con ropa de oficina y de abrigo:
+      // lo que se ve no es el pecho, es cómo cae la tela por encima. Un bulto
+      // marcado con dos mitades separadas no se lee como una prenda gruesa,
+      // se lee como un escote — que no es lo que tiene puesto nadie aquí.
+      // Por eso van muy juntas, muy planas y metidas dentro del torso.
+      const br = torsoR * (0.22 + bust * 0.12);
+      for (const dir of [-1, 1]) {
+        add(
+          ellipsoid(
+            new THREE.Vector3(dir * torsoR * 0.22, chest.y - 0.02 * H, torsoR * 0.2),
+            br * 1.5,
+            br * 0.62,
+            br * 0.42
+          ),
+          topColor,
+          ["skin", ["Chest", "Spine"]]
+        );
+      }
+    }
 
     if (r.top.style === "hoodie") {
       const hood = ellipsoid(
@@ -442,6 +584,22 @@ export class Character3D {
       ]);
     }
 
+    // Los HOMBROS, de un brazo al otro por encima del pecho. Es la pieza que
+    // ata las mangas al cuerpo: sin ella cada manga arrancaba por encima del
+    // hombro, sin nada que la uniera al torso, y se veían dos tubos flotando
+    // a los lados. También da la caída de hombro — un torso que acaba en un
+    // corte recto se lee como un bidón.
+    add(
+      ellipsoid(
+        new THREE.Vector3(0, shoulderY - armR * 0.1, 0),
+        shoulderSpan,
+        torsoR * 0.48,
+        torsoR * 0.62
+      ),
+      topColor,
+      ["skin", ["Chest", "LeftArm", "RightArm"]]
+    );
+
     // ----- brazos y piernas -----
     for (const side of ["Left", "Right"]) {
       const shoulder = at(`${side}Arm`);
@@ -453,55 +611,90 @@ export class Character3D {
       // cruzaban en el codo, y en el cruce salía un borde en dientes de
       // sierra que se veía desde cualquier ángulo.
       const armBones = [`${side}Arm`, `${side}ForeArm`, `${side}Hand`, "Chest"];
-      add(limb(shoulder, hand, armR, armR * 0.86), skinColor, ["skin", armBones]);
+      add(limb(shoulder, hand, armR, armR * 0.86, PROFILE.arm), skinColor, ["skin", armBones]);
       add(joint(elbow, armR * 0.96), skinColor, ["skin", [`${side}Arm`, `${side}ForeArm`]]);
-      add(joint(hand, armR * 1.25), skinColor, ["rigid", `${side}Hand`]);
+      // Palma y cinco dedos. Antes era una bola: a distancia de juego daba
+      // igual, pero al conversar de cerca una taza flotando junto a una
+      // manopla se ve enseguida.
+      add(ellipsoid(hand, armR * 1.05, armR * 1.0, armR * 1.3), skinColor, ["rigid", `${side}Hand`]);
+      const fingerR = armR * 0.26;
+      for (const f of ["Index", "Middle", "Ring", "Pinky", "Thumb"]) {
+        const b1 = `${side}${f}1`;
+        const b2 = `${side}${f}2`;
+        add(limb(at(b1), at(b2), fingerR, fingerR * 0.94), skinColor, ["skin", [b1, b2, `${side}Hand`]]);
+        add(limb(at(b2), tailOf(b2), fingerR * 0.94, fingerR * 0.8), skinColor, ["skin", [b2, b1]]);
+        add(joint(at(b2), fingerR * 0.95), skinColor, ["skin", [b2, b1]]);
+      }
 
+      // La manga nace DENTRO de la masa del hombro y baja. Antes empezaba por
+      // encima de ella y quedaba un escalón entre la camiseta y el brazo.
       const sleeveEnd = sleeveLong
         ? elbow.clone().lerp(hand, 0.82)
-        : shoulder.clone().lerp(elbow, 0.5);
+        : shoulder.clone().lerp(elbow, 0.52);
       add(
-        limb(shoulder.clone().setY(shoulder.y + armR * 0.7), sleeveEnd, armR * 1.16, armR * 1.06),
+        garment(shoulder.clone().setY(shoulder.y - armR * 0.05), sleeveEnd, armR * 1.14, armR * 1.06, {
+          hem: 1.07,
+        }),
         topColor,
         ["skin", armBones]
       );
-      add(joint(shoulder, armR * 1.2), topColor, ["skin", [`${side}Arm`, "Chest"]]);
 
       const hip = at(`${side}UpLeg`);
       const knee = at(`${side}Leg`);
       const ankle = at(`${side}Foot`);
 
-      add(limb(hip, knee, legR, legR * 0.92), bottomColor, [
-        "skin",
-        [`${side}UpLeg`, `${side}Leg`, "Hips"],
-      ]);
-      add(joint(knee, legR * 0.94), bottomColor, ["skin", [`${side}UpLeg`, `${side}Leg`]]);
-      add(limb(knee, ankle, legR * 0.92, legR * 0.84), bottomColor, [
-        "skin",
-        [`${side}Leg`, `${side}UpLeg`, `${side}Foot`],
-      ]);
-
-      // Zapatones: piezas gordas y claras que anclan el muñeco al suelo.
-      const shoe = ellipsoid(
-        new THREE.Vector3(ankle.x, P.shoeH * H * 0.5, legR * 0.55),
-        legR * 1.15,
-        P.shoeH * H * 0.62,
-        legR * 2.0
+      const legBones = [`${side}UpLeg`, `${side}Leg`, `${side}Foot`, "Hips"];
+      add(limb(hip, ankle, legR * 0.9, legR * 0.78, PROFILE.leg), skinColor, ["skin", legBones]);
+      add(joint(knee, legR * 0.9), skinColor, ["skin", [`${side}UpLeg`, `${side}Leg`]]);
+      // El pantalón llega al tobillo salvo en los cortos; el dobladillo deja
+      // ver dónde acaba la tela y empieza la pierna.
+      const trouserEnd =
+        r.bottom.style === "shorts" ? hip.clone().lerp(knee, 0.85) : ankle.clone().lerp(knee, 0.12);
+      add(
+        garment(hip.clone().setY(hip.y + legR * 0.4), trouserEnd, legR * 1.06, legR * 0.94, {
+          profile: PROFILE.leg,
+          hem: 1.08,
+        }),
+        bottomColor,
+        ["skin", legBones]
       );
-      add(shoe, r.shoes.color, ["rigid", `${side}Foot`]);
+
+      // Zapatones: piezas gordas y claras que anclan el muñeco al suelo. Van
+      // en DOS partes, talón y puntera, cada una a su hueso: así el pie rueda
+      // al caminar y la puntera apoya al sentarse, en vez de quedarse el
+      // zapato rígido flotando en diagonal.
+      add(
+        ellipsoid(
+          new THREE.Vector3(ankle.x, P.shoeH * H * 0.52, ankle.z - legR * 0.1),
+          legR * 1.15,
+          P.shoeH * H * 0.6,
+          legR * 1.05
+        ),
+        r.shoes.color,
+        ["rigid", `${side}Foot`]
+      );
+      const toe = at(`${side}Toe`);
+      add(
+        ellipsoid(
+          new THREE.Vector3(toe.x, P.shoeH * H * 0.45, toe.z + legR * 0.35),
+          legR * 1.08,
+          P.shoeH * H * 0.5,
+          legR * 1.15
+        ),
+        r.shoes.color,
+        ["skin", [`${side}Toe`, `${side}Foot`]]
+      );
     }
 
     // ----- cabeza -----
     const headR = P.headR * H;
     const headC = new THREE.Vector3(0, P.headY * H, 0);
-    add(headGeometry(headC, headR), skinColor, ["rigid", "Head"]);
     // Cuello corto, lo justo para que la cabeza no salga del pecho.
     add(limb(neck.clone().setY(neck.y + 0.005 * H), chest, torsoR * 0.32, torsoR * 0.42), skinColor, [
       "skin",
       ["Neck", "Head", "Chest"],
     ]);
 
-    for (const geo of buildFace(headC, headR, r)) add(geo.g, geo.color, ["rigid", "Head"]);
     for (const geo of buildHair(headC, headR, r)) add(geo.g, geo.color, ["rigid", "Head"]);
     if (r.beard) for (const geo of buildBeard(headC, headR, r.beard)) add(geo.g, geo.color, ["rigid", "Head"]);
     for (const geo of buildAccessories(headC, headR, r)) add(geo.g, geo.color, ["rigid", "Head"]);
@@ -527,7 +720,22 @@ export class Character3D {
       add(card, r.badge, ["rigid", "Chest"]);
     }
 
-    // ----- una sola malla -----
+    // ----- la cabeza va aparte, porque lleva textura -----
+    // El cuerpo entero es una malla de color plano; la cabeza es la única
+    // pieza con imagen. Separarla cuesta una segunda llamada de dibujo y a
+    // cambio la cara se PINTA en vez de modelarse: siete expresiones que son
+    // otro trazo, no otra malla, y unos 6.000 triángulos menos por cabeza.
+    const headBone = byName.get("Head");
+    const headGeo = projectFaceUVs(headGeometry(new THREE.Vector3(0, 0, 0), headR));
+    const faceMat = new THREE.MeshLambertMaterial({ map: faceTexture(r, "neutral") });
+    const headMesh = new THREE.Mesh(headGeo, faceMat);
+    // El hueso está en el cuello y el cráneo más arriba: la diferencia entre
+    // los dos es lo que hay que desplazar para que la cabeza caiga en su
+    // sitio al colgarla del hueso.
+    headMesh.position.y = headC.y - at("Head").y;
+    headBone.add(headMesh);
+
+    // ----- el resto, en una sola malla -----
     const geometry = mergeGeometries(parts, false);
     if (!geometry) {
       console.error(`Character3D: mergeGeometries falló. parts.length = ${parts.length}`, { recipe: r });
@@ -584,7 +792,7 @@ export class Character3D {
       plate: makePlate(byName.get("LeftHand"), headR),
     };
 
-    this._built = { mesh, material, skeleton, bones, byName, root, shadow, headR };
+    this._built = { mesh, material, skeleton, bones, byName, root, shadow, headR, headMesh, faceMat };
     this._hipRest = byName.get("Hips").position.y;
     this._applyPose();
     this.setTint(this._tint);
@@ -672,7 +880,21 @@ export class Character3D {
    *  material multiplica a todos a la vez — justo lo que hace falta. */
   setTint(scalar) {
     this._tint = scalar;
-    if (this._built) this._built.material.color.setScalar(scalar);
+    if (!this._built) return;
+    this._built.material.color.setScalar(scalar);
+    this._built.faceMat.color.setScalar(scalar);
+  }
+
+  /**
+   * La expresión de la cara. Redibuja la textura, que es todo lo que hay que
+   * hacer: `neutral`, `blink`, `happy`, `sad`, `surprised`, `annoyed`, `talk`.
+   */
+  setExpression(name) {
+    if (!this._built || name === this._expression) return;
+    this._expression = name;
+    this._built.faceMat.map?.dispose();
+    this._built.faceMat.map = faceTexture(this.recipe, name);
+    this._built.faceMat.needsUpdate = true;
   }
 
   update(dt) {
@@ -778,6 +1000,24 @@ export class Character3D {
     set("armR", swing * 0.55);
     set("elbowL");
     set("elbowR");
+    set("footL");
+    set("footR");
+
+    // Las manos: diez huesos por mano movidos con dos números. Se mezclan
+    // igual que el resto — al soltar el café los dedos se abren solos.
+    const hand = HAND_POSES[pose?.hands ?? REST.hands] ?? HAND_POSES.relax;
+    const relax = HAND_POSES.relax;
+    const mix = (a, b) => a + (b - a) * blend;
+    for (const side of ["Left", "Right"]) {
+      for (const f of FINGERS) {
+        const curl = mix(relax.curl, f === "Index" && hand.index != null ? hand.index : hand.curl);
+        byName.get(`${side}${f}1`)?.rotation.set(curl, 0, 0);
+        byName.get(`${side}${f}2`)?.rotation.set(curl * 0.85, 0, 0);
+      }
+      const th = mix(relax.thumb, hand.thumb);
+      byName.get(`${side}Thumb1`)?.rotation.set(th * 0.6, 0, 0);
+      byName.get(`${side}Thumb2`)?.rotation.set(th * 0.9, 0, 0);
+    }
 
     // El bote de la caminata sube y baja la cadera entera, que es de donde
     // cuelga todo lo demás.
@@ -813,6 +1053,9 @@ export class Character3D {
       this.object.remove(this._built.shadow);
       this._built.mesh.geometry.dispose();
       this._built.material.dispose();
+      this._built.headMesh.geometry.dispose();
+      this._built.faceMat.map?.dispose();
+      this._built.faceMat.dispose();
       this._built.skeleton.dispose?.();
       this._built.shadow.geometry.dispose();
       this._built.shadow.material.dispose();
@@ -832,6 +1075,7 @@ export class Character3D {
     this._props = {};
     this._built = null;
     this._hipRest = undefined;
+    this._expression = null;
   }
 
   dispose() {
@@ -946,19 +1190,31 @@ function buildHair(c, R, r) {
 
   switch (style) {
     case "afro": {
-      for (let i = 0; i < 14; i++) {
-        const a = (i / 14) * Math.PI * 2;
-        const ring = i % 2 ? 1 : 0.74;
-        put(
-          ellipsoid(
-            at(Math.cos(a) * R * 1.0 * ring, R * (0.28 + (i % 3) * 0.2), Math.sin(a) * R * 0.9 * ring - R * 0.05),
-            R * 0.44,
-            R * 0.44,
-            R * 0.44
-          )
-        );
+      // Churos: la masa va debajo y encima se le pegan RIZOS pequeños en
+      // varias capas, cada uno con su tamaño. Antes eran catorce bolas
+      // grandes en un anillo y se leía como un casco con bultos, no como
+      // pelo rizado — el rizo se reconoce por ser menudo y repetido.
+      put(ellipsoid(at(0, R * 0.38, -R * 0.05), R * 1.16, R * 1.04, R * 1.12));
+      const shell = shadeOf(hair, 0.05);
+      for (let ring = 0; ring < 4; ring++) {
+        const lift = -0.15 + ring * 0.36;
+        const count = 12 + ring * 2;
+        const rad = Math.cos(lift * 0.62) * 1.2;
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * Math.PI * 2 + ring * 0.4;
+          const curl = R * (0.19 + ((i + ring) % 3) * 0.035);
+          put(
+            ellipsoid(
+              at(Math.cos(a) * R * rad, R * (0.38 + lift), Math.sin(a) * R * rad * 0.94 - R * 0.05),
+              curl,
+              curl,
+              curl,
+              0.5
+            ),
+            (i + ring) % 2 ? hair : shell
+          );
+        }
       }
-      put(ellipsoid(at(0, R * 0.4, -R * 0.05), R * 1.2, R * 1.06, R * 1.16));
       break;
     }
     case "long": {
@@ -1008,10 +1264,16 @@ function buildBeard(c, R, color) {
   const at = (x, y, z) => new THREE.Vector3(c.x + x, c.y + y, c.z + z);
   // Solo mandíbula y bigote: una barba mayor le tapa la cara al muñeco y lo
   // deja sin expresión, que es justo lo que no queremos.
-  return [
-    { g: ellipsoid(at(0, -R * 0.56, R * 0.32), R * 0.58, R * 0.3, R * 0.54), color },
-    { g: ellipsoid(at(0, -R * 0.28, R * 0.8), R * 0.16, R * 0.05, R * 0.08), color },
+  // Mandíbula, patillas y bigote. Las patillas son lo que la ata a la cabeza:
+  // sin ellas la barba flota como un babero pegado a la barbilla.
+  const out = [
+    { g: ellipsoid(at(0, -R * 0.54, R * 0.3), R * 0.62, R * 0.34, R * 0.56), color },
+    { g: ellipsoid(at(0, -R * 0.3, R * 0.78), R * 0.18, R * 0.06, R * 0.09), color },
   ];
+  for (const dir of [-1, 1]) {
+    out.push({ g: ellipsoid(at(dir * R * 0.6, -R * 0.26, R * 0.34), R * 0.16, R * 0.3, R * 0.3, 0.5), color });
+  }
+  return out;
 }
 
 function buildAccessories(c, R, r) {
@@ -1026,9 +1288,9 @@ function buildAccessories(c, R, r) {
     for (const dir of [-1, 1]) {
       // La lente oscura solo en las de sol; las graduadas se quedan en montura
       // para no taparle los ojos, que es lo que más se mira.
-      if (tinted) put(ellipsoid(at(dir * R * 0.4, -R * 0.02, R * 0.94), R * 0.24, R * 0.2, R * 0.06), frame);
-      const rim = new THREE.TorusGeometry(R * 0.25, R * 0.035, 8, 18);
-      rim.translate(c.x + dir * R * 0.4, c.y - R * 0.02, c.z + R * 0.95);
+      if (tinted) put(ellipsoid(at(dir * R * 0.38, -R * 0.02, R * 0.93), R * 0.19, R * 0.16, R * 0.05, 0.5), shadeOf(frame, 0.06));
+      const rim = new THREE.TorusGeometry(R * 0.2, R * 0.028, 8, 16);
+      rim.translate(c.x + dir * R * 0.38, c.y - R * 0.02, c.z + R * 0.94);
       put(rim, frame);
       put(ellipsoid(at(dir * R * 0.72, -R * 0.02, R * 0.55), R * 0.03, R * 0.03, R * 0.28), frame);
     }

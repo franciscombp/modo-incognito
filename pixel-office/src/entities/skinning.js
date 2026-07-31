@@ -51,12 +51,69 @@ export const SKELETON = [
 
   { name: "LeftUpLeg", parent: "Hips", x: 0.075, y: 0.335 },
   { name: "LeftLeg", parent: "LeftUpLeg", x: 0.075, y: 0.2 },
-  { name: "LeftFoot", parent: "LeftLeg", x: 0.075, y: 0.055, tail: { x: 0.075, y: 0.0, z: 0.085 } },
+  { name: "LeftFoot", parent: "LeftLeg", x: 0.075, y: 0.055, z: -0.01 },
+  { name: "LeftToe", parent: "LeftFoot", x: 0.075, y: 0.028, z: 0.055, tail: { x: 0.075, y: 0.02, z: 0.1 } },
 
   { name: "RightUpLeg", parent: "Hips", x: -0.075, y: 0.335 },
   { name: "RightLeg", parent: "RightUpLeg", x: -0.075, y: 0.2 },
-  { name: "RightFoot", parent: "RightLeg", x: -0.075, y: 0.055, tail: { x: -0.075, y: 0.0, z: 0.085 } },
+  { name: "RightFoot", parent: "RightLeg", x: -0.075, y: 0.055, z: -0.01 },
+  { name: "RightToe", parent: "RightFoot", x: -0.075, y: 0.028, z: 0.055, tail: { x: -0.075, y: 0.02, z: 0.1 } },
+
+  ...fingers("Left", 1),
+  ...fingers("Right", -1),
 ];
+
+/**
+ * Los dedos, cinco por mano y dos falanges cada uno.
+ *
+ * Con la cámara del piso no se ven, pero al conversar de cerca sí, y son lo
+ * que separa una mano que AGARRA la taza de una manopla con la taza flotando
+ * al lado. Dos falanges bastan: la tercera es medio milímetro en pantalla.
+ *
+ * Con el brazo colgando, la palma mira al cuerpo, así que los dedos se
+ * reparten en PROFUNDIDAD (eje z) y no a lo ancho — de ahí que el meñique
+ * quede detrás y el índice delante. El pulgar es el único que sale del plano.
+ */
+function fingers(side, dir) {
+  const x = dir * 0.145;
+  const root = 0.262; // donde acaba la palma
+  const mid = 0.24;
+  const tip = 0.222;
+  // z de cada dedo y cuánto se acorta respecto al corazón.
+  const LAYOUT = [
+    { name: "Index", z: 0.03, len: 0.96 },
+    { name: "Middle", z: 0.01, len: 1 },
+    { name: "Ring", z: -0.01, len: 0.94 },
+    { name: "Pinky", z: -0.029, len: 0.84 },
+  ];
+
+  const out = [];
+  for (const f of LAYOUT) {
+    const m = root - (root - mid) * f.len;
+    const t = root - (root - tip) * f.len;
+    out.push({ name: `${side}${f.name}1`, parent: `${side}Hand`, x, y: m, z: f.z });
+    out.push({
+      name: `${side}${f.name}2`,
+      parent: `${side}${f.name}1`,
+      x,
+      y: t,
+      z: f.z,
+      tail: { x, y: t - 0.016, z: f.z },
+    });
+  }
+  // El pulgar sale hacia delante y hacia dentro, que es lo que permite cerrar
+  // la mano contra los otros dedos.
+  out.push({ name: `${side}Thumb1`, parent: `${side}Hand`, x: x - dir * 0.012, y: 0.284, z: 0.032 });
+  out.push({
+    name: `${side}Thumb2`,
+    parent: `${side}Thumb1`,
+    x: x - dir * 0.02,
+    y: 0.268,
+    z: 0.048,
+    tail: { x: x - dir * 0.026, y: 0.256, z: 0.058 },
+  });
+  return out;
+}
 
 /**
  * Monta la jerarquía de huesos para una altura y una anchura dadas.

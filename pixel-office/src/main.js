@@ -17,6 +17,7 @@ import { NPC } from "./entities/npc.js";
 import { Boss } from "./entities/boss.js";
 import { Character3D } from "./entities/character3d.js";
 import * as baseModel from "./entities/baseModel.js";
+import * as face from "./entities/face.js";
 import { createEngine } from "./game/engine.js";
 import { createSave } from "./game/save.js";
 import { createTouchControls } from "./game/touchControls.js";
@@ -592,6 +593,7 @@ async function boot() {
   window.__three = THREE;
   window.__char3d = { Character3D };
   window.__base = baseModel;
+  window.__face = face;
   // Solo para las comprobaciones de tools/: poder pasar de coordenadas de
   // suelo a pantalla sin duplicar la matriz de la cámara oblicua.
   window.__iso = iso;
