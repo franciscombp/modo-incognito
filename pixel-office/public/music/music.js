@@ -1,7 +1,5 @@
 import * as Tone from "https://cdn.jsdelivr.net/npm/tone@14/build/Tone.js";
 
-const BASE = import.meta.env.BASE_URL ?? "/";
-
 // Tema actual cargado en el editor
 let currentTheme = null;
 let currentThemeName = null;
