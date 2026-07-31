@@ -46,8 +46,11 @@
   --cut: 10px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
-  /* Escalado basado en 1920x1080: calcula el factor de zoom relativo */
-  --scale: calc(min(100vw / 1920, 100vh / 1080));
+
+  /* Escalado de UI basado en 1920x1080: escala todo proporcionalmente
+     para que la interfaz se vea igual sin importar la resolución */
+  --ui-scale: calc(min(100vw / 1920, 100vh / 1080));
+  --ui-scale-factor: 1;
 }
 
 html,
@@ -1397,7 +1400,7 @@ body.touch-device #hint {
   position: absolute;
   left: 0;
   top: 0;
-  bottom: calc(18px + clamp(150px, 24vh, 232px));
+  bottom: 0;
   z-index: 1;
   width: clamp(350px, 52vw, 1000px);
   display: grid;
@@ -1407,6 +1410,7 @@ body.touch-device #hint {
   border-right: 3px solid var(--vn-accent);
   box-shadow: 10px 0 50px rgba(0, 0, 0, 0.55), inset 0 0 80px rgba(69, 224, 208, 0.08);
   overflow: hidden;
+  /* Portrait full-height, text box positioned absolutely over it */
 }
 
 /* Retrato de sprite: ampliado y recortado en primer plano, al estilo de un
@@ -1441,9 +1445,8 @@ body.touch-device #hint {
   75% { transform: translateX(2px); }
 }
 
-/* Caja de diálogo: corre a lo ancho entero al pie de la pantalla, por
-   debajo del retrato — así el conjunto se lee como una sola escena de
-   pantalla completa en vez de un cuadro flotante sobre el mundo.
+/* Caja de diálogo: se posiciona sobre la parte inferior del portrait,
+   extendiéndose a todo el ancho pero comenzando después del retrato.
    Z-index: 3 para estar adelante del portrait (z-index: 1). */
 .vn-box {
   position: absolute;
@@ -1458,6 +1461,8 @@ body.touch-device #hint {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 40px rgba(69, 224, 208, 0.2),
     inset 0 0 60px rgba(69, 224, 208, 0.06);
   animation: vn-rise 0.2s ease-out;
+  max-width: calc(100vw - clamp(350px, 52vw, 1000px) - 36px);
+  margin-left: calc(clamp(350px, 52vw, 1000px) + 18px);
 }
 
 @keyframes vn-rise {

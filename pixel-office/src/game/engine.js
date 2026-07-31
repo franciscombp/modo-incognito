@@ -374,6 +374,30 @@ export function createEngine({
       }
     }
 
+    // Orden de carga: minijuego → ascensor → piso. El juego NO se crea hasta
+    // que el lobby esté completamente oculto, así evitamos que el piso aparezca
+    // y se superponga durante los diálogos del ascensor.
+
+    prologueChoice = null;
+    if (day.prologue) {
+      lobby.show();
+      const nodes = [...(day.prologue.intro ?? [])];
+      if (save.hadWarningYesterday) {
+        // Una amonestación se nota al día siguiente: nunca te toca el
+        // ascensor vacío.
+        nodes.unshift({
+          speaker: "Recepción",
+          sheet: "reception",
+          text: "El ascensor viene lleno otra vez. Después de lo de ayer, ya ni te guardan hueco.",
+        });
+      }
+      if (day.prologue.choice) nodes.push(day.prologue.choice);
+      await dialogue.play(withSprites(nodes), ctx);
+      applyPrologue(day);
+      await lobby.hide();
+    }
+
+    // Ahora sí: configurar el piso y crear el Game.
     inLevel = true;
     bossSpeedBonus = 1;
     applyTheme(day.theme, { renderer, scene, ...lights });
@@ -405,29 +429,6 @@ export function createEngine({
     game.setPaused(true);
 
     camera.setFraming(1);
-
-    // The lift queue first, then the day proper. The lobby overlay hides the
-    // 3D floor while it plays — you have not "arrived" yet — and its doors
-    // open right before the arrival narration, so the floor is revealed as
-    // a beat instead of always sitting visible behind the dialogue scrim.
-    prologueChoice = null;
-    if (day.prologue) {
-      lobby.show();
-      const nodes = [...(day.prologue.intro ?? [])];
-      if (save.hadWarningYesterday) {
-        // Una amonestación se nota al día siguiente: nunca te toca el
-        // ascensor vacío.
-        nodes.unshift({
-          speaker: "Recepción",
-          portrait: "🛎️",
-          text: "El ascensor viene lleno otra vez. Después de lo de ayer, ya ni te guardan hueco.",
-        });
-      }
-      if (day.prologue.choice) nodes.push(day.prologue.choice);
-      await dialogue.play(withSprites(nodes), ctx);
-      applyPrologue(day);
-      await lobby.hide();
-    }
 
     await introduceMinions(onDuty);
     await dialogue.play(withSprites(day.intro ?? []), ctx);

@@ -63,18 +63,28 @@ export function createDialogue(root) {
   layer.appendChild(narratorEl);
   const narratorText = narratorEl.querySelector(".vn-narrator-text");
 
-  /** Retrato: sprite del personaje si lo tenemos, si no el emoji de siempre. */
+  /** Retrato: sprite del personaje. Siempre usa sheets, nunca emojis. */
   function setPortrait(node) {
-    if (node.sheet) {
-      portraitSprite.style.backgroundImage = `url(${spriteUrl(node.sheet)})`;
-      portraitSprite.style.backgroundPosition = "0 0";
-      portraitSprite.classList.remove("hidden");
-      portraitEmoji.classList.add("hidden");
-    } else {
-      portraitSprite.classList.add("hidden");
-      portraitEmoji.classList.remove("hidden");
-      portraitEmoji.textContent = node.portrait ?? "🗨️";
+    let sheet = node.sheet;
+
+    // Si no hay sheet, usar placeholder basado en portrait (si es un emoji, mapear a placeholder)
+    if (!sheet && node.portrait) {
+      const emojiMap = {
+        "🛎️": "reception",
+        "📞": "reception",
+        "🎙️": "narrator",
+        "🥚": "placeholder-1",
+        "🗨️": "placeholder-2",
+      };
+      sheet = emojiMap[node.portrait] || "placeholder-2";
+    } else if (!sheet) {
+      sheet = "placeholder-2";
     }
+
+    portraitSprite.style.backgroundImage = `url(${spriteUrl(sheet)})`;
+    portraitSprite.style.backgroundPosition = "0 0";
+    portraitSprite.classList.remove("hidden");
+    portraitEmoji.classList.add("hidden");
   }
 
   /** Mostrar narrador Steven el Daddy con mensaje. */
