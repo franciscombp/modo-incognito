@@ -425,6 +425,9 @@ function addSeatedTable(area, world, registry, opts = {}) {
     capacity: area.capacity,
     shape: area.tableShape ?? "rect",
     monitors: opts.monitors !== false,
+    // En una sala de reuniones se puede ENTRAR: es donde se finge trabajar.
+    // Necesita pasillo de sobra alrededor de la mesa, no solo hueco de silla.
+    walkway: area.kind === "meeting" ? 0.9 : 0.35,
   });
   // Only the table top is solid — chairs stay walk-through so nobody can be
   // wedged between a chair and the table they are meant to sit at.

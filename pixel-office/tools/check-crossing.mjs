@@ -22,7 +22,7 @@ await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
 const result = await page.evaluate(async () => {
   const { crossing3D } = window.__game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const out = { wins: 0, rounds: 4 };
+  const out = { wins: 0, rounds: 10 };
 
   for (let round = 0; round < out.rounds; round++) {
     const done = crossing3D.play(() => {});
@@ -68,9 +68,12 @@ function assert(label, ok) {
 
 assert("la cámara va por detrás de la jugadora", result.framing?.behind === true);
 assert("la cámara mira desde arriba, no a ras de suelo", result.framing?.above === true);
+// No basta con que sea posible: el día 1 abre con esto, así que tiene que
+// salir bien la mayoría de las veces. Un bot que solo mira si el carril de
+// delante está limpio debe cruzar al menos 7 de cada 10.
 assert(
-  `el cruce se puede ganar (${result.wins}/${result.rounds} intentos del bot)`,
-  result.wins >= 1
+  `el cruce se pasa con holgura (${result.wins}/${result.rounds} intentos del bot)`,
+  result.wins >= 7
 );
 
 process.exit(failed ? 1 : 0);

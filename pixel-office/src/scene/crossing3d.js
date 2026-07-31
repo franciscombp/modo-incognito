@@ -13,7 +13,7 @@ const LANE_DEPTH = 2.4 * S;
 const ROAD_WIDTH = 5.2 * S;
 const VEHICLE_WIDTH = 0.85 * S;
 const PLAYER_RADIUS = 0.3 * S;
-const MOVE_COOLDOWN = 150;
+const MOVE_COOLDOWN = 105;
 
 // Cámara: detrás de la jugadora y algo elevada, mirando calle adelante.
 const CAM_BACK = 9.6 * S;
@@ -32,6 +32,22 @@ const ROWS = [
   { kind: "car", dir: -1, speed: 2.7 * S, gap: [2.0, 2.9] },
   { kind: "car", dir: -1, speed: 3.0 * S, gap: [1.9, 2.7] },
   { kind: "car", dir: -1, speed: 2.4 * S, gap: [2.1, 3.0] },
+// Huecos generosos a propósito: es un chiste sobre que te despidan, no un
+// examen de reflejos — la caminata debe ganarse con lectura de tráfico, no
+// con pixel-perfect timing. Si vuelves a tocar estos números, corre
+// `npm run check:crossing`: mide con un bot cuántos intentos de cada diez
+// llegan al otro lado, y por debajo de 7 el día 1 se vuelve un muro.
+const ROWS = [
+  { kind: "sidewalk" },
+  { kind: "car", dir: 1, speed: 1.8 * S, gap: [2.9, 4.1], colors: [0xe6483f, 0x45a0e0, 0xf2c744] },
+  { kind: "car", dir: 1, speed: 2.1 * S, gap: [2.7, 3.8], colors: [0xe6483f, 0xe8e8e8, 0x45a0e0] },
+  { kind: "car", dir: 1, speed: 1.9 * S, gap: [3.0, 4.2], colors: [0xf2c744, 0xe6483f] },
+  { kind: "bike", dir: -1, speed: 2.5 * S, gap: [2.4, 3.4], colors: [0xa8e05f, 0x45e0d0] },
+  { kind: "median" },
+  { kind: "bike", dir: 1, speed: 2.5 * S, gap: [2.4, 3.4], colors: [0xa8e05f, 0x45e0d0] },
+  { kind: "car", dir: -1, speed: 2.0 * S, gap: [2.9, 4.1], colors: [0x8b5cf6, 0xe8e8e8] },
+  { kind: "car", dir: -1, speed: 2.2 * S, gap: [2.7, 3.8], colors: [0xe6483f, 0x45a0e0, 0xf2c744] },
+  { kind: "car", dir: -1, speed: 1.8 * S, gap: [3.0, 4.2], colors: [0xf2c744, 0x8b5cf6] },
   { kind: "goal" },
 ];
 const GOAL_ROW = ROWS.length - 1;
@@ -150,7 +166,11 @@ function el(tag, className, parent) {
   return node;
 }
 
-export function createCrossing3D(root, playerSheet) {
+/**
+ * `sheets` trae la hoja de acciones de la jugadora (para la pose de susto al
+ * ser atropellada) y un puñado de hojas de compañeros para poblar las aceras.
+ */
+export function createCrossing3D(root, playerSheet, sheets = {}) {
   // Cromo mínimo en HTML por encima del lienzo 3D: el pie de foto y los
   // botones táctiles no necesitan ser parte de la escena.
   const ui = el("div", "crossing-ui hidden", root);
@@ -263,9 +283,51 @@ export function createCrossing3D(root, playerSheet) {
   roadGroup.add(door);
 
   // ---- Jugadora: mismo sprite que en el piso, de espaldas ----
-  const player = new CharacterSprite(playerSheet, { height: 1.45 * S });
+  const player = new CharacterSprite(playerSheet, { height: 1.45 * S, rig: sheets.playerRig });
   player.setFacing("north"); // avanza alejándose de la cámara
+  if (sheets.playerAction) player.setActionSheet(sheets.playerAction);
   scene.add(player.object);
+
+  // ---- Peatones: la avenida estaba desierta salvo por los coches, y eso la
+  // hacía leerse como un tablero en vez de como una calle. Son los mismos
+  // sprites de compañeros del piso, caminando por la acera, el parterre y la
+  // puerta del banco. No colisionan con nada: son ambiente.
+  const PEDESTRIAN_ROWS = [0, 5, GOAL_ROW];
+  const pedestrians = (sheets.crowd ?? [])
+    .filter(Boolean)
+    .map((sheet, i) => {
+      const row = PEDESTRIAN_ROWS[i % PEDESTRIAN_ROWS.length];
+      const dir = i % 2 === 0 ? 1 : -1;
+      const sprite = new CharacterSprite(sheet, { height: 1.4 * S });
+      sprite.setFacing(dir > 0 ? "east" : "west");
+      sprite.setMoving(true);
+      scene.add(sprite.object);
+      return {
+        sprite,
+        row,
+        dir,
+        speed: (0.7 + Math.random() * 0.5) * S,
+        x: (Math.random() - 0.5) * ROAD_WIDTH * 0.85,
+        // Los del parterre andan un poco desplazados en z, para que no vayan
+        // todos por la misma línea exacta.
+        dz: (Math.random() - 0.5) * 0.7 * S,
+      };
+    });
+
+  function updatePedestrians(dt) {
+    // Se dan la vuelta antes del borde del asfalto: si no, se les veía
+    // caminando sobre el fondo negro, fuera de la calle.
+    const limit = ROAD_WIDTH * 0.44;
+    pedestrians.forEach((p) => {
+      p.x += p.dir * p.speed * dt;
+      if (p.x > limit || p.x < -limit) {
+        p.dir *= -1;
+        p.sprite.setFacing(p.dir > 0 ? "east" : "west");
+      }
+      p.sprite.setPosition(p.x, p.row * LANE_DEPTH + p.dz);
+      p.sprite.update(dt);
+    });
+  }
 
   let vehicles = [];
   let nextSpawnByRow = ROWS.map(() => 0);
@@ -300,6 +362,7 @@ export function createCrossing3D(root, playerSheet) {
     vehicles.forEach((v) => v.mesh.parent?.remove(v.mesh));
     vehicles = [];
     playerCell = { row: 0, col: Math.floor(COLS / 2) };
+    player.setPose(null);
     player.setFacing("north");
     player.setMoving(false);
     stepTimer = 0;
@@ -334,7 +397,9 @@ export function createCrossing3D(root, playerSheet) {
     else if (dc > 0) player.setFacing("east");
     else if (dc < 0) player.setFacing("west");
     player.setMoving(true);
-    stepTimer = 0.28;
+    // Un poco más que el enfriamiento entre pasos: si encadenas pasos, la
+    // animación no se corta entre uno y otro y se ve caminar de verdad.
+    stepTimer = 0.34;
     layoutPlayer();
     if (playerCell.row === GOAL_ROW) finish("safe");
   }
@@ -368,8 +433,9 @@ export function createCrossing3D(root, playerSheet) {
       if (row.kind !== "car" && row.kind !== "bike") return;
       nextSpawnByRow[i] -= dt;
       if (nextSpawnByRow[i] > 0) return;
-      const rowVehicles = vehicles.filter((v) => v.row === i);
-      if (rowVehicles.length >= 2) return;
+      // Un vehículo por carril a la vez. Con dos, el segundo entraba mientras
+      // aún cruzabas el hueco del primero y no había forma de leer el carril.
+      if (vehicles.some((v) => v.row === i)) return;
       spawnFor(i);
       nextSpawnByRow[i] = randomGap(row);
     });
@@ -386,6 +452,10 @@ export function createCrossing3D(root, playerSheet) {
       (v) => v.row === playerCell.row && Math.abs(v.x - playerX) < (VEHICLE_WIDTH + PLAYER_RADIUS * 2) / 2
     );
     if (hit) {
+      // El medio segundo antes de cortar a la pantalla de despido se aprovecha
+      // para la pose de susto de su propia hoja de acciones.
+      player.setMoving(false);
+      player.setPose("scared");
       finish("hit");
       return;
     }
@@ -400,6 +470,7 @@ export function createCrossing3D(root, playerSheet) {
       if (stepTimer <= 0) player.setMoving(false);
     }
     player.update(dt);
+    updatePedestrians(dt);
 
     rafId = requestAnimationFrame(frame);
     render?.(scene, camera);
@@ -468,8 +539,10 @@ export function createCrossing3D(root, playerSheet) {
   }
 
   /** Cambiar de personaje jugable sin rehacer la escena. */
-  function setPlayerSheet(sheet) {
+  function setPlayerSheet(sheet, actionSheet, rig) {
     player.setSheet(sheet);
+    if (rig !== undefined) player.setRig(rig);
+    if (actionSheet) player.setActionSheet(actionSheet);
     player.setFacing("north");
   }
 
