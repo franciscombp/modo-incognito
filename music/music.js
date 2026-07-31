@@ -78,31 +78,39 @@ const THEMES = {
 async function initSynths() {
   if (synthsInitialized) return;
   try {
+    // Tone.js v14 usa API de sintetizadores directo
     synths.bass = new Tone.Synth({
       oscillator: { type: "triangle" },
       envelope: { attack: 0.01, decay: 0.15, sustain: 0.2, release: 0.2 },
-    }).toDestination();
+    });
+    synths.bass.toDestination();
 
-    synths.lead = new Tone.PluckSynth({ attackNoise: 0.6, dampening: 3200, resonance: 0.82 }).toDestination();
+    synths.lead = new Tone.PluckSynth({ attackNoise: 0.6, dampening: 3200, resonance: 0.82 });
+    synths.lead.toDestination();
 
     synths.pad = new Tone.PolySynth(Tone.Synth, {
       oscillator: { type: "sine" },
       envelope: { attack: 0.4, decay: 0.3, sustain: 0.6, release: 1.2 },
-    }).toDestination();
+    });
+    synths.pad.toDestination();
 
     synthsInitialized = true;
   } catch (e) {
     console.error("Error inicializando sintetizadores:", e);
+    synthsInitialized = false;
   }
 }
 
 async function startAudio() {
   if (audioStarted) return;
   try {
-    await Tone.start();
-    audioStarted = true;
+    // Tone.js v14 inicia automáticamente al interactuar con synths
+    // Solo necesitamos inicializar synths
     await initSynths();
-    if (Tone.Transport.state !== "started") {
+    audioStarted = true;
+
+    // Asegurarse de que el Transport esté corriendo
+    if (Tone.Transport && Tone.Transport.state !== "started") {
       Tone.Transport.start();
     }
   } catch (e) {
