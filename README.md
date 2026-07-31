@@ -1,6 +1,6 @@
-# Modo Incógnito · Tribu Canales · Piso 10 · Centro Digital
+# Modo Incógnito · Piso 10
 
-Juego web en Three.js: eres una empleada del Piso 10 · Centro Digital que intenta **no trabajar**
+Juego web en Three.js: eres una empleada del Piso 10 que intenta **no trabajar**
 —café, película, comer— mientras el jefe patrulla la planta.
 
 > **Estado: MVP del día 1.** La campaña publicada es **solo el día 1**, pulido
@@ -12,14 +12,13 @@ Juego web en Three.js: eres una empleada del Piso 10 · Centro Digital que inten
 > → `levels`, así que no aparecen. Volver a activarlos es añadir su id a esa
 > lista; no hay nada más que tocar.
 
-**Lore, para quien escriba diálogos nuevos:** la Tribu Canales es el equipo de
-diseño del Centro Digital de un banco — creativos dentro de una empresa que
+**Lore, para quien escriba diálogos nuevos:** trabajas en el equipo de
+diseño de un corporativo — creativos dentro de una empresa que
 no lo es tanto. El meta-chiste, para quien lo encuentre (código secreto
 `incognito`, ver `manifest.json` → `codeEggs`, y el cierre del día 5 en
 `levels/dia-5.json`): "fingir que trabajas" es, en la ficción, la coartada
 del equipo para programar en secreto este mismo juego y mantener viva su
-creatividad. La idea original es de César y Manu; quien lo programa de
-verdad es Fran, con Claude Code de copiloto — un guiño real, no solo de
+creatividad. La idea original es de C y Manu; con el apoyo de Fran, con Claude Code de copiloto — un guiño real, no solo de
 ficción. No lo spoilees en textos nuevos fuera de esos dos momentos — que se
 descubra jugando.
 
