@@ -434,9 +434,16 @@ function addSeatedTable(area, world, registry, opts = {}) {
   if (world) world.addBox(area.x, area.z, collider.w, collider.d, { sight: true });
 }
 
+/**
+ * `area.doorSide` elige qué pared de la sala de vidrio lleva el hueco de la
+ * puerta, con el mismo vocabulario que `wing` y los rótulos de ala del
+ * plano: "norte"/+x, "sur"/-x, "frente"/+z (por defecto, el comportamiento
+ * de siempre: el jugador entra por los ascensores hacia +z), "fondo"/-z.
+ */
 function addGlassWalls(area, world, panes) {
   const height = GLASS_WALL_H;
   const thickness = 0.12 * S;
+  const doorSide = area.doorSide ?? "frente";
 
   const push = (w, d, x, z) => {
     const geo = new THREE.BoxGeometry(w, height, d);
@@ -445,16 +452,27 @@ function addGlassWalls(area, world, panes) {
     if (world) world.addBox(area.x + x, area.z + z, w, d, { sight: false });
   };
 
-  push(area.w, thickness, 0, -area.d / 2);
-  push(thickness, area.d, -area.w / 2, 0);
-  push(thickness, area.d, area.w / 2, 0);
+  // Cada pared: si es la que lleva la puerta, se parte en dos tramos con un
+  // hueco centrado; si no, va entera.
+  const walls = {
+    fondo: { horizontal: true, x: 0, z: -area.d / 2, len: area.w },
+    frente: { horizontal: true, x: 0, z: area.d / 2, len: area.w },
+    sur: { horizontal: false, x: -area.w / 2, z: 0, len: area.d },
+    norte: { horizontal: false, x: area.w / 2, z: 0, len: area.d },
+  };
 
-  // Leave a doorway in the front wall.
-  const doorWidth = Math.max(1.5 * S, area.w * 0.4);
-  const sideLen = (area.w - doorWidth) / 2;
-  if (sideLen > 0.05) {
+  for (const [side, wall] of Object.entries(walls)) {
+    if (side !== doorSide) {
+      if (wall.horizontal) push(wall.len, thickness, wall.x, wall.z);
+      else push(thickness, wall.len, wall.x, wall.z);
+      continue;
+    }
+    const doorWidth = Math.max(1.5 * S, wall.len * 0.4);
+    const sideLen = (wall.len - doorWidth) / 2;
+    if (sideLen <= 0.05) continue;
     for (const dir of [-1, 1]) {
-      push(sideLen, thickness, dir * (doorWidth / 2 + sideLen / 2), area.d / 2);
+      if (wall.horizontal) push(sideLen, thickness, dir * (doorWidth / 2 + sideLen / 2), wall.z);
+      else push(thickness, sideLen, wall.x, dir * (doorWidth / 2 + sideLen / 2));
     }
   }
 }

@@ -38,6 +38,7 @@ const KINDS = {
       d: 4.4,
       tableShape: "rect",
       labelPriority: 2,
+      doorSide: "frente",
     }),
     fields: [
       TXT("id", "id"),
@@ -47,6 +48,11 @@ const KINDS = {
       NUM("capacity", "sillas", { step: 1 }),
       SEL("tableShape", "mesa", ["rect", "round"]),
       SEL("labelPriority", "rótulo", [1, 2, 3]),
+      // Solo se usa si kind es "meeting" — qué pared de la sala de vidrio
+      // lleva el hueco de la puerta. Mismo eje que `wing`: norte = +x,
+      // sur = -x; frente = +z (por donde entra la jugadora desde los
+      // ascensores), fondo = -z.
+      SEL("doorSide", "puerta (solo meeting)", ["frente", "fondo", "norte", "sur"]),
       TXT("color", "color"),
     ],
   },
