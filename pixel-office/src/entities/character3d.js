@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { screenToGround, facingFromGround } from "../scene/iso.js";
 import { buildSkeleton, skinGeometry, rigidGeometry } from "./skinning.js";
+import { loadBaseModel, instantiateBase, applyBuild, paintBase, BONE_MAP } from "./baseModel.js";
 
 /**
  * PERSONAJES 3D COZY, CON ESQUELETO DE VERDAD.
@@ -529,6 +530,10 @@ export class Character3D {
 
     // ----- una sola malla -----
     const geometry = mergeGeometries(parts, false);
+    if (!geometry) {
+      console.error(`Character3D: mergeGeometries falló. parts.length = ${parts.length}`, { recipe: r });
+      throw new Error(`No se pudo crear geometría para el personaje ${current}`);
+    }
     parts.forEach((g) => g.dispose());
 
     const material = new THREE.MeshLambertMaterial({ vertexColors: true });
