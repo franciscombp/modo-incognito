@@ -60,7 +60,7 @@ const shown = await page.evaluate(
     key.position.set(3, 6, 5);
     scene.add(key);
 
-    const ALL_POSES = ["work", "coffee", "eat", "movie", "phone", "scared", "shrug", "sleep"];
+    const ALL_POSES = ["work", "coffee", "eat", "phone", "sit", "sitWork", "scared", "shrug"];
     const H = 1.5;
     const step = H * 1.15;
 
