@@ -46,6 +46,8 @@
   --cut: 10px;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
+  /* Escalado basado en 1920x1080: calcula el factor de zoom relativo */
+  --scale: calc(min(100vw / 1920, 100vh / 1080));
 }
 
 html,
@@ -1396,8 +1398,8 @@ body.touch-device #hint {
   left: 0;
   top: 0;
   bottom: calc(18px + clamp(150px, 24vh, 232px));
-  z-index: 2;
-  width: clamp(220px, 34vw, 480px);
+  z-index: 1;
+  width: clamp(350px, 52vw, 1000px);
   display: grid;
   place-items: center;
   font-size: clamp(70px, 12vw, 140px);
@@ -1441,12 +1443,14 @@ body.touch-device #hint {
 
 /* Caja de diálogo: corre a lo ancho entero al pie de la pantalla, por
    debajo del retrato — así el conjunto se lee como una sola escena de
-   pantalla completa en vez de un cuadro flotante sobre el mundo. */
+   pantalla completa en vez de un cuadro flotante sobre el mundo.
+   Z-index: 3 para estar adelante del portrait (z-index: 1). */
 .vn-box {
   position: absolute;
   left: 0;
   right: 0;
   bottom: max(18px, var(--safe-b));
+  z-index: 3;
   padding: 34px clamp(24px, 4vw, 56px) 20px;
   border: 2px solid var(--vn-accent);
   border-radius: 14px;
@@ -2525,6 +2529,7 @@ body.vn-open #hint {
     font-size: 21px;
   }
 
+  /* Mobile vertical (portrait orientation): portrait minimal */
   .vn-portrait {
     width: 78px;
     height: 78px;
@@ -2616,14 +2621,15 @@ body.vn-open #hint {
   }
 
   .vn-portrait {
-    width: 60px;
-    height: 60px;
-    font-size: 30px;
-    bottom: calc(100% - 58px);
+    width: clamp(100px, 40vw, 400px);
+    font-size: clamp(50px, 10vw, 120px);
+    bottom: auto;
   }
 
   .vn-portrait-sprite {
-    transform: scale(0.46) translateY(-6px);
+    transform: scale(1.8) translateY(5%);
+    width: 128px;
+    height: 176px;
   }
 
   .vn-box {
