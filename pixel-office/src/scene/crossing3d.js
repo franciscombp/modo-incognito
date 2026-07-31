@@ -21,17 +21,6 @@ const CAM_HEIGHT = 6.2 * S;
 const CAM_AHEAD = 2.6 * S;
 const CAM_SIDE_FOLLOW = 0.45;
 
-const ROWS = [
-  { kind: "sidewalk" },
-  { kind: "car", dir: 1, speed: 2.4 * S, gap: [2.0, 2.9] },
-  { kind: "car", dir: 1, speed: 2.9 * S, gap: [1.9, 2.7] },
-  { kind: "car", dir: 1, speed: 2.6 * S, gap: [2.1, 3.0] },
-  { kind: "bike", dir: -1, speed: 3.4 * S, gap: [1.7, 2.4] },
-  { kind: "median" },
-  { kind: "bike", dir: 1, speed: 3.4 * S, gap: [1.7, 2.4] },
-  { kind: "car", dir: -1, speed: 2.7 * S, gap: [2.0, 2.9] },
-  { kind: "car", dir: -1, speed: 3.0 * S, gap: [1.9, 2.7] },
-  { kind: "car", dir: -1, speed: 2.4 * S, gap: [2.1, 3.0] },
 // Huecos generosos a propósito: es un chiste sobre que te despidan, no un
 // examen de reflejos — la caminata debe ganarse con lectura de tráfico, no
 // con pixel-perfect timing. Si vuelves a tocar estos números, corre

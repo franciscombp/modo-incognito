@@ -1,99 +1,957 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Builder · Modo Incógnito</title>
-    <link rel="icon" href="../favicon.png" />
-    <link rel="stylesheet" href="builder.css" />
-  </head>
-  <body>
-    <header class="bar">
-      <h1>BUILDER · <span>Modo Incógnito</span></h1>
-      <div class="bar-group">
-        <label class="file">
-          Abrir escena…
-          <input type="file" id="open-scene" accept=".json" hidden />
-        </label>
-        <label class="file">
-          Abrir día…
-          <input type="file" id="open-level" accept=".json" hidden />
-        </label>
-        <button id="reload">Recargar del juego</button>
-      </div>
-      <div class="bar-group right">
-        <button id="copy-scene" class="primary">Copiar escena JSON</button>
-        <button id="copy-level" class="primary">Copiar día JSON</button>
-        <button id="download">Descargar los dos</button>
-      </div>
-    </header>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modo Incógnito - Level Builder</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-    <main>
-      <aside class="panel left">
-        <div class="tabs" id="tabs">
-          <button class="tab on" data-tab="plano">Plano</button>
-          <button class="tab" data-tab="dia">Día</button>
-          <button class="tab" data-tab="ayuda">Ayuda</button>
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #05060a;
+      color: #e8f3ff;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #root {
+      display: flex;
+      height: 100vh;
+    }
+
+    #canvas {
+      flex: 1;
+      background: #0a0f1a;
+      border-right: 2px solid #45e0d0;
+      cursor: crosshair;
+      position: relative;
+    }
+
+    #panel {
+      width: 380px;
+      background: #0a0f1a;
+      border-left: 2px solid #45e0d0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #panel-title {
+      padding: 16px;
+      border-bottom: 2px solid #45e0d0;
+      font-size: 16px;
+      font-weight: bold;
+      color: #45e0d0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    #panel-tabs {
+      display: flex;
+      border-bottom: 1px solid #45e0d0;
+      background: rgba(69, 224, 208, 0.05);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      color: #7d8ba5;
+      cursor: pointer;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+
+    .tab-btn.active {
+      color: #45e0d0;
+      border-bottom-color: #45e0d0;
+    }
+
+    #panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-label {
+      display: block;
+      font-size: 11px;
+      color: #45e0d0;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    input, select, button, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #45e0d0;
+      background: rgba(69, 224, 208, 0.1);
+      color: #e8f3ff;
+      font-family: inherit;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: rgba(69, 224, 208, 0.2);
+    }
+
+    input[type="text"], input[type="number"], select, textarea {
+      cursor: text;
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+      margin-right: 8px;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .button-group.full {
+      grid-template-columns: 1fr;
+    }
+
+    .status {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      padding: 12px 16px;
+      background: rgba(69, 224, 208, 0.2);
+      border: 2px solid #45e0d0;
+      border-radius: 4px;
+      font-size: 12px;
+      max-width: 300px;
+    }
+
+    .hint {
+      font-size: 10px;
+      color: #7d8ba5;
+      margin-top: 8px;
+      line-height: 1.4;
+    }
+
+    .wall-list {
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .wall-item {
+      padding: 8px;
+      background: rgba(69, 224, 208, 0.1);
+      border: 1px solid #45e0d0;
+      margin-bottom: 4px;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .wall-item:hover {
+      background: rgba(69, 224, 208, 0.2);
+    }
+
+    .wall-item.selected {
+      background: rgba(69, 224, 208, 0.3);
+      border-color: #fff;
+    }
+
+    .grid-indicator {
+      font-size: 10px;
+      padding: 8px;
+      background: rgba(69, 224, 208, 0.05);
+      border-radius: 2px;
+      margin-bottom: 8px;
+      color: #7d8ba5;
+    }
+
+    .object-type-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .type-btn {
+      padding: 8px;
+      font-size: 10px;
+      border-radius: 3px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(69, 224, 208, 0.1);
+      border: 1px solid #45e0d0;
+      color: #45e0d0;
+      transition: all 0.2s;
+    }
+
+    .type-btn:hover,
+    .type-btn.selected {
+      background: rgba(69, 224, 208, 0.2);
+      border-color: #fff;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div id="canvas"></div>
+    <div id="panel">
+      <div id="panel-title">
+        <span>Editor de Niveles v2</span>
+        <span style="font-size: 11px; color: #7d8ba5;">Grid 20px</span>
+      </div>
+
+      <div id="panel-tabs">
+        <button class="tab-btn active" onclick="switchTab('objects')">Objetos</button>
+        <button class="tab-btn" onclick="switchTab('walls')">Paredes</button>
+        <button class="tab-btn" onclick="switchTab('export')">Exportar</button>
+      </div>
+
+      <div id="panel-content">
+        <!-- TAB: Objetos -->
+        <div id="tab-objects" class="tab-pane active">
+          <div class="grid-indicator">
+            ✓ Snap magnético: 20px
+            <br>Ctrl+Click para forzar posición
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Tipo de Objeto</label>
+            <div class="object-type-grid">
+              <button class="type-btn selected" onclick="setObjectType('activity')">🎯 Actividad</button>
+              <button class="type-btn" onclick="setObjectType('safe-spot')">🔒 Seguro</button>
+              <button class="type-btn" onclick="setObjectType('npc')">👤 NPC</button>
+              <button class="type-btn" onclick="setObjectType('obstacle')">⬛ Obstáculo</button>
+              <button class="type-btn" onclick="setObjectType('spawn')">⭐ Inicio</button>
+              <button class="type-btn" onclick="setObjectType('area')">📦 Zona</button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">ID/Nombre</label>
+            <input type="text" id="objectId" placeholder="coffee, desk-01, etc">
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Posición X</label>
+            <input type="number" id="posX" value="10" step="1">
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Posición Z (profundidad)</label>
+            <input type="number" id="posZ" value="10" step="1">
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Tamaño (radio/ancho)</label>
+            <input type="number" id="objectSize" value="1" step="0.5" min="0.5">
+          </div>
+
+          <div class="button-group full">
+            <button onclick="addObject()">✓ Agregar Objeto</button>
+          </div>
+
+          <div class="button-group">
+            <button onclick="deleteSelected()">✕ Eliminar</button>
+            <button onclick="clearAll()">Limpiar Todo</button>
+          </div>
+
+          <div class="hint">
+            • Haz clic en canvas para posicionar<br>
+            • Arrastra para mover (snapping automático)<br>
+            • Selecciona en la lista para modificar<br>
+            • DEL para eliminar rápido
+          </div>
         </div>
 
-        <section class="tabpage on" data-page="plano">
-          <h2>Añadir</h2>
-          <div class="add-grid" id="add-grid"></div>
-
-          <h2>Capas</h2>
-          <div id="layers"></div>
-
-          <h2>Objetos</h2>
-          <div class="list" id="object-list"></div>
-        </section>
-
-        <section class="tabpage" data-page="dia">
-          <h2>El día</h2>
-          <div id="level-form"></div>
-        </section>
-
-        <section class="tabpage" data-page="ayuda">
-          <div class="help">
-            <p>
-              Editor del <b>plano</b> (<code>scenes/*.json</code>) y del
-              <b>día</b> (<code>levels/*.json</code>). Todo en unidades de
-              plano — el motor las multiplica por <code>WORLD_SCALE</code>, así
-              que aquí se escriben tal cual salen del JSON.
-            </p>
-            <ul>
-              <li><b>Clic</b> — seleccionar.</li>
-              <li><b>Arrastrar</b> — mover. Los tiradores de las esquinas redimensionan zonas.</li>
-              <li><b>Supr</b> — borrar lo seleccionado.</li>
-              <li><b>Rueda</b> — zoom. <b>Espacio + arrastrar</b> (o botón central) — desplazar.</li>
-              <li><b>Mayús</b> mientras arrastras — sin ajuste a rejilla.</li>
-            </ul>
-            <p>
-              El aviso rojo de <b>zonas solapadas</b> vigila la invariante que
-              documenta <code>CLAUDE.md</code>: los rectángulos de
-              <code>areas</code> no deben pisarse.
-            </p>
-            <p>
-              El builder <b>no escribe en el repo</b>. Copia el JSON y pégalo en
-              <code>pixel-office/public/data/…</code>, y después corre
-              <code>npm run build:pages</code>.
-            </p>
+        <!-- TAB: Paredes -->
+        <div id="tab-walls" class="tab-pane">
+          <div class="control-group">
+            <label class="control-label">Crear Nueva Pared</label>
+            <div class="button-group">
+              <button onclick="addWall('north')">↑ Norte</button>
+              <button onclick="addWall('south')">↓ Sur</button>
+            </div>
+            <div class="button-group">
+              <button onclick="addWall('east')">→ Este</button>
+              <button onclick="addWall('west')">← Oeste</button>
+            </div>
           </div>
-        </section>
-      </aside>
 
-      <div class="stage">
-        <canvas id="canvas"></canvas>
-        <div class="hud" id="stage-hud"></div>
-        <div class="warn hidden" id="warn"></div>
+          <div class="control-group">
+            <label class="control-label">Propiedades de Pared</label>
+            <input type="number" id="wallX" placeholder="Inicio X" step="1">
+            <input type="number" id="wallZ" placeholder="Inicio Z" step="1">
+            <input type="number" id="wallLen" placeholder="Largo" value="10" step="1">
+            <select id="wallDir">
+              <option value="h">Horizontal (X)</option>
+              <option value="v">Vertical (Z)</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Puertas (puerta1, puerta2...)</label>
+            <textarea id="wallDoors" placeholder="puerta1, puerta2" rows="2"></textarea>
+          </div>
+
+          <div class="button-group">
+            <button onclick="updateWall()">✓ Actualizar</button>
+            <button onclick="deleteWall()">✕ Eliminar</button>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Paredes Existentes</label>
+            <div class="wall-list" id="wallList">
+              <div style="color: #7d8ba5; font-size: 11px;">No hay paredes aún</div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Piso (Footprint)</label>
+            <div class="hint">
+              Nodos que forman el perímetro del piso.<br>
+              Arrastra en canvas para mover.
+            </div>
+            <div class="wall-list" id="nodeList">
+              <div style="color: #7d8ba5; font-size: 11px;">No hay nodos</div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Nuevo Nodo</label>
+            <input type="number" id="nodeX" placeholder="X" step="1">
+            <input type="number" id="nodeZ" placeholder="Z" step="1">
+          </div>
+
+          <div class="button-group full">
+            <button onclick="addNode()">✓ Agregar Nodo</button>
+          </div>
+
+          <div class="button-group">
+            <button onclick="deleteNode()">✕ Eliminar Nodo</button>
+          </div>
+
+          <div class="hint">
+            • Paredes separan áreas<br>
+            • Nodos forman el perímetro del piso<br>
+            • Click para seleccionar, arrastra para mover<br>
+            • DEL para eliminar nodo rápido
+          </div>
+        </div>
+
+        <!-- TAB: Exportar -->
+        <div id="tab-export" class="tab-pane">
+          <div class="control-group">
+            <label class="control-label">Nombre del Nivel</label>
+            <input type="text" id="levelName" placeholder="dia-1, dia-2, etc">
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Escena (scene id)</label>
+            <input type="text" id="sceneId" value="piso7">
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Vista Previa JSON</label>
+            <textarea id="jsonPreview" readonly rows="8" style="font-size: 10px; font-family: monospace;"></textarea>
+          </div>
+
+          <div class="button-group full">
+            <button onclick="exportJSON()">💾 Descargar JSON</button>
+          </div>
+
+          <div class="button-group full">
+            <button onclick="importJSON()">📂 Cargar JSON</button>
+          </div>
+
+          <div class="hint">
+            • Exporta scene.json y level.json<br>
+            • Copia el JSON en public/data/<br>
+            • Agrega id a manifest.json → levels
+          </div>
+        </div>
       </div>
+    </div>
+  </div>
 
-      <aside class="panel right">
-        <h2 id="prop-title">Nada seleccionado</h2>
-        <div id="props"></div>
-      </aside>
-    </main>
+  <div class="status" id="status">Bienvenido - Click en canvas para empezar</div>
 
-    <div class="toast hidden" id="toast"></div>
-    <script type="module" src="builder.js"></script>
-  </body>
+  <script>
+    // ==================== Estado ====================
+    let objects = [];
+    let walls = [];
+    let nodes = [];
+    let selectedObject = null;
+    let selectedWall = null;
+    let selectedNode = null;
+    let isDragging = false;
+    let draggingNode = false;
+    let currentObjectType = 'activity';
+    let canvas = null;
+    let ctx = null;
+
+    const GRID_SIZE = 20;
+    const SNAP_DISTANCE = GRID_SIZE;
+
+    // ==================== Inicialización ====================
+    function initCanvas() {
+      const container = document.getElementById('canvas');
+      canvas = document.createElement('canvas');
+      ctx = canvas.getContext('2d');
+      container.appendChild(canvas);
+      resizeCanvas();
+      setupEvents();
+      draw();
+    }
+
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      draw();
+    }
+
+    // ==================== Eventos ====================
+    function setupEvents() {
+      canvas.addEventListener('mousedown', handleMouseDown);
+      canvas.addEventListener('mousemove', handleMouseMove);
+      canvas.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('keydown', handleKeyDown);
+      window.addEventListener('resize', resizeCanvas);
+    }
+
+    function handleMouseDown(e) {
+      if (e.ctrlKey) return; // Ctrl+click = fuerza posición exacta
+
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      // Click en nodo
+      for (let i = 0; i < nodes.length; i++) {
+        const screenPos = worldToScreen(nodes[i].x, nodes[i].z);
+        if (Math.hypot(screenPos.x - x, screenPos.y - y) < 15) {
+          selectedNode = i;
+          draggingNode = true;
+          updateNodeList();
+          draw();
+          return;
+        }
+      }
+
+      // Click en objeto existente
+      selectedObject = null;
+      for (let i = 0; i < objects.length; i++) {
+        const screenPos = worldToScreen(objects[i].x, objects[i].z);
+        if (Math.hypot(screenPos.x - x, screenPos.y - y) < 20) {
+          selectedObject = i;
+          isDragging = true;
+          updateObjectPanel(i);
+          draw();
+          return;
+        }
+      }
+
+      // Nuevo objeto
+      const worldPos = screenToWorld(x, y);
+      document.getElementById('posX').value = worldPos.x;
+      document.getElementById('posZ').value = worldPos.z;
+      isDragging = false;
+    }
+
+    function handleMouseMove(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      const worldPos = screenToWorld(x, y);
+
+      if (draggingNode && selectedNode !== null) {
+        nodes[selectedNode].x = Math.round(worldPos.x / GRID_SIZE) * GRID_SIZE;
+        nodes[selectedNode].z = Math.round(worldPos.z / GRID_SIZE) * GRID_SIZE;
+        draw();
+        return;
+      }
+
+      if (!isDragging || selectedObject === null) return;
+
+      // Snap automático
+      objects[selectedObject].x = Math.round(worldPos.x / GRID_SIZE) * GRID_SIZE;
+      objects[selectedObject].z = Math.round(worldPos.z / GRID_SIZE) * GRID_SIZE;
+
+      document.getElementById('posX').value = objects[selectedObject].x;
+      document.getElementById('posZ').value = objects[selectedObject].z;
+      draw();
+    }
+
+    function handleMouseUp() {
+      isDragging = false;
+      draggingNode = false;
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Delete') {
+        if (selectedNode !== null) {
+          deleteNode();
+        } else if (selectedObject !== null) {
+          deleteSelected();
+        }
+      }
+    }
+
+    // ==================== Funciones de Objeto ====================
+    function setObjectType(type) {
+      currentObjectType = type;
+      document.querySelectorAll('.type-btn').forEach(btn => btn.classList.remove('selected'));
+      event.target.classList.add('selected');
+      updateStatus(`Tipo: ${type}`);
+    }
+
+    function addObject() {
+      const id = document.getElementById('objectId').value.trim();
+      if (!id) {
+        updateStatus('⚠️ Ingresa un ID');
+        return;
+      }
+
+      const x = parseInt(document.getElementById('posX').value);
+      const z = parseInt(document.getElementById('posZ').value);
+      const size = parseFloat(document.getElementById('objectSize').value);
+
+      objects.push({
+        id,
+        type: currentObjectType,
+        x: Math.round(x / GRID_SIZE) * GRID_SIZE,
+        z: Math.round(z / GRID_SIZE) * GRID_SIZE,
+        size: size || 1,
+      });
+
+      document.getElementById('objectId').value = '';
+      selectedObject = objects.length - 1;
+      updateStatus(`✓ "${id}" agregado (${currentObjectType})`);
+      draw();
+    }
+
+    function deleteSelected() {
+      if (selectedObject === null) {
+        updateStatus('⚠️ Selecciona un objeto');
+        return;
+      }
+      const deleted = objects[selectedObject].id;
+      objects.splice(selectedObject, 1);
+      selectedObject = null;
+      updateStatus(`✓ "${deleted}" eliminado`);
+      draw();
+    }
+
+    function clearAll() {
+      if (!confirm('¿Eliminar todos los objetos?')) return;
+      objects = [];
+      selectedObject = null;
+      updateStatus('Todos los objetos eliminados');
+      draw();
+    }
+
+    function updateObjectPanel(idx) {
+      const obj = objects[idx];
+      document.getElementById('objectId').value = obj.id;
+      document.getElementById('posX').value = obj.x;
+      document.getElementById('posZ').value = obj.z;
+      document.getElementById('objectSize').value = obj.size;
+    }
+
+    // ==================== Funciones de Pared ====================
+    function addWall(side) {
+      const directions = {
+        north: { x: 0, z: 0, dir: 'h', len: 50 },
+        south: { x: 0, z: 40, dir: 'h', len: 50 },
+        east: { x: 50, z: 0, dir: 'v', len: 40 },
+        west: { x: 0, z: 0, dir: 'v', len: 40 },
+      };
+
+      const cfg = directions[side];
+      walls.push({
+        id: `wall-${walls.length}`,
+        x: cfg.x,
+        z: cfg.z,
+        direction: cfg.dir,
+        length: cfg.len,
+        doors: [],
+      });
+
+      updateWallList();
+      updateStatus(`✓ Pared "${side}" agregada`);
+      draw();
+    }
+
+    function deleteWall() {
+      if (selectedWall === null) {
+        updateStatus('⚠️ Selecciona una pared');
+        return;
+      }
+      walls.splice(selectedWall, 1);
+      selectedWall = null;
+      updateWallList();
+      draw();
+    }
+
+    function updateWallList() {
+      const list = document.getElementById('wallList');
+      if (walls.length === 0) {
+        list.innerHTML = '<div style="color: #7d8ba5; font-size: 11px;">No hay paredes</div>';
+        return;
+      }
+
+      list.innerHTML = walls.map((w, i) => `
+        <div class="wall-item ${selectedWall === i ? 'selected' : ''}" onclick="selectWall(${i})">
+          <strong>${w.id}</strong><br>
+          ${w.direction === 'h' ? '→' : '↓'} Pos(${w.x},${w.z}) Len ${w.length}
+        </div>
+      `).join('');
+    }
+
+    function selectWall(idx) {
+      selectedWall = idx;
+      const w = walls[idx];
+      document.getElementById('wallX').value = w.x;
+      document.getElementById('wallZ').value = w.z;
+      document.getElementById('wallLen').value = w.length;
+      document.getElementById('wallDir').value = w.direction;
+      document.getElementById('wallDoors').value = w.doors.join(', ');
+      updateWallList();
+      draw();
+    }
+
+    function updateWall() {
+      if (selectedWall === null) {
+        updateStatus('⚠️ Selecciona una pared');
+        return;
+      }
+
+      const x = parseInt(document.getElementById('wallX').value);
+      const z = parseInt(document.getElementById('wallZ').value);
+      const len = parseInt(document.getElementById('wallLen').value);
+      const dir = document.getElementById('wallDir').value;
+      const doors = document.getElementById('wallDoors').value
+        .split(',')
+        .map(d => d.trim())
+        .filter(d => d.length > 0);
+
+      walls[selectedWall].x = x;
+      walls[selectedWall].z = z;
+      walls[selectedWall].length = len;
+      walls[selectedWall].direction = dir;
+      walls[selectedWall].doors = doors;
+
+      updateStatus('✓ Pared actualizada');
+      updateWallList();
+      draw();
+    }
+
+    // ==================== Funciones de Nodos ====================
+    function addNode() {
+      const x = parseInt(document.getElementById('nodeX').value);
+      const z = parseInt(document.getElementById('nodeZ').value);
+
+      if (isNaN(x) || isNaN(z)) {
+        updateStatus('⚠️ Ingresa coordenadas válidas');
+        return;
+      }
+
+      nodes.push({
+        x: Math.round(x / GRID_SIZE) * GRID_SIZE,
+        z: Math.round(z / GRID_SIZE) * GRID_SIZE,
+      });
+
+      document.getElementById('nodeX').value = '';
+      document.getElementById('nodeZ').value = '';
+      updateStatus(`✓ Nodo agregado (${nodes.length} total)`);
+      updateNodeList();
+      draw();
+    }
+
+    function deleteNode() {
+      if (selectedNode === null) {
+        updateStatus('⚠️ Selecciona un nodo');
+        return;
+      }
+      nodes.splice(selectedNode, 1);
+      selectedNode = null;
+      updateStatus('✓ Nodo eliminado');
+      updateNodeList();
+      draw();
+    }
+
+    function updateNodeList() {
+      const list = document.getElementById('nodeList');
+      if (nodes.length === 0) {
+        list.innerHTML = '<div style="color: #7d8ba5; font-size: 11px;">No hay nodos</div>';
+        return;
+      }
+
+      list.innerHTML = nodes.map((n, i) => `
+        <div class="wall-item ${selectedNode === i ? 'selected' : ''}" onclick="selectNodeFromList(${i})">
+          <strong>Nodo ${i}</strong><br>
+          (${n.x}, ${n.z})
+        </div>
+      `).join('');
+    }
+
+    function selectNodeFromList(idx) {
+      selectedNode = idx;
+      updateNodeList();
+      document.getElementById('nodeX').value = nodes[idx].x;
+      document.getElementById('nodeZ').value = nodes[idx].z;
+      draw();
+    }
+
+    // ==================== Conversiones ====================
+    function worldToScreen(wx, wz) {
+      return {
+        x: (wx + 25) * 10,
+        y: (wz + 20) * 10,
+      };
+    }
+
+    function screenToWorld(sx, sy) {
+      return {
+        x: Math.round(sx / 10 - 25),
+        z: Math.round(sy / 10 - 20),
+      };
+    }
+
+    // ==================== Dibujo ====================
+    function draw() {
+      ctx.fillStyle = '#0a0f1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Grid
+      ctx.strokeStyle = 'rgba(69, 224, 208, 0.1)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < canvas.width; i += GRID_SIZE) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+      }
+      for (let i = 0; i < canvas.height; i += GRID_SIZE) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvas.width, i);
+        ctx.stroke();
+      }
+
+      // Paredes
+      walls.forEach((wall, idx) => {
+        const pos = worldToScreen(wall.x, wall.z);
+        const len = wall.length * 10;
+        ctx.strokeStyle = idx === selectedWall ? '#ff4ecd' : '#45e0d0';
+        ctx.lineWidth = 4;
+        if (wall.direction === 'h') {
+          ctx.beginPath();
+          ctx.moveTo(pos.x, pos.y);
+          ctx.lineTo(pos.x + len, pos.y);
+          ctx.stroke();
+        } else {
+          ctx.beginPath();
+          ctx.moveTo(pos.x, pos.y);
+          ctx.lineTo(pos.x, pos.y + len);
+          ctx.stroke();
+        }
+      });
+
+      // Footprint (polígono de nodos)
+      if (nodes.length > 1) {
+        ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < nodes.length; i++) {
+          const pos = worldToScreen(nodes[i].x, nodes[i].z);
+          if (i === 0) {
+            ctx.moveTo(pos.x, pos.y);
+          } else {
+            ctx.lineTo(pos.x, pos.y);
+          }
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        // Relleno suave
+        ctx.fillStyle = 'rgba(139, 92, 246, 0.1)';
+        ctx.fill();
+      }
+
+      // Nodos
+      nodes.forEach((node, idx) => {
+        const pos = worldToScreen(node.x, node.z);
+        const isSelected = selectedNode === idx;
+
+        // Círculo del nodo
+        ctx.fillStyle = isSelected ? '#8b5cf6' : 'rgba(139, 92, 246, 0.6)';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, isSelected ? 8 : 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (isSelected) {
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        // Índice pequeño
+        ctx.fillStyle = '#05060a';
+        ctx.font = 'bold 8px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(idx, pos.x, pos.y);
+      });
+
+      // Objetos
+      objects.forEach((obj, idx) => {
+        const pos = worldToScreen(obj.x, obj.z);
+        const isSelected = selectedObject === idx;
+
+        // Color por tipo
+        const colors = {
+          'activity': '#a8e05f',
+          'safe-spot': '#45e0d0',
+          'npc': '#ff4ecd',
+          'obstacle': '#ff4d5e',
+          'spawn': '#f2c744',
+          'area': '#8b5cf6',
+        };
+
+        ctx.fillStyle = colors[obj.type] || '#fff';
+        const r = obj.size * 10;
+        ctx.fillRect(pos.x - r, pos.y - r, r * 2, r * 2);
+
+        if (isSelected) {
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(pos.x - r - 2, pos.y - r - 2, r * 2 + 4, r * 2 + 4);
+        }
+
+        // ID pequeño
+        ctx.fillStyle = '#05060a';
+        ctx.font = 'bold 9px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(obj.id.substring(0, 4), pos.x, pos.y);
+      });
+    }
+
+    // ==================== Export/Import ====================
+    function exportJSON() {
+      const level = {
+        id: document.getElementById('levelName').value || 'untitled',
+        scene: document.getElementById('sceneId').value || 'piso7',
+        objects: objects.map(o => ({
+          id: o.id,
+          type: o.type,
+          x: o.x,
+          z: o.z,
+          size: o.size,
+        })),
+        walls: walls.map(w => ({
+          ...w,
+          doors: w.doors.length ? w.doors : undefined,
+        })),
+        nodes: nodes.length > 0 ? nodes : undefined,
+      };
+
+      const json = JSON.stringify(level, null, 2);
+      document.getElementById('jsonPreview').value = json;
+      updateStatus('✓ JSON generado - listo para descargar');
+
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${level.id}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importJSON() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const data = JSON.parse(evt.target.result);
+            objects = data.objects || [];
+            walls = data.walls || [];
+            nodes = data.nodes || [];
+            document.getElementById('levelName').value = data.id || '';
+            document.getElementById('sceneId').value = data.scene || 'piso7';
+            updateWallList();
+            updateNodeList();
+            draw();
+            updateStatus(`✓ ${objects.length} objetos, ${walls.length} paredes, ${nodes.length} nodos importados`);
+          } catch (err) {
+            updateStatus('❌ Error al importar');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    // ==================== UI ====================
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById(`tab-${tab}`).classList.add('active');
+
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      event.target.classList.add('active');
+    }
+
+    function updateStatus(msg) {
+      document.getElementById('status').textContent = msg;
+      setTimeout(() => {
+        if (document.getElementById('status').textContent === msg) {
+          document.getElementById('status').textContent = 'Listo';
+        }
+      }, 4000);
+    }
+
+    // ==================== Inicio ====================
+    initCanvas();
+  </script>
+</body>
 </html>
