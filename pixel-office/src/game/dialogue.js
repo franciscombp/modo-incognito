@@ -263,8 +263,15 @@ export function createDialogue(root) {
           if (typeof opt.effect === "function") opt.effect(ctx);
           else if (opt.effect) ctx.applyEffect?.(opt.effect);
           if (opt.reply) {
+            const isPlayer = !opt.replySpeaker || opt.replySpeaker === "Tú";
+            const fallbackSheet = isPlayer ? ctx.getPlayerSheet?.() : null;
             await playLine(
-              { speaker: opt.replySpeaker ?? "Tú", portrait: "🙂", sheet: opt.replySheet ?? "npc-camina", text: opt.reply },
+              {
+                speaker: opt.replySpeaker ?? "Tú",
+                portrait: "🙂",
+                sheet: opt.replySheet ?? fallbackSheet ?? "npc-camina",
+                text: opt.reply,
+              },
               ctx
             );
           }

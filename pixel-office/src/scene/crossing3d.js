@@ -478,8 +478,26 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
     return gMin + Math.random() * (gMax - gMin);
   }
 
+  // Cada vehículo se crea con su propia geometría, material y textura
+  // clonada (ver vehicleSprite/gridCellUV) — quitarlo de la escena con
+  // `.remove()` no libera nada de eso en la GPU. En una partida con muchos
+  // reintentos del cruce esto se acumulaba en memoria de vídeo hasta que el
+  // juego se ponía lento o se congelaba a medio camino.
+  function disposeVehicle(mesh) {
+    mesh.parent?.remove(mesh);
+    mesh.geometry?.dispose();
+    if (Array.isArray(mesh.material)) mesh.material.forEach((m) => disposeMaterial(m));
+    else disposeMaterial(mesh.material);
+  }
+
+  function disposeMaterial(material) {
+    if (!material) return;
+    material.map?.dispose();
+    material.dispose();
+  }
+
   function resetGame() {
-    vehicles.forEach((v) => v.mesh.parent?.remove(v.mesh));
+    vehicles.forEach((v) => disposeVehicle(v.mesh));
     vehicles = [];
     playerCell = { row: 0, col: Math.floor(COLS / 2) };
     player.setPose(null);
@@ -563,7 +581,7 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
     vehicles = vehicles.filter((v) => {
       const limit = ROAD_WIDTH / 2 + VEHICLE_WIDTH * 2;
       const gone = v.dir > 0 ? v.x > limit : v.x < -limit;
-      if (gone) v.mesh.parent?.remove(v.mesh);
+      if (gone) disposeVehicle(v.mesh);
       return !gone;
     });
 
