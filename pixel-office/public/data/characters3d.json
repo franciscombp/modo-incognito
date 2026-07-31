@@ -79,8 +79,8 @@
         "sunglasses"
       ],
       "build": {
-        "width": 1.12,
-        "belly": 0.16
+        "width": 1.14,
+        "belly": 0.26
       }
     },
     "giuli": {
@@ -104,9 +104,10 @@
         "hoops"
       ],
       "build": {
-        "width": 0.98,
-        "bust": 0.55
-      }
+        "width": 0.94,
+        "bust": 0.62
+      },
+      "$note": "Cintura estrecha y melena con volumen: la silueta la hace el contraste, no el tamaño."
     },
     "fran": {
       "$note": "Melena larga y gafas redondas. La mecha azul sale de la referencia nueva.",
@@ -156,9 +157,10 @@
         "color": "#f0e8e0"
       },
       "build": {
-        "width": 1.08,
-        "belly": 0.12
-      }
+        "width": 1.22,
+        "belly": 0.42
+      },
+      "$note": "Grande y algo gordito: el ancho y la barriga van juntos, si no queda hinchado y no corpulento."
     },
     "crispo": {
       "$note": "El afro es su silueta: se le reconoce a tres mesas de distancia.",

@@ -257,10 +257,28 @@ function paint(geometry, hex) {
  * propósito: sin vértices intermedios no hay nada que deformar y el codo
  * volvería a doblarse como una pieza rígida.
  */
-function limb(from, to, radiusTop, radiusBottom) {
+function limb(from, to, radiusTop, radiusBottom, profile = null) {
   const dir = new THREE.Vector3().subVectors(to, from);
   const len = dir.length();
-  const geo = new THREE.CylinderGeometry(radiusTop, radiusBottom, len, 14, 8);
+  const geo = new THREE.CylinderGeometry(radiusTop, radiusBottom, len, 14, 10);
+
+  // El PERFIL es lo que separa un miembro de un tubo. Un brazo no tiene el
+  // mismo grosor de arriba abajo: se ensancha en el bíceps y se estrecha en
+  // la muñeca. Sin esto todo el muñeco son cilindros y por eso parece de
+  // piezas encajadas en vez de un cuerpo.
+  if (profile) {
+    const pos = geo.attributes.position;
+    const top = len / 2;
+    for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i);
+      const t = THREE.MathUtils.clamp((top - y) / len, 0, 1); // 0 arriba, 1 abajo
+      const k = profile(t);
+      pos.setX(i, pos.getX(i) * k);
+      pos.setZ(i, pos.getZ(i) * k);
+    }
+    geo.computeVertexNormals();
+  }
+
   geo.translate(0, -len / 2, 0);
   // La geometría nace mirando a +Y; se gira hacia donde va de verdad.
   const quat = new THREE.Quaternion().setFromUnitVectors(
@@ -270,6 +288,36 @@ function limb(from, to, radiusTop, radiusBottom) {
   geo.applyQuaternion(quat);
   geo.translate(from.x, from.y, from.z);
   return geo;
+}
+
+/**
+ * Perfiles de miembro. `t` va de 0 (arriba) a 1 (abajo).
+ * Son suaves a propósito: en un muñeco cabezón, un bíceps marcado se ve
+ * ridículo — basta con que el contorno no sea recto.
+ */
+const PROFILE = {
+  arm: (t) => 1 + Math.sin(t * Math.PI) * 0.1 - t * 0.06,
+  leg: (t) => 1 + Math.sin(Math.min(1, t * 1.35) * Math.PI) * 0.13 - t * 0.1,
+  torso: (t) => 1 - Math.pow(t, 1.6) * 0.12,
+};
+
+/**
+ * Una prenda: la misma forma que el miembro pero un poco más gorda, con un
+ * DOBLADILLO al final.
+ *
+ * Es lo que hace que la ropa se lea puesta encima y no pintada sobre la piel.
+ * El dobladillo es el truco: un reborde donde acaba la tela deja ver que hay
+ * dos capas, y sin él una manga es solo un tramo del brazo de otro color.
+ */
+function garment(from, to, rTop, rBottom, { hem = 1.06, profile = null } = {}) {
+  const parts = [limb(from, to, rTop, rBottom, profile)];
+  const dir = new THREE.Vector3().subVectors(to, from).normalize();
+  // Corto y con poco vuelo: el dobladillo tiene que INSINUAR que hay una
+  // segunda capa, no sobresalir. Con un reborde largo y ancho la camiseta se
+  // convertía en una falda con pestaña.
+  const edge = to.clone().addScaledVector(dir, -rBottom * 0.22);
+  parts.push(limb(edge, to.clone(), rBottom * hem, rBottom * hem * 0.99));
+  return mergeGeometries(parts, false);
 }
 
 /** Una bola en una articulación: es lo que redondea hombros, codos y rodillas. */
@@ -453,10 +501,23 @@ export class Character3D {
     const hips = at("Hips");
     const chest = at("Chest");
     const neck = at("Neck");
-    add(limb(neck, hips.clone().setY(hips.y - 0.03 * H), torsoR * 0.92, torsoR * 0.86), topColor, [
+    // Cuerpo de piel debajo y prenda ENCIMA con su dobladillo: es lo que hace
+    // que la ropa se lea puesta y no pintada. Antes el torso era directamente
+    // del color de la camiseta y por eso parecía una pieza de plástico.
+    const torsoTop = neck.clone().setY(neck.y - 0.01 * H);
+    const torsoBottom = hips.clone().setY(hips.y - 0.04 * H);
+    add(limb(torsoTop, torsoBottom, torsoR * 0.86, torsoR * 0.8, PROFILE.torso), skinColor, [
       "skin",
       ["Hips", "Spine", "Chest"],
     ]);
+    add(
+      garment(torsoTop.clone().setY(neck.y - 0.03 * H), torsoBottom, torsoR * 0.94, torsoR * 0.9, {
+        profile: PROFILE.torso,
+        hem: 1.07,
+      }),
+      topColor,
+      ["skin", ["Hips", "Spine", "Chest"]]
+    );
     add(ellipsoid(chest, torsoR, torsoR * 0.62, torsoR * 0.82), topColor, ["skin", ["Chest", "Spine"]]);
 
     // Busto. Con un modelo fijo esto exigiría morph targets; generando el
@@ -517,7 +578,7 @@ export class Character3D {
       // cruzaban en el codo, y en el cruce salía un borde en dientes de
       // sierra que se veía desde cualquier ángulo.
       const armBones = [`${side}Arm`, `${side}ForeArm`, `${side}Hand`, "Chest"];
-      add(limb(shoulder, hand, armR, armR * 0.86), skinColor, ["skin", armBones]);
+      add(limb(shoulder, hand, armR, armR * 0.86, PROFILE.arm), skinColor, ["skin", armBones]);
       add(joint(elbow, armR * 0.96), skinColor, ["skin", [`${side}Arm`, `${side}ForeArm`]]);
       // Palma y cinco dedos. Antes era una bola: a distancia de juego daba
       // igual, pero al conversar de cerca una taza flotando junto a una
@@ -536,7 +597,9 @@ export class Character3D {
         ? elbow.clone().lerp(hand, 0.82)
         : shoulder.clone().lerp(elbow, 0.5);
       add(
-        limb(shoulder.clone().setY(shoulder.y + armR * 0.7), sleeveEnd, armR * 1.16, armR * 1.06),
+        garment(shoulder.clone().setY(shoulder.y + armR * 0.7), sleeveEnd, armR * 1.18, armR * 1.08, {
+          hem: 1.09,
+        }),
         topColor,
         ["skin", armBones]
       );
@@ -546,15 +609,21 @@ export class Character3D {
       const knee = at(`${side}Leg`);
       const ankle = at(`${side}Foot`);
 
-      add(limb(hip, knee, legR, legR * 0.92), bottomColor, [
-        "skin",
-        [`${side}UpLeg`, `${side}Leg`, "Hips"],
-      ]);
-      add(joint(knee, legR * 0.94), bottomColor, ["skin", [`${side}UpLeg`, `${side}Leg`]]);
-      add(limb(knee, ankle, legR * 0.92, legR * 0.84), bottomColor, [
-        "skin",
-        [`${side}Leg`, `${side}UpLeg`, `${side}Foot`],
-      ]);
+      const legBones = [`${side}UpLeg`, `${side}Leg`, `${side}Foot`, "Hips"];
+      add(limb(hip, ankle, legR * 0.9, legR * 0.78, PROFILE.leg), skinColor, ["skin", legBones]);
+      add(joint(knee, legR * 0.9), skinColor, ["skin", [`${side}UpLeg`, `${side}Leg`]]);
+      // El pantalón llega al tobillo salvo en los cortos; el dobladillo deja
+      // ver dónde acaba la tela y empieza la pierna.
+      const trouserEnd =
+        r.bottom.style === "shorts" ? hip.clone().lerp(knee, 0.85) : ankle.clone().lerp(knee, 0.12);
+      add(
+        garment(hip.clone().setY(hip.y + legR * 0.4), trouserEnd, legR * 1.06, legR * 0.94, {
+          profile: PROFILE.leg,
+          hem: 1.08,
+        }),
+        bottomColor,
+        ["skin", legBones]
+      );
 
       // Zapatones: piezas gordas y claras que anclan el muñeco al suelo. Van
       // en DOS partes, talón y puntera, cada una a su hueso: así el pie rueda
@@ -1083,19 +1152,31 @@ function buildHair(c, R, r) {
 
   switch (style) {
     case "afro": {
-      for (let i = 0; i < 14; i++) {
-        const a = (i / 14) * Math.PI * 2;
-        const ring = i % 2 ? 1 : 0.74;
-        put(
-          ellipsoid(
-            at(Math.cos(a) * R * 1.0 * ring, R * (0.28 + (i % 3) * 0.2), Math.sin(a) * R * 0.9 * ring - R * 0.05),
-            R * 0.44,
-            R * 0.44,
-            R * 0.44
-          )
-        );
+      // Churos: la masa va debajo y encima se le pegan RIZOS pequeños en
+      // varias capas, cada uno con su tamaño. Antes eran catorce bolas
+      // grandes en un anillo y se leía como un casco con bultos, no como
+      // pelo rizado — el rizo se reconoce por ser menudo y repetido.
+      put(ellipsoid(at(0, R * 0.38, -R * 0.05), R * 1.16, R * 1.04, R * 1.12));
+      const shell = shadeOf(hair, 0.05);
+      for (let ring = 0; ring < 4; ring++) {
+        const lift = -0.15 + ring * 0.36;
+        const count = 12 + ring * 2;
+        const rad = Math.cos(lift * 0.62) * 1.2;
+        for (let i = 0; i < count; i++) {
+          const a = (i / count) * Math.PI * 2 + ring * 0.4;
+          const curl = R * (0.19 + ((i + ring) % 3) * 0.035);
+          put(
+            ellipsoid(
+              at(Math.cos(a) * R * rad, R * (0.38 + lift), Math.sin(a) * R * rad * 0.94 - R * 0.05),
+              curl,
+              curl,
+              curl,
+              0.5
+            ),
+            (i + ring) % 2 ? hair : shell
+          );
+        }
       }
-      put(ellipsoid(at(0, R * 0.4, -R * 0.05), R * 1.2, R * 1.06, R * 1.16));
       break;
     }
     case "long": {
@@ -1145,10 +1226,16 @@ function buildBeard(c, R, color) {
   const at = (x, y, z) => new THREE.Vector3(c.x + x, c.y + y, c.z + z);
   // Solo mandíbula y bigote: una barba mayor le tapa la cara al muñeco y lo
   // deja sin expresión, que es justo lo que no queremos.
-  return [
-    { g: ellipsoid(at(0, -R * 0.56, R * 0.32), R * 0.58, R * 0.3, R * 0.54), color },
-    { g: ellipsoid(at(0, -R * 0.28, R * 0.8), R * 0.16, R * 0.05, R * 0.08), color },
+  // Mandíbula, patillas y bigote. Las patillas son lo que la ata a la cabeza:
+  // sin ellas la barba flota como un babero pegado a la barbilla.
+  const out = [
+    { g: ellipsoid(at(0, -R * 0.54, R * 0.3), R * 0.62, R * 0.34, R * 0.56), color },
+    { g: ellipsoid(at(0, -R * 0.3, R * 0.78), R * 0.18, R * 0.06, R * 0.09), color },
   ];
+  for (const dir of [-1, 1]) {
+    out.push({ g: ellipsoid(at(dir * R * 0.6, -R * 0.26, R * 0.34), R * 0.16, R * 0.3, R * 0.3, 0.5), color });
+  }
+  return out;
 }
 
 function buildAccessories(c, R, r) {
@@ -1163,9 +1250,9 @@ function buildAccessories(c, R, r) {
     for (const dir of [-1, 1]) {
       // La lente oscura solo en las de sol; las graduadas se quedan en montura
       // para no taparle los ojos, que es lo que más se mira.
-      if (tinted) put(ellipsoid(at(dir * R * 0.4, -R * 0.02, R * 0.94), R * 0.24, R * 0.2, R * 0.06), frame);
-      const rim = new THREE.TorusGeometry(R * 0.25, R * 0.035, 8, 18);
-      rim.translate(c.x + dir * R * 0.4, c.y - R * 0.02, c.z + R * 0.95);
+      if (tinted) put(ellipsoid(at(dir * R * 0.38, -R * 0.02, R * 0.93), R * 0.19, R * 0.16, R * 0.05, 0.5), shadeOf(frame, 0.06));
+      const rim = new THREE.TorusGeometry(R * 0.2, R * 0.028, 8, 16);
+      rim.translate(c.x + dir * R * 0.38, c.y - R * 0.02, c.z + R * 0.94);
       put(rim, frame);
       put(ellipsoid(at(dir * R * 0.72, -R * 0.02, R * 0.55), R * 0.03, R * 0.03, R * 0.28), frame);
     }
