@@ -235,10 +235,60 @@ function joint(at, radius) {
   return geo;
 }
 
-function ellipsoid(at, rx, ry, rz) {
-  const geo = new THREE.SphereGeometry(1, 20, 14);
+/**
+ * Un bulto. `detail` baja la resolución para las piezas pequeñas: una pupila
+ * o un mechón con la malla de una cabeza son cientos de triángulos que a
+ * ningún tamaño se distinguen de los de una esfera basta, y de eso hay
+ * cuarenta por personaje.
+ */
+function ellipsoid(at, rx, ry, rz, detail = 1) {
+  const seg = detail < 1 ? [10, 7] : [20, 14];
+  const geo = new THREE.SphereGeometry(1, seg[0], seg[1]);
   geo.scale(rx, ry, rz);
   geo.translate(at.x, at.y, at.z);
+  return geo;
+}
+
+/**
+ * La cabeza, esculpida en vez de una bola.
+ *
+ * Una esfera es una bola, y de cerca se ve que es una bola: sin mandíbula que
+ * se estreche, sin mentón y sin un plano de cara donde apoyar los rasgos. Se
+ * parte de una esfera y se desplazan los vértices:
+ *
+ *  · la mitad de abajo se estrecha hacia la barbilla (mandíbula);
+ *  · la cara se aplana un poco, para que ojos y boca no queden montados en
+ *    una superficie que se escapa;
+ *  · la nuca se recoge, que es lo que hace que un perfil parezca una cabeza.
+ */
+function headGeometry(c, R) {
+  const geo = new THREE.SphereGeometry(R, 24, 18);
+  const pos = geo.attributes.position;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const t = v.y / R; // -1 abajo, +1 arriba
+
+    if (t < 0) {
+      // Mandíbula. El exponente alto es lo importante: estrecha SOLO el
+      // último tramo (el mentón) en vez de toda la mitad inferior. Con un
+      // estrechamiento amplio la cabeza adelgaza entera, el pelo — que está
+      // dimensionado para el cráneo — deja de encajar y se come la cara.
+      const taper = 1 - Math.pow(-t, 2.4) * 0.16;
+      v.x *= taper;
+      v.z *= taper * 1.03;
+    } else {
+      v.x *= 1 - t * 0.03;
+    }
+
+    // Plano de la cara y nuca recogida, ambos con mano ligera.
+    if (v.z > 0) v.z *= 1 - Math.max(0, v.z / R) * 0.06;
+    else v.z *= 0.96;
+
+    pos.setXYZ(i, v.x, v.y, v.z);
+  }
+  geo.computeVertexNormals();
+  geo.translate(c.x, c.y, c.z);
   return geo;
 }
 
@@ -444,9 +494,9 @@ export class Character3D {
     // ----- cabeza -----
     const headR = P.headR * H;
     const headC = new THREE.Vector3(0, P.headY * H, 0);
-    add(ellipsoid(headC, headR, headR * 1.02, headR * 0.97), skinColor, ["rigid", "Head"]);
+    add(headGeometry(headC, headR), skinColor, ["rigid", "Head"]);
     // Cuello corto, lo justo para que la cabeza no salga del pecho.
-    add(limb(neck.clone().setY(neck.y + 0.03 * H), chest, torsoR * 0.34, torsoR * 0.42), skinColor, [
+    add(limb(neck.clone().setY(neck.y + 0.005 * H), chest, torsoR * 0.32, torsoR * 0.42), skinColor, [
       "skin",
       ["Neck", "Head", "Chest"],
     ]);
@@ -800,14 +850,15 @@ function buildFace(c, R, r) {
   for (const dir of [-1, 1]) {
     // Blanco del ojo, iris grande y un brillo: los tres juntos son lo que lo
     // hace parecer vivo y no un botón.
-    put(ellipsoid(new THREE.Vector3(dir * eyeX, eyeY, front), R * 0.17, R * 0.21, R * 0.12), "#ffffff");
-    put(ellipsoid(new THREE.Vector3(dir * eyeX, eyeY - R * 0.01, front + R * 0.06), R * 0.13, R * 0.17, R * 0.1), r.eyes);
+    put(ellipsoid(new THREE.Vector3(dir * eyeX, eyeY, front), R * 0.17, R * 0.21, R * 0.12, 0.5), "#ffffff");
+    put(ellipsoid(new THREE.Vector3(dir * eyeX, eyeY - R * 0.01, front + R * 0.06), R * 0.13, R * 0.17, R * 0.1, 0.5), r.eyes);
     put(
       ellipsoid(
         new THREE.Vector3(dir * (eyeX - R * 0.05), eyeY + R * 0.08, front + R * 0.1),
         R * 0.045,
         R * 0.05,
-        R * 0.04
+        R * 0.04,
+        0.5
       ),
       "#ffffff"
     );
@@ -817,7 +868,8 @@ function buildFace(c, R, r) {
       new THREE.Vector3(dir * eyeX, eyeY + R * 0.165, front + R * 0.03),
       R * 0.175,
       R * 0.028,
-      R * 0.09
+      R * 0.09,
+      0.5
     );
     put(lash, shadeOf(r.hair.color, -0.06));
 
@@ -828,7 +880,8 @@ function buildFace(c, R, r) {
       new THREE.Vector3(dir * eyeX, eyeY + R * 0.26, front * 0.97),
       R * 0.13,
       R * 0.024,
-      R * 0.055
+      R * 0.055,
+      0.5
     );
     put(brow, shadeOf(r.hair.color, -0.02));
 
@@ -838,16 +891,26 @@ function buildFace(c, R, r) {
           new THREE.Vector3(dir * R * 0.62, eyeY - R * 0.26, front * 0.72),
           R * 0.14,
           R * 0.085,
-          R * 0.07
+          R * 0.07,
+          0.5
         ),
         r.blush
       );
     }
   }
 
-  put(ellipsoid(new THREE.Vector3(0, eyeY - R * 0.14, front + R * 0.05), R * 0.055, R * 0.045, R * 0.05), shadeOf(r.skin, -0.08));
+  // Nariz de verdad: un puente que arranca entre los ojos y una punta. La
+  // anterior era una bolita suelta y de cerca no se leía como nariz.
+  put(ellipsoid(new THREE.Vector3(0, eyeY - R * 0.02, front * 0.98), R * 0.05, R * 0.14, R * 0.07, 0.5), shadeOf(r.skin, -0.03));
+  put(ellipsoid(new THREE.Vector3(0, eyeY - R * 0.15, front + R * 0.07), R * 0.062, R * 0.052, R * 0.06, 0.5), shadeOf(r.skin, -0.07));
   // Boca pequeña y baja: cuanto más pequeña, más cae en "tierno".
-  put(ellipsoid(new THREE.Vector3(0, eyeY - R * 0.38, front * 0.94), R * 0.075, R * 0.045, R * 0.05), "#b5645e");
+  put(ellipsoid(new THREE.Vector3(0, eyeY - R * 0.38, front * 0.94), R * 0.075, R * 0.045, R * 0.05, 0.5), "#b5645e");
+
+  // Orejas. Aportan poco de frente y muchísimo de perfil: sin ellas la
+  // cabeza se lee como un huevo desde cualquier ángulo que no sea el frontal.
+  for (const dir of [-1, 1]) {
+    put(ellipsoid(new THREE.Vector3(dir * R * 0.9, eyeY - R * 0.02, -R * 0.02), R * 0.09, R * 0.16, R * 0.12, 0.5), shadeOf(r.skin, -0.02));
+  }
 
   return out;
 }
