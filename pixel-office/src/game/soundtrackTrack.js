@@ -75,13 +75,14 @@ export function createTrackPlayer(destination) {
     if (ready && player.state !== "started") {
       try {
         player.start();
-      } catch {
-        /* el contexto aún no arrancó; el próximo sync lo reintenta */
+      } catch (e) {
+        /* el contexto aún no arrancó; el próximo sync lo reintenta.
+           En Safari esto es frecuente incluso con un gesto activo. */
       }
     }
-    gain.gain.rampTo(m.volume, 1.2);
-    filter.frequency.rampTo(m.cutoff, 1.2);
-    player.playbackRate = m.rate;
+    if (gain) gain.gain.rampTo(m.volume, 1.2);
+    if (filter) filter.frequency.rampTo(m.cutoff, 1.2);
+    if (player) player.playbackRate = m.rate;
   }
 
   return {
