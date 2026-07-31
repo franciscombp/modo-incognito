@@ -75,6 +75,7 @@ código**.
 | Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/style.css) |
 | **Cómo es cada personaje en 3D** (piel, pelo, ropa, complexión) | [`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/characters3d.json) — se edita con [`builder/personajes.html`](https://github.com/franciscombp/modo-incognito/tree/main/builder) |
 | Cómo se monta un muñeco 3D y sus poses (código) | [`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/character3d.js) |
+| El esqueleto: dónde está cada articulación y cómo se reparten los pesos (código) | [`src/entities/skinning.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/skinning.js) |
 | La paleta cozy del decorado (suelos, muebles, cielo, niebla) | [`src/scene/cozy.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/cozy.js) |
 | Sacar los colores de un personaje de su pliego dibujado | [`tools/extract-palette.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/extract-palette.py) · `npm run palette` |
 | Ver el reparto 3D entero, o un personaje en sus 8 poses | [`tools/shoot-cast.mjs`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/shoot-cast.mjs) · `npm run check:cast` |
@@ -292,9 +293,22 @@ como dos posturas entre las que el muñeco va y viene (tomando café la taza
 sube y baja, comiendo la mano va a la boca y vuelve). Ya no dependen de que el
 pliego de ese personaje las tenga dibujadas: **todos pueden hacerlas todas**.
 
-Para ver si una pose quedó bien, `node tools/shoot-cast.mjs salida.png
-poses:giuli` la saca en las ocho. Y `npm run check:poses` comprueba, sin
-mirar la imagen, que la pose del JSON se aplica y que sigue moviéndose.
+Las poses mueven los **huesos** de un esqueleto de verdad
+([`skinning.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/skinning.js)),
+así que la malla se deforma en el pliegue en vez de girar como una pieza. El
+esqueleto está expuesto en `character.skeleton` con nombres de rig
+convencional, que es lo que hace falta para engancharle un `AnimationMixer`
+con clips y mezclarlos.
+
+Para ver si una pose quedó bien:
+
+```bash
+node tools/shoot-cast.mjs poses.png poses:giuli   # las ocho poses
+node tools/shoot-cast.mjs cara.png  front:giuli   # de cerca y de frente
+```
+
+Y `npm run check:poses` comprueba, sin mirar la imagen, que la pose del JSON
+se aplica y que sigue moviéndose.
 
 ### El rig de un personaje
 

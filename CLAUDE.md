@@ -101,13 +101,41 @@ y **nunca** hace falta tocar código.
   todos los personajes pueden hacerlas todas, ya no dependen de que su pliego
   las tenga dibujadas. `data/sprites/<id>.json` sigue existiendo, pero ahora
   solo aporta la **animación de espera** (`idle`).
-- Si tocas las proporciones (`P`) o una pose, mira que **CapsuleGeometry(1,1)
-  mide 3 de alto**, no 1 — usa el helper `capsule(material, radio, alto)`. Sin
-  él las piernas atraviesan el suelo, que es exactamente lo que pasó.
-- La cámara está a **44° de inclinación** (`CAMERA_PRESET`) y los muñecos
-  llevan la cabeza fija un poco alzada. Las dos cosas están para lo mismo: con
-  la cámara alta de antes solo se les veía la coronilla. Si subes el pitch, se
-  pierde la cara — que es donde está toda la expresión.
+- La cámara está a **44° de inclinación** (`CAMERA_PRESET`). Con la de antes
+  (52°) solo se les veía la coronilla. Si subes el pitch, se pierde la cara —
+  que es donde está toda la expresión.
+
+### El esqueleto (`src/entities/skinning.js`)
+
+Los personajes son un **`THREE.SkinnedMesh` con un `THREE.Skeleton` de
+verdad**: una sola malla cuyos vértices están pesados a los huesos y se
+DEFORMA al moverlos. Antes eran piezas rígidas colgadas unas de otras, y al
+doblar un codo se abría un boquete en el pliegue.
+
+- **`SKELETON` es la única fuente de verdad de dónde está cada articulación.**
+  La geometría del cuerpo se construye ENTRE esas posiciones (`at("LeftArm")`
+  en character3d.js), así que el hueso nunca puede quedarse fuera de la carne
+  que lo envuelve. Si mueves una articulación, el cuerpo la sigue solo.
+- Los huesos llevan nombres de rig convencional (`Hips`, `Spine`, `LeftArm`…)
+  a propósito, y el esqueleto está expuesto en `character.skeleton`: es lo que
+  hace falta para engancharle un `AnimationMixer` con clips y mezclarlos.
+- **Los pesos se reparten por CANDIDATOS, no por distancia a secas**
+  (`skinGeometry(geo, bones, [huesos])`). Con distancia pura, un vértice del
+  muslo izquierdo recibe peso del derecho — están a un palmo — y al caminar
+  las piernas se pegan. Cada pieza declara a qué huesos puede pertenecer y la
+  mezcla suave pasa solo en la articulación.
+- Lo que NO debe deformarse (zapatos, credencial, pelo, gafas) va con
+  `rigidGeometry()`, pegado a un solo hueso.
+- Los miembros se hacen con `limb()`, que mete **segmentos a lo largo del
+  eje**: sin vértices intermedios no hay nada que deformar y el codo vuelve a
+  doblarse como una pieza rígida.
+- Todo acaba en **una sola malla con color por vértice**. Con ~25 personajes
+  en el piso, un material por prenda eran seis llamadas de dibujo por cabeza.
+  Por eso `setTint()` funciona tocando el color del material: multiplica a
+  todos los vértices a la vez.
+- El `SkinnedMesh` lleva `frustumCulled = false`: su caja es la de reposo, y
+  sin eso un personaje con los brazos en alto desaparece en cuanto esa caja
+  sale del encuadre.
 
 Los pliegos de `public/sprites/` **siguen en uso** para los retratos del
 diálogo y la pantalla de selección de personaje, y son la referencia de la que
