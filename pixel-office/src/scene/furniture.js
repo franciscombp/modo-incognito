@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { WORLD_SCALE as S } from "./config.js";
-import { texturedMaterial } from "./textures.js";
+import { cozyMaterial, SURFACES } from "./cozy.js";
 
 // Every work zone on the blueprint prints a seat count (7, 10, 12, 14...).
 // This module turns that single number into ONE big white table with that
@@ -46,15 +46,18 @@ function sharedAssets() {
       chairStand: chairStandGeometry(),
       monitor: new THREE.BoxGeometry(0.34 * S, 0.24 * S, 0.04 * S),
       stool: new THREE.CylinderGeometry(0.17 * S, 0.17 * S, 0.45 * S, 8),
+      // Madera clara y tapicería azul empolvado en vez de melamina blanca,
+      // patas de metal gris y sillas negras: es lo que separa "oficina de
+      // catálogo" de la oficina cálida de las referencias.
       materials: {
-        top: new THREE.MeshStandardMaterial({ color: 0xf4f2ec, roughness: 0.45, metalness: 0.02 }),
-        edge: new THREE.MeshStandardMaterial({ color: 0xdad6cc, roughness: 0.6 }),
-        leg: new THREE.MeshStandardMaterial({ color: 0x9aa0a8, roughness: 0.35, metalness: 0.5 }),
-        seat: texturedMaterial("fabricDark", { roughness: 0.8 }),
-        screen: new THREE.MeshStandardMaterial({
-          color: 0x1b1e24,
-          emissive: 0x2f6f96,
-          emissiveIntensity: 0.75,
+        top: cozyMaterial("deskTop"),
+        edge: cozyMaterial("deskEdge"),
+        leg: cozyMaterial("deskLeg"),
+        seat: cozyMaterial("fabricDark"),
+        screen: new THREE.MeshLambertMaterial({
+          color: new THREE.Color(SURFACES.screen),
+          emissive: new THREE.Color(SURFACES.screenGlow),
+          emissiveIntensity: 0.55,
         }),
       },
     };

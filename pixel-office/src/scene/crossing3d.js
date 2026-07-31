@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { CharacterSprite } from "../entities/sprite.js";
+import { Character3D } from "../entities/character3d.js";
 import { WORLD_SCALE as S } from "./config.js";
 import { getCameraSettings, subscribeCameraSettings } from "./cameraSettings.js";
 
@@ -203,7 +203,7 @@ function el(tag, className, parent) {
  * `sheets` trae la hoja de acciones de la jugadora (para la pose de susto al
  * ser atropellada) y un puñado de hojas de compañeros para poblar las aceras.
  */
-export function createCrossing3D(root, playerSheet, sheets = {}) {
+export function createCrossing3D(root, playerLook, sheets = {}) {
   // Cromo mínimo en HTML por encima del lienzo 3D: el pie de foto y los
   // botones táctiles no necesitan ser parte de la escena.
   const ui = el("div", "crossing-ui hidden", root);
@@ -386,24 +386,26 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
     }
   }
 
-  // ---- Jugadora: mismo sprite que en el piso, de espaldas ----
-  const player = new CharacterSprite(playerSheet, { height: 1.45 * S, rig: sheets.playerRig });
-  player.setFacing("north"); // avanza alejándose de la cámara
-  if (sheets.playerAction) player.setActionSheet(sheets.playerAction);
+  // ---- Jugadora: el mismo muñeco que en el piso, de espaldas ----
+  // Aquí se le da la dirección del mundo a mano y no una de las cuatro de
+  // pantalla: esta escena tiene su propia cámara (por detrás del hombro), así
+  // que "norte" no significa lo mismo que en el piso.
+  const player = new Character3D(playerLook, { height: 1.45 * S, rig: sheets.playerRig });
+  player.setHeading(0, 1); // avanza alejándose de la cámara
   scene.add(player.object);
 
   // ---- Peatones: la avenida estaba desierta salvo por los coches, y eso la
-  // hacía leerse como un tablero en vez de como una calle. Son los mismos
-  // sprites de compañeros del piso, caminando por la acera, el parterre y la
-  // puerta del banco. No colisionan con nada: son ambiente.
+  // hacía leerse como un tablero en vez de como una calle. Son las mismas
+  // variantes de gente que pueblan el piso, caminando por la acera, el
+  // parterre y la puerta del banco. No colisionan con nada: son ambiente.
   const PEDESTRIAN_ROWS = [0, 5, GOAL_ROW];
   const pedestrians = (sheets.crowd ?? [])
     .filter(Boolean)
-    .map((sheet, i) => {
+    .map((look, i) => {
       const row = PEDESTRIAN_ROWS[i % PEDESTRIAN_ROWS.length];
       const dir = i % 2 === 0 ? 1 : -1;
-      const sprite = new CharacterSprite(sheet, { height: 1.4 * S });
-      sprite.setFacing(dir > 0 ? "east" : "west");
+      const sprite = new Character3D(look, { height: 1.4 * S });
+      sprite.setHeading(dir, 0);
       sprite.setMoving(true);
       scene.add(sprite.object);
       return {
@@ -426,7 +428,7 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
       p.x += p.dir * p.speed * dt;
       if (p.x > limit || p.x < -limit) {
         p.dir *= -1;
-        p.sprite.setFacing(p.dir > 0 ? "east" : "west");
+        p.sprite.setHeading(p.dir, 0);
       }
       p.sprite.setPosition(p.x, p.row * LANE_DEPTH + p.dz);
       p.sprite.update(dt);
@@ -501,7 +503,7 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
     vehicles = [];
     playerCell = { row: 0, col: Math.floor(COLS / 2) };
     player.setPose(null);
-    player.setFacing("north");
+    player.setHeading(0, 1);
     player.setMoving(false);
     stepTimer = 0;
     layoutPlayer();
@@ -530,10 +532,9 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
     playerCell.col = nc;
     // Mirar hacia donde se dio el paso. Avanzar es "north" (de espaldas a la
     // cámara); la columna crece hacia -X, o sea hacia la derecha de pantalla.
-    if (dr > 0) player.setFacing("north");
-    else if (dr < 0) player.setFacing("south");
-    else if (dc > 0) player.setFacing("east");
-    else if (dc < 0) player.setFacing("west");
+    // Direcciones del mundo, no de pantalla: la cámara de esta escena es otra.
+    if (dr !== 0) player.setHeading(0, dr > 0 ? 1 : -1);
+    else if (dc !== 0) player.setHeading(dc > 0 ? 1 : -1, 0);
     player.setMoving(true);
     // Un poco más que el enfriamiento entre pasos: si encadenas pasos, la
     // animación no se corta entre uno y otro y se ve caminar de verdad.
@@ -687,12 +688,11 @@ export function createCrossing3D(root, playerSheet, sheets = {}) {
   }
 
   /** Cambiar de personaje jugable sin rehacer la escena. */
-  function setPlayerSheet(sheet, actionSheet, rig) {
-    player.setSheet(sheet);
+  function setPlayerLook(look, rig) {
+    player.setRecipe(look);
     if (rig !== undefined) player.setRig(rig);
-    if (actionSheet) player.setActionSheet(actionSheet);
-    player.setFacing("north");
+    player.setHeading(0, 1);
   }
 
-  return { scene, camera, play, resize, dispose, getState, setPlayerSheet };
+  return { scene, camera, play, resize, dispose, getState, setPlayerLook };
 }

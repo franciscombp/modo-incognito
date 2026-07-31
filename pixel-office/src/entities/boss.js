@@ -1,6 +1,5 @@
 import * as THREE from "three";
-import { CharacterSprite } from "./sprite.js";
-import { facingFromGround } from "../scene/iso.js";
+import { Character3D } from "./character3d.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
 
 export const BOSS_STATES = {
@@ -113,7 +112,7 @@ function buildRingGeometry(inner, outer, segments = 48) {
 export class Boss {
   // Like the player: `speeds`, `radius`, `height` and `visionRange` arrive
   // already scaled to world units from data/characters.json.
-  constructor(sheet, {
+  constructor(look, {
     world,
     route,
     navmesh = null,
@@ -213,7 +212,7 @@ export class Boss {
     this.playerVisible = false;
     this.redAlert = false;
 
-    this.sprite = new CharacterSprite(sheet, { height });
+    this.sprite = new Character3D(look, { height });
     this.sprite.setPosition(this.position.x, this.position.z);
 
     this.baseConeColor = coneColor;
@@ -423,7 +422,9 @@ export class Boss {
     }
     this._turnToward(dt);
 
-    this.sprite.setFacing(facingFromGround(this.facingDir.x, this.facingDir.z, "south"));
+    // El cuerpo gira con la misma dirección continua que el cono, así que el
+    // jefe ya no puede mirar a un lado y alumbrar al contrario.
+    this.sprite.setHeading(this.facingDir.x, this.facingDir.z);
     this.sprite.setMoving(!!dir);
     this.sprite.setPosition(this.position.x, this.position.z);
     this.sprite.update(dt);

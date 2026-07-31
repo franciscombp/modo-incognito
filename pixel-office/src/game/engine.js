@@ -355,7 +355,16 @@ export function createEngine({
    * alguien juegue, y ninguna prueba de la IA del piso llegaría nunca a
    * empezar. En la partida de verdad nadie lo pasa.
    */
-  async function startDay(index, { skipMinigame = false } = {}) {
+  /**
+   * `skipMinigame` es la costura por la que entran las comprobaciones de
+   * tools/: sin ella se quedarían esperando a que alguien juegue el cruce de
+   * la avenida. `skipPrologue` la sigue por defecto porque el prólogo del
+   * ascensor es otra escena que espera un clic, y en cuanto se añadió dejó
+   * colgadas a esas mismas comprobaciones — diez de ellas se quedaban en el
+   * `waitForFunction` del `engine.game` sin que el fallo dijera por qué.
+   * Quien quiera el prólogo con el minijuego saltado puede pedirlo aparte.
+   */
+  async function startDay(index, { skipMinigame = false, skipPrologue = skipMinigame } = {}) {
     dayIndex = Math.min(Math.max(index, 0), levels.length - 1);
     save.setDayIndex(dayIndex);
     const day = levels[dayIndex];
@@ -399,7 +408,7 @@ export function createEngine({
     // y se superponga durante los diálogos del ascensor.
 
     prologueChoice = null;
-    if (day.prologue) {
+    if (day.prologue && !skipPrologue) {
       lobby.show();
       const nodes = [...(day.prologue.intro ?? [])];
       if (save.hadWarningYesterday) {
