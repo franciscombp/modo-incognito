@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { screenToGround, facingFromGround } from "../scene/iso.js";
 import { buildSkeleton, skinGeometry, rigidGeometry } from "./skinning.js";
+import { faceTexture, projectFaceUVs } from "./face.js";
 
 /**
  * PERSONAJES 3D COZY, CON ESQUELETO DE VERDAD.
@@ -494,14 +495,12 @@ export class Character3D {
     // ----- cabeza -----
     const headR = P.headR * H;
     const headC = new THREE.Vector3(0, P.headY * H, 0);
-    add(headGeometry(headC, headR), skinColor, ["rigid", "Head"]);
     // Cuello corto, lo justo para que la cabeza no salga del pecho.
     add(limb(neck.clone().setY(neck.y + 0.005 * H), chest, torsoR * 0.32, torsoR * 0.42), skinColor, [
       "skin",
       ["Neck", "Head", "Chest"],
     ]);
 
-    for (const geo of buildFace(headC, headR, r)) add(geo.g, geo.color, ["rigid", "Head"]);
     for (const geo of buildHair(headC, headR, r)) add(geo.g, geo.color, ["rigid", "Head"]);
     if (r.beard) for (const geo of buildBeard(headC, headR, r.beard)) add(geo.g, geo.color, ["rigid", "Head"]);
     for (const geo of buildAccessories(headC, headR, r)) add(geo.g, geo.color, ["rigid", "Head"]);
@@ -527,7 +526,22 @@ export class Character3D {
       add(card, r.badge, ["rigid", "Chest"]);
     }
 
-    // ----- una sola malla -----
+    // ----- la cabeza va aparte, porque lleva textura -----
+    // El cuerpo entero es una malla de color plano; la cabeza es la única
+    // pieza con imagen. Separarla cuesta una segunda llamada de dibujo y a
+    // cambio la cara se PINTA en vez de modelarse: siete expresiones que son
+    // otro trazo, no otra malla, y unos 6.000 triángulos menos por cabeza.
+    const headBone = byName.get("Head");
+    const headGeo = projectFaceUVs(headGeometry(new THREE.Vector3(0, 0, 0), headR));
+    const faceMat = new THREE.MeshLambertMaterial({ map: faceTexture(r, "neutral") });
+    const headMesh = new THREE.Mesh(headGeo, faceMat);
+    // El hueso está en el cuello y el cráneo más arriba: la diferencia entre
+    // los dos es lo que hay que desplazar para que la cabeza caiga en su
+    // sitio al colgarla del hueso.
+    headMesh.position.y = headC.y - at("Head").y;
+    headBone.add(headMesh);
+
+    // ----- el resto, en una sola malla -----
     const geometry = mergeGeometries(parts, false);
     parts.forEach((g) => g.dispose());
 
@@ -580,7 +594,7 @@ export class Character3D {
       plate: makePlate(byName.get("LeftHand"), headR),
     };
 
-    this._built = { mesh, material, skeleton, bones, byName, root, shadow, headR };
+    this._built = { mesh, material, skeleton, bones, byName, root, shadow, headR, headMesh, faceMat };
     this._hipRest = byName.get("Hips").position.y;
     this._applyPose();
     this.setTint(this._tint);
@@ -668,7 +682,21 @@ export class Character3D {
    *  material multiplica a todos a la vez — justo lo que hace falta. */
   setTint(scalar) {
     this._tint = scalar;
-    if (this._built) this._built.material.color.setScalar(scalar);
+    if (!this._built) return;
+    this._built.material.color.setScalar(scalar);
+    this._built.faceMat.color.setScalar(scalar);
+  }
+
+  /**
+   * La expresión de la cara. Redibuja la textura, que es todo lo que hay que
+   * hacer: `neutral`, `blink`, `happy`, `sad`, `surprised`, `annoyed`, `talk`.
+   */
+  setExpression(name) {
+    if (!this._built || name === this._expression) return;
+    this._expression = name;
+    this._built.faceMat.map?.dispose();
+    this._built.faceMat.map = faceTexture(this.recipe, name);
+    this._built.faceMat.needsUpdate = true;
   }
 
   update(dt) {
@@ -809,6 +837,9 @@ export class Character3D {
       this.object.remove(this._built.shadow);
       this._built.mesh.geometry.dispose();
       this._built.material.dispose();
+      this._built.headMesh.geometry.dispose();
+      this._built.faceMat.map?.dispose();
+      this._built.faceMat.dispose();
       this._built.skeleton.dispose?.();
       this._built.shadow.geometry.dispose();
       this._built.shadow.material.dispose();
@@ -828,6 +859,7 @@ export class Character3D {
     this._props = {};
     this._built = null;
     this._hipRest = undefined;
+    this._expression = null;
   }
 
   dispose() {
