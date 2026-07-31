@@ -90,8 +90,15 @@ async function ensureStarted() {
     started = true;
   } catch {
     // Sin gesto de usuario todavía: se reintenta en el próximo setMood/playStinger.
+    // En Safari este error es común incluso después de un gesto.
   }
 }
+
+// Reintenta iniciar Tone en cada gesto de usuario, especialmente en Safari donde
+// el contexto de audio se bloquea por ahorro de batería.
+["click", "keydown", "touchstart"].forEach((event) => {
+  document.addEventListener(event, () => ensureStarted(), { passive: true });
+});
 
 function makeSequence(pattern, steps, synth, isChord) {
   if (!pattern || !pattern.length) return null;

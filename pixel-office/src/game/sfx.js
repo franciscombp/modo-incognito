@@ -12,9 +12,28 @@ subscribeSettings((s) => {
 /** El audio no puede arrancar sin un gesto del usuario: se crea al primer sonido pedido. */
 function getCtx() {
   if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-  if (ctx.state === "suspended") ctx.resume();
+  if (ctx.state === "suspended") {
+    ctx.resume().catch(() => {
+      // Safari y otros navegadores pueden rechazar resume si no hay gesto activo.
+      // El contexto seguirá suspendido pero el juego no rompe.
+    });
+  }
   return ctx;
 }
+
+// Safari requiere intentos agresivos de resume después de cualquier gesto. En
+// iOS/Safari, el AudioContext se suspende como medida de ahorro de batería y
+// solo se reactiva después de un gesto. Reintentamos en cada interacción.
+function attemptContextResume() {
+  if (ctx?.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+}
+
+// Reintenta resume en cada gesto de usuario (click, keydown, etc).
+["click", "keydown", "touchstart"].forEach((event) => {
+  document.addEventListener(event, attemptContextResume, { passive: true });
+});
 
 /**
  * Un tono cuadrado/triangular con ataque y caída instantáneos, al estilo
