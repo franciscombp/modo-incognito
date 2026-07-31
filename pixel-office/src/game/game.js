@@ -6,7 +6,6 @@ import {
   locationEggs,
   nearestArea,
   areaAt,
-  AREA_KINDS,
 } from "../scene/floorplan.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { BOSS_STATES } from "../entities/boss.js";
@@ -44,26 +43,30 @@ const HEAT_TUNING = [
   { vision: 1.48, speed: 1.32, huntEvery: 5 },
 ];
 
-// Fingir que trabajas solo cuela donde hay un puesto de trabajo. En mitad
-// del pasillo o en el baño no engañas a nadie.
-const WORK_KINDS = new Set([AREA_KINDS.OPEN_OFFICE, AREA_KINDS.MEETING]);
-const PRETEND_OUT_OF_PLACE = 0.25; // fracción del alivio si finges donde no toca
+// Fingir que trabajas solo cuela en un LUGAR SEGURO: una sala de reuniones o
+// tu propio puesto (ver `safeSpots` en el JSON de escena). En mitad del
+// pasillo, en la cafetería o en el baño no engañas a nadie — antes valía
+// cualquier zona de tipo oficina o sala, que era medio piso.
 // Fingiendo con poca sospecha no te aborda nadie: por debajo del umbral eres
 // intocable. Por encima, "si estabas con más, valiste".
 const PRETEND_IMMUNE_THRESHOLD = 30;
 
-// Los secuaces no esperan a que les hables: te abordan, pero solo si de
-// verdad estás a su lado — antes esto disparaba el diálogo a más del doble
-// de la distancia de "hablar con alguien" (INTERACT_RADIUS*1.3), así que se
-// sentía como que Crispo te abordaba sin estar cerca.
-const MINION_APPROACH = INTERACT_RADIUS * 1.4;
+// Los secuaces no esperan a que les hables: te abordan ellos. Pero solo
+// cuando TE TOCAN, no cuando te ven de lejos. Antes el umbral era
+// INTERACT_RADIUS * 1.4 (unas dos unidades de plano) y Crispo abordaba desde
+// el otro lado del pasillo, sin haberse acercado siquiera. Ahora es contacto
+// de verdad: la suma de los dos radios más un dedo de margen.
+const MINION_TOUCH_PAD = 0.3 * S;
+function minionTouches(minion, player) {
+  const d = Math.hypot(minion.position.x - player.position.x, minion.position.z - player.position.z);
+  return d <= minion.radius + player.radius + MINION_TOUCH_PAD;
+}
 
 // Washo casi no anda, pero mientras estés en su mira te pesan las piernas.
 const WASHO_SLOW_MUL = 0.55;
 
-// Un lugar seguro no es un escondite infinito: tiene un cupo de segundos al
-// día y, agotado, se apaga hasta la jornada siguiente (no se recarga como los
-// escondites).
+// Cupo por defecto de una sala de reuniones, si su JSON no trae `budget`. No
+// se recarga: agotado, esa sala está quemada hasta mañana.
 const SAFE_SPOT_BUDGET = 25;
 
 // Scoring. The fun is in *how* you slack off, not just whether you finish, so
@@ -173,6 +176,7 @@ export class Game {
     this.heat = 0;
     this.inWorkspace = false;
     this.inSafeSpot = false;
+    this.currentSafeSpot = null; // el lugar seguro utilizable en el que estás
     this._huntTimer = 0;
 
     const wanted = this.rules.objectives;
@@ -195,7 +199,14 @@ export class Game {
     this.hideState = hidingSpots.map(() => ({ cooldownLeft: 0, usedFor: 0 }));
     // Bound once so the per-frame snapshot never allocates a new closure.
     this._hidingCharge = (i) => this.hidingCharge(i);
-    this.safeSpotState = safeSpots.map(() => ({ left: SAFE_SPOT_BUDGET, spent: false }));
+    this.safeSpotState = safeSpots.map((spot) => ({
+      left: spot.kind === "desk" ? Infinity : spot.budget ?? SAFE_SPOT_BUDGET,
+      spent: false,
+      // Las salas se ocupan solas cada tanto: llega gente a reunirse de
+      // verdad y dejas de tener excusa para estar ahí.
+      busyLeft: 0,
+      nextBusy: spot.busyEvery ? spot.busyEvery * (0.5 + Math.random()) : Infinity,
+    }));
     this._safeSpotCharge = (i) => this.safeSpotCharge(i);
 
     this._prevInteractKey = false;
@@ -240,6 +251,15 @@ export class Game {
     this.currentArea = areaAt(pos.x, pos.z) ?? nearestArea(pos.x, pos.z).area;
 
     this.player.isHiding = this._updateHiding(dt, pos);
+
+    // El orden importa: fingir solo se puede DENTRO de un lugar seguro, y a
+    // la vez tu puesto solo te cubre MIENTRAS finges. Así que primero se mira
+    // dónde estás (una pasada que no gasta nada), luego se decide si estás
+    // fingiendo, y con eso ya se resuelve el lugar seguro de verdad.
+    const holdingE = this.player.keys.has("e");
+    const holdingF = this.player.keys.has("f");
+    this.player.isPretending = holdingF && this._standingInUsableSafeSpot(pos);
+
     this.inSafeSpot = this._updateSafeSpot(dt, pos);
     // Estar en un lugar seguro es la ÚNICA forma de quitarte de encima una
     // persecución ya comprometida: el jefe y sus secuaces sueltan la presa y
@@ -252,12 +272,9 @@ export class Game {
     // se quedaba perseguido para siempre.
     if (this.inSafeSpot) this._breakAllPursuits();
 
-    const holdingE = this.player.keys.has("e");
-    const holdingF = this.player.keys.has("f");
-    this.player.isPretending = holdingF;
-
-    // ¿Estás en un sitio donde fingir que trabajas resulta creíble?
-    this.inWorkspace = !!(this.currentArea && WORK_KINDS.has(this.currentArea.kind));
+    // "Tu sitio" ya no es media planta: es exactamente el lugar seguro en el
+    // que estás. Fuera de ahí, estás fuera de tu puesto.
+    this.inWorkspace = !!this.currentSafeSpot;
 
     this.nearStation =
       this.objectives.find(
@@ -304,6 +321,7 @@ export class Game {
     this.nearNpc =
       this.npcs.find(
         (n) =>
+          n.active !== false && // el doble del personaje elegido está apagado
           n.cast &&
           (this.talkCooldowns.get(n.id) ?? 0) <= 0 &&
           Math.hypot(n.position.x - pos.x, n.position.z - pos.z) < INTERACT_RADIUS * 1.3
@@ -330,8 +348,11 @@ export class Game {
     // (fase lenta) o va con todo (fase rápida, ver boss.js/_speed()).
     this.boss.suspicion = this.suspicion;
 
-    this.boss.update(dt, this.player, this.npcs);
-    this.minions.forEach((m) => m.update(dt, this.player, this.npcs));
+    // Un NPC apagado (el doble del personaje elegido) tampoco tapa la vista
+    // del jefe: no está ahí para nadie.
+    const liveNpcs = this.npcs.filter((n) => n.active !== false);
+    this.boss.update(dt, this.player, liveNpcs);
+    this.minions.forEach((m) => m.update(dt, this.player, liveNpcs));
     this._updateMinionCatch();
     this._updateMinionApproach();
     this._updateEggs(dt);
@@ -382,11 +403,9 @@ export class Game {
       } else if (this.player.isHiding) {
         this.suspicion = Math.max(0, this.suspicion - susCfg.decayHiddenOrPretending * decay * dt);
       } else if (this.player.isPretending) {
-        const credible = this.inWorkspace ? 1 : PRETEND_OUT_OF_PLACE;
-        this.suspicion = Math.max(
-          0,
-          this.suspicion - susCfg.decayHiddenOrPretending * credible * decay * dt
-        );
+        // Fingir ya solo es posible dentro de un lugar seguro, así que
+        // siempre cuela: no hace falta descontar credibilidad.
+        this.suspicion = Math.max(0, this.suspicion - susCfg.decayHiddenOrPretending * decay * dt);
       }
       // Sin escondite, sin fingir y sin lugar seguro: la sospecha se queda
       // donde está. No baja sola por quedarte quieta o pasearte — solo la
@@ -463,7 +482,12 @@ export class Game {
     buzz([12, 40, 18]);
     sfxComplete();
     this.toast(`${station.label} ✔${nerveLabel}`);
-    this._actionFlash = { icon: station.icon ?? "❓", label: station.label, timer: 1.1 };
+    this._actionFlash = {
+      icon: station.icon ?? "❓",
+      label: station.label,
+      pose: station.pose ?? null,
+      timer: 1.1,
+    };
     this.onPopup?.({
       text: `+${gained}`,
       sub: this.combo > 1 ? `x${this.combo.toFixed(1)}` : "",
@@ -575,8 +599,7 @@ export class Game {
       if (!m.redAlert && !m.lockedOn) continue;
       if (m.active === false || !m.cast) continue;
       if ((this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
-      const dist = Math.hypot(m.position.x - pos.x, m.position.z - pos.z);
-      if (dist > m.radius + this.player.radius + 0.3 * S) continue; // sigue persiguiendo
+      if (!minionTouches(m, this.player)) continue; // sigue persiguiendo
       this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
       this.onTalk(m, { caught: true });
       // Ya te interrogó: vuelve a su ronda en vez de quedarse pegada a ti en
@@ -602,7 +625,7 @@ export class Game {
       if (m.active === false) continue; // no está de turno / desactivado
       if (m.redAlert) continue; // eso lo resuelve _updateMinionCatch
       if (!m.cast || (this.talkCooldowns.get(m.id ?? m.cast) ?? 0) > 0) continue;
-      if (Math.hypot(m.position.x - pos.x, m.position.z - pos.z) > MINION_APPROACH) continue;
+      if (!minionTouches(m, this.player)) continue;
       this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 35);
       this.onTalk(m, { unsolicited: true });
       return;
@@ -659,28 +682,68 @@ export class Game {
    * mañana.
    */
   _updateSafeSpot(dt, pos) {
-    let active = false;
+    let current = null;
     safeSpots.forEach((spot, i) => {
       const state = this.safeSpotState[i];
-      if (state.spent) return;
-      const inside = Math.hypot(spot.x - pos.x, spot.z - pos.z) < spot.radius;
-      if (!inside) return;
-      active = true;
-      state.left = Math.max(0, state.left - dt);
-      if (state.left === 0) {
-        state.spent = true;
-        this.toast(`${spot.label ?? "Lugar seguro"}: gastaste tu tiempo ahí hoy.`);
+
+      // Las salas se ocupan solas cada tanto, estés dentro o no.
+      if (state.nextBusy !== Infinity && !state.spent) {
+        if (state.busyLeft > 0) {
+          state.busyLeft -= dt;
+          if (state.busyLeft <= 0) state.nextBusy = spot.busyEvery * (0.7 + Math.random() * 0.6);
+        } else {
+          state.nextBusy -= dt;
+          if (state.nextBusy <= 0) {
+            state.busyLeft = spot.busyFor ?? 12;
+            if (this._insideSafeSpot(spot, pos)) {
+              this.toast(`${spot.label}: llegó gente a reunirse de verdad.`);
+            }
+          }
+        }
       }
+
+      if (state.spent || state.busyLeft > 0) return;
+      if (!this._insideSafeSpot(spot, pos)) return;
+      current = { spot, state, index: i };
     });
-    return active;
+
+    this.currentSafeSpot = current?.spot ?? null;
+    if (!current) return false;
+
+    // Tu puesto no se gasta, pero solo te cubre mientras finges de verdad.
+    if (current.spot.kind === "desk") return this.player.isPretending;
+
+    current.state.left = Math.max(0, current.state.left - dt);
+    if (current.state.left === 0) {
+      current.state.spent = true;
+      this.toast(`${current.spot.label}: ya la usaste demasiado hoy.`);
+    }
+    return true;
   }
 
-  /** Per-spot readout for the floor markers: 0 = agotado, 1 = intacto. */
+  /**
+   * ¿Estás dentro de algún lugar seguro que hoy siga sirviendo? Es la
+   * condición para poder fingir. No consume nada: solo mira.
+   */
+  _standingInUsableSafeSpot(pos) {
+    return safeSpots.some((spot, i) => {
+      const state = this.safeSpotState[i];
+      return !state.spent && state.busyLeft <= 0 && this._insideSafeSpot(spot, pos);
+    });
+  }
+
+  _insideSafeSpot(spot, pos) {
+    return Math.hypot(spot.x - pos.x, spot.z - pos.z) < spot.radius;
+  }
+
+  /** Per-spot readout for the floor markers: 0 = agotado u ocupado, 1 = intacto. */
   safeSpotCharge(i) {
     const state = this.safeSpotState[i];
     if (!state) return 1;
-    if (state.spent) return 0;
-    return state.left / SAFE_SPOT_BUDGET;
+    if (state.spent || state.busyLeft > 0) return 0;
+    if (state.left === Infinity) return 1; // tu puesto no se gasta
+    const budget = safeSpots[i]?.budget ?? SAFE_SPOT_BUDGET;
+    return state.left / budget;
   }
 
   /** Standing still in the right spot for a beat reveals a hidden note. */
@@ -818,6 +881,7 @@ export class Game {
         id: this.nearStation.id,
         icon: this.nearStation.icon ?? "❓",
         label: this.nearStation.label,
+        pose: this.nearStation.pose ?? null,
         progress: this.nearStation.progress / this.nearStation.time,
         done: false,
       };
@@ -827,12 +891,20 @@ export class Game {
         id: `done-${this._actionFlash.label}`,
         icon: this._actionFlash.icon,
         label: this._actionFlash.label,
+        pose: this._actionFlash.pose ?? null,
         progress: 1,
         done: true,
       };
     }
     if (this.player.isPretending) {
-      return { id: "pretend", icon: "⌨️", label: "Fingiendo que trabajas", progress: null, done: false };
+      return {
+        id: "pretend",
+        icon: "⌨️",
+        label: "Fingiendo que trabajas",
+        pose: "work",
+        progress: null,
+        done: false,
+      };
     }
     return null;
   }

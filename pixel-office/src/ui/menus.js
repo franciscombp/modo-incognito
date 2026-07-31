@@ -287,14 +287,18 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
   const helpBody = el("div", "px-help", helpScreen);
   helpBody.innerHTML = `
     <p>Eres diseñadora en el Centro Digital de un banco. Tu trabajo de mentira es
-    <b>no trabajar</b>: café, chisme, siesta, televisión. El jefe patrulla la
+    <b>no trabajar</b>: café, película, comer. El jefe patrulla la
     planta con un cono de visión. (Tu trabajo de verdad es otra cosa —
     hay quien dice que fingir es, en realidad, la única forma de seguir
     diseñando algo con vida propia aquí dentro.)</p>
     <ul>
       <li><b>Mover</b> — WASD o flechas · joystick en móvil</li>
       <li><b>Usar / distraer</b> — <kbd>E</kbd> · botón USAR</li>
-      <li><b>Fingir que trabajas</b> — <kbd>F</kbd> · botón FINGIR. Baja la sospecha aunque te vean.</li>
+      <li><b>Fingir que trabajas</b> — <kbd>F</kbd> · botón FINGIR. Baja la sospecha aunque te vean,
+      pero <b>solo funciona en un lugar seguro</b>: una sala de reuniones o tu propio puesto.</li>
+      <li><b>Salas de reuniones</b> — con entrar basta (se supone que estás reunida), pero cada una
+      tiene un cupo de segundos al día y cada tanto llega gente de verdad y la ocupa.</li>
+      <li><b>Tu puesto</b> — nunca se gasta ni se ocupa, pero solo te cubre mientras finges.</li>
       <li><b>Esconderse</b> — pisa un círculo verde: dejas de ser visible.</li>
       <li><b>Distracciones</b> — las estrellas amarillas se llevan al jefe a otro sitio.</li>
       <li><b>Inspeccionar el plano</b> — <kbd>M</kbd> · botón 🗺️</li>
