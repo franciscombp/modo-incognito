@@ -80,6 +80,14 @@ export function buildNavmesh(world, { radius = 0.4 * S } = {}) {
   }
 
   /** A* over the grid. Returns world-space waypoints, or null if unreachable. */
+  // Reutilizados entre llamadas: con hasta 4 perseguidores repreguntando
+  // varias veces por segundo, asignar un Float32Array + Int32Array del
+  // tamaño de toda la rejilla en cada `path()` era el grueso de la basura
+  // que el recolector tenía que barrer — un `.fill()` sobre el mismo buffer
+  // es prácticamente gratis en comparación.
+  const g = new Float32Array(cols * rows);
+  const cameFrom = new Int32Array(cols * rows);
+
   function path(from, to) {
     const start = nearestWalkable(from.x, from.z);
     const goal = nearestWalkable(to.x, to.z);
@@ -89,8 +97,8 @@ export function buildNavmesh(world, { radius = 0.4 * S } = {}) {
     const goalI = idx(goal.c, goal.r);
     if (startI === goalI) return [{ x: to.x, z: to.z }];
 
-    const g = new Float32Array(cols * rows).fill(Infinity);
-    const cameFrom = new Int32Array(cols * rows).fill(-1);
+    g.fill(Infinity);
+    cameFrom.fill(-1);
     const open = [{ i: startI, f: 0 }];
     g[startI] = 0;
     const h = (i) =>

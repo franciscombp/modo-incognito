@@ -670,7 +670,13 @@ export class Boss {
       !this._pathTarget ||
       Math.hypot(this._pathTarget.x - target.x, this._pathTarget.z - target.z) > 1.2 * S;
     if (!this._path || goalMoved || this._repathTimer <= 0) {
-      this._path = this.navmesh.path(this.position, target);
+      // Un objetivo inalcanzable (nearestWalkable falla, o no hay ruta)
+      // devuelve null — y null es falsy, igual que "todavía no hay plan".
+      // Sin el `?? []` esto reentraba en el `if` de arriba EN CADA FRAME
+      // (nunca deja de ser falsy), así que cada perseguidor recalculaba un
+      // A* sobre TODA la rejilla, 60 veces por segundo, hasta congelar el
+      // juego. Un array vacío es "ya lo intenté" y respeta el enfriamiento.
+      this._path = this.navmesh.path(this.position, target) ?? [];
       this._pathTarget = { x: target.x, z: target.z };
       this._repathTimer = 0.5;
     }
@@ -762,7 +768,22 @@ export class Boss {
       if (cos < Math.cos(this.halfAngle)) return;
     }
 
-    const blockers = npcs.map((n) => ({ x: n.position.x, z: n.position.z, radius: n.radius }));
+    // Un array + objetos nuevos por comprobación de visión, por cada
+    // perseguidor, cada frame que el jugador está en rango: con el jefe y
+    // varios secuaces persiguiendo a la vez eso es basura constante para el
+    // recolector. Se reutiliza un array de esta instancia, del mismo tamaño
+    // que `npcs` (estable durante la jornada), y solo se rellenan los campos.
+    if (!this._blockersCache || this._blockersCache.length !== npcs.length) {
+      this._blockersCache = npcs.map(() => ({ x: 0, z: 0, radius: 0 }));
+    }
+    const blockers = this._blockersCache;
+    for (let i = 0; i < npcs.length; i++) {
+      const b = blockers[i];
+      const n = npcs[i];
+      b.x = n.position.x;
+      b.z = n.position.z;
+      b.radius = n.radius;
+    }
     if (this.world && this.world.lineBlocked(this.position, player.position, blockers)) return;
 
     this.playerVisible = true;

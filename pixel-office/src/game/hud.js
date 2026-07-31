@@ -104,6 +104,7 @@ export function createHud(root) {
   const dayRow = el("div", "hud-day-row", centerCol);
   const dayChip = el("div", "hud-day-chip", dayRow);
   const heatStars = el("div", "heat-stars", dayRow);
+  let heatStarEls = [];
   const suspicionWrap = el("div", "hud-panel hud-suspicion", centerCol);
   const susTitleRow = el("div", "hud-panel-title", suspicionWrap);
   susTitleRow.innerHTML = `<span class="hud-title-icon">👁️</span> SOSPECHA`;
@@ -321,6 +322,48 @@ export function createHud(root) {
     }
   });
 
+  // El array de objetivos es el MISMO objeto durante toda la jornada (solo
+  // cambian `.done`/`.progress` de cada uno); tirar el innerHTML y recrear
+  // sus filas de cero en cada frame era DOM thrashing puro — con 2-4
+  // objetivos, 60 veces por segundo, sumado al resto del HUD, era carga de
+  // sobra para notarse como lentitud. Ahora las filas se crean una vez (o
+  // cuando cambia el array en sí, ej. día nuevo) y luego solo se actualizan
+  // los campos que de verdad cambian.
+  let objectivesSource = null;
+  let objectiveRows = [];
+  function renderObjectives(objectives) {
+    if (objectives !== objectivesSource || objectiveRows.length !== objectives.length) {
+      objectivesSource = objectives;
+      objectivesList.innerHTML = "";
+      objectiveRows = objectives.map(() => {
+        const row = el("div", "hud-objective", objectivesList);
+        const dot = el("span", "hud-objective-dot", row);
+        const iconSpan = el("span", "hud-objective-icon", row);
+        const labelSpan = el("span", "hud-objective-label", row);
+        return { row, dot, iconSpan, labelSpan, bar: null, fill: null };
+      });
+    }
+    objectives.forEach((o, i) => {
+      const r = objectiveRows[i];
+      r.row.classList.toggle("done", !!o.done);
+      r.dot.style.background = hex(ACTIVITY_COLORS[o.type] ?? 0xffffff);
+      r.iconSpan.textContent = o.done ? "✓" : o.icon ?? "•";
+      r.labelSpan.textContent = o.label;
+      if (!o.done && o.progress > 0) {
+        if (!r.bar) {
+          r.bar = el("div", "hud-objective-bar", r.row);
+          r.fill = el("div", "hud-objective-bar-fill", r.bar);
+        }
+        r.fill.style.width = `${Math.round((o.progress / o.time) * 100)}%`;
+        r.fill.style.background = hex(ACTIVITY_COLORS[o.type] ?? 0xe0722c);
+      } else if (r.bar) {
+        r.bar.remove();
+        r.bar = null;
+        r.fill = null;
+      }
+    });
+  }
+
   function render(state) {
     setAction(state.currentAction);
 
@@ -341,9 +384,22 @@ export function createHud(root) {
     objectivesCount.textContent = `${doneCount}/${state.objectives.length}`;
 
     if (state.maxHeat != null) {
-      heatStars.innerHTML = Array.from({ length: state.maxHeat }, (_, i) =>
-        i < state.heat ? '<span class="lit">★</span>' : '<span class="off">★</span>'
-      ).join("");
+      // innerHTML entero cada frame para pintar hasta 5 estrellas — igual
+      // que los objetivos, basta con reconstruir cuando cambia el TOTAL de
+      // estrellas y solo alternar la clase el resto de frames.
+      if (heatStars.childElementCount !== state.maxHeat) {
+        heatStars.innerHTML = "";
+        heatStarEls = Array.from({ length: state.maxHeat }, () => {
+          const s = el("span", "off", heatStars);
+          s.textContent = "★";
+          return s;
+        });
+      }
+      heatStarEls.forEach((s, i) => {
+        const lit = i < state.heat;
+        s.classList.toggle("lit", lit);
+        s.classList.toggle("off", !lit);
+      });
     }
 
     scoreValue.textContent = state.score.toLocaleString("es");
@@ -376,22 +432,7 @@ export function createHud(root) {
     timerValue.classList.toggle("danger", timeLow);
     timerFill.classList.toggle("danger", timeLow);
 
-    objectivesList.innerHTML = "";
-    state.objectives.forEach((o) => {
-      const row = el("div", `hud-objective${o.done ? " done" : ""}`, objectivesList);
-      const dot = el("span", "hud-objective-dot", row);
-      dot.style.background = hex(ACTIVITY_COLORS[o.type] ?? 0xffffff);
-      const iconSpan = el("span", "hud-objective-icon", row);
-      iconSpan.textContent = o.done ? "✓" : o.icon ?? "•";
-      const labelSpan = el("span", "hud-objective-label", row);
-      labelSpan.textContent = o.label;
-      if (!o.done && o.progress > 0) {
-        const bar = el("div", "hud-objective-bar", row);
-        const fill = el("div", "hud-objective-bar-fill", bar);
-        fill.style.width = `${Math.round((o.progress / o.time) * 100)}%`;
-        fill.style.background = hex(ACTIVITY_COLORS[o.type] ?? 0xe0722c);
-      }
-    });
+    renderObjectives(state.objectives);
 
     if (state.message) {
       toast.textContent = state.message.text;
