@@ -12,7 +12,11 @@
     "areas[].capacity: número de sillas. Genera solo UNA mesa grande con esas",
     "sillas alrededor. tableShape: rect | round.",
     "labelPriority: 1 = rótulo siempre visible, 2 = al acercarse, 3 = solo en",
-    "modo inspeccionar plano (tecla M)."
+    "modo inspeccionar plano (tecla M).",
+    "areas[].doorSide (solo kind: \"meeting\"): qué pared de la sala de vidrio",
+    "lleva el hueco de la puerta. Mismo eje que wing: norte = +x, sur = -x;",
+    "frente = +z (por donde entra la jugadora desde los ascensores, default),",
+    "fondo = -z."
   ],
   "footprint": [
     [
