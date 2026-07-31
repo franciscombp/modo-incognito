@@ -649,6 +649,29 @@ function routeAt(plan) {
   return null;
 }
 
+function closestRouteSegment(plan, routeName) {
+  const route = state.scene?.routes?.[routeName] ?? [];
+  if (route.length < 2) return null;
+  let minDist = Infinity;
+  let closest = null;
+  for (let i = 0; i < route.length - 1; i++) {
+    const x1 = route[i].x, z1 = route[i].z;
+    const x2 = route[i + 1].x, z2 = route[i + 1].z;
+    const dx = x2 - x1, dz = z2 - z1;
+    const len2 = dx * dx + dz * dz;
+    if (len2 === 0) continue;
+    let t = ((plan.x - x1) * dx + (plan.z - z1) * dz) / len2;
+    t = Math.max(0, Math.min(1, t));
+    const px = x1 + t * dx, pz = z1 + t * dz;
+    const dist = Math.hypot(plan.x - px, plan.z - pz);
+    if (dist < minDist) {
+      minDist = dist;
+      closest = { segment: i, t, px, pz };
+    }
+  }
+  return minDist < 20 / state.view.scale ? closest : null;
+}
+
 function barrierAt(plan) {
   const barriers = state.scene?.barriers ?? [];
   const grab = 15 / state.view.scale;
@@ -745,14 +768,29 @@ canvas.addEventListener("pointerdown", (e) => {
       return;
     }
 
-    // Si hay una ruta seleccionada, intentar mover un nodo
+    // Si hay una ruta seleccionada, intentar mover un nodo o agregar uno nuevo
     if (selectedRoute !== null) {
-      const nodeIdx = routeNodeAt(plan, Object.keys(state.scene.routes ?? {})[selectedRoute]);
+      const routeName = Object.keys(state.scene.routes ?? {})[selectedRoute];
+      const nodeIdx = routeNodeAt(plan, routeName);
       if (nodeIdx !== null) {
         selectedRouteNode = nodeIdx;
         drag = { mode: "route-node-drag", routeIndex: selectedRoute, nodeIndex: nodeIdx };
         draw();
         return;
+      }
+      // Si se hace clic con botón izquierdo, intentar agregar nodo
+      if (e.button === 0) {
+        const segment = closestRouteSegment(plan, routeName);
+        if (segment) {
+          // Insertar nodo en el segmento más cercano
+          const insertIdx = segment.segment + 1;
+          const route = state.scene.routes[routeName];
+          route.splice(insertIdx, 0, { x: snap(segment.px, e.shiftKey), z: snap(segment.pz, e.shiftKey) });
+          selectedRouteNode = insertIdx;
+          toast(`Nodo ${insertIdx} insertado en ruta ${routeName}`);
+          draw();
+          return;
+        }
       }
     }
   }
@@ -975,6 +1013,21 @@ window.addEventListener("keydown", (e) => {
     state.scene.footprint.splice(selectedFootprintNode, 1);
     selectedFootprintNode = null;
     toast("Nodo eliminado");
+    draw();
+    return;
+  }
+  // Delete para nodos de rutas seleccionados
+  if ((e.key === "Delete" || e.key === "Backspace") && routeEditMode && selectedRoute !== null && selectedRouteNode !== null) {
+    e.preventDefault();
+    const routeName = Object.keys(state.scene.routes ?? {})[selectedRoute];
+    const route = state.scene.routes[routeName];
+    if (route && route.length > 1) {
+      route.splice(selectedRouteNode, 1);
+      selectedRouteNode = null;
+      toast("Nodo de ruta eliminado");
+    } else {
+      toast("No se puede eliminar el último nodo");
+    }
     draw();
     return;
   }
