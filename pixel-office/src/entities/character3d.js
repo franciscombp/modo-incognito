@@ -257,10 +257,13 @@ function paint(geometry, hex) {
  * propósito: sin vértices intermedios no hay nada que deformar y el codo
  * volvería a doblarse como una pieza rígida.
  */
-function limb(from, to, radiusTop, radiusBottom, profile = null) {
+function limb(from, to, radiusTop, radiusBottom, profile = null, depth = 1) {
   const dir = new THREE.Vector3().subVectors(to, from);
   const len = dir.length();
-  const geo = new THREE.CylinderGeometry(radiusTop, radiusBottom, len, 14, 10);
+  const geo = new THREE.CylinderGeometry(radiusTop, radiusBottom, len, 16, 10);
+  // `depth` aplasta la sección: un torso es más ancho que hondo. Con sección
+  // redonda y sombreado plano, visto de frente se lee como un panel recto.
+  if (depth !== 1) geo.scale(1, 1, depth);
 
   // El PERFIL es lo que separa un miembro de un tubo. Un brazo no tiene el
   // mismo grosor de arriba abajo: se ensancha en el bíceps y se estrecha en
@@ -298,7 +301,9 @@ function limb(from, to, radiusTop, radiusBottom, profile = null) {
 const PROFILE = {
   arm: (t) => 1 + Math.sin(t * Math.PI) * 0.1 - t * 0.06,
   leg: (t) => 1 + Math.sin(Math.min(1, t * 1.35) * Math.PI) * 0.13 - t * 0.1,
-  torso: (t) => 1 - Math.pow(t, 1.6) * 0.12,
+  // Hombros anchos, cintura marcada y cadera que vuelve a abrir. Es la curva
+  // que hace que un torso sea un torso y no un bidón.
+  torso: (t) => 1 - Math.sin(Math.min(1, t * 1.15) * Math.PI) * 0.16 - t * 0.03,
 };
 
 /**
@@ -309,14 +314,18 @@ const PROFILE = {
  * El dobladillo es el truco: un reborde donde acaba la tela deja ver que hay
  * dos capas, y sin él una manga es solo un tramo del brazo de otro color.
  */
-function garment(from, to, rTop, rBottom, { hem = 1.06, profile = null } = {}) {
-  const parts = [limb(from, to, rTop, rBottom, profile)];
-  const dir = new THREE.Vector3().subVectors(to, from).normalize();
-  // Corto y con poco vuelo: el dobladillo tiene que INSINUAR que hay una
-  // segunda capa, no sobresalir. Con un reborde largo y ancho la camiseta se
-  // convertía en una falda con pestaña.
-  const edge = to.clone().addScaledVector(dir, -rBottom * 0.22);
-  parts.push(limb(edge, to.clone(), rBottom * hem, rBottom * hem * 0.99));
+function garment(from, to, rTop, rBottom, { hem = 1.06, profile = null, depth = 1 } = {}) {
+  const parts = [limb(from, to, rTop, rBottom, profile, depth)];
+  if (hem > 1.001) {
+    // UN anillo, corto y justo en el filo. Antes era otro cilindro solapado
+    // sobre la manga, y dos cilindros casi iguales uno dentro de otro se ven
+    // como un acordeón de aros, no como un dobladillo.
+    const dir = new THREE.Vector3().subVectors(to, from).normalize();
+    const edge = to.clone().addScaledVector(dir, -rBottom * 0.16);
+    parts.push(
+      limb(edge, to.clone().addScaledVector(dir, rBottom * 0.02), rBottom * hem, rBottom * hem, null, depth)
+    );
+  }
   return mergeGeometries(parts, false);
 }
 
@@ -504,34 +513,39 @@ export class Character3D {
     // Cuerpo de piel debajo y prenda ENCIMA con su dobladillo: es lo que hace
     // que la ropa se lea puesta y no pintada. Antes el torso era directamente
     // del color de la camiseta y por eso parecía una pieza de plástico.
+    const shoulderY = at("LeftArm").y;
+    const shoulderSpan = at("LeftArm").x + armR * 0.95;
     const torsoTop = neck.clone().setY(neck.y - 0.01 * H);
-    const torsoBottom = hips.clone().setY(hips.y - 0.04 * H);
-    add(limb(torsoTop, torsoBottom, torsoR * 0.86, torsoR * 0.8, PROFILE.torso), skinColor, [
+    const torsoBottom = hips.clone().setY(hips.y - 0.075 * H);
+    add(limb(torsoTop, torsoBottom, torsoR * 0.86, torsoR * 0.82, PROFILE.torso, 0.74), skinColor, [
       "skin",
       ["Hips", "Spine", "Chest"],
     ]);
     add(
-      garment(torsoTop.clone().setY(neck.y - 0.03 * H), torsoBottom, torsoR * 0.94, torsoR * 0.9, {
+      garment(torsoTop.clone().setY(shoulderY + armR * 0.2), torsoBottom, torsoR * 0.99, torsoR * 0.92, {
         profile: PROFILE.torso,
-        hem: 1.07,
+        hem: 1.05,
+        depth: 0.74,
       }),
       topColor,
       ["skin", ["Hips", "Spine", "Chest"]]
     );
-    add(ellipsoid(chest, torsoR, torsoR * 0.62, torsoR * 0.82), topColor, ["skin", ["Chest", "Spine"]]);
+    add(ellipsoid(chest, torsoR * 0.97, torsoR * 0.6, torsoR * 0.7), topColor, ["skin", ["Chest", "Spine"]]);
 
     // Busto. Con un modelo fijo esto exigiría morph targets; generando el
     // cuerpo es un número de la receta (`build.bust`, 0 = sin nada).
     const bust = r.build.bust ?? 0;
     if (bust > 0.01) {
-      const br = torsoR * (0.3 + bust * 0.28);
+      // Juntas, aplastadas y metidas en el pecho. Separadas y redondas se leen
+      // como dos bolas pegadas encima de la camiseta en vez de como el pecho.
+      const br = torsoR * (0.26 + bust * 0.2);
       for (const dir of [-1, 1]) {
         add(
           ellipsoid(
-            new THREE.Vector3(dir * torsoR * 0.42, chest.y - 0.012 * H, torsoR * 0.52),
-            br,
-            br * 0.86,
-            br * 0.92
+            new THREE.Vector3(dir * torsoR * 0.3, chest.y - 0.016 * H, torsoR * 0.3),
+            br * 1.15,
+            br * 0.8,
+            br * 0.62
           ),
           topColor,
           ["skin", ["Chest", "Spine"]]
@@ -567,6 +581,22 @@ export class Character3D {
       ]);
     }
 
+    // Los HOMBROS, de un brazo al otro por encima del pecho. Es la pieza que
+    // ata las mangas al cuerpo: sin ella cada manga arrancaba por encima del
+    // hombro, sin nada que la uniera al torso, y se veían dos tubos flotando
+    // a los lados. También da la caída de hombro — un torso que acaba en un
+    // corte recto se lee como un bidón.
+    add(
+      ellipsoid(
+        new THREE.Vector3(0, shoulderY - armR * 0.1, 0),
+        shoulderSpan,
+        torsoR * 0.48,
+        torsoR * 0.62
+      ),
+      topColor,
+      ["skin", ["Chest", "LeftArm", "RightArm"]]
+    );
+
     // ----- brazos y piernas -----
     for (const side of ["Left", "Right"]) {
       const shoulder = at(`${side}Arm`);
@@ -593,17 +623,18 @@ export class Character3D {
         add(joint(at(b2), fingerR * 0.95), skinColor, ["skin", [b2, b1]]);
       }
 
+      // La manga nace DENTRO de la masa del hombro y baja. Antes empezaba por
+      // encima de ella y quedaba un escalón entre la camiseta y el brazo.
       const sleeveEnd = sleeveLong
         ? elbow.clone().lerp(hand, 0.82)
-        : shoulder.clone().lerp(elbow, 0.5);
+        : shoulder.clone().lerp(elbow, 0.52);
       add(
-        garment(shoulder.clone().setY(shoulder.y + armR * 0.7), sleeveEnd, armR * 1.18, armR * 1.08, {
-          hem: 1.09,
+        garment(shoulder.clone().setY(shoulder.y - armR * 0.05), sleeveEnd, armR * 1.14, armR * 1.06, {
+          hem: 1.07,
         }),
         topColor,
         ["skin", armBones]
       );
-      add(joint(shoulder, armR * 1.2), topColor, ["skin", [`${side}Arm`, "Chest"]]);
 
       const hip = at(`${side}UpLeg`);
       const knee = at(`${side}Leg`);
