@@ -30,6 +30,7 @@
         "maxWarnings": 3,
         "minionSuspicionMul": 0.7
       },
+      "rig": "fran",
       "npc": "fran_npc"
     },
     "giu": {
@@ -73,7 +74,9 @@
       "rules": {
         "maxWarnings": 2,
         "minionSuspicionMul": 0.5
-      }
+      },
+      "rig": "manu",
+      "npc": "manu_npc"
     },
     "gabo": {
       "name": "Gabo",
