@@ -805,50 +805,56 @@ canvas.addEventListener("pointerdown", (e) => {
 
   // Modo edición rutas
   if (routeEditMode) {
-    console.log("Modo rutas activo, buscando ruta...");
-    // Intentar seleccionar una ruta haciendo clic en ella
-    const clickedRouteName = routeAt(plan);
-    console.log("Resultado de routeAt:", clickedRouteName, "tipo:", typeof clickedRouteName, "es null?", clickedRouteName === null, "!== null?", clickedRouteName !== null);
-    if (clickedRouteName !== null) {
-      console.log("Seleccionando ruta:", clickedRouteName);
-      selectedRouteName = clickedRouteName;
-      selectedRouteNode = null;
-      console.log("selectedRouteName ahora es:", selectedRouteName);
-      toast(`Ruta "${selectedRouteName}" seleccionada`);
-      draw();
-      console.log("Se llamó a draw()");
-      return;
-    }
-
-    console.log("clickedRouteName es null, selectedRouteName actual:", selectedRouteName);
-
-    // Si hay una ruta seleccionada, intentar mover un nodo o agregar uno nuevo
+    // PRIORIDAD 1: Si hay ruta seleccionada, editar sus nodos
     if (selectedRouteName !== null) {
-      console.log("Hay ruta seleccionada, buscando nodo...");
+      console.log(`Editando ruta seleccionada: "${selectedRouteName}"`);
       const nodeIdx = routeNodeAt(plan, selectedRouteName);
-      console.log("Nodo encontrado:", nodeIdx);
+
       if (nodeIdx !== null) {
+        // Se hizo clic en un nodo existente
+        console.log(`Nodo ${nodeIdx} seleccionado`);
         selectedRouteNode = nodeIdx;
         drag = { mode: "route-node-drag", routeName: selectedRouteName, nodeIndex: nodeIdx };
         draw();
         return;
       }
+
       // Si se hace clic con botón izquierdo, intentar agregar nodo
       if (e.button === 0) {
-        console.log("Buscando segmento para agregar nodo...");
+        console.log("Intentando agregar nodo...");
         const segment = closestRouteSegment(plan, selectedRouteName);
-        console.log("Segmento encontrado:", segment);
         if (segment) {
-          // Insertar nodo en el segmento más cercano
           const insertIdx = segment.segment + 1;
           const route = state.scene.routes[selectedRouteName];
           route.splice(insertIdx, 0, { x: snap(segment.px, e.shiftKey), z: snap(segment.pz, e.shiftKey) });
           selectedRouteNode = insertIdx;
           toast(`Nodo insertado en ruta "${selectedRouteName}"`);
+          console.log(`Nodo ${insertIdx} insertado`);
+          draw();
+          return;
+        } else {
+          console.log("No se encontró segmento para insertar");
+          // Si no hay segmento, tal vez el usuario quiere deseleccionar la ruta
+          selectedRouteName = null;
+          selectedRouteNode = null;
+          toast("Ruta deseleccionada");
           draw();
           return;
         }
       }
+      return; // No intentar seleccionar otra ruta si ya hay una seleccionada
+    }
+
+    // PRIORIDAD 2: Si NO hay ruta seleccionada, intentar seleccionar una
+    console.log("Buscando ruta para seleccionar...");
+    const clickedRouteName = routeAt(plan);
+    if (clickedRouteName !== null) {
+      selectedRouteName = clickedRouteName;
+      selectedRouteNode = null;
+      toast(`Ruta "${selectedRouteName}" seleccionada - haz clic en nodos para editarlos`);
+      console.log(`Ruta seleccionada: ${selectedRouteName}`);
+      draw();
+      return;
     }
   }
 
