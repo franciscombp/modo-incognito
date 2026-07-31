@@ -1,37 +1,43 @@
-// La banda sonora del juego, en dos capas que se eligen solas:
+// La banda sonora del juego: riffs PROCEDURALES (soundtrackThemes.js), que se
+// recombinan en vivo (bajo/lead/pad/perc) según el ánimo de la partida.
 //
-//  1. La PISTA compuesta (soundtrackTrack.js -> public/audio/*.mp3). Es la que
-//     suena normalmente. No se limita a sonar: se le hace remezcla vertical
-//     ligera — filtro y volumen por ánimo — para que siga reaccionando a la
-//     partida, que es de lo que iba el soundtrack desde el principio.
-//  2. Los riffs PROCEDURALES de soundtrackThemes.js, como plan B. Si el mp3
-//     no está o no carga, el juego sigue teniendo música en vez de quedarse
-//     mudo, y ahí sí se recombinan capas en vivo (bajo/lead/pad/perc).
+// Hubo una pista grabada real (mp3) que se remezclaba por ánimo además de
+// estos riffs, pero sonaba encima del procedural y la mezcla resultante era
+// un caos de dos pistas simultáneas — se quitó del todo. Todo el soundtrack
+// pasa por aquí ahora, un único origen de sonido.
 //
 // Los stingers de victoria y derrota son siempre sintetizados, en su propio
-// sintetizador, así que suenan con o sin pista.
+// sintetizador.
 import * as Tone from "tone";
 import { getSettings, subscribeSettings } from "./settings.js";
 import { THEMES } from "./soundtrackThemes.js";
-import { createTrackPlayer } from "./soundtrackTrack.js";
 
 let ready = false;
 let started = false;
 let currentThemeName = null;
 let bassSynth, leadSynth, padSynth, percSynth, stingerSynth;
 let bassGain, leadGain, padGain, percGain, stingerGain;
-let bassSeq, leadSeq, padSeq;
 let masterGain;
-let percSeqBuilt = false;
-let track = null;
-
-// El mp3 grabado (stapler-sprint.mp3) es un tema viejo que ya no corresponde
-// al tema principal compuesto (THEMES.main, 135 BPM) — hasta que haya un
-// archivo real grabado de ESE tema, se apaga el mp3 a propósito y manda el
-// soundtrack procedural, para que lo que suena sea el tema nuevo y no el
-// descartado.
-function useTrack() {
-  return false;
+let mainLoop = null;
+let percLoop = null;
+let stepIndex = 0;
+// Último instante (en segundos de audio) en que cada synth monofónico sonó de
+// verdad. Un synth mono revienta si se le pide `triggerAttack` en un instante
+// igual o anterior al último que ya atacó — y eso pasa de verdad cuando
+// `Tone.Transport.bpm.rampTo` cambia de tempo justo entre dos ticks del loop:
+// el siguiente tick puede recalcular un "time" que cae encima o antes del
+// anterior. Sin este guardián el synth lanzaba, y esos golpes perdidos/rotos
+// eran justo lo que se oía como "todo se mezcla mal" al cambiar de ánimo.
+const lastTrigger = { bass: -1, lead: -1, pad: -1, perc: -1 };
+function safeTrigger(synth, key, note, duration, time) {
+  if (time <= lastTrigger[key]) return;
+  lastTrigger[key] = time;
+  try {
+    synth.triggerAttackRelease(note, duration, time);
+  } catch {
+    // Colisión de instante interna de Tone (ver comentario arriba): se
+    // pierde esta sola nota en vez de tumbar el resto del bucle de audio.
+  }
 }
 
 function build() {
@@ -77,8 +83,6 @@ function build() {
     envelope: { attack: 0.01, decay: 0.2, sustain: 0.25, release: 0.4 },
   }).connect(stingerGain);
 
-  track = createTrackPlayer(masterGain);
-
   subscribeSettings((s) => {
     masterGain.gain.rampTo(s.music ? 1 : 0, 0.2);
   });
@@ -102,21 +106,44 @@ async function ensureStarted() {
   document.addEventListener(event, () => ensureStarted(), { passive: true });
 });
 
-function makeSequence(pattern, steps, synth, isChord) {
-  if (!pattern || !pattern.length) return null;
-  return new Tone.Sequence(
-    (time, note) => {
-      if (note == null) return;
-      synth.triggerAttackRelease(note, "8n", time);
-    },
-    pattern,
-    `${steps === 8 ? "8n" : "16n"}`
-  ).start(0);
-}
-
-function disposeSequences() {
-  [bassSeq, leadSeq, padSeq].forEach((seq) => seq?.dispose());
-  bassSeq = leadSeq = padSeq = null;
+// Un único Tone.Loop persistente por capa, en vez de un Tone.Sequence que se
+// destruye y se recrea en cada cambio de ánimo. Lo segundo sonaba fatal:
+// disposer + recrear mientras el Transport seguía corriendo hacía que Tone
+// programara la primera nota de la secuencia nueva en un instante anterior al
+// último ya programado para el mismo synth ("Start time must be strictly
+// greater than previous start time"), y el intento de recuperarse de eso es
+// lo que se oía como los temas mezclándose mal unos con otros. Ahora el loop
+// nunca se destruye: cada tick simplemente lee el tema ACTUAL del paso
+// actual, así que cambiar de ánimo solo cambia qué notas suenan, no cuándo.
+function ensureLoops() {
+  if (!mainLoop) {
+    mainLoop = new Tone.Loop((time) => {
+      const theme = THEMES[currentThemeName];
+      if (!theme) return;
+      const steps = theme.steps || 8;
+      const i = stepIndex % steps;
+      const bassNote = theme.bass?.[i];
+      if (bassNote != null) safeTrigger(bassSynth, "bass", bassNote, "8n", time);
+      const leadNote = theme.lead?.[i];
+      if (leadNote != null) safeTrigger(leadSynth, "lead", leadNote, "8n", time);
+      const padNote = theme.pad?.[i];
+      if (padNote != null) safeTrigger(padSynth, "pad", padNote, "8n", time);
+      stepIndex = (stepIndex + 1) % steps;
+    }, "8n").start(0);
+  }
+  // La percusión de la persecución es una capa fija de corcheas, no un
+  // patrón propio del tema — solo sube o baja de volumen.
+  if (!percLoop) {
+    percLoop = new Tone.Loop((time) => {
+      if (time <= lastTrigger.perc) return;
+      lastTrigger.perc = time;
+      try {
+        percSynth.triggerAttackRelease("16n", time);
+      } catch {
+        // Ver comentario en safeTrigger.
+      }
+    }, "8n").start(0);
+  }
 }
 
 /** Cambia de tema (calm/tense/chase/title...), con una transición suave de
@@ -130,29 +157,9 @@ export async function setMood(name) {
 
   await ensureStarted();
   build();
-
-  // La pista compuesta lleva la voz cantante. Solo si no hay archivo se
-  // recurre a los riffs de soundtrackThemes.js.
-  if (track) {
-    track.apply(name);
-    if (useTrack()) {
-      silenceSynthLayers();
-      return;
-    }
-  }
+  ensureLoops();
 
   Tone.Transport.bpm.rampTo(theme.bpm, 0.6);
-
-  disposeSequences();
-  bassSeq = makeSequence(theme.bass, theme.steps, bassSynth, false);
-  leadSeq = makeSequence(theme.lead, theme.steps, leadSynth, false);
-  padSeq = makeSequence(theme.pad, theme.steps, padSynth, true);
-  // La percusión de la persecución es una capa fija de corcheas, no un patrón
-  // propio del tema — solo sube o baja de volumen.
-  if (!percSeqBuilt) {
-    percSeqBuilt = true;
-    new Tone.Sequence((time) => percSynth.triggerAttackRelease("16n", time), [0], "8n").start(0);
-  }
 
   const mix = theme.mix;
   bassGain.gain.rampTo(mix.bass, 0.5);
@@ -161,13 +168,6 @@ export async function setMood(name) {
   percGain.gain.rampTo(mix.perc, 0.5);
 
   if (Tone.Transport.state !== "started") Tone.Transport.start();
-}
-
-/** Baja las capas sintetizadas: con pista real no deben sonar encima. */
-function silenceSynthLayers() {
-  [bassGain, leadGain, padGain, percGain].forEach((g) => g?.gain.rampTo(0, 0.4));
-  disposeSequences();
-  if (Tone.Transport.state === "started") Tone.Transport.stop();
 }
 
 /** Un puñado de notas sueltas (victoria/derrota), no un bucle. */
@@ -184,21 +184,23 @@ export async function playStinger(name) {
 
 export function stopSoundtrack() {
   currentThemeName = null;
-  track?.stop();
   Tone.Transport.stop();
-  disposeSequences();
 }
 
 /** Estado interno, solo para las comprobaciones de tools/. */
 export function soundtrackState() {
   return {
     mood: currentThemeName,
-    usingTrack: useTrack(),
-    trackReady: !!track?.ready,
-    trackFailed: !!track?.failed,
-    playing: track?.isPlaying ?? false,
-    cutoff: track?.cutoff ?? null,
-    rate: track?.rate ?? null,
+    playing: Tone.Transport.state === "started",
+    bpm: ready ? +Tone.Transport.bpm.value.toFixed(1) : null,
+    mix: ready
+      ? {
+          bass: +bassGain.gain.value.toFixed(3),
+          lead: +leadGain.gain.value.toFixed(3),
+          pad: +padGain.gain.value.toFixed(3),
+          perc: +percGain.gain.value.toFixed(3),
+        }
+      : null,
   };
 }
 
@@ -206,10 +208,6 @@ export function soundtrackState() {
  * cambia de tema en las transiciones — llamarla cada frame es barato. */
 export function updateMoodFromSnapshot(state) {
   if (!state || state.gameOver) return;
-  // Si la pista ya cargó pero aún no suena (el contexto de audio tardó en
-  // desbloquearse), se reintenta aquí en vez de esperar a un cambio de ánimo
-  // que quizá no llegue en toda la partida.
-  if (track && !track.failed && !track.isPlaying) track.nudge();
   let mood = "calm";
   if (state.redAlert || state.bossState === "CHASE" || state.bossState === "SEARCH") {
     mood = "chase";

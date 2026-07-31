@@ -1,8 +1,8 @@
-// La banda sonora es la pista compuesta (public/audio/*.mp3), y ademas
-// REACCIONA: con el jefe lejos suena filtrada y baja, en persecucion se abre
-// y acelera. Se comprueba aqui porque los dos fallos que tuvo son invisibles
-// desde fuera: el mp3 cargaba pero no llegaba a sonar (carrera entre la
-// decodificacion y el primer cambio de animo), y el animo no se aplicaba.
+// La banda sonora es el soundtrack procedural (soundtrackThemes.js) y
+// REACCIONA: con el jefe lejos suena al ritmo "calm", en persecucion sube de
+// tempo y de mezcla ("chase"). Se comprueba aqui porque el fallo tipico es
+// invisible desde fuera: el ánimo cambia de nombre mentalmente pero el
+// Transport nunca arrancó, o el tempo/mezcla no se movió con él.
 //
 // Uso: npm run check:music   (necesita `npm run preview` en :4173)
 import { chromium } from "playwright";
@@ -46,10 +46,10 @@ await p.waitForTimeout(2500);
 const chase = await snap("chase:");
 console.log("\nerrores:", errors.length ? errors : "ninguno");
 const ok = [
-  ["usa la pista compuesta", calm.usingTrack && !calm.trackFailed],
-  ["la pista suena de verdad", calm.playing],
-  ["el ánimo abre el filtro", chase.cutoff > calm.cutoff],
-  ["el ánimo sube el tempo", chase.rate > calm.rate],
+  ["el tema calm suena de verdad", calm.mood === "calm" && calm.playing],
+  ["la persecución cambia de tema", chase.mood === "chase"],
+  ["la persecución sube el tempo", chase.bpm > calm.bpm],
+  ["la persecución sube bajo/lead/perc", chase.mix.bass >= calm.mix.bass && chase.mix.perc > calm.mix.perc],
 ];
 let all = true;
 for (const [l, v] of ok) { all = all && !!v; console.log(v ? "PASS" : "FAIL", " ", l); }

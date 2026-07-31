@@ -3005,6 +3005,21 @@ body.crossing-open #hint {
   display: none;
 }
 
+.crossing-clock {
+  position: absolute;
+  top: max(16px, var(--safe-t));
+  right: max(16px, var(--safe-r, 16px));
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: var(--amber);
+  background: rgba(6, 8, 14, 0.85);
+  border: 2px solid var(--amber);
+  border-radius: 8px;
+  padding: 4px 12px;
+}
+
 .crossing-hint {
   flex: 0 0 auto;
   margin-bottom: 10px;
