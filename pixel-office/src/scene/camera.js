@@ -62,6 +62,12 @@ export class DioramaCamera {
     // frame the elevator core for a beat. Cleared with setFocus(null).
     this._focus = null;
 
+    // Extra pull-in while the player holds an activity (fingir/tarea): a
+    // smoothed 0-1 knob that tightens the follow distance without touching
+    // `framing`, so it eases in/out independently of zoom/orbit input.
+    this._actionZoom = 0;
+    this._actionZoomTarget = 0;
+
     this._unsubscribe = subscribeCameraSettings((next) => {
       this.settings = next;
       this.camera.fov = next.fov;
@@ -107,6 +113,11 @@ export class DioramaCamera {
     this._focus = point ? { x: point.x, z: point.z } : null;
   }
 
+  /** Toggle the extra pull-in used while an activity/pretend action is active. */
+  setActionZoom(active) {
+    this._actionZoomTarget = active ? 1 : 0;
+  }
+
   /** Live orbit, used by right-drag on desktop and two-finger drag on touch. */
   orbitBy(deltaYawDeg, deltaPitchDeg) {
     setCameraSettings(
@@ -131,6 +142,10 @@ export class DioramaCamera {
 
     const lerp = 1 - Math.pow(1 - this.settings.followLerp, Math.max(dt, 0.0001) * 60);
     this.target.lerp(this.desired, lerp);
+
+    const zoomLerp = 1 - Math.pow(1 - 0.12, Math.max(dt, 0.0001) * 60);
+    this._actionZoom = THREE.MathUtils.lerp(this._actionZoom, this._actionZoomTarget, zoomLerp);
+
     this._apply();
   }
 
@@ -144,7 +159,7 @@ export class DioramaCamera {
       this.overviewDistance,
       this.settings.distance * S * zoomMul,
       THREE.MathUtils.smoothstep(this.framing, 0, 1)
-    );
+    ) * THREE.MathUtils.lerp(1, 0.55, this._actionZoom);
 
     const dir = cameraDirection();
     this.camera.position.set(

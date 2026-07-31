@@ -147,86 +147,28 @@ export function createHud(root) {
   // pitando a una sala o a tu puesto.
   const danger = el("div", "hud-danger", hud);
 
+  // La cámara hace zoom sobre la propia jugadora (ver setActionZoom en
+  // camera.js) y su sprite en el mundo ya anima la pose de la acción — este
+  // panel del HUD ya no duplica esa ilustración, solo marca el objetivo y su
+  // progreso para no tapar a la jugadora justo cuando la cámara se acerca a
+  // ella.
   const actionScene = el("div", "action-scene hidden", hud);
-  const actionFrame = el("div", "action-frame", actionScene);
-  const actionImg = el("img", "action-img hidden", actionFrame);
-  // El retrato animado de la propia jugadora haciendo la acción. Es lo que
-  // manda cuando su personaje tiene pliego de acciones: antes este panel
-  // tapaba justo el trozo de pantalla donde estaba ella, y encima enseñaba un
-  // emoji fijo, así que la animación de dos fotogramas no se veía NUNCA.
-  const actionPose = el("div", "action-pose hidden", actionFrame);
-  const actionEmoji = el("div", "action-emoji", actionFrame);
-  const actionDone = el("div", "action-done hidden", actionFrame);
   const actionTrack = el("div", "action-progress-track", actionScene);
   const actionFill = el("div", "action-progress-fill", actionTrack);
   const actionLabel = el("div", "action-label", actionScene);
-  let actionId = null;
 
-  // El "rig" de la jugadora: qué pliego de acciones usa y en qué celda está
-  // cada pose. Lo pone main.js desde data/sprites/<id>.json; sin él, el panel
-  // sigue cayendo en el emoji de siempre.
-  let actionRig = null;
-  function setActionRig(rig) {
-    actionRig = rig ?? null;
-  }
+  // El "rig" de la jugadora ya no lo necesita este panel (la pose la anima
+  // el sprite del mundo), pero engine.js sigue llamando a setActionRig al
+  // cargar personaje — se mantiene como no-op para no tener que tocar esa
+  // costura.
+  function setActionRig() {}
 
-  /** Celda (fila, columna) del fotograma `frame` (0 o 1) de una pose. */
-  function poseCell(pose, frame) {
-    const index = actionRig?.poses?.[pose];
-    if (index == null) return null;
-    return { row: index >> 1, col: (index % 2) * 2 + frame };
-  }
-
-  // Una sola escena de acción: mientras se sostiene E la barra de progreso y
-  // la ilustración viven en el mismo panel que antes duplicaba el globo
-  // flotante "MANTÉN E" (worldPrompt se oculta mientras esto está visible,
-  // ver render() más abajo). Al completarse muestra un check un instante.
   function setAction(action) {
     if (!action) {
       actionScene.classList.add("hidden");
-      actionId = null;
       return;
     }
     actionScene.classList.remove("hidden");
-    actionFrame.classList.toggle("done", !!action.done);
-    actionDone.classList.toggle("hidden", !action.done);
-
-    // Pose animada de la jugadora. Los dos fotogramas se alternan con el
-    // reloj, al mismo ritmo que el sprite del mundo (POSE_FPS en sprite.js).
-    const cell = action.pose ? poseCell(action.pose, Math.floor(Date.now() / 333) % 2) : null;
-    if (cell) {
-      const base = import.meta.env.BASE_URL ?? "/";
-      actionPose.style.backgroundImage = `url(${base}sprites/${actionRig.sheet}.png)`;
-      actionPose.style.backgroundPosition = `${(cell.col / 3) * 100}% ${(cell.row / 3) * 100}%`;
-      actionPose.classList.remove("hidden");
-      actionEmoji.classList.add("hidden");
-      actionImg.classList.add("hidden");
-      actionLabel.textContent = action.done ? `${action.label} ✔` : action.label ?? "";
-      actionTrack.classList.toggle("hidden", action.progress == null);
-      if (action.progress != null) {
-        actionFill.style.width = `${Math.round(Math.min(1, Math.max(0, action.progress)) * 100)}%`;
-      }
-      actionId = action.id;
-      return;
-    }
-    actionPose.classList.add("hidden");
-
-    if (action.id !== actionId) {
-      actionId = action.id;
-      actionEmoji.textContent = action.icon ?? "❓";
-      actionEmoji.classList.remove("hidden");
-      actionImg.classList.add("hidden");
-      actionImg.onerror = () => {
-        actionImg.classList.add("hidden");
-        actionEmoji.classList.remove("hidden");
-      };
-      actionImg.onload = () => {
-        actionImg.classList.remove("hidden");
-        actionEmoji.classList.add("hidden");
-      };
-      const base = import.meta.env.BASE_URL ?? "/";
-      actionImg.src = `${base}actions/${action.id}.png`;
-    }
     actionLabel.textContent = action.done ? `${action.label} ✔` : action.label ?? "";
     actionTrack.classList.toggle("hidden", action.progress == null);
     if (action.progress != null) {

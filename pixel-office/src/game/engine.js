@@ -223,7 +223,7 @@ export function createEngine({
     game?.setPaused(true);
     hud.setVisible(false);
     hud.hideResult();
-    setMood("title");
+    setMood("main");
     const done = save.state.completedDays.length;
     menus.openTitle({
       hasProgress: done > 0 || save.dayIndex > 0,

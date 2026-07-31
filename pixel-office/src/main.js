@@ -577,6 +577,7 @@ async function boot() {
       updateHidingMarkers();
       updateSafeSpotMarkers();
       updateLabels();
+      view.setActionZoom(!!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending));
       view.update(dt, player.position);
       popups.update(dt);
       pixels.render(scene, camera);
