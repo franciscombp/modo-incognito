@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Personajes · Modo Incógnito</title>
+    <link rel="icon" href="../pixel-office/public/favicon.png" />
+    <link rel="stylesheet" href="builder.css" />
+    <link rel="stylesheet" href="personajes.css" />
+
+    <!--
+      El builder monta los muñecos con el MISMO módulo que el juego
+      (pixel-office/src/entities/character3d.js), no con una copia. Es la única
+      forma de que lo que ves aquí sea de verdad lo que sale al jugar: si
+      alguien cambia las proporciones o añade un peinado, aparece aquí solo.
+      El mapa de importación resuelve el "three" que pide ese módulo contra el
+      que ya está instalado en pixel-office/node_modules.
+    -->
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "../pixel-office/node_modules/three/build/three.module.js"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <header class="bar">
+      <h1>PERSONAJES · <span>Modo Incógnito</span></h1>
+      <div class="bar-group">
+        <button id="nuevo">Nuevo personaje</button>
+        <button id="recargar">Recargar del juego</button>
+      </div>
+      <div class="bar-group right">
+        <button id="copiar-uno" class="primary">Copiar esta receta</button>
+        <button id="copiar-todo" class="primary">Copiar characters3d.json</button>
+        <button id="descargar">Descargar</button>
+      </div>
+    </header>
+
+    <main>
+      <aside class="panel left">
+        <h2>Reparto</h2>
+        <ul id="lista" class="cast-list"></ul>
+
+        <h2>Cómo se usa</h2>
+        <p class="help">
+          Un personaje no es un modelo 3D: es la receta que ves a la derecha.
+          Toca los campos, mira el muñeco, y cuando te guste copia el JSON y
+          pégalo en
+          <code>pixel-office/public/data/characters3d.json</code>.
+        </p>
+        <p class="help">
+          Los colores de partida salieron de los pliegos que dibujó el equipo,
+          con <code>python3 tools/extract-palette.py</code>. Si alguien
+          redibuja un pliego, se vuelve a correr y se comparan.
+        </p>
+        <p class="help">
+          Este editor no escribe en el repo a propósito, igual que el builder
+          del plano.
+        </p>
+      </aside>
+
+      <section class="stage">
+        <canvas id="vista"></canvas>
+        <div class="stage-bar">
+          <label>
+            Pose
+            <select id="pose"></select>
+          </label>
+          <label class="check">
+            <input type="checkbox" id="caminar" />
+            Caminando
+          </label>
+          <label class="check">
+            <input type="checkbox" id="girar" />
+            Girar solo
+          </label>
+          <span class="hint">Arrastra para girar · rueda para acercar</span>
+        </div>
+      </section>
+
+      <aside class="panel right">
+        <h2>Receta</h2>
+        <div id="form"></div>
+      </aside>
+    </main>
+
+    <div id="aviso" class="toast"></div>
+    <script type="module" src="personajes.js"></script>
+  </body>
+</html>
