@@ -285,6 +285,7 @@ function draw() {
   drawBarriers();
   drawRoutes();
   drawSpawn();
+  drawBossSpawn();
   drawSelection();
   checkOverlaps();
 }
@@ -386,7 +387,7 @@ function drawObject(kind, obj, index) {
 }
 
 function drawBarriers() {
-  (state.scene.barriers ?? []).forEach((b) => {
+  (state.scene.barriers ?? []).forEach((b, idx) => {
     const along = b.axis === "z" ? "x" : "z";
     const spans = b.door
       ? [
@@ -394,8 +395,8 @@ function drawBarriers() {
           [b.door.at + b.door.w / 2, b.to],
         ]
       : [[b.from, b.to]];
-    ctx.strokeStyle = "#8ea0c4";
-    ctx.lineWidth = 5 * devicePixelRatio;
+    ctx.strokeStyle = selectedBarrier === idx ? "#ff6b81" : "#8ea0c4";
+    ctx.lineWidth = (selectedBarrier === idx ? 7 : 5) * devicePixelRatio;
     spans.forEach(([s, e]) => {
       const p1 = along === "z" ? toScreen(b.at, s) : toScreen(s, b.at);
       const p2 = along === "z" ? toScreen(b.at, e) : toScreen(e, b.at);
@@ -406,11 +407,11 @@ function drawBarriers() {
     });
     if (b.door) {
       const p = along === "z" ? toScreen(b.at, b.door.at) : toScreen(b.door.at, b.at);
-      ctx.fillStyle = "#f2c744";
+      ctx.fillStyle = selectedBarrier === idx ? "#ff9ad5" : "#f2c744";
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 5 * devicePixelRatio, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, (selectedBarrier === idx ? 8 : 5) * devicePixelRatio, 0, Math.PI * 2);
       ctx.fill();
-      label("puerta", p.x + 9, p.y + 4, "#f2c744");
+      label("puerta", p.x + 9, p.y + 4, ctx.fillStyle);
     }
   });
 }
@@ -420,7 +421,7 @@ function drawRoutes() {
   const colors = ["#ff6b81", "#45a0e0", "#a8e05f", "#cbb3ff"];
   Object.entries(routes).forEach(([name, pts], i) => {
     ctx.strokeStyle = hexA(colors[i % colors.length], 0.5);
-    ctx.lineWidth = 1.5 * devicePixelRatio;
+    ctx.lineWidth = routeEditMode && selectedRoute === i ? 3 * devicePixelRatio : 1.5 * devicePixelRatio;
     ctx.setLineDash([5 * devicePixelRatio, 5 * devicePixelRatio]);
     ctx.beginPath();
     pts.forEach((pt, j) => {
@@ -431,6 +432,17 @@ function drawRoutes() {
     ctx.stroke();
     ctx.setLineDash([]);
     if (pts[0]) label(name, toScreen(pts[0].x, pts[0].z).x + 8, toScreen(pts[0].x, pts[0].z).y - 6, colors[i % colors.length]);
+
+    // Mostrar nodos de la ruta en modo edición
+    if (routeEditMode && selectedRoute === i) {
+      pts.forEach((pt, j) => {
+        const p = toScreen(pt.x, pt.z);
+        ctx.fillStyle = selectedRouteNode === j ? "#ff6b81" : colors[i % colors.length];
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, (selectedRouteNode === j ? 8 : 5) * devicePixelRatio, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    }
   });
 }
 
@@ -438,12 +450,24 @@ function drawSpawn() {
   const s = state.scene.spawn;
   if (!s) return;
   const p = toScreen(s.x, s.z);
-  ctx.strokeStyle = "#45e0d0";
-  ctx.lineWidth = 2 * devicePixelRatio;
+  ctx.strokeStyle = spawnEditMode ? "#ff6b81" : "#45e0d0";
+  ctx.lineWidth = (spawnEditMode ? 3 : 2) * devicePixelRatio;
   ctx.beginPath();
   ctx.arc(p.x, p.y, 9 * devicePixelRatio, 0, Math.PI * 2);
   ctx.stroke();
-  label("entras aquí", p.x + 12, p.y + 4, "#45e0d0");
+  label(spawnEditMode ? "INGRESO (presiona S para terminar)" : "entras aquí", p.x + 12, p.y + 4, ctx.strokeStyle);
+}
+
+function drawBossSpawn() {
+  const bs = state.scene.bossSpawn;
+  if (!bs) return;
+  const p = toScreen(bs.x, bs.z);
+  ctx.strokeStyle = bossSpawnEditMode ? "#ff9ad5" : "#ff6b81";
+  ctx.lineWidth = (bossSpawnEditMode ? 3 : 2) * devicePixelRatio;
+  ctx.beginPath();
+  ctx.arc(p.x, p.y, 7 * devicePixelRatio, 0, Math.PI * 2);
+  ctx.stroke();
+  label(bossSpawnEditMode ? "JEFE (presiona B para terminar)" : "jefe", p.x + 12, p.y - 8, ctx.strokeStyle);
 }
 
 function drawSelection() {
@@ -519,6 +543,12 @@ let drag = null;
 let spaceHeld = false;
 let footprintEditMode = false;
 let selectedFootprintNode = null;
+let spawnEditMode = false;
+let bossSpawnEditMode = false;
+let routeEditMode = false;
+let selectedRoute = null;
+let selectedRouteNode = null;
+let selectedBarrier = null;
 
 function footprintNodeAt(plan) {
   const fp = state.scene?.footprint ?? [];
@@ -526,6 +556,68 @@ function footprintNodeAt(plan) {
   for (let i = 0; i < fp.length; i++) {
     const [x, z] = fp[i];
     if (Math.abs(x - plan.x) < grab && Math.abs(z - plan.z) < grab) {
+      return i;
+    }
+  }
+  return null;
+}
+
+function closestFootprintSegment(plan) {
+  const fp = state.scene?.footprint ?? [];
+  if (fp.length < 2) return null;
+
+  let closest = null;
+  let minDist = Infinity;
+
+  for (let i = 0; i < fp.length; i++) {
+    const [x1, z1] = fp[i];
+    const [x2, z2] = fp[(i + 1) % fp.length];
+
+    // Distancia del punto al segmento
+    const dx = x2 - x1;
+    const dz = z2 - z1;
+    const len2 = dx * dx + dz * dz;
+
+    if (len2 === 0) continue;
+
+    let t = ((plan.x - x1) * dx + (plan.z - z1) * dz) / len2;
+    t = Math.max(0, Math.min(1, t));
+
+    const px = x1 + t * dx;
+    const pz = z1 + t * dz;
+
+    const dist = Math.hypot(plan.x - px, plan.z - pz);
+
+    if (dist < minDist) {
+      minDist = dist;
+      closest = { segment: i, t, px, pz };
+    }
+  }
+
+  return minDist < 20 / state.view.scale ? closest : null;
+}
+
+function routeNodeAt(plan, routeName) {
+  const route = state.scene?.routes?.[routeName] ?? [];
+  const grab = 10 / state.view.scale;
+  for (let i = 0; i < route.length; i++) {
+    const { x, z } = route[i];
+    if (Math.abs(x - plan.x) < grab && Math.abs(z - plan.z) < grab) {
+      return i;
+    }
+  }
+  return null;
+}
+
+function doorAt(plan) {
+  const barriers = state.scene?.barriers ?? [];
+  const grab = 10 / state.view.scale;
+  for (let i = 0; i < barriers.length; i++) {
+    const b = barriers[i];
+    if (!b.door) continue;
+    const along = b.axis === "z" ? "x" : "z";
+    const p = along === "z" ? { x: b.at, z: b.door.at } : { x: b.door.at, z: b.at };
+    if (Math.abs(p.x - plan.x) < grab && Math.abs(p.z - plan.z) < grab) {
       return i;
     }
   }
@@ -566,7 +658,36 @@ canvas.addEventListener("pointerdown", (e) => {
   canvas.setPointerCapture(e.pointerId);
   const plan = toPlan(e.offsetX * devicePixelRatio, e.offsetY * devicePixelRatio);
 
-  // Si estamos en modo edición de footprint, manejar clics en nodos
+  // Modo edición spawn
+  if (spawnEditMode) {
+    state.scene.spawn = { x: snap(plan.x, e.shiftKey), z: snap(plan.z, e.shiftKey) };
+    toast("Spawn movido");
+    draw();
+    return;
+  }
+
+  // Modo edición boss spawn
+  if (bossSpawnEditMode) {
+    state.scene.bossSpawn = state.scene.bossSpawn ?? {};
+    state.scene.bossSpawn.x = snap(plan.x, e.shiftKey);
+    state.scene.bossSpawn.z = snap(plan.z, e.shiftKey);
+    toast("Boss spawn movido");
+    draw();
+    return;
+  }
+
+  // Modo edición rutas
+  if (routeEditMode && selectedRoute !== null) {
+    const nodeIdx = routeNodeAt(plan, Object.keys(state.scene.routes ?? {})[selectedRoute]);
+    if (nodeIdx !== null) {
+      selectedRouteNode = nodeIdx;
+      drag = { mode: "route-node-drag", routeIndex: selectedRoute, nodeIndex: nodeIdx };
+      draw();
+      return;
+    }
+  }
+
+  // Modo edición footprint
   if (footprintEditMode) {
     const nodeIdx = footprintNodeAt(plan);
     if (nodeIdx !== null) {
@@ -575,15 +696,39 @@ canvas.addEventListener("pointerdown", (e) => {
       draw();
       return;
     }
-    // Si no clickeamos en un nodo, añadir uno nuevo
     if (e.button === 0) {
-      state.scene.footprint = state.scene.footprint ?? [];
-      state.scene.footprint.push([snap(plan.x, e.shiftKey), snap(plan.z, e.shiftKey)]);
-      selectedFootprintNode = state.scene.footprint.length - 1;
-      toast(`Nodo ${selectedFootprintNode} añadido`);
+      const segment = closestFootprintSegment(plan);
+      if (segment) {
+        // Insertar nodo en el segmento más cercano
+        const insertIdx = segment.segment + 1;
+        state.scene.footprint.splice(insertIdx, 0, [snap(segment.px, e.shiftKey), snap(segment.pz, e.shiftKey)]);
+        selectedFootprintNode = insertIdx;
+        toast(`Nodo ${insertIdx} insertado entre ${segment.segment} y ${(segment.segment + 1) % state.scene.footprint.length}`);
+      } else {
+        // Si no hay segmento cercano, agregar al final
+        state.scene.footprint = state.scene.footprint ?? [];
+        state.scene.footprint.push([snap(plan.x, e.shiftKey), snap(plan.z, e.shiftKey)]);
+        selectedFootprintNode = state.scene.footprint.length - 1;
+        toast(`Nodo ${selectedFootprintNode} añadido`);
+      }
       draw();
       return;
     }
+  }
+
+  // Detectar clic en puerta
+  const doorIdx = doorAt(plan);
+  if (doorIdx !== null && e.button === 0) {
+    selectedBarrier = doorIdx;
+    const b = state.scene.barriers[doorIdx];
+    const along = b.axis === "z" ? "x" : "z";
+    if (along === "z") {
+      drag = { mode: "door-drag", barrierIndex: doorIdx, start: b.door.at };
+    } else {
+      drag = { mode: "door-drag", barrierIndex: doorIdx, start: b.door.at };
+    }
+    draw();
+    return;
   }
 
   // Botón central o derecho (y espacio + arrastrar) desplazan la vista.
@@ -613,6 +758,22 @@ canvas.addEventListener("pointermove", (e) => {
   $("#stage-hud").textContent = `x ${plan.x.toFixed(1)}  z ${plan.z.toFixed(1)}`;
   if (!drag) return;
 
+  if (drag.mode === "door-drag") {
+    const b = state.scene.barriers[drag.barrierIndex];
+    b.door.at = snap(plan[b.axis === "z" ? "z" : "x"], e.shiftKey);
+    draw();
+    return;
+  }
+  if (drag.mode === "route-node-drag") {
+    const routes = Object.values(state.scene.routes ?? {});
+    const route = routes[drag.routeIndex];
+    if (route && route[drag.nodeIndex]) {
+      route[drag.nodeIndex].x = snap(plan.x, e.shiftKey);
+      route[drag.nodeIndex].z = snap(plan.z, e.shiftKey);
+    }
+    draw();
+    return;
+  }
   if (drag.mode === "footprint-drag") {
     state.scene.footprint[drag.nodeIndex] = [snap(plan.x, e.shiftKey), snap(plan.z, e.shiftKey)];
     draw();
@@ -672,7 +833,38 @@ window.addEventListener("keydown", (e) => {
     spaceHeld = true;
     e.preventDefault();
   }
-  // F para toggle del modo de edición de footprint
+  // S para spawn
+  if (e.key.toLowerCase() === "s") {
+    e.preventDefault();
+    spawnEditMode = !spawnEditMode;
+    toast(spawnEditMode ? "Modo INGRESO: haz clic donde debe aparecer el jugador" : "Modo ingreso desactivado");
+    draw();
+    return;
+  }
+  // B para boss spawn
+  if (e.key.toLowerCase() === "b") {
+    e.preventDefault();
+    bossSpawnEditMode = !bossSpawnEditMode;
+    toast(bossSpawnEditMode ? "Modo JEFE: haz clic donde debe aparecer el jefe" : "Modo jefe desactivado");
+    draw();
+    return;
+  }
+  // R para rutas
+  if (e.key.toLowerCase() === "r") {
+    e.preventDefault();
+    routeEditMode = !routeEditMode;
+    if (routeEditMode) {
+      selectedRoute = 0;
+      toast("Modo RUTAS activado (elige ruta en el panel derecho)");
+    } else {
+      selectedRoute = null;
+      selectedRouteNode = null;
+      toast("Modo rutas desactivado");
+    }
+    draw();
+    return;
+  }
+  // F para footprint
   if (e.key.toLowerCase() === "f") {
     e.preventDefault();
     footprintEditMode = !footprintEditMode;
