@@ -1,13 +1,11 @@
 name: Deploy to GitHub Pages
 
-# Publishes straight from `main` using the official Pages artifact flow, so
-# the repository only ever needs one branch — there is no gh-pages branch.
-#
-# It ALSO mirrors the build into the repo root and commits it. That copy is
-# what gets served if Pages is set to "Deploy from a branch" instead of
-# "GitHub Actions": without an index.html at the root, Pages renders README.md
-# and the game never shows up. The build uses a relative base, so the same
-# files work at either mount point and neither setting can break the site.
+# Publishes straight from `main` using the official Pages artifact flow —
+# builds pixel-office/ in CI and uploads dist/ as the Pages artifact. Nothing
+# built is ever committed to git: this requires the repo's Pages source to be
+# set to "GitHub Actions" (Settings → Pages → Build and deployment → Source),
+# not "Deploy from a branch". With "Deploy from a branch" this workflow still
+# runs but Pages would serve the repo root instead of this artifact.
 
 on:
   push:
@@ -15,7 +13,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
   id-token: write
 
@@ -42,22 +40,6 @@ jobs:
       - name: Build
         working-directory: pixel-office
         run: npm run build
-
-      # Keeps the root copy in step with the artifact. `[skip ci]` stops this
-      # commit from triggering the workflow again.
-      - name: Mirror build to repo root
-        if: github.event_name == 'push'
-        run: |
-          cd pixel-office && npm run sync:root && cd ..
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A assets sprites data index.html favicon.png .nojekyll
-          if git diff --cached --quiet; then
-            echo "La copia de la raíz ya estaba al día."
-          else
-            git commit -m "chore: sync built game to repo root [skip ci]"
-            git push
-          fi
 
       - uses: actions/configure-pages@v5
 

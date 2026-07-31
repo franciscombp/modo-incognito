@@ -43,27 +43,11 @@ cualquiera del equipo en el chat.
 Se publica en <https://franciscombp.github.io/modo-incognito/> desde `main`.
 **El repositorio usa una sola rama.**
 
-El build usa rutas relativas y se copia también a la raíz del repo, así que
-funciona con cualquiera de las dos configuraciones de *Settings → Pages*:
-**GitHub Actions** (recomendada) o **Deploy from a branch → main / (root)**.
-Antes fallaba porque, sin `index.html` en la raíz, Pages renderiza el README.
-
-## Jugar en local sin npm
-
-En una máquina con hardening donde no puedes instalar nada, basta el Python
-del sistema:
-
-```bash
-python3 serve.py          # http://localhost:8000
-python3 serve.py 9000     # otro puerto
-```
-
-Sirve la raíz del repo, que ya trae el juego compilado. **Para editar
-contenido no hace falta compilar**: toca `data/*.json` o `sprites/*.png` y
-recarga el navegador. Solo los cambios en `pixel-office/src/` piden un build.
-
-Abrir `index.html` con doble clic no funciona: el navegador bloquea los
-módulos y la carga de los JSON desde `file://`. Por eso el servidor.
+Cada push a `main` dispara `.github/workflows/deploy-pages.yml`: compila
+`pixel-office/` en CI y publica `dist/` directo a GitHub Pages. *Settings →
+Pages* debe estar en modo **GitHub Actions** (no "Deploy from a branch") — no
+hay ningún build commiteado en el repo, así que ese es el único modo que
+funciona.
 
 ## Quiero cambiar X → edito Y
 
@@ -114,11 +98,6 @@ código**.
 Cada JSON de `public/data/` trae su propio campo `"$comment"` al principio
 explicando su esquema — ábrelo y léelo antes de editarlo a ciegas.
 
-⚠️ **Nunca edites `data/`, `assets/`, `sprites/` ni `index.html` en la raíz
-del repo directamente**: son una copia generada del build de
-`pixel-office/` (ver «Arquitectura del repo» más abajo). Edita siempre dentro
-de `pixel-office/` y luego corre `npm run build:pages`.
-
 ¿Vas a usar un agente de IA (Claude Code u otro) para modificar el juego?
 Lee primero [`CLAUDE.md`](https://github.com/franciscombp/modo-incognito/blob/main/CLAUDE.md).
 
@@ -126,10 +105,12 @@ Lee primero [`CLAUDE.md`](https://github.com/franciscombp/modo-incognito/blob/ma
 
 En [`builder/`](https://github.com/franciscombp/modo-incognito/tree/main/builder)
 hay un editor 2D del plano (`scenes/*.json`) y del día (`levels/*.json`). No
-necesita npm ni build: se sirve el repo y se abre.
+necesita build: lee en vivo los JSON de `pixel-office/public/data/`, así que
+basta con servir la raíz del repo con cualquier servidor estático y abrir
+`/builder/`:
 
 ```bash
-python3 serve.py            # o npm run preview desde pixel-office/
+python3 -m http.server 8000   # desde la raíz del repo
 # → http://localhost:8000/builder/
 ```
 
@@ -146,27 +127,20 @@ pinta en rojo y lo dice, porque el motor no lo admite.
 
 El builder **no escribe en el repo a propósito**. Cuando termines, «Copiar
 escena JSON» / «Copiar día JSON» (o «Descargar los dos»), pegas en
-`pixel-office/public/data/…` y corres `npm run build:pages`. Así nunca te
-pisa un archivo por accidente y el diff lo revisas tú.
+`pixel-office/public/data/…` y haces commit. Así nunca te pisa un archivo por
+accidente y el diff lo revisas tú.
 
 ## Arquitectura del repo
-
-Este repositorio tiene dos partes:
 
 - **`pixel-office/`** — el proyecto fuente real (Vite + Three.js). Aquí es
   donde se edita todo: código en `src/`, contenido en `public/data/`, sprites
   en `public/sprites/`.
-- **Raíz del repo** (`assets/`, `data/`, `sprites/`, `index.html`,
-  `favicon.png`, `.nojekyll`) — una **copia generada** del build de
-  producción, mantenida en sincronía con `npm run sync:root` (que a su vez
-  corre `npm run build:pages` y el workflow de GitHub Actions tras cada
-  push). Existe para que GitHub Pages funcione tanto si *Settings → Pages*
-  está en modo **GitHub Actions** como en **Deploy from a branch →
-  main/(root)**.
+- **Raíz del repo** (`builder/`, `music/`, `audio/`) — herramientas y activos
+  que se sirven directos, sin build.
 
-Por eso cualquier cambio en `pixel-office/src` o `pixel-office/public/data`
-necesita `npm run build:pages` antes de hacer commit — si no, la raíz del
-repo (lo que sirve Pages en modo "branch") queda desactualizada.
+No hay ningún build commiteado en el repo. `.github/workflows/deploy-pages.yml`
+compila `pixel-office/` y publica `dist/` a GitHub Pages en cada push a
+`main` — basta con hacer commit y push normales, sin ningún paso extra.
 
 ## Desarrollo
 
@@ -179,7 +153,6 @@ npm run preview        # sirve dist/ en http://localhost:4173 (lo usan los check
 npm run check          # corre TODOS los check:* de abajo, en orden
 npm run check:visual   # capturas del juego a shots/
 npm run check:menus    # capturas de los menús a shots/
-npm run build:pages    # build + copia a la raíz del repo
 npm run format:data    # reordena los JSON de data/ para que sigan legibles
 ```
 

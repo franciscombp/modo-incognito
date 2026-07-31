@@ -20,8 +20,6 @@
     "check:layout": "node tools/check-layout.mjs",
     "check": "npm run check:reachable && npm run check:chase && npm run check:modes && npm run check:charselect && npm run check:catch && npm run check:minion-proximity && npm run check:suspicion && npm run check:safespots && npm run check:pursuit && npm run check:vision && npm run check:crossing && npm run check:poses && npm run check:retry && npm run check:music && npm run check:layout",
     "check:visual": "node tools/shoot.mjs",
-    "sync:root": "node tools/sync-root.mjs",
-    "build:pages": "npm run build && npm run sync:root",
     "check:menus": "node tools/shoot-menus.mjs",
     "format:data": "node tools/format-data.mjs",
     "check:crossing": "node tools/check-crossing.mjs",

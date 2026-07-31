@@ -46,19 +46,19 @@ reguetón, telenovela) — ver ejemplos ya metidos en `dialogues.json`
 (encounters, barks, teamsMessages.gabo). Si generas diálogo nuevo, sigue esa
 línea con naturalidad, no como referencia forzada.
 
-## Estructura del repo (dos partes, no la confundas)
+## Estructura del repo
 
 - `pixel-office/` — el proyecto fuente real. **Edita siempre aquí.**
-- Raíz del repo (`assets/`, `data/`, `sprites/`, `index.html`, `favicon.png`,
-  `.nojekyll`) — copia generada del build, para que GitHub Pages funcione en
-  modo "Deploy from branch". **Nunca la edites a mano.**
+- Raíz del repo (`builder/`, `music/`, `audio/`) — herramientas y activos que
+  se sirven directos, sin build. `builder/builder.js` lee JSON en vivo de
+  `pixel-office/public/data/`.
 
-Regla dura: si tocaste algo en `pixel-office/src/` o
-`pixel-office/public/data/`, corre `npm run build:pages` (dentro de
-`pixel-office/`) antes de hacer commit, y añade también los archivos
-regenerados de la raíz (`assets/`, `data/`, `index.html`) al commit. Si no,
-la versión servida por Pages (o por `serve.py`) queda desincronizada del
-código fuente.
+No hay copia del build en la raíz. GitHub Pages está configurado en modo
+"GitHub Actions" (`.github/workflows/deploy-pages.yml`): cada push a `main`
+compila `pixel-office/` en CI y publica `dist/` como artefacto de Pages.
+**Nunca** hace falta correr un build ni commitear nada generado antes de
+pushear — si tocaste `pixel-office/src/` o `pixel-office/public/data/`, con
+el commit y push normales basta; el workflow se encarga del resto.
 
 ## Dónde se extiende el juego (no metas esto en el motor)
 
@@ -96,9 +96,8 @@ solo el reparto por defecto para quien no traiga rig. Las plantillas en
 blanco para dibujar un personaje nuevo las genera
 `python3 tools/make-sprite-template.py` en `art/plantillas/`.
 
-Ojo: `tools/sync-root.mjs` hace `rm -rf` de `sprites/` en la raíz del repo,
-así que un PNG puesto solo ahí lo borra el siguiente build. El sitio bueno es
-siempre `pixel-office/public/sprites/`.
+El sitio bueno para los pliegos es siempre `pixel-office/public/sprites/` —
+no hay una copia en la raíz del repo que pueda desincronizarse.
 
 Si tocas el HUD o el CSS, corre `npm run check:layout` antes de darlo por
 bueno: comprueba en seis tamaños de pantalla que nada se solape, se recorte
@@ -194,7 +193,5 @@ queda invisible y nadie lo vuelve a correr.
 ## Flujo de git
 
 Una sola rama: `main`. No hay ramas de feature ni PRs internos — se hace
-commit y push directo a `main`. Antes de un push, confirma que
-`npm run build:pages` corrió si tocaste `pixel-office/src` o
-`pixel-office/public/data`, y que `git status` no deja la copia de la raíz
-desactualizada respecto al build nuevo.
+commit y push directo a `main`. No hace falta build local ni sincronizar
+nada antes de pushear: el workflow de GitHub Actions compila y publica solo.
