@@ -25,11 +25,13 @@ let masterGain;
 let percSeqBuilt = false;
 let track = null;
 
-// Con una pista compuesta disponible manda ella y los riffs sintetizados se
-// callan; si el archivo falta o no carga, `track.failed` deja que el
-// soundtrack procedural siga siendo el plan B, sin que el juego se entere.
+// El mp3 grabado (stapler-sprint.mp3) es un tema viejo que ya no corresponde
+// al tema principal compuesto (THEMES.main, 135 BPM) — hasta que haya un
+// archivo real grabado de ESE tema, se apaga el mp3 a propósito y manda el
+// soundtrack procedural, para que lo que suena sea el tema nuevo y no el
+// descartado.
 function useTrack() {
-  return track && !track.failed;
+  return false;
 }
 
 function build() {

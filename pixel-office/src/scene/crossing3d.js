@@ -69,6 +69,33 @@ Promise.all([
   if (arbolesTexture) arbolesTexture.magFilter = THREE.NearestFilter;
 });
 
+// Los tres pliegos (autos.png, bicis.png, arboles.png) son cuadrículas de
+// variantes — un coche/bici/árbol distinto por celda — NO un solo dibujo.
+// Antes se mapeaba la textura entera sobre cada plano, así que cada auto en
+// pantalla mostraba la hoja completa de 16 coches aplastada en una miniatura.
+// Cada pliego mide 1920x1920 y sus celdas, aunque dibujadas a mano y no
+// perfectamente iguales, caen dentro de una rejilla pareja: autos y arboles
+// en 4x4, bicis en 5x4 (se usa solo la primera columna: 4 diseños de bici,
+// el resto de columnas son variantes de pedaleo que no hacen falta en un
+// plano estático).
+const AUTOS_GRID = { cols: 4, rows: 4 };
+const BICIS_GRID = { cols: 5, rows: 4 };
+const ARBOLES_GRID = { cols: 4, rows: 4 };
+
+/** UV offset/repeat para la celda (col, row) de una rejilla, 0 = arriba-izq. */
+function gridCellUV(texture, { cols, rows }, col, row) {
+  const t = texture.clone();
+  t.needsUpdate = true;
+  t.magFilter = THREE.NearestFilter;
+  t.repeat.set(1 / cols, 1 / rows);
+  t.offset.set(col / cols, 1 - (row + 1) / rows);
+  return t;
+}
+
+function randomCell(grid, cols = grid.cols) {
+  return { col: Math.floor(Math.random() * cols), row: Math.floor(Math.random() * grid.rows) };
+}
+
 // La cámara mira hacia +Z, así que su "derecha" es -X: por eso la columna
 // crece hacia -X y la tecla izquierda mueve, de verdad, hacia la izquierda de
 // la pantalla. Si algún día se gira la cámara, este signo es lo único a tocar.
@@ -105,24 +132,30 @@ function vehicleSprite(kind, dir) {
     return mesh;
   }
 
-  // Con textura: plano que muestra el sprite con dimensiones fijas
+  // Con textura: recorta UNA celda al azar de la rejilla de variantes (ver
+  // gridCellUV) en vez de aplastar el pliego entero de 16 coches en un plano.
+  const grid = isAuto ? AUTOS_GRID : BICIS_GRID;
+  const cell = randomCell(grid, isAuto ? grid.cols : 1); // bicis: solo col. 0
   const geometry = new THREE.PlaneGeometry(width, height);
   const material = new THREE.MeshLambertMaterial({
-    map: texture,
+    map: gridCellUV(texture, grid, cell.col, cell.row),
     transparent: true,
     alphaTest: 0.2,
     side: THREE.DoubleSide,
   });
 
   const mesh = new THREE.Mesh(geometry, material);
-  // Voltear sprite para dirección opuesta
-  if (dir < 0) mesh.scale.x = -1;
+  // Los coches del pliego miran a la izquierda; solo se voltea si el carril
+  // avanza a la derecha (antes se volteaba al revés, "dir < 0", así que el
+  // carril de sentido normal enseñaba el auto marcha atrás).
+  if (dir > 0) mesh.scale.x = -1;
 
   return mesh;
 }
 
 /**
- * Crea un sprite de árbol o arbusto para la mediana.
+ * Crea un sprite de árbol o arbusto para la mediana, recortando una celda al
+ * azar de la rejilla de variantes de arboles.png.
  */
 function treeSprite() {
   // Dimensiones fijas para árboles
@@ -136,10 +169,10 @@ function treeSprite() {
     return new THREE.Mesh(geometry, material);
   }
 
-  // Con textura: plano con dimensiones fijas
+  const cell = randomCell(ARBOLES_GRID);
   const geometry = new THREE.PlaneGeometry(width, height);
   const material = new THREE.MeshLambertMaterial({
-    map: arbolesTexture,
+    map: gridCellUV(arbolesTexture, ARBOLES_GRID, cell.col, cell.row),
     transparent: true,
     alphaTest: 0.2,
     side: THREE.DoubleSide,
