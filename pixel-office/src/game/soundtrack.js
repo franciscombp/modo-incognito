@@ -15,8 +15,8 @@ import { THEMES } from "./soundtrackThemes.js";
 let ready = false;
 let started = false;
 let currentThemeName = null;
-let bassSynth, leadSynth, padSynth, percSynth, stingerSynth;
-let bassGain, leadGain, padGain, percGain, stingerGain;
+let bassSynth, leadSynth, padSynth, percSynth, brassSynth, stingerSynth;
+let bassGain, leadGain, padGain, percGain, brassGain, stingerGain;
 let masterGain;
 let mainLoop = null;
 let percLoop = null;
@@ -28,7 +28,7 @@ let stepIndex = 0;
 // el siguiente tick puede recalcular un "time" que cae encima o antes del
 // anterior. Sin este guardián el synth lanzaba, y esos golpes perdidos/rotos
 // eran justo lo que se oía como "todo se mezcla mal" al cambiar de ánimo.
-const lastTrigger = { bass: -1, lead: -1, pad: -1, perc: -1 };
+const lastTrigger = { bass: -1, lead: -1, pad: -1, perc: -1, brass: -1 };
 function safeTrigger(synth, key, note, duration, time) {
   if (time <= lastTrigger[key]) return;
   lastTrigger[key] = time;
@@ -50,6 +50,7 @@ function build() {
   leadGain = new Tone.Gain(0).connect(masterGain);
   padGain = new Tone.Gain(0).connect(masterGain);
   percGain = new Tone.Gain(0).connect(masterGain);
+  brassGain = new Tone.Gain(0).connect(masterGain);
 
   bassSynth = new Tone.Synth({
     oscillator: { type: "triangle" },
@@ -71,6 +72,13 @@ function build() {
     noise: { type: "white" },
     envelope: { attack: 0.001, decay: 0.04, sustain: 0 },
   }).connect(percGain);
+
+  // Trompetas de fanfarria: diente de sierra con ataque duro, el "¡pa-pa!"
+  // festivo de una banda de pop-rock, no un pad ni un lead más.
+  brassSynth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "sawtooth" },
+    envelope: { attack: 0.008, decay: 0.22, sustain: 0.15, release: 0.2 },
+  }).connect(brassGain);
 
   // Los stingers (victoria/derrota) tienen su propio sintetizador a
   // propósito. Compartir `leadSynth` con el bucle hacía que Tone lanzara
@@ -131,6 +139,8 @@ function ensureLoops() {
       if (leadNote != null) safeTrigger(leadSynth, "lead", leadNote, "8n", time);
       const padNote = theme.pad?.length ? theme.pad[stepIndex % theme.pad.length] : null;
       if (padNote != null) safeTrigger(padSynth, "pad", padNote, "8n", time);
+      const brassNote = theme.brass?.length ? theme.brass[stepIndex % theme.brass.length] : null;
+      if (brassNote != null) safeTrigger(brassSynth, "brass", brassNote, "8n", time);
       stepIndex++;
     }, "8n").start(0);
   }
@@ -169,6 +179,7 @@ export async function setMood(name) {
   leadGain.gain.rampTo(mix.lead, 0.5);
   padGain.gain.rampTo(mix.pad, 0.5);
   percGain.gain.rampTo(mix.perc, 0.5);
+  brassGain.gain.rampTo(mix.brass ?? 0, 0.5);
 
   if (Tone.Transport.state !== "started") Tone.Transport.start();
 }
@@ -202,6 +213,7 @@ export function soundtrackState() {
           lead: +leadGain.gain.value.toFixed(3),
           pad: +padGain.gain.value.toFixed(3),
           perc: +percGain.gain.value.toFixed(3),
+          brass: +brassGain.gain.value.toFixed(3),
         }
       : null,
   };

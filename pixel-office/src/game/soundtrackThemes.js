@@ -13,36 +13,46 @@
 // sin tener que escribir patrones distintos para el bajo.
 
 export const THEMES = {
-  // Tema principal: enérgico, tempo rápido (135 BPM), progresión Bb -> Cm -> Bb -> Ab.
-  // Bajo de corcheas pulsantes en octavas + ritmo sincopado de lead. Extraído de la
-  // partitura del tema principal compuesto.
+  // Tema principal: pop-rock bailable en Do mayor, la progresión I-V-vi-IV
+  // (C-G-Am-F) más reconocible del género, un compás por acorde. Antes era
+  // un riff serio en Sib menor con bajo caminante — esto es más rápido
+  // (140 BPM), en modo mayor, y con trompetas de fanfarria puntuando el
+  // contratiempo para que suene a fiesta, no a sigilo.
   main: {
-    bpm: 135,
+    bpm: 140,
     steps: 8,
     bass: [
-      "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2",
       "C2", "C3", "C2", "C3", "C2", "C3", "C2", "C3",
-      "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2",
-      "Ab1", "Ab2", "Ab1", "Ab2", "Ab1", "Ab2", "Ab1", "Ab2"
+      "G1", "G2", "G1", "G2", "G1", "G2", "G1", "G2",
+      "A1", "A2", "A1", "A2", "A1", "A2", "A1", "A2",
+      "F1", "F2", "F1", "F2", "F1", "F2", "F1", "F2"
     ],
     lead: [
-      null, "F4", null, "F4", "F4", null, "F4", null,
-      null, "G4", null, "G4", "G4", null, "G4", null,
-      null, "F4", null, "F4", "F4", null, "F4", null,
-      null, "Eb4", null, "Eb4", "Eb4", null, "Eb4", null
+      null, "G4", null, "E4", "G4", null, "E4", null,
+      null, "D5", null, "B4", "D5", null, "B4", null,
+      null, "E5", null, "C5", "E5", null, "C5", null,
+      null, "C5", null, "A4", "C5", null, "A4", null
     ],
     pad: [
-      ["Bb3", "D4", "F4"], null, null, null, null, null, null, null,
-      ["C4", "Eb4", "G4"], null, null, null, null, null, null, null,
-      ["Bb3", "D4", "F4"], null, null, null, null, null, null, null,
-      ["Ab3", "C4", "Eb4"], null, null, null, null, null, null, null
+      ["C4", "E4", "G4"], null, null, null, null, null, null, null,
+      ["G3", "B3", "D4"], null, null, null, null, null, null, null,
+      ["A3", "C4", "E4"], null, null, null, null, null, null, null,
+      ["F3", "A3", "C4"], null, null, null, null, null, null, null
     ],
-    mix: { bass: 0.8, lead: 0.75, pad: 0.4, perc: 0.5 },
+    brass: [
+      ["C5", "E5", "G5"], null, null, "G5", null, null, null, null,
+      ["G4", "B4", "D5"], null, null, "D5", null, null, null, null,
+      ["A4", "C5", "E5"], null, null, "E5", null, null, null, null,
+      ["F4", "A4", "C5"], null, null, "C5", null, null, null, null
+    ],
+    mix: { bass: 0.85, lead: 0.8, pad: 0.35, perc: 0.6, brass: 0.65 },
   },
 
-  // Menú de título: relajado, de sobremesa.
+  // Menú de título: relajado, de sobremesa, pero con algo más de brío que
+  // antes — sigue sin ser la fiesta del tema principal, pero tampoco es
+  // elevador.
   title: {
-    bpm: 104,
+    bpm: 110,
     steps: 8,
     bass: ["C2", null, "G2", null, "A2", null, "F2", null],
     lead: [
@@ -53,9 +63,10 @@ export const THEMES = {
     mix: { bass: 0.6, lead: 0.65, pad: 0.25, perc: 0 },
   },
 
-  // Un día normal, jefe patrullando lejos: el riff base "de oficina".
+  // Un día normal, jefe patrullando lejos: el riff base "de oficina", con
+  // algo más de pulso que antes.
   calm: {
-    bpm: 112,
+    bpm: 118,
     steps: 8,
     bass: ["C2", null, "E2", null, "G2", null, "E2", null],
     lead: [
