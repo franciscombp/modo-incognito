@@ -101,13 +101,17 @@ function prepareCharacters(raw) {
 export async function loadGameData() {
   const manifest = await getJSON("manifest.json");
 
-  const [charactersRaw, dialoguesRaw, modesRaw, bossConfigRaw, sceneList, levelList] = await Promise.all([
+  const [charactersRaw, dialoguesRaw, modesRaw, bossConfigRaw, sceneList, levelList, rigList] =
+    await Promise.all([
     getJSON(manifest.characters ?? "characters.json"),
     getJSON(manifest.dialogues ?? "dialogues.json").catch(() => ({ cast: {}, encounters: {}, barks: {} })),
     getJSON(manifest.modes ?? "modes.json").catch(() => ({ characters: {} })),
     getJSON(manifest.bossConfig ?? "boss-config.json").catch(() => null),
     Promise.all((manifest.scenes ?? []).map((id) => getJSON(`scenes/${id}.json`))),
     Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
+    // Rigs de sprites: un archivo por personaje con su rejilla, sus poses y su
+    // animación de espera. Ver data/sprites/*.json.
+    Promise.all((manifest.sprites ?? []).map((id) => getJSON(`sprites/${id}.json`))),
   ]);
 
   const scenes = new Map(sceneList.map((raw) => [raw.id, prepareScene(raw)]));
@@ -139,6 +143,7 @@ export async function loadGameData() {
     bossConfig: bossConfigRaw,
     scenes,
     levels,
+    rigs: new Map(rigList.map((r) => [r.id, r])),
     codeEggs: manifest.codeEggs ?? [],
   };
 }

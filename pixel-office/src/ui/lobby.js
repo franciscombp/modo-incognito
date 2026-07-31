@@ -60,5 +60,19 @@ export function createLobby(root) {
     });
   }
 
-  return { show, hide };
+  /**
+   * Quitar el vestíbulo de golpe, sin abrir puertas ni esperar a nada.
+   * Lo usa el reinicio del día: si pierdes el cruce, el vestíbulo se queda
+   * puesto con las puertas cerradas (no has llegado), y al reintentar tapaba
+   * la avenida entera — parecía que el juego se colgaba en el ascensor.
+   */
+  function reset() {
+    opening = false;
+    layer.classList.remove("open");
+    layer.classList.add("hidden");
+    doorLeft.style.transform = "";
+    doorRight.style.transform = "";
+  }
+
+  return { show, hide, reset };
 }

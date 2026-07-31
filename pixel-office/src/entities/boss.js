@@ -36,9 +36,22 @@ const TURN_RATE_ALERT = 6.0;
 // Cada cuántos segundos sale una onda nueva del radar de Washo.
 const WAVE_PERIOD = 2.2;
 
-function buildConeGeometry(range, halfAngle, segments = 28) {
+// El haz NACE EN LOS OJOS. Antes el vértice estaba en el suelo, justo bajo
+// los pies y dentro del cuerpo: con la cámara oblicua, mirando hacia el
+// fondo el cono se dibujaba por encima del sprite y parecía salirle de la
+// espalda o de un costado. Ahora el vértice sube a la altura de la mirada y
+// se adelanta por delante del pecho, y el haz cae hasta el suelo en la punta
+// — se lee como una mirada, no como una alfombra.
+const EYE_HEIGHT = 0.82; // fracción de la altura del personaje
+const EYE_FORWARD = 1.35; // veces el radio, hacia delante
+
+function buildConeGeometry(range, halfAngle, segments = 28, apex = { y: 0, forward: 0 }) {
   const positions = [];
   const colors = [];
+  // Local -Z es "hacia delante" (ver facingRotationY).
+  const ax = 0;
+  const ay = apex.y;
+  const az = -apex.forward;
 
   // Suavidad angular: 1 en el eje central, 0 en los bordes laterales.
   const sideFade = (t) => {
@@ -49,7 +62,7 @@ function buildConeGeometry(range, halfAngle, segments = 28) {
   for (let i = 0; i < segments; i++) {
     const t0 = -halfAngle + 2 * halfAngle * (i / segments);
     const t1 = -halfAngle + 2 * halfAngle * ((i + 1) / segments);
-    positions.push(0, 0, 0);
+    positions.push(ax, ay, az);
     positions.push(Math.sin(t0) * range, 0, -Math.cos(t0) * range);
     positions.push(Math.sin(t1) * range, 0, -Math.cos(t1) * range);
     // El color va en blanco: el tinte real lo pone material.color, así que
@@ -245,7 +258,10 @@ export class Boss {
         return { mesh, material, phase };
       });
     } else {
-      const geometry = buildConeGeometry(this.visionRange, this.halfAngle);
+      const geometry = buildConeGeometry(this.visionRange, this.halfAngle, 28, {
+        y: height * EYE_HEIGHT - 0.16,
+        forward: this.radius * EYE_FORWARD,
+      });
       this.cone = new THREE.Mesh(geometry, this.coneMaterial);
       this.cone.position.set(this.position.x, 0.16, this.position.z);
       this.cone.renderOrder = 2;

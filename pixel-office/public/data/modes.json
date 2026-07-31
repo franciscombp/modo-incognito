@@ -11,6 +11,8 @@
     "  · bossSpeedMul / visionMul  se MULTIPLICAN con los del día",
     "  · explore: true        modo libre — sin sospecha, sin despido, solo",
     "    explorar y hablar con la gente (Kiara)",
+    "npc: id del `cast` que ese personaje tiene como NPC en el plano. Si lo",
+    "  eliges como jugadora, ese NPC se apaga — no puede haber dos Giulis.",
     "  · pretendAlways: true  fingir protege siempre, sin importar la sospecha"
   ],
   "characters": {
@@ -26,7 +28,8 @@
       "rules": {
         "maxWarnings": 3,
         "minionSuspicionMul": 0.7
-      }
+      },
+      "npc": "fran_npc"
     },
     "giu": {
       "name": "Giuli",
@@ -40,7 +43,9 @@
         "maxWarnings": 2,
         "minionSuspicionMul": 1.4
       },
-      "actionSheet": "guili-acciones"
+      "actionSheet": "guili-acciones",
+      "rig": "giuli",
+      "npc": "giuli"
     },
     "kiara": {
       "name": "Kiara",
@@ -63,7 +68,8 @@
       "difficulty": "chicuelo",
       "blurb": "Su objetivo: repartir 3 amonestaciones e irse lo antes posible. Chispita y los DOPs no lo dejan en paz.",
       "playable": false,
-      "lockedReason": "Llega el próximo Q"
+      "lockedReason": "Llega el próximo Q",
+      "rig": "gabo"
     }
   }
 }

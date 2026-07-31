@@ -164,10 +164,14 @@ export function seatDistribution(capacity, longLen, shortLen) {
  */
 export function placeSeatedTable(
   registry,
-  { originX, originZ, width, depth, capacity, shape = "rect", monitors = true }
+  { originX, originZ, width, depth, capacity, shape = "rect", monitors = true, walkway = 0.35 }
 ) {
-  // Leave room for the chair ring plus a walkway on every side.
-  const margin = (CHAIR_GAP + CHAIR_R * 2 + 0.35 * S) * 2;
+  // Leave room for the chair ring plus a walkway on every side. `walkway` es
+  // ese hueco libre entre las sillas y la pared, en unidades de plano: con el
+  // valor de siempre (0.35) una sala de reuniones queda tan justa que el
+  // navmesh no encuentra dónde ponerse de pie, y desde que las salas son
+  // LUGARES SEGUROS eso las volvía inalcanzables (`npm run check:reachable`).
+  const margin = (CHAIR_GAP + CHAIR_R * 2 + walkway * S) * 2;
   const tw = Math.max(1.4 * S, width - margin);
   const td = Math.max(1.0 * S, depth - margin);
 

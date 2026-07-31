@@ -1,0 +1,135 @@
+// Las reglas de "dónde puedes fingir que trabajas", que son el corazón del
+// día: solo valen los LUGARES SEGUROS, y cada tipo funciona distinto.
+//
+//  · En mitad del pasillo o en la cafetería, mantener F no hace nada.
+//  · Una SALA DE REUNIONES te cubre con solo estar dentro, pero se gasta y
+//    cada tanto la ocupa gente de verdad.
+//  · TU PUESTO no se gasta nunca, pero solo te cubre mientras finges: estar
+//    ahí de brazos cruzados no cuenta.
+//
+// Uso: node tools/check-safespots.mjs [url]
+import { chromium } from "playwright";
+
+const url = process.argv[2] ?? "http://localhost:4173/";
+const browser = await chromium.launch({
+  executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium",
+});
+const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+await page.goto(url, { waitUntil: "networkidle" });
+await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
+await page.evaluate(() => {
+  window.__game.engine.menus.close();
+  window.__game.engine.startDay(0, { skipMinigame: true });
+});
+await page.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 15000 });
+
+const out = await page.evaluate(async () => {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const game = window.__game.engine.game;
+  const player = window.__game.player;
+  const spots = window.__floorplan.safeSpots;
+  game.setPaused(false);
+  document.querySelector(".vn-layer")?.classList.add("hidden");
+  game.minions.forEach((m) => m.setActive(false));
+  // El jefe fuera de escena: aquí se mide la mecánica del sitio, no su IA.
+  game.boss.setTether(null);
+  game.boss._updateVision = () => {
+    game.boss.playerVisible = false;
+    game.boss.redAlert = false;
+  };
+
+  const meeting = spots.find((s) => s.kind === "meeting");
+  const desk = spots.find((s) => s.kind === "desk");
+  const res = { hasMeeting: !!meeting, hasDesk: !!desk };
+
+  /** Coloca a la jugadora, mantiene (o no) F, y devuelve qué pasa. */
+  async function probe({ at, pretend, ms = 700 }) {
+    player.keys.clear();
+    player.position.x = at.x;
+    player.position.z = at.z;
+    if (pretend) player.keys.add("f");
+    game.suspicion = 50;
+    await sleep(ms);
+    return {
+      pretending: player.isPretending,
+      inSafeSpot: game.inSafeSpot,
+      suspicion: game.suspicion,
+    };
+  }
+
+  // Un punto claramente fuera de cualquier lugar seguro: la cafetería.
+  const coffee = game.objectives.find((o) => o.id === "coffee");
+  res.corridor = await probe({ at: coffee, pretend: true });
+  res.meetingIdle = await probe({ at: meeting, pretend: false });
+  res.meetingPretend = await probe({ at: meeting, pretend: true });
+  res.deskIdle = await probe({ at: desk, pretend: false });
+  res.deskPretend = await probe({ at: desk, pretend: true });
+
+  // El aviso rojo: por encima del 90% la pantalla se tiñe, y es lo que te
+  // manda a buscar una sala. Va aquí porque es la otra mitad de la misma
+  // mecánica: sin el aviso, el jugador no sabe cuándo tiene que correr.
+  player.keys.clear();
+  game.suspicion = 0.95 * game.suspicionConfig.max;
+  await sleep(400);
+  res.dangerHigh = document.querySelector(".hud-danger")?.classList.contains("on");
+  game.suspicion = 0.2 * game.suspicionConfig.max;
+  await sleep(400);
+  res.dangerLow = document.querySelector(".hud-danger")?.classList.contains("on");
+
+  const mi = spots.indexOf(meeting);
+
+  // Ocupada: llega gente a reunirse de verdad y deja de servir, aunque le
+  // quede cupo. Se fuerza en vez de esperar a que toque sola.
+  game.safeSpotState[mi].busyLeft = 8;
+  res.meetingBusy = await probe({ at: meeting, pretend: true });
+  res.meetingBusyCharge = game.safeSpotCharge(mi);
+  game.safeSpotState[mi].busyLeft = 0;
+
+  // La sala se gasta: dentro el tiempo suficiente, deja de servir. Se apaga
+  // la ocupación mientras tanto, o el cupo dejaría de bajar a ratos y esto
+  // mediría dos cosas a la vez.
+  game.safeSpotState[mi].nextBusy = Infinity;
+  player.keys.clear();
+  player.position.x = meeting.x;
+  player.position.z = meeting.z;
+  for (let i = 0; i < 90 && game.safeSpotCharge(mi) > 0; i++) await sleep(500);
+  res.meetingAfterBudget = { inSafeSpot: game.inSafeSpot, charge: game.safeSpotCharge(mi) };
+
+  return res;
+});
+
+await browser.close();
+
+let failed = 0;
+function assert(label, ok) {
+  console.log(`${ok ? "PASS" : "FAIL"}  ${label}`);
+  if (!ok) failed++;
+}
+
+assert("el plano define alguna sala de reuniones como lugar seguro", out.hasMeeting);
+assert("el plano define tu puesto como lugar seguro", out.hasDesk);
+
+assert("fuera de un lugar seguro, mantener F no finge nada", out.corridor?.pretending === false);
+assert("fuera de un lugar seguro no estás a cubierto", out.corridor?.inSafeSpot === false);
+
+assert("en una sala de reuniones basta con estar dentro", out.meetingIdle?.inSafeSpot === true);
+assert("en una sala de reuniones sí puedes fingir", out.meetingPretend?.pretending === true);
+assert(
+  "fingir en la sala baja la sospecha",
+  out.meetingPretend != null && out.meetingPretend.suspicion < 50
+);
+
+assert("en tu puesto, parada, NO estás a cubierto", out.deskIdle?.inSafeSpot === false);
+assert("en tu puesto, fingiendo, sí lo estás", out.deskPretend?.inSafeSpot === true);
+
+assert("con la sospecha al 95% la pantalla avisa en rojo", out.dangerHigh === true);
+assert("y con la sospecha baja no", out.dangerLow === false);
+
+assert("una sala ocupada deja de cubrirte", out.meetingBusy?.inSafeSpot === false);
+assert("y ocupada tampoco puedes fingir dentro", out.meetingBusy?.pretending === false);
+assert("su marcador avisa de que está ocupada", out.meetingBusyCharge === 0);
+
+assert("una sala se gasta y deja de cubrirte", out.meetingAfterBudget?.inSafeSpot === false);
+assert("y su marcador lo refleja", out.meetingAfterBudget?.charge === 0);
+
+process.exit(failed ? 1 : 0);
