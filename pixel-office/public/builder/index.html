@@ -327,6 +327,11 @@
             <textarea id="wallDoors" placeholder="puerta1, puerta2" rows="2"></textarea>
           </div>
 
+          <div class="button-group">
+            <button onclick="updateWall()">✓ Actualizar</button>
+            <button onclick="deleteWall()">✕ Eliminar</button>
+          </div>
+
           <div class="control-group">
             <label class="control-label">Paredes Existentes</label>
             <div class="wall-list" id="wallList">
@@ -334,14 +339,36 @@
             </div>
           </div>
 
+          <div class="control-group">
+            <label class="control-label">Piso (Footprint)</label>
+            <div class="hint">
+              Nodos que forman el perímetro del piso.<br>
+              Arrastra en canvas para mover.
+            </div>
+            <div class="wall-list" id="nodeList">
+              <div style="color: #7d8ba5; font-size: 11px;">No hay nodos</div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <label class="control-label">Nuevo Nodo</label>
+            <input type="number" id="nodeX" placeholder="X" step="1">
+            <input type="number" id="nodeZ" placeholder="Z" step="1">
+          </div>
+
+          <div class="button-group full">
+            <button onclick="addNode()">✓ Agregar Nodo</button>
+          </div>
+
           <div class="button-group">
-            <button onclick="deleteWall()">✕ Eliminar</button>
+            <button onclick="deleteNode()">✕ Eliminar Nodo</button>
           </div>
 
           <div class="hint">
-            • Paredes separan áreas del piso<br>
-            • Puertas permiten paso de jugador/NPCs<br>
-            • Visualización en canvas
+            • Paredes separan áreas<br>
+            • Nodos forman el perímetro del piso<br>
+            • Click para seleccionar, arrastra para mover<br>
+            • DEL para eliminar nodo rápido
           </div>
         </div>
 
@@ -386,9 +413,12 @@
     // ==================== Estado ====================
     let objects = [];
     let walls = [];
+    let nodes = [];
     let selectedObject = null;
     let selectedWall = null;
+    let selectedNode = null;
     let isDragging = false;
+    let draggingNode = false;
     let currentObjectType = 'activity';
     let canvas = null;
     let ctx = null;
@@ -430,6 +460,18 @@
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
 
+      // Click en nodo
+      for (let i = 0; i < nodes.length; i++) {
+        const screenPos = worldToScreen(nodes[i].x, nodes[i].z);
+        if (Math.hypot(screenPos.x - x, screenPos.y - y) < 15) {
+          selectedNode = i;
+          draggingNode = true;
+          updateNodeList();
+          draw();
+          return;
+        }
+      }
+
       // Click en objeto existente
       selectedObject = null;
       for (let i = 0; i < objects.length; i++) {
@@ -451,12 +493,19 @@
     }
 
     function handleMouseMove(e) {
-      if (!isDragging || selectedObject === null) return;
-
       const rect = canvas.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
       const worldPos = screenToWorld(x, y);
+
+      if (draggingNode && selectedNode !== null) {
+        nodes[selectedNode].x = Math.round(worldPos.x / GRID_SIZE) * GRID_SIZE;
+        nodes[selectedNode].z = Math.round(worldPos.z / GRID_SIZE) * GRID_SIZE;
+        draw();
+        return;
+      }
+
+      if (!isDragging || selectedObject === null) return;
 
       // Snap automático
       objects[selectedObject].x = Math.round(worldPos.x / GRID_SIZE) * GRID_SIZE;
@@ -469,11 +518,16 @@
 
     function handleMouseUp() {
       isDragging = false;
+      draggingNode = false;
     }
 
     function handleKeyDown(e) {
-      if (e.key === 'Delete' && selectedObject !== null) {
-        deleteSelected();
+      if (e.key === 'Delete') {
+        if (selectedNode !== null) {
+          deleteNode();
+        } else if (selectedObject !== null) {
+          deleteSelected();
+        }
       }
     }
 
@@ -600,6 +654,89 @@
       draw();
     }
 
+    function updateWall() {
+      if (selectedWall === null) {
+        updateStatus('⚠️ Selecciona una pared');
+        return;
+      }
+
+      const x = parseInt(document.getElementById('wallX').value);
+      const z = parseInt(document.getElementById('wallZ').value);
+      const len = parseInt(document.getElementById('wallLen').value);
+      const dir = document.getElementById('wallDir').value;
+      const doors = document.getElementById('wallDoors').value
+        .split(',')
+        .map(d => d.trim())
+        .filter(d => d.length > 0);
+
+      walls[selectedWall].x = x;
+      walls[selectedWall].z = z;
+      walls[selectedWall].length = len;
+      walls[selectedWall].direction = dir;
+      walls[selectedWall].doors = doors;
+
+      updateStatus('✓ Pared actualizada');
+      updateWallList();
+      draw();
+    }
+
+    // ==================== Funciones de Nodos ====================
+    function addNode() {
+      const x = parseInt(document.getElementById('nodeX').value);
+      const z = parseInt(document.getElementById('nodeZ').value);
+
+      if (isNaN(x) || isNaN(z)) {
+        updateStatus('⚠️ Ingresa coordenadas válidas');
+        return;
+      }
+
+      nodes.push({
+        x: Math.round(x / GRID_SIZE) * GRID_SIZE,
+        z: Math.round(z / GRID_SIZE) * GRID_SIZE,
+      });
+
+      document.getElementById('nodeX').value = '';
+      document.getElementById('nodeZ').value = '';
+      updateStatus(`✓ Nodo agregado (${nodes.length} total)`);
+      updateNodeList();
+      draw();
+    }
+
+    function deleteNode() {
+      if (selectedNode === null) {
+        updateStatus('⚠️ Selecciona un nodo');
+        return;
+      }
+      nodes.splice(selectedNode, 1);
+      selectedNode = null;
+      updateStatus('✓ Nodo eliminado');
+      updateNodeList();
+      draw();
+    }
+
+    function updateNodeList() {
+      const list = document.getElementById('nodeList');
+      if (nodes.length === 0) {
+        list.innerHTML = '<div style="color: #7d8ba5; font-size: 11px;">No hay nodos</div>';
+        return;
+      }
+
+      list.innerHTML = nodes.map((n, i) => `
+        <div class="wall-item ${selectedNode === i ? 'selected' : ''}" onclick="selectNodeFromList(${i})">
+          <strong>Nodo ${i}</strong><br>
+          (${n.x}, ${n.z})
+        </div>
+      `).join('');
+    }
+
+    function selectNodeFromList(idx) {
+      selectedNode = idx;
+      updateNodeList();
+      document.getElementById('nodeX').value = nodes[idx].x;
+      document.getElementById('nodeZ').value = nodes[idx].z;
+      draw();
+    }
+
     // ==================== Conversiones ====================
     function worldToScreen(wx, wz) {
       return {
@@ -655,6 +792,52 @@
         }
       });
 
+      // Footprint (polígono de nodos)
+      if (nodes.length > 1) {
+        ctx.strokeStyle = 'rgba(139, 92, 246, 0.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < nodes.length; i++) {
+          const pos = worldToScreen(nodes[i].x, nodes[i].z);
+          if (i === 0) {
+            ctx.moveTo(pos.x, pos.y);
+          } else {
+            ctx.lineTo(pos.x, pos.y);
+          }
+        }
+        ctx.closePath();
+        ctx.stroke();
+
+        // Relleno suave
+        ctx.fillStyle = 'rgba(139, 92, 246, 0.1)';
+        ctx.fill();
+      }
+
+      // Nodos
+      nodes.forEach((node, idx) => {
+        const pos = worldToScreen(node.x, node.z);
+        const isSelected = selectedNode === idx;
+
+        // Círculo del nodo
+        ctx.fillStyle = isSelected ? '#8b5cf6' : 'rgba(139, 92, 246, 0.6)';
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, isSelected ? 8 : 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (isSelected) {
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        }
+
+        // Índice pequeño
+        ctx.fillStyle = '#05060a';
+        ctx.font = 'bold 8px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(idx, pos.x, pos.y);
+      });
+
       // Objetos
       objects.forEach((obj, idx) => {
         const pos = worldToScreen(obj.x, obj.z);
@@ -705,6 +888,7 @@
           ...w,
           doors: w.doors.length ? w.doors : undefined,
         })),
+        nodes: nodes.length > 0 ? nodes : undefined,
       };
 
       const json = JSON.stringify(level, null, 2);
@@ -732,11 +916,13 @@
             const data = JSON.parse(evt.target.result);
             objects = data.objects || [];
             walls = data.walls || [];
+            nodes = data.nodes || [];
             document.getElementById('levelName').value = data.id || '';
             document.getElementById('sceneId').value = data.scene || 'piso7';
             updateWallList();
+            updateNodeList();
             draw();
-            updateStatus(`✓ ${objects.length} objetos, ${walls.length} paredes importados`);
+            updateStatus(`✓ ${objects.length} objetos, ${walls.length} paredes, ${nodes.length} nodos importados`);
           } catch (err) {
             updateStatus('❌ Error al importar');
           }
