@@ -28,7 +28,8 @@
     "check:vision": "node tools/check-vision.mjs",
     "check:safespots": "node tools/check-safespots.mjs",
     "check:cast": "node tools/shoot-cast.mjs",
-    "palette": "python3 tools/extract-palette.py"
+    "palette": "python3 tools/extract-palette.py",
+    "check:base": "node tools/shoot-base.mjs"
   },
   "license": "ISC",
   "dependencies": {
