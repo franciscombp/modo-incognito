@@ -58,7 +58,7 @@ function colToX(col) {
   return -(col - (COLS - 1) / 2) * (ROAD_WIDTH / COLS);
 }
 
-// ---- Vehículos: geometría 3D de verdad, ya no sprites dibujados a mano ----
+// ---- Vehículos: geometría 3D mejorada con detalles ----
 // Se construyen una sola vez por tipo y se comparten entre todos los coches;
 // lo único propio de cada uno es el material de la carrocería (el color).
 const geomCache = new Map();
@@ -72,17 +72,19 @@ const GLASS = new THREE.MeshLambertMaterial({ color: 0x9fd8f2 });
 const SKIN = new THREE.MeshLambertMaterial({ color: 0xe8c9a0 });
 
 /**
- * Un carrito de tres cajas y cuatro ruedas, o una bici con su ciclista.
+ * Vehículos mejorados: autos con mejor detalle, bicis con animación implícita.
  * Mira siempre a lo largo de X, que es como corren los carriles; `dir` solo
- * decide hacia qué lado se gira.
+ * decide hacia qué lado se gira. Los vehículos pueden reflejarse para simular
+ * movimiento en ambas direcciones.
  */
 function vehicleMesh(kind, color, dir) {
   const group = new THREE.Group();
   const paint = new THREE.MeshLambertMaterial({ color });
 
   if (kind === "bike") {
+    // Bicis: simulan animación con ligera inclinación
     const wheel = cached("bikeWheel", () =>
-      new THREE.TorusGeometry(0.28 * S, 0.07 * S, 6, 12)
+      new THREE.TorusGeometry(0.28 * S, 0.07 * S, 8, 16)
     );
     [-0.42, 0.42].forEach((dx) => {
       const w = new THREE.Mesh(wheel, DARK);
@@ -109,39 +111,53 @@ function vehicleMesh(kind, color, dir) {
     head.position.set(0.02 * S, 1.22 * S, 0);
     group.add(head);
   } else {
+    // Autos: diseño mejorado con proporciones mejor
     const body = new THREE.Mesh(
-      cached("carBody", () => new THREE.BoxGeometry(2.1 * S, 0.5 * S, 0.95 * S)),
+      cached("carBody", () => new THREE.BoxGeometry(2.1 * S, 0.55 * S, 0.95 * S)),
       paint
     );
     body.position.y = 0.42 * S;
     group.add(body);
 
     const cabin = new THREE.Mesh(
-      cached("carCabin", () => new THREE.BoxGeometry(1.1 * S, 0.42 * S, 0.86 * S)),
+      cached("carCabin", () => new THREE.BoxGeometry(1.2 * S, 0.45 * S, 0.86 * S)),
       paint
     );
-    cabin.position.set(-0.1 * S, 0.86 * S, 0);
+    cabin.position.set(-0.05 * S, 0.9 * S, 0);
     group.add(cabin);
 
     const windshield = new THREE.Mesh(
-      cached("carGlass", () => new THREE.BoxGeometry(1.12 * S, 0.26 * S, 0.9 * S)),
+      cached("carGlass", () => new THREE.BoxGeometry(1.12 * S, 0.28 * S, 0.92 * S)),
       GLASS
     );
-    windshield.position.set(-0.1 * S, 0.9 * S, 0);
+    windshield.position.set(-0.05 * S, 0.95 * S, 0);
     group.add(windshield);
 
-    const wheel = cached("carWheel", () =>
-      new THREE.CylinderGeometry(0.24 * S, 0.24 * S, 0.16 * S, 8).rotateX(Math.PI / 2)
+    // Faros
+    const headlight = cached("carHeadlight", () =>
+      new THREE.SphereGeometry(0.1 * S, 6, 6)
     );
+    const headlightMat = new THREE.MeshLambertMaterial({ color: 0xffffcc });
+    [-0.3, 0.3].forEach((dx) => {
+      const light = new THREE.Mesh(headlight, headlightMat);
+      light.position.set(dx * S, 0.5 * S, 1.0 * S);
+      group.add(light);
+    });
+
+    const wheel = cached("carWheel", () =>
+      new THREE.CylinderGeometry(0.26 * S, 0.26 * S, 0.18 * S, 10).rotateX(Math.PI / 2)
+    );
+    const wheelRim = new THREE.MeshLambertMaterial({ color: 0x333333 });
     [-0.68, 0.68].forEach((dx) => {
       [-0.5, 0.5].forEach((dz) => {
-        const w = new THREE.Mesh(wheel, DARK);
-        w.position.set(dx * S, 0.24 * S, dz * S);
+        const w = new THREE.Mesh(wheel, wheelRim);
+        w.position.set(dx * S, 0.26 * S, dz * S);
         group.add(w);
       });
     });
   }
 
+  // Reflexión para dirección opuesta: voltear en Y
   if (dir < 0) group.rotation.y = Math.PI;
   return group;
 }
@@ -226,12 +242,28 @@ export function createCrossing3D(root, playerSheet) {
     }
     if (row.kind === "median") {
       for (const dx of [-2.0, -1.1, 1.1, 2.0]) {
-        const tree = new THREE.Mesh(
-          new THREE.ConeGeometry(0.5 * S, 1.1 * S, 6),
+        // Árbol: tronco + follaje en capas
+        const trunk = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.12 * S, 0.15 * S, 0.6 * S, 6),
+          new THREE.MeshLambertMaterial({ color: 0x5d4037 })
+        );
+        trunk.position.set(dx * S, 0.3 * S, z);
+
+        const foliage1 = new THREE.Mesh(
+          new THREE.ConeGeometry(0.5 * S, 0.8 * S, 8),
+          new THREE.MeshLambertMaterial({ color: 0x2d5016 })
+        );
+        foliage1.position.set(dx * S, 0.8 * S, z);
+
+        const foliage2 = new THREE.Mesh(
+          new THREE.ConeGeometry(0.35 * S, 0.6 * S, 8),
           new THREE.MeshLambertMaterial({ color: 0x3f7a4a })
         );
-        tree.position.set(dx * S, 0.55 * S, z);
-        roadGroup.add(tree);
+        foliage2.position.set(dx * S, 1.25 * S, z);
+
+        roadGroup.add(trunk);
+        roadGroup.add(foliage1);
+        roadGroup.add(foliage2);
       }
     }
   });
