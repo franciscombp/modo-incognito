@@ -9,11 +9,11 @@ export const WORLD_SCALE = 1.2;
 /** Oblique JRPG-diorama framing: a high, tilted, narrow-FOV perspective. */
 export const CAMERA_PRESET = {
   type: "perspective",
-  fov: 32,
-  yawDeg: -26,
+  fov: 40,
+  yawDeg: 0,
   pitchDeg: 52,
-  distance: 44,
-  lookAtYOffset: 0.8,
+  distance: 14,
+  lookAtYOffset: 2.1,
   followLerp: 0.08,
   zoomMin: 0.9,
   zoomMax: 1.2,

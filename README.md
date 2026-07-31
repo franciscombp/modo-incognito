@@ -1,6 +1,6 @@
-# Modo Incógnito · Tribu Canales · Piso 10 · Centro Digital
+# Modo Incógnito · Piso 10
 
-Juego web en Three.js: eres una empleada del Piso 10 · Centro Digital que intenta **no trabajar**
+Juego web en Three.js: eres una empleada del Piso 10 que intenta **no trabajar**
 —café, película, comer— mientras el jefe patrulla la planta.
 
 > **Estado: MVP del día 1.** La campaña publicada es **solo el día 1**, pulido
@@ -12,14 +12,13 @@ Juego web en Three.js: eres una empleada del Piso 10 · Centro Digital que inten
 > → `levels`, así que no aparecen. Volver a activarlos es añadir su id a esa
 > lista; no hay nada más que tocar.
 
-**Lore, para quien escriba diálogos nuevos:** la Tribu Canales es el equipo de
-diseño del Centro Digital de un banco — creativos dentro de una empresa que
+**Lore, para quien escriba diálogos nuevos:** trabajas en el equipo de
+diseño de un corporativo — creativos dentro de una empresa que
 no lo es tanto. El meta-chiste, para quien lo encuentre (código secreto
 `incognito`, ver `manifest.json` → `codeEggs`, y el cierre del día 5 en
 `levels/dia-5.json`): "fingir que trabajas" es, en la ficción, la coartada
 del equipo para programar en secreto este mismo juego y mantener viva su
-creatividad. La idea original es de César y Manu; quien lo programa de
-verdad es Fran, con Claude Code de copiloto — un guiño real, no solo de
+creatividad. La idea original es de C y Manu; con el apoyo de Fran, con Claude Code de copiloto — un guiño real, no solo de
 ficción. No lo spoilees en textos nuevos fuera de esos dos momentos — que se
 descubra jugando.
 
@@ -88,6 +87,7 @@ código**.
 | El soundtrack procedural de respaldo (notas, tempo, mezcla) | [`src/game/soundtrackThemes.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrackThemes.js) |
 | Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrack.js) |
 | Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) |
+| Colocar zonas, tareas, lugares seguros… con el ratón | [`builder/`](https://github.com/franciscombp/modo-incognito/tree/main/builder) — ver «El builder» más abajo |
 | Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/style.css) |
 | Sprites de personajes | [`public/sprites/*.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/sprites) |
 | Ilustraciones grandes de actividades (opcional, con emoji de respaldo) | [`public/actions/<id>.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/actions) |
@@ -107,6 +107,8 @@ código**.
 | Que el jefe se quede pegado a la jugadora | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/levels) → `rules.bossTether` |
 | Qué pose hace la jugadora en cada actividad | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) → `activities[].pose` |
 | Meter pliegos de sprites dibujados a mano (los normaliza a la rejilla 4x4) | [`tools/pack-sprites.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/pack-sprites.py) |
+| Qué hay en cada celda del pliego de un personaje, y su animación de espera | [`data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/sprites) |
+| Las plantillas en blanco para dibujar un personaje nuevo | [`art/plantillas/`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/art/plantillas) · las genera [`tools/make-sprite-template.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/make-sprite-template.py) |
 | Los mensajes de Teams de Gabo | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/dialogues.json) → `teamsMessages.gabo` |
 
 Cada JSON de `public/data/` trae su propio campo `"$comment"` al principio
@@ -119,6 +121,33 @@ de `pixel-office/` y luego corre `npm run build:pages`.
 
 ¿Vas a usar un agente de IA (Claude Code u otro) para modificar el juego?
 Lee primero [`CLAUDE.md`](https://github.com/franciscombp/modo-incognito/blob/main/CLAUDE.md).
+
+## El builder: editar el plano y el día con el ratón
+
+En [`builder/`](https://github.com/franciscombp/modo-incognito/tree/main/builder)
+hay un editor 2D del plano (`scenes/*.json`) y del día (`levels/*.json`). No
+necesita npm ni build: se sirve el repo y se abre.
+
+```bash
+python3 serve.py            # o npm run preview desde pixel-office/
+# → http://localhost:8000/builder/
+```
+
+Carga los mismos archivos que lee el juego y te deja **arrastrar** zonas,
+actividades, lugares seguros, escondites, distracciones, NPC, secretos y
+plantas; redimensionar las zonas por sus esquinas; y editar todos sus campos
+en el panel de la derecha. La pestaña **Día** monta las reglas de la jornada:
+duración, amonestaciones, puntos objetivo, multiplicadores del jefe, su
+ronda, la correa, qué actividades son los objetivos (salen marcadas de las
+que existan en el plano) y qué secuaces entran y por dónde.
+
+Vigila en vivo la invariante que más se rompe: si dos zonas se solapan las
+pinta en rojo y lo dice, porque el motor no lo admite.
+
+El builder **no escribe en el repo a propósito**. Cuando termines, «Copiar
+escena JSON» / «Copiar día JSON» (o «Descargar los dos»), pegas en
+`pixel-office/public/data/…` y corres `npm run build:pages`. Así nunca te
+pisa un archivo por accidente y el diff lo revisas tú.
 
 ## Arquitectura del repo
 
@@ -251,12 +280,56 @@ Una actividad puede decir qué pose hace la jugadora mientras la ejecuta:
 { "id": "coffee", "label": "Tomar café", "type": "coffee", "pose": "coffee", ... }
 ```
 
-Las poses salen del pliego `*-acciones.png` del personaje (`actionSheet` en
-`modes.json` / `characters.json`). Son ocho — `work`, `sleep`, `coffee`,
-`eat`, `movie`, `phone`, `scared`, `shrug` — y su orden en la rejilla está
-documentado en `POSES`, dentro de
-[`src/entities/sprite.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/sprite.js). Un personaje sin
-`actionSheet` simplemente se queda con su pose de caminar; no rompe nada.
+Las poses salen del pliego `*-acciones.png` del personaje, y **qué pose hay
+en cada celda lo decide su rig** (ver abajo). Mientras la haces, el panel
+grande de acción deja de enseñar un emoji y dibuja a tu personaje haciéndola,
+con sus dos fotogramas alternándose.
+
+### El rig de un personaje
+
+Cada personaje con arte propio tiene un archivo en
+[`public/data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/sprites) que dice **qué hay
+en cada celda de sus dos pliegos**. Antes esto vivía repartido entre
+`characters.json` y unas constantes dentro del motor; ahora se edita aquí:
+
+```json
+{
+  "id": "giuli",
+  "walk":    { "sheet": "guili-camina",   "fps": 8,
+               "rows": { "south": 0, "west": 1, "east": 2, "north": 3 } },
+  "actions": { "sheet": "guili-acciones", "fps": 3,
+               "poses": { "work": 0, "sleep": 1, "coffee": 2, "eat": 3,
+                          "movie": 4, "phone": 5, "scared": 6, "shrug": 7 } },
+  "idle":    { "after": 4.5, "hold": 2.2, "every": 9, "poses": ["phone", "shrug"] }
+}
+```
+
+`actions.poses` mapea nombre → índice 0..7; la pose `p` ocupa la fila `p>>1` y
+**dos columnas seguidas**, que son sus dos fotogramas. Por eso el pliego de
+Gabo puede tener `point`, `angry` y `sit` donde el de Giuli tiene `coffee`,
+`eat` y `movie`: es el mismo sitio, distinto dibujo.
+
+`idle` es la animación de espera, al estilo del Sonic que se cansa de que no
+le pulses nada: si llevas `after` segundos sin moverte, saca el móvil o se
+encoge de hombros durante `hold` segundos, y lo repite cada `every`. Quita el
+bloque y el personaje simplemente se queda quieto. Una pose de verdad (tomar
+café) siempre manda sobre la espera.
+
+Añade el id del rig a `manifest.json` → `sprites` y apúntalo desde el
+personaje con `"rig": "<id>"`.
+
+### Dibujar un personaje nuevo
+
+```bash
+cd pixel-office
+python3 tools/make-sprite-template.py
+```
+
+Deja en `art/plantillas/` dos PNG a la resolución exacta del motor (512x704),
+con cada celda rotulada —qué dirección, qué pose, qué fotograma— y guías de
+suelo, altura de ojos y ancho útil para que todos los personajes salgan a la
+misma escala. Se dibuja encima y se borran las guías; con `--sin-guias` salen
+los lienzos limpios.
 
 ## Personajes
 
@@ -273,6 +346,10 @@ varias escenas que se van alternando, con opciones que hacen algo de verdad:
 
 Manu, César, Enriquetta y El Parce son **amigos tuyos**. Los secuaces no lo
 son, pero también puedes hablarles: según lo que elijas te cubren o te delatan.
+
+A los amigos les hablas tú; **los secuaces te abordan ellos, pero solo cuando
+te tocan de verdad** — la suma de los dos radios más un dedo de margen. No
+basta con que te vean desde el otro lado del pasillo.
 
 ### Sprites dibujados a mano
 
@@ -301,7 +378,7 @@ Los **secuaces** (`minions` en `characters.json`) no te atrapan: te delatan.
 Si te ven haciendo algo prohibido llaman al jefe a ese punto y te suben la
 sospecha. Cada uno vigila distinto — **Chispita** corre por todo el piso con
 cono corto, **Washo** apenas se mueve pero te ve desde el otro extremo del
-ala, y **Crispo** está casi quieto abarcando medio pasillo. Cada día elige
+ala, y **Crispo** está casi quieta abarcando medio pasillo. Cada día elige
 cuáles salen y por qué ronda, en su JSON:
 
 ```json
@@ -355,6 +432,23 @@ Tres capas que no compiten entre sí:
   pendientes y los escondites cargados. Con la distancia al jefe en metros,
   así que el zoom nunca te deja a ciegas.
 
+## El halo: de dónde sale y hacia dónde mira
+
+El cono de visión **nace en los ojos**, no en el suelo: el vértice está a la
+altura de la mirada y un poco por delante del pecho, y el haz cae hasta el
+suelo en la punta. Cuando estaba pegado al suelo, con la cámara oblicua el
+cono se dibujaba por encima del propio sprite y parecía salirle de la espalda
+o de un costado.
+
+El sprite solo tiene cuatro direcciones y el cono gira de forma continua, así
+que nunca coinciden del todo; lo que no puede pasar es que discrepen más de
+lo que separa a dos direcciones vecinas. `npm run check:vision` mide las dos
+cosas — dónde está el vértice y cuánto se desvía el haz del sprite en
+dieciséis direcciones distintas.
+
+El de Washo no es un cono sino un radar: círculo completo con ondas que
+salen de él, porque su peligro no depende de hacia dónde mire.
+
 ## Persecución: una vez te fichan, no te sueltan
 
 Que un vigilante te meta en su halo **compromete la persecución**: a partir de
@@ -380,6 +474,29 @@ Cada vigilante mira distinto, y el suelo lo dice sin texto:
 
 La forma se elige por personaje en `characters.json` con
 `"visionShape": "cone" | "radar"`.
+
+## Lugares seguros: dónde puedes fingir
+
+**Fingir que trabajas (F) solo funciona en un lugar seguro.** En mitad del
+pasillo, en la cafetería o en el baño no engañas a nadie. Hay dos tipos, y
+se comportan distinto a propósito:
+
+- **Salas de reuniones** — con entrar basta: se supone que estás reunida. Pero
+  cada una tiene un **cupo de segundos al día** que se gasta mientras estás
+  dentro y no se recarga, y cada tanto **llega gente a reunirse de verdad** y
+  la ocupa. El marcador del suelo se apaga cuando pasa cualquiera de las dos
+  cosas.
+- **Tu puesto** — nunca se gasta ni se ocupa, pero **solo te cubre mientras
+  finges**. Sentarte ahí de brazos cruzados no cuenta.
+
+Un lugar seguro es además lo único que corta una persecución ya comprometida
+(ver más abajo). Se declaran en `scenes/*.json` → `safeSpots`, con su `kind`,
+su `budget` y su ritmo de ocupación; el bloque `$safeSpots` del propio archivo
+documenta el esquema. `npm run check:safespots` comprueba las cinco reglas.
+
+Cuando la sospecha pasa del 90% la pantalla se tiñe de rojo por los bordes: es
+el aviso de que el siguiente encontronazo es la amonestación y toca salir
+pitando a una sala o a tu puesto.
 
 ## Escondites con recarga
 
