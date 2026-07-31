@@ -91,7 +91,7 @@
         "chase": 1.8,
         "search": 1.4
       },
-      "trait": "Casi no se mueve, pero abarca medio pasillo con la mirada.",
+      "trait": "Casi no se mueve, pero abarca medio pasillo con la mirada. Y lo apunta todo.",
       "actionSheet": "crispo-acciones",
       "rig": "crispo"
     }

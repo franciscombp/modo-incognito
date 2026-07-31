@@ -110,6 +110,13 @@ en una captura.
 - **`scenes/piso7.json` → `areas`**: los rectángulos de zona no deben
   solaparse. Si añades o mueves una zona, revisa `x/z/w/d` contra las
   vecinas antes de dar por bueno el cambio.
+- **`scenes/piso7.json` → `safeSpots`**: son los ÚNICOS sitios donde se puede
+  fingir que trabajas. `kind: "meeting"` cubre con entrar pero se gasta
+  (`budget`) y se ocupa sola (`busyEvery`/`busyFor`); `kind: "desk"` no se
+  gasta pero solo cubre mientras finges. Si tocas `_updateSafeSpot` o el
+  orden en que `update()` resuelve fingir/lugar seguro, corre
+  `npm run check:safespots`: las dos cosas se pisan (fingir exige estar en un
+  sitio seguro, y tu puesto exige fingir) y es fácil dejar un ciclo tonto.
 - **`scenes/piso7.json` → `barriers`**: el muro que separa las alas. Su
   `door` es un hueco de verdad, y el navmesh cuenta con él: si lo cierras,
   medio piso deja de ser alcanzable y `npm run check:reachable` lo canta.
@@ -157,6 +164,15 @@ en una captura.
   `characters.json`/`modes.json`, mismo pliego 4x4 que el retrato de
   diálogo), no un emoji — no reintroduzcas emojis genéricos en la selección
   de personaje.
+
+## El builder (`builder/`)
+
+Editor 2D del plano y del día, sin build ni dependencias: se sirve el repo y
+se abre `http://localhost:8000/builder/`. Lee los mismos JSON que el juego y
+devuelve JSON para pegar — **no escribe en el repo a propósito**. Si añades un
+tipo de objeto nuevo a las escenas, añádele su entrada al registro `KINDS` de
+`builder/builder.js` (cómo se dibuja, qué campos tiene, qué sale al crearlo);
+el resto del editor no se toca.
 
 ## Cómo probar cambios
 

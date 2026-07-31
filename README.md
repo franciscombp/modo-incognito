@@ -88,6 +88,7 @@ código**.
 | El soundtrack procedural de respaldo (notas, tempo, mezcla) | [`src/game/soundtrackThemes.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrackThemes.js) |
 | Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrack.js) |
 | Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) |
+| Colocar zonas, tareas, lugares seguros… con el ratón | [`builder/`](https://github.com/franciscombp/modo-incognito/tree/main/builder) — ver «El builder» más abajo |
 | Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/style.css) |
 | Sprites de personajes | [`public/sprites/*.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/sprites) |
 | Ilustraciones grandes de actividades (opcional, con emoji de respaldo) | [`public/actions/<id>.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/actions) |
@@ -121,6 +122,33 @@ de `pixel-office/` y luego corre `npm run build:pages`.
 
 ¿Vas a usar un agente de IA (Claude Code u otro) para modificar el juego?
 Lee primero [`CLAUDE.md`](https://github.com/franciscombp/modo-incognito/blob/main/CLAUDE.md).
+
+## El builder: editar el plano y el día con el ratón
+
+En [`builder/`](https://github.com/franciscombp/modo-incognito/tree/main/builder)
+hay un editor 2D del plano (`scenes/*.json`) y del día (`levels/*.json`). No
+necesita npm ni build: se sirve el repo y se abre.
+
+```bash
+python3 serve.py            # o npm run preview desde pixel-office/
+# → http://localhost:8000/builder/
+```
+
+Carga los mismos archivos que lee el juego y te deja **arrastrar** zonas,
+actividades, lugares seguros, escondites, distracciones, NPC, secretos y
+plantas; redimensionar las zonas por sus esquinas; y editar todos sus campos
+en el panel de la derecha. La pestaña **Día** monta las reglas de la jornada:
+duración, amonestaciones, puntos objetivo, multiplicadores del jefe, su
+ronda, la correa, qué actividades son los objetivos (salen marcadas de las
+que existan en el plano) y qué secuaces entran y por dónde.
+
+Vigila en vivo la invariante que más se rompe: si dos zonas se solapan las
+pinta en rojo y lo dice, porque el motor no lo admite.
+
+El builder **no escribe en el repo a propósito**. Cuando termines, «Copiar
+escena JSON» / «Copiar día JSON» (o «Descargar los dos»), pegas en
+`pixel-office/public/data/…` y corres `npm run build:pages`. Así nunca te
+pisa un archivo por accidente y el diff lo revisas tú.
 
 ## Arquitectura del repo
 
@@ -351,7 +379,7 @@ Los **secuaces** (`minions` en `characters.json`) no te atrapan: te delatan.
 Si te ven haciendo algo prohibido llaman al jefe a ese punto y te suben la
 sospecha. Cada uno vigila distinto — **Chispita** corre por todo el piso con
 cono corto, **Washo** apenas se mueve pero te ve desde el otro extremo del
-ala, y **Crispo** está casi quieto abarcando medio pasillo. Cada día elige
+ala, y **Crispo** está casi quieta abarcando medio pasillo. Cada día elige
 cuáles salen y por qué ronda, en su JSON:
 
 ```json
@@ -447,6 +475,29 @@ Cada vigilante mira distinto, y el suelo lo dice sin texto:
 
 La forma se elige por personaje en `characters.json` con
 `"visionShape": "cone" | "radar"`.
+
+## Lugares seguros: dónde puedes fingir
+
+**Fingir que trabajas (F) solo funciona en un lugar seguro.** En mitad del
+pasillo, en la cafetería o en el baño no engañas a nadie. Hay dos tipos, y
+se comportan distinto a propósito:
+
+- **Salas de reuniones** — con entrar basta: se supone que estás reunida. Pero
+  cada una tiene un **cupo de segundos al día** que se gasta mientras estás
+  dentro y no se recarga, y cada tanto **llega gente a reunirse de verdad** y
+  la ocupa. El marcador del suelo se apaga cuando pasa cualquiera de las dos
+  cosas.
+- **Tu puesto** — nunca se gasta ni se ocupa, pero **solo te cubre mientras
+  finges**. Sentarte ahí de brazos cruzados no cuenta.
+
+Un lugar seguro es además lo único que corta una persecución ya comprometida
+(ver más abajo). Se declaran en `scenes/*.json` → `safeSpots`, con su `kind`,
+su `budget` y su ritmo de ocupación; el bloque `$safeSpots` del propio archivo
+documenta el esquema. `npm run check:safespots` comprueba las cinco reglas.
+
+Cuando la sospecha pasa del 90% la pantalla se tiñe de rojo por los bordes: es
+el aviso de que el siguiente encontronazo es la amonestación y toca salir
+pitando a una sala o a tu puesto.
 
 ## Escondites con recarga
 

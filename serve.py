@@ -12,6 +12,8 @@ Sirve la raíz del repositorio, que contiene el juego ya compilado
 compilar nada: toca los JSON de `data/` o los PNG de `sprites/` y recarga el
 navegador. Los cambios en `pixel-office/src/` sí necesitan `npm run build`.
 
+También sirve el editor de niveles: http://localhost:8000/builder/
+
 Nota: abrir index.html con doble clic (file://) NO funciona — el navegador
 bloquea los módulos y la carga de los JSON. Por eso este servidor.
 """
