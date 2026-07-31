@@ -839,6 +839,7 @@ window.addEventListener("keydown", (e) => {
     spawnEditMode = !spawnEditMode;
     toast(spawnEditMode ? "Modo INGRESO: haz clic donde debe aparecer el jugador" : "Modo ingreso desactivado");
     draw();
+    updateToolbar();
     return;
   }
   // B para boss spawn
@@ -847,6 +848,7 @@ window.addEventListener("keydown", (e) => {
     bossSpawnEditMode = !bossSpawnEditMode;
     toast(bossSpawnEditMode ? "Modo JEFE: haz clic donde debe aparecer el jefe" : "Modo jefe desactivado");
     draw();
+    updateToolbar();
     return;
   }
   // R para rutas
@@ -862,6 +864,7 @@ window.addEventListener("keydown", (e) => {
       toast("Modo rutas desactivado");
     }
     draw();
+    updateToolbar();
     return;
   }
   // F para footprint
@@ -871,6 +874,7 @@ window.addEventListener("keydown", (e) => {
     selectedFootprintNode = null;
     toast(footprintEditMode ? "Modo edición de piso: ACTIVADO (F para desactivar)" : "Modo edición de piso: desactivado");
     draw();
+    updateToolbar();
     return;
   }
   // Delete para nodos del footprint seleccionados
@@ -1226,14 +1230,44 @@ function download(name, text) {
   URL.revokeObjectURL(a.href);
 }
 
+function updateToolbar() {
+  document.querySelectorAll(".tool").forEach((btn) => {
+    btn.classList.remove("active");
+  });
+  if (spawnEditMode) document.getElementById("tool-spawn").classList.add("active");
+  if (bossSpawnEditMode) document.getElementById("tool-boss").classList.add("active");
+  if (routeEditMode) document.getElementById("tool-routes").classList.add("active");
+  if (footprintEditMode) document.getElementById("tool-footprint").classList.add("active");
+}
+
 // ------------------------------------------------------------------- arranque
 $("#copy-scene").onclick = () => state.scene && copy(sceneJSON(), "Plano");
 $("#copy-level").onclick = () => state.level && copy(levelJSON(), "Día");
 $("#download").onclick = () => {
   if (state.scene) download(`${state.scene.id ?? "escena"}.json`, sceneJSON());
-  if (state.level) download(`${state.level.id ?? "dia"}.json`, levelJSON());
+  setTimeout(() => {
+    if (state.level) download(`${state.level.id ?? "dia"}.json`, levelJSON());
+  }, 200);
 };
 $("#reload").onclick = loadFromGame;
+
+// Toolbar click handlers
+document.getElementById("tool-spawn").onclick = () => {
+  const key = new KeyboardEvent("keydown", { key: "s" });
+  window.dispatchEvent(key);
+};
+document.getElementById("tool-boss").onclick = () => {
+  const key = new KeyboardEvent("keydown", { key: "b" });
+  window.dispatchEvent(key);
+};
+document.getElementById("tool-routes").onclick = () => {
+  const key = new KeyboardEvent("keydown", { key: "r" });
+  window.dispatchEvent(key);
+};
+document.getElementById("tool-footprint").onclick = () => {
+  const key = new KeyboardEvent("keydown", { key: "f" });
+  window.dispatchEvent(key);
+};
 
 function readFile(input, apply) {
   input.onchange = () => {
