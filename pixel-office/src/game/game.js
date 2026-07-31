@@ -282,13 +282,19 @@ export class Game {
       ) ?? null;
 
     // The compass always points at the closest thing still to do, so you are
-    // never left wondering where the next task is.
-    this.focusStation = this.objectives
-      .filter((s) => !s.done)
-      .reduce((best, s) => {
-        const d = Math.hypot(s.x - pos.x, s.z - pos.z);
-        return !best || d < best._d ? Object.assign(s, { _d: d }) : best;
-      }, null);
+    // never left wondering where the next task is. Un `for` sencillo en vez
+    // de filter+reduce+Object.assign: eso corría cada frame y de paso
+    // mutaba los objetivos con un campo `_d` que nadie leía después.
+    this.focusStation = null;
+    let focusDist = Infinity;
+    for (const s of this.objectives) {
+      if (s.done) continue;
+      const d = Math.hypot(s.x - pos.x, s.z - pos.z);
+      if (d < focusDist) {
+        focusDist = d;
+        this.focusStation = s;
+      }
+    }
 
     if (this.nearStation && holdingE && !holdingF) {
       this.player.isDoingActivity = true;
@@ -349,8 +355,13 @@ export class Game {
     this.boss.suspicion = this.suspicion;
 
     // Un NPC apagado (el doble del personaje elegido) tampoco tapa la vista
-    // del jefe: no está ahí para nadie.
-    const liveNpcs = this.npcs.filter((n) => n.active !== false);
+    // del jefe: no está ahí para nadie. Se reutiliza el mismo array entre
+    // frames en vez de `.filter()` (que aloja uno nuevo cada vez) — el jefe
+    // y cada secuaz vuelven a pedir esta lista todos los frames.
+    this._liveNpcsBuf = this._liveNpcsBuf ?? [];
+    this._liveNpcsBuf.length = 0;
+    for (const n of this.npcs) if (n.active !== false) this._liveNpcsBuf.push(n);
+    const liveNpcs = this._liveNpcsBuf;
     this.boss.update(dt, this.player, liveNpcs);
     this.minions.forEach((m) => m.update(dt, this.player, liveNpcs));
     this._updateMinionCatch();

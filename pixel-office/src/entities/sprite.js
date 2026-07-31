@@ -139,6 +139,12 @@ export class CharacterSprite {
    */
   setSheet(sheet) {
     if (!sheet) return;
+    // Cada setSheet()/setActionSheet() clona la textura (necesita su propio
+    // offset/repeat por instancia) — sin disponer el clon anterior, elegir
+    // personaje varias veces en una partida (menú de pausa, easter eggs) iba
+    // dejando texturas huérfanas en la GPU.
+    this.texture?.dispose();
+    this._poseSheet?.dispose();
     this.texture = sheet.clone();
     this.texture.needsUpdate = true;
     this.texture.repeat.set(1 / FRAME_COLS, 1 / FRAME_ROWS);
@@ -156,6 +162,7 @@ export class CharacterSprite {
    */
   setActionSheet(sheet) {
     if (!sheet) return;
+    this._poseSheet?.dispose();
     this._poseSheet = sheet.clone();
     this._poseSheet.needsUpdate = true;
     this._poseSheet.repeat.set(1 / FRAME_COLS, 1 / FRAME_ROWS);
