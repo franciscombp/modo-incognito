@@ -622,13 +622,15 @@ function closestFootprintSegment(plan) {
 
 function routeNodeAt(plan, routeName) {
   const route = state.scene?.routes?.[routeName] ?? [];
-  const grab = 10 / state.view.scale;
+  const grab = 30 / state.view.scale; // Aumentado de 10 a 30
   for (let i = 0; i < route.length; i++) {
     const { x, z } = route[i];
     if (Math.abs(x - plan.x) < grab && Math.abs(z - plan.z) < grab) {
+      console.log(`Nodo encontrado en ruta ${routeName}: índice ${i}, distancia x: ${Math.abs(x - plan.x).toFixed(2)}, z: ${Math.abs(z - plan.z).toFixed(2)}, grab: ${grab.toFixed(2)}`);
       return i;
     }
   }
+  console.log(`Ningún nodo encontrado en ruta ${routeName}. Grab: ${grab.toFixed(2)}`);
   return null;
 }
 
@@ -693,7 +695,13 @@ function closestRouteSegment(plan, routeName) {
       closest = { segment: i, t, px, pz };
     }
   }
-  return minDist < 20 / state.view.scale ? closest : null;
+  const maxGrab = 40 / state.view.scale; // Aumentado de 20 a 40
+  if (minDist < maxGrab) {
+    console.log(`Segmento encontrado en ruta ${routeName}: segmento ${closest.segment}, distancia: ${minDist.toFixed(2)}, maxGrab: ${maxGrab.toFixed(2)}`);
+    return closest;
+  }
+  console.log(`Ningún segmento encontrado en ruta ${routeName}. MinDist: ${minDist.toFixed(2)}, maxGrab: ${maxGrab.toFixed(2)}`);
+  return null;
 }
 
 function barrierAt(plan) {
