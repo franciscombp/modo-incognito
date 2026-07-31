@@ -6,6 +6,8 @@ let currentThemeName = null;
 let isPlaying = false;
 let currentSequences = { bass: null, lead: null, pad: null };
 let synths = {};
+let synthsInitialized = false;
+let audioStarted = false;
 
 const THEMES = {
   main: {
@@ -74,61 +76,114 @@ const THEMES = {
 };
 
 async function initSynths() {
-  synths.bass = new Tone.Synth({
-    oscillator: { type: "triangle" },
-    envelope: { attack: 0.01, decay: 0.15, sustain: 0.2, release: 0.2 },
-  }).toDestination();
+  if (synthsInitialized) return;
+  try {
+    synths.bass = new Tone.Synth({
+      oscillator: { type: "triangle" },
+      envelope: { attack: 0.01, decay: 0.15, sustain: 0.2, release: 0.2 },
+    }).toDestination();
 
-  synths.lead = new Tone.PluckSynth({ attackNoise: 0.6, dampening: 3200, resonance: 0.82 }).toDestination();
+    synths.lead = new Tone.PluckSynth({ attackNoise: 0.6, dampening: 3200, resonance: 0.82 }).toDestination();
 
-  synths.pad = new Tone.PolySynth(Tone.Synth, {
-    oscillator: { type: "sine" },
-    envelope: { attack: 0.4, decay: 0.3, sustain: 0.6, release: 1.2 },
-  }).toDestination();
+    synths.pad = new Tone.PolySynth(Tone.Synth, {
+      oscillator: { type: "sine" },
+      envelope: { attack: 0.4, decay: 0.3, sustain: 0.6, release: 1.2 },
+    }).toDestination();
+
+    synthsInitialized = true;
+  } catch (e) {
+    console.error("Error inicializando sintetizadores:", e);
+  }
 }
 
 async function startAudio() {
-  if (Tone.Synth.maxPolyphony) return; // ya inició
-  await Tone.start();
-  await initSynths();
-  if (Tone.Transport.state !== "started") Tone.Transport.start();
+  if (audioStarted) return;
+  try {
+    await Tone.start();
+    audioStarted = true;
+    await initSynths();
+    if (Tone.Transport.state !== "started") {
+      Tone.Transport.start();
+    }
+  } catch (e) {
+    console.error("Error iniciando audio:", e);
+  }
 }
 
 function stopSequences() {
-  Object.values(currentSequences).forEach(seq => seq?.dispose());
+  Object.values(currentSequences).forEach(seq => {
+    if (seq) {
+      try {
+        seq.stop();
+        seq.dispose();
+      } catch (e) {
+        console.error("Error deteniendo secuencia:", e);
+      }
+    }
+  });
   currentSequences = { bass: null, lead: null, pad: null };
-  Tone.Transport.cancel();
+
+  // Cancelar todas las notas programadas
+  try {
+    if (Tone.Transport && Tone.Transport.cancel) {
+      Tone.Transport.cancel();
+    }
+  } catch (e) {
+    console.error("Error cancelando Transport:", e);
+  }
 }
 
 function makeSequence(pattern, steps, synth) {
-  if (!pattern || !pattern.length) return null;
-  return new Tone.Loop((time) => {
-    pattern.forEach((note, i) => {
-      if (note == null) return;
-      const stepTime = time + (i / pattern.length) * 0.5; // duración del patrón
-      synth.triggerAttackRelease(note, "8n", stepTime);
-    });
-  }, "4n").start(0);
+  if (!pattern || !pattern.length || !synth) return null;
+  try {
+    return new Tone.Loop((time) => {
+      pattern.forEach((note, i) => {
+        if (note == null || !synth) return;
+        try {
+          const stepTime = time + (i / pattern.length) * 0.5;
+          if (Array.isArray(note)) {
+            synth.triggerAttackRelease(note, "8n", stepTime);
+          } else {
+            synth.triggerAttackRelease(note, "8n", stepTime);
+          }
+        } catch (e) {
+          console.error("Error en nota:", e);
+        }
+      });
+    }, "4n").start(0);
+  } catch (e) {
+    console.error("Error creando Loop:", e);
+    return null;
+  }
 }
 
 function playTheme(theme) {
-  stopSequences();
-  if (!theme) return;
+  if (!theme || !synthsInitialized) return;
 
-  Tone.Transport.bpm.rampTo(theme.bpm, 0.6);
+  try {
+    stopSequences();
 
-  if (theme.bass?.length) {
-    currentSequences.bass = makeSequence(theme.bass, theme.steps, synths.bass);
-  }
-  if (theme.lead?.length) {
-    currentSequences.lead = makeSequence(theme.lead, theme.steps, synths.lead);
-  }
-  if (theme.pad?.length) {
-    currentSequences.pad = makeSequence(theme.pad, theme.steps, synths.pad);
-  }
+    if (Tone.Transport && Tone.Transport.bpm) {
+      Tone.Transport.bpm.rampTo(theme.bpm, 0.6);
+    }
 
-  isPlaying = true;
-  updateUI();
+    if (theme.bass?.length && synths.bass) {
+      currentSequences.bass = makeSequence(theme.bass, theme.steps, synths.bass);
+    }
+    if (theme.lead?.length && synths.lead) {
+      currentSequences.lead = makeSequence(theme.lead, theme.steps, synths.lead);
+    }
+    if (theme.pad?.length && synths.pad) {
+      currentSequences.pad = makeSequence(theme.pad, theme.steps, synths.pad);
+    }
+
+    isPlaying = true;
+    updateUI();
+  } catch (e) {
+    console.error("Error reproduciendo tema:", e);
+    isPlaying = false;
+    updateUI();
+  }
 }
 
 function stopPlayback() {
@@ -333,9 +388,19 @@ document.getElementById("import-theme").addEventListener("change", (e) => {
 });
 
 document.getElementById("play-theme").addEventListener("click", async () => {
-  await startAudio();
-  playTheme(currentTheme);
-  toast("▶ Reproduciendo…");
+  if (!currentTheme) {
+    toast("❌ Selecciona un tema primero");
+    return;
+  }
+  try {
+    await startAudio();
+    await new Promise(r => setTimeout(r, 100)); // espera a que synthsInitialized
+    playTheme(currentTheme);
+    toast("▶ Reproduciendo…");
+  } catch (e) {
+    console.error("Error reproduciendo:", e);
+    toast("❌ Error al reproducir");
+  }
 });
 
 document.getElementById("stop-play").addEventListener("click", () => {
@@ -375,6 +440,9 @@ document.getElementById("clear-theme").addEventListener("click", () => {
 });
 
 // Startup
-document.addEventListener("click", startAudio, { once: true });
-document.addEventListener("keydown", startAudio, { once: true });
+const safeStartAudio = () => {
+  startAudio().catch(e => console.error("Audio startup error:", e));
+};
+document.addEventListener("click", safeStartAudio, { once: true });
+document.addEventListener("keydown", safeStartAudio, { once: true });
 updateUI();
