@@ -797,16 +797,23 @@ canvas.addEventListener("pointerdown", (e) => {
     const clickedRouteName = routeAt(plan);
     console.log("Resultado de routeAt:", clickedRouteName);
     if (clickedRouteName !== null) {
+      console.log("Seleccionando ruta:", clickedRouteName);
       selectedRouteName = clickedRouteName;
       selectedRouteNode = null;
+      console.log("selectedRouteName ahora es:", selectedRouteName);
       toast(`Ruta "${selectedRouteName}" seleccionada`);
       draw();
+      console.log("Se llamó a draw()");
       return;
     }
 
+    console.log("clickedRouteName es null, selectedRouteName actual:", selectedRouteName);
+
     // Si hay una ruta seleccionada, intentar mover un nodo o agregar uno nuevo
     if (selectedRouteName !== null) {
+      console.log("Hay ruta seleccionada, buscando nodo...");
       const nodeIdx = routeNodeAt(plan, selectedRouteName);
+      console.log("Nodo encontrado:", nodeIdx);
       if (nodeIdx !== null) {
         selectedRouteNode = nodeIdx;
         drag = { mode: "route-node-drag", routeName: selectedRouteName, nodeIndex: nodeIdx };
@@ -815,7 +822,9 @@ canvas.addEventListener("pointerdown", (e) => {
       }
       // Si se hace clic con botón izquierdo, intentar agregar nodo
       if (e.button === 0) {
+        console.log("Buscando segmento para agregar nodo...");
         const segment = closestRouteSegment(plan, selectedRouteName);
+        console.log("Segmento encontrado:", segment);
         if (segment) {
           // Insertar nodo en el segmento más cercano
           const insertIdx = segment.segment + 1;
