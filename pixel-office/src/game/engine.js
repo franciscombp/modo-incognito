@@ -106,6 +106,12 @@ export function createEngine({
   const ctx = {
     setFlag: (name, value) => save.setFlag(name, value),
     getFlag: (name) => save.getFlag(name),
+    // El sprite del personaje elegido AHORA MISMO — nameToSheet.get(playerName)
+    // ya se actualiza en selectCharacter, pero se resuelve como función (no
+    // un valor guardado) para que las réplicas de diálogo escritas a mano en
+    // dialogue.js (los "Tú" que arma un `reply`, no un node del JSON) también
+    // sigan al personaje si cambia a media partida.
+    getPlayerSheet: () => nameToSheet.get(playerName),
     // Dialogue options in the JSON name their effect as a string; route it to
     // whichever system owns it.
     applyEffect: (name) => {
@@ -211,7 +217,12 @@ export function createEngine({
       selectCharacter: (id) => {
         save.setCharacter(id);
         // El sprite se cambia en caliente: elegir personaje pasa con el juego
-        // ya montado, no al arrancar.
+        // ya montado, no al arrancar. nameToSheet también, o el retrato de
+        // diálogo se queda enseñando al personaje con el que se abrió el
+        // juego para siempre, aunque elijas otro.
+        const sheet = modes[id]?.sheet ?? playerSheet;
+        nameToSheet.set(playerName, sheet);
+        nameToSheet.set("Tú", sheet);
         onCharacter?.(id);
       },
     },
