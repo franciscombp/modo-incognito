@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modo Incógnito - Level Builder</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: "Segoe UI", system-ui, sans-serif;
+      background: #05060a;
+      color: #e8f3ff;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    #root {
+      display: flex;
+      height: 100vh;
+    }
+
+    #canvas {
+      flex: 1;
+      background: #0a0f1a;
+      border-right: 2px solid #45e0d0;
+    }
+
+    #panel {
+      width: 320px;
+      background: #0a0f1a;
+      border-left: 2px solid #45e0d0;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #panel-title {
+      padding: 16px;
+      border-bottom: 2px solid #45e0d0;
+      font-size: 18px;
+      font-weight: bold;
+      color: #45e0d0;
+    }
+
+    #panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .control-group {
+      margin-bottom: 20px;
+    }
+
+    .control-label {
+      display: block;
+      font-size: 12px;
+      color: #45e0d0;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      border: 2px solid #45e0d0;
+      background: rgba(69, 224, 208, 0.1);
+      color: #e8f3ff;
+      font-family: inherit;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: rgba(69, 224, 208, 0.2);
+    }
+
+    input[type="text"], input[type="number"], select {
+      cursor: text;
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .status {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      padding: 12px 16px;
+      background: rgba(69, 224, 208, 0.2);
+      border: 2px solid #45e0d0;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: #7d8ba5;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <canvas id="canvas"></canvas>
+    <div id="panel">
+      <div id="panel-title">Editor de Niveles</div>
+      <div id="panel-content">
+        <div class="control-group">
+          <label class="control-label">Nombre del Nivel</label>
+          <input type="text" id="levelName" placeholder="Ej: Día 1 - Escape">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Tipo de Objeto</label>
+          <select id="objectType">
+            <option value="activity">Actividad</option>
+            <option value="safe-spot">Lugar Seguro</option>
+            <option value="npc">NPC</option>
+            <option value="obstacle">Obstáculo</option>
+            <option value="spawn">Punto de Inicio</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Posición X</label>
+          <input type="number" id="posX" value="10">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">Posición Z</label>
+          <input type="number" id="posZ" value="10">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label">ID/Nombre</label>
+          <input type="text" id="objectId" placeholder="coffee, desk-01, etc">
+        </div>
+
+        <div class="button-group">
+          <button onclick="addObject()">Agregar</button>
+          <button onclick="clearSelected()">Limpiar</button>
+        </div>
+
+        <div class="button-group" style="margin-top: 20px;">
+          <button onclick="exportJSON()">Exportar JSON</button>
+          <button onclick="importJSON()">Importar JSON</button>
+        </div>
+
+        <div class="hint">
+          💡 Haz clic en el canvas para mover objetos.<br>
+          Presiona DEL para eliminar el objeto seleccionado.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="status" id="status">Listo</div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let objects = [];
+    let selectedObject = null;
+    let isDragging = false;
+
+    // Resize canvas
+    function resizeCanvas() {
+      const rect = canvas.parentElement.getBoundingClientRect();
+      canvas.width = rect.width;
+      canvas.height = rect.height;
+      draw();
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0a0f1a';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Grid
+      ctx.strokeStyle = 'rgba(69, 224, 208, 0.1)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < canvas.width; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, canvas.height);
+        ctx.stroke();
+      }
+      for (let i = 0; i < canvas.height; i += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(canvas.width, i);
+        ctx.stroke();
+      }
+
+      // Objects
+      objects.forEach((obj, idx) => {
+        const isSelected = selectedObject === idx;
+        ctx.fillStyle = isSelected ? '#45e0d0' : getColorForType(obj.type);
+        ctx.fillRect(obj.x - 15, obj.y - 15, 30, 30);
+
+        if (isSelected) {
+          ctx.strokeStyle = '#fff';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(obj.x - 18, obj.y - 18, 36, 36);
+        }
+
+        ctx.fillStyle = '#05060a';
+        ctx.font = 'bold 10px monospace';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(obj.id.substring(0, 3), obj.x, obj.y);
+      });
+    }
+
+    function getColorForType(type) {
+      const colors = {
+        'activity': '#a8e05f',
+        'safe-spot': '#45e0d0',
+        'npc': '#ff4ecd',
+        'obstacle': '#ff4d5e',
+        'spawn': '#f2c744',
+      };
+      return colors[type] || '#fff';
+    }
+
+    function addObject() {
+      const type = document.getElementById('objectType').value;
+      const x = parseInt(document.getElementById('posX').value);
+      const z = parseInt(document.getElementById('posZ').value);
+      const id = document.getElementById('objectId').value;
+
+      if (!id) {
+        updateStatus('⚠️ Ingresa un ID para el objeto');
+        return;
+      }
+
+      objects.push({ type, x, z, id, screenX: x * 2, screenY: z * 2 });
+      selectedObject = objects.length - 1;
+      updateStatus(`✓ Objeto "${id}" agregado`);
+      draw();
+    }
+
+    function clearSelected() {
+      if (selectedObject !== null) {
+        objects.splice(selectedObject, 1);
+        selectedObject = null;
+        draw();
+        updateStatus('Objeto eliminado');
+      }
+    }
+
+    function exportJSON() {
+      const level = {
+        id: document.getElementById('levelName').value || 'untitled',
+        objects: objects.map(o => ({
+          id: o.id,
+          type: o.type,
+          x: o.x,
+          z: o.z,
+        }))
+      };
+
+      const json = JSON.stringify(level, null, 2);
+      const blob = new Blob([json], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${level.id}.json`;
+      a.click();
+      updateStatus('✓ JSON exportado');
+    }
+
+    function importJSON() {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          try {
+            const data = JSON.parse(evt.target.result);
+            objects = data.objects.map(o => ({
+              ...o,
+              screenX: o.x * 2,
+              screenY: o.z * 2,
+            }));
+            document.getElementById('levelName').value = data.id;
+            draw();
+            updateStatus(`✓ ${objects.length} objetos importados`);
+          } catch (err) {
+            updateStatus('❌ Error al importar JSON');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    }
+
+    function updateStatus(msg) {
+      document.getElementById('status').textContent = msg;
+      setTimeout(() => {
+        document.getElementById('status').textContent = 'Listo';
+      }, 3000);
+    }
+
+    // Events
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      selectedObject = null;
+      for (let i = 0; i < objects.length; i++) {
+        if (Math.hypot(objects[i].screenX - x, objects[i].screenY - y) < 15) {
+          selectedObject = i;
+          isDragging = true;
+          break;
+        }
+      }
+      draw();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      if (!isDragging || selectedObject === null) return;
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      objects[selectedObject].screenX = x;
+      objects[selectedObject].screenY = y;
+      objects[selectedObject].x = Math.round(x / 2);
+      objects[selectedObject].z = Math.round(y / 2);
+      document.getElementById('posX').value = objects[selectedObject].x;
+      document.getElementById('posZ').value = objects[selectedObject].z;
+      draw();
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      isDragging = false;
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Delete' && selectedObject !== null) {
+        clearSelected();
+      }
+    });
+
+    // Sync inputs
+    document.getElementById('posX').addEventListener('change', () => {
+      if (selectedObject !== null) {
+        objects[selectedObject].x = parseInt(document.getElementById('posX').value);
+        objects[selectedObject].screenX = objects[selectedObject].x * 2;
+        draw();
+      }
+    });
+
+    document.getElementById('posZ').addEventListener('change', () => {
+      if (selectedObject !== null) {
+        objects[selectedObject].z = parseInt(document.getElementById('posZ').value);
+        objects[selectedObject].screenY = objects[selectedObject].z * 2;
+        draw();
+      }
+    });
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    draw();
+  </script>
+</body>
+</html>
