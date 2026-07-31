@@ -13,6 +13,33 @@
 // sin tener que escribir patrones distintos para el bajo.
 
 export const THEMES = {
+  // Tema principal: enérgico, tempo rápido (135 BPM), progresión Bb -> Cm -> Bb -> Ab.
+  // Bajo de corcheas pulsantes en octavas + ritmo sincopado de lead. Extraído de la
+  // partitura del tema principal compuesto.
+  main: {
+    bpm: 135,
+    steps: 8,
+    bass: [
+      "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2",
+      "C2", "C3", "C2", "C3", "C2", "C3", "C2", "C3",
+      "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2", "Bb1", "Bb2",
+      "Ab1", "Ab2", "Ab1", "Ab2", "Ab1", "Ab2", "Ab1", "Ab2"
+    ],
+    lead: [
+      null, "F4", null, "F4", "F4", null, "F4", null,
+      null, "G4", null, "G4", "G4", null, "G4", null,
+      null, "F4", null, "F4", "F4", null, "F4", null,
+      null, "Eb4", null, "Eb4", "Eb4", null, "Eb4", null
+    ],
+    pad: [
+      ["Bb3", "D4", "F4"], null, null, null, null, null, null, null,
+      ["C4", "Eb4", "G4"], null, null, null, null, null, null, null,
+      ["Bb3", "D4", "F4"], null, null, null, null, null, null, null,
+      ["Ab3", "C4", "Eb4"], null, null, null, null, null, null, null
+    ],
+    mix: { bass: 0.8, lead: 0.75, pad: 0.4, perc: 0.5 },
+  },
+
   // Menú de título: relajado, de sobremesa.
   title: {
     bpm: 104,
