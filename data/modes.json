@@ -21,7 +21,8 @@
       "alias": "Dora la criticona",
       "role": "Diseñador",
       "portrait": "🕵️‍♂️",
-      "sheet": "npc-camina",
+      "sheet": "fran-camina",
+      "actionSheet": "fran-acciones",
       "difficulty": "normal",
       "blurb": "Tiene antigüedad. Puede acumular hasta 3 amonestaciones y a los secuaces cuesta más hacerles caso.",
       "playable": true,
@@ -57,6 +58,21 @@
       "playable": true,
       "rules": {
         "explore": true
+      }
+    },
+    "manu": {
+      "name": "Manu",
+      "alias": "Manu de la suerte",
+      "role": "Desarrollador",
+      "portrait": "👨‍💻",
+      "sheet": "manu-camina",
+      "actionSheet": "manu-acciones",
+      "difficulty": "intermedio",
+      "blurb": "Programador con suerte. Puede acumular 2 amonestaciones, pero los secuaces lo ignoran más que a otros.",
+      "playable": true,
+      "rules": {
+        "maxWarnings": 2,
+        "minionSuspicionMul": 0.5
       }
     },
     "gabo": {
