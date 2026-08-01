@@ -5,6 +5,8 @@ import { buildSkeleton, skinGeometry, rigidGeometry } from "./skinning.js";
 import { faceTexture, projectFaceUVs } from "./face.js";
 import { loadBaseModel, peekBaseModel, instantiateBase, modelUrlFor, loadFaceSheet } from "./baseModel.js";
 import { attachFaceSheet } from "./faceSheet.js";
+import { getProp, clearPropCache } from "../game/propModels.js";
+import { getFurniture, clearFurnitureCache } from "../game/furnitureModels.js";
 
 /**
  * PERSONAJES 3D COZY, CON ESQUELETO DE VERDAD.
@@ -169,12 +171,20 @@ const POSE_LIBRARY = {
     hands: "open",
     a: { torso: [0.14, 0, 0], head: [0.2, 0, 0], armL: [-1.35, 0, 0.25], armR: [-1.4, 0, -0.25], elbowL: [-0.75, 0, 0], elbowR: [-0.68, 0, 0] },
     b: { torso: [0.14, 0, 0], head: [0.22, 0, 0], armL: [-1.42, 0, 0.25], armR: [-1.32, 0, -0.25], elbowL: [-0.62, 0, 0], elbowR: [-0.82, 0, 0] },
+    context: {
+      props: [{ name: "documents", bone: "LeftHand", offset: [0.02, -0.02, 0], rotation: [0, 0, 0] }],
+      furniture: [],
+    },
   },
   sleep: {
     speed: 1.1,
     prop: null,
     a: { torso: [0.16, 0, 0.05], head: [0.4, 0, 0.3], armL: [0.1, 0, 0.16], armR: [0.1, 0, -0.16], lift: -0.012 },
     b: { torso: [0.2, 0, 0.05], head: [0.46, 0, 0.34], armL: [0.14, 0, 0.16], armR: [0.14, 0, -0.16], lift: 0.006 },
+    context: {
+      props: [],
+      furniture: [{ name: "bed", position: [0, 0, 0.2], rotation: [0, 0, 0] }],
+    },
   },
   coffee: {
     speed: 1.5,
@@ -182,18 +192,33 @@ const POSE_LIBRARY = {
     hands: "grip",
     a: { head: [0.06, -0.1, 0], armR: [-1.15, 0, -0.2], elbowR: [-1.5, 0, 0], armL: [0, 0, 0.22] },
     b: { head: [-0.04, -0.1, 0], armR: [-0.72, 0, -0.3], elbowR: [-1.05, 0, 0], armL: [0, 0, 0.22] },
+    context: {
+      props: [{ name: "coffee", bone: "RightHand", offset: [0, -0.08, 0], rotation: [0, 0, 0] }],
+      furniture: [],
+    },
   },
   eat: {
     speed: 1.9,
     prop: "plate",
     a: { head: [0.12, 0, 0], armL: [-1.0, 0, 0.3], elbowL: [-1.15, 0, 0], armR: [-1.1, 0, -0.2], elbowR: [-1.5, 0, 0] },
     b: { head: [0.0, 0, 0], armL: [-1.0, 0, 0.3], elbowL: [-1.15, 0, 0], armR: [-0.8, 0, -0.3], elbowR: [-0.95, 0, 0] },
+    context: {
+      props: [{ name: "food", bone: "LeftHand", offset: [0.02, -0.05, 0], rotation: [0, 0, 0] }],
+      furniture: [],
+    },
   },
   movie: {
     speed: 0.9,
     prop: null,
     a: { head: [-0.14, 0.06, 0], armL: [-0.95, 0, 0.55], elbowL: [-1.75, 0, -0.6], armR: [-0.88, 0, -0.55], elbowR: [-1.8, 0, 0.6] },
     b: { head: [-0.12, -0.06, 0], armL: [-0.98, 0, 0.55], elbowL: [-1.7, 0, -0.6], armR: [-0.91, 0, -0.55], elbowR: [-1.85, 0, 0.6] },
+    context: {
+      props: [{ name: "popcorn", bone: "LeftHand", offset: [0, -0.08, 0], rotation: [0, 0, 0] }],
+      furniture: [
+        { name: "puff", position: [0, 0, 0.15], rotation: [0, 0, 0] },
+        { name: "tv", position: [0.35, 0.3, -0.5], rotation: [0, 0, 0] },
+      ],
+    },
   },
   phone: {
     speed: 1.7,
@@ -201,6 +226,10 @@ const POSE_LIBRARY = {
     hands: "grip",
     a: { head: [0.28, -0.1, 0], torso: [0.05, 0, 0], armR: [-1.0, 0, -0.25], elbowR: [-1.2, 0, 0], armL: [-0.6, 0, 0.3], elbowL: [-1.1, 0, 0] },
     b: { head: [0.24, -0.08, 0], torso: [0.05, 0, 0], armR: [-0.95, 0, -0.28], elbowR: [-1.32, 0, 0], armL: [-0.6, 0, 0.3], elbowL: [-1.1, 0, 0] },
+    context: {
+      props: [{ name: "phone", bone: "RightHand", offset: [0, -0.05, 0], rotation: [0.2, 0, 0] }],
+      furniture: [],
+    },
   },
   scared: {
     speed: 5.5,
@@ -208,6 +237,10 @@ const POSE_LIBRARY = {
     hands: "open",
     a: { torso: [-0.2, 0, 0], head: [-0.22, 0.1, 0], armL: [-2.3, 0, 0.6], elbowL: [-0.5, 0, 0], armR: [-2.25, 0, -0.6], elbowR: [-0.5, 0, 0], lift: 0.01 },
     b: { torso: [-0.16, 0, 0], head: [-0.2, -0.1, 0], armL: [-2.4, 0, 0.7], elbowL: [-0.4, 0, 0], armR: [-2.35, 0, -0.7], elbowR: [-0.4, 0, 0], lift: 0 },
+    context: {
+      props: [],
+      furniture: [],
+    },
   },
   // Sentada. Los muslos van al frente y las rodillas devuelven la espinilla a
   // la vertical; la cadera BAJA a la altura de una silla — sin eso el
@@ -218,6 +251,10 @@ const POSE_LIBRARY = {
     hands: "relax",
     a: { torso: [0.04, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [0.1, 0, 0.16], armR: [0.1, 0, -0.16], lift: -0.082 },
     b: { torso: [0.06, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [0.13, 0, 0.16], armR: [0.13, 0, -0.16], lift: -0.08 },
+    context: {
+      props: [],
+      furniture: [{ name: "puff", position: [0, 0, 0.15], rotation: [0, 0, 0] }],
+    },
   },
   // Sentada y tecleando: es la postura real de la oficina, y la que hace que
   // "fingir que trabajas" se lea de un vistazo.
@@ -227,12 +264,23 @@ const POSE_LIBRARY = {
     hands: "open",
     a: { torso: [0.16, 0, 0], head: [0.16, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [-1.2, 0, 0.22], armR: [-1.25, 0, -0.22], elbowL: [-0.7, 0, 0], elbowR: [-0.62, 0, 0], lift: -0.082 },
     b: { torso: [0.16, 0, 0], head: [0.17, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [-1.27, 0, 0.22], armR: [-1.18, 0, -0.22], elbowL: [-0.58, 0, 0], elbowR: [-0.76, 0, 0], lift: -0.082 },
+    context: {
+      props: [],
+      furniture: [
+        { name: "office_chair", position: [0.2, 0, 0], rotation: [0, 0, 0] },
+        { name: "desk", position: [-0.3, 0.3, -0.3], rotation: [0, 0, 0] },
+      ],
+    },
   },
   shrug: {
     speed: 1.3,
     prop: null,
     a: { head: [0.05, 0, 0.16], armL: [-0.2, 0, 1.15], elbowL: [-1.1, 0, 0], armR: [-0.2, 0, -1.1], elbowR: [-1.05, 0, 0], lift: 0.008 },
     b: { head: [0.02, 0, 0.2], armL: [-0.15, 0, 1.25], elbowL: [-1.2, 0, 0], armR: [-0.15, 0, -1.2], elbowR: [-1.15, 0, 0], lift: 0.012 },
+    context: {
+      props: [],
+      furniture: [],
+    },
   },
 };
 
@@ -495,6 +543,8 @@ export class Character3D {
     this._extras = [];
     this._props = {};
     this._tint = 1;
+    this._activePropsByBone = new Map();
+    this._activeFurniture = [];
 
     this.facing = "south";
     this._yaw = 0;
@@ -1052,6 +1102,84 @@ export class Character3D {
     this._poseName = name ?? null;
     this._pose = name ? POSE_LIBRARY[name] ?? null : null;
     this._poseT = 0;
+    this._loadPoseContext();
+  }
+
+  _cleanupPoseProps() {
+    for (const [bone, prop] of this._activePropsByBone) {
+      bone.remove(prop);
+    }
+    this._activePropsByBone.clear();
+
+    for (const furniture of this._activeFurniture) {
+      this.object.remove(furniture);
+      furniture.traverse((obj) => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach((m) => m.dispose());
+          } else {
+            obj.material.dispose();
+          }
+        }
+      });
+    }
+    this._activeFurniture = [];
+  }
+
+  _loadPoseContext() {
+    this._cleanupPoseProps();
+    if (!this._pose || !this._built) return;
+
+    const context = this._pose.context;
+    if (!context) return;
+
+    const { byName } = this._built;
+
+    if (context.props && Array.isArray(context.props)) {
+      for (const propDef of context.props) {
+        const prop = getProp(propDef.name);
+        if (!prop) continue;
+
+        const bone = byName.get(propDef.bone);
+        if (!bone) continue;
+
+        prop.position.set(
+          propDef.offset[0],
+          propDef.offset[1],
+          propDef.offset[2]
+        );
+        prop.rotation.set(
+          propDef.rotation[0],
+          propDef.rotation[1],
+          propDef.rotation[2]
+        );
+
+        bone.add(prop);
+        this._activePropsByBone.set(bone, prop);
+      }
+    }
+
+    if (context.furniture && Array.isArray(context.furniture)) {
+      for (const furnDef of context.furniture) {
+        const furniture = getFurniture(furnDef.name);
+        if (!furniture) continue;
+
+        furniture.position.set(
+          this.object.position.x + furnDef.position[0],
+          this.object.position.y + furnDef.position[1],
+          this.object.position.z + furnDef.position[2]
+        );
+        furniture.rotation.set(
+          furnDef.rotation[0],
+          furnDef.rotation[1],
+          furnDef.rotation[2]
+        );
+
+        this.object.add(furniture);
+        this._activeFurniture.push(furniture);
+      }
+    }
   }
 
   /**
@@ -1086,6 +1214,22 @@ export class Character3D {
   setPosition(x, z) {
     this.object.position.x = x;
     this.object.position.z = z;
+    this._updateFurniturePositions();
+  }
+
+  _updateFurniturePositions() {
+    if (!this._pose || !this._pose.context?.furniture) return;
+    const context = this._pose.context;
+    for (let i = 0; i < this._activeFurniture.length; i++) {
+      const furniture = this._activeFurniture[i];
+      const furnDef = context.furniture[i];
+      if (!furnDef) continue;
+      furniture.position.set(
+        this.object.position.x + furnDef.position[0],
+        this.object.position.y + furnDef.position[1],
+        this.object.position.z + furnDef.position[2]
+      );
+    }
   }
 
   /** Atenúa el muñeco a cubierto. El color va por vértice, así que el del
@@ -1311,6 +1455,7 @@ export class Character3D {
   }
 
   _dispose() {
+    this._cleanupPoseProps();
     if (this._built) {
       this.object.remove(this._built.mesh);
       this.object.remove(this._built.shadow);
