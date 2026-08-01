@@ -140,6 +140,31 @@ if (posed) {
   check(!!posed.moved, "una pose mueve de verdad el rig importado", `giro ${posed.deltaRad} rad`);
 }
 
+// --- 5. La caminata sale del ARCHIVO, no de nuestro paso chibi ---
+const walk = await page.evaluate(async () => {
+  const s = window.__game?.player?.sprite;
+  if (!s?._built || !s.recipe?.baseModel) return null;
+  const out = { tieneClip: !!s._walkAction };
+  if (!s._walkAction) return out;
+  out.clip = s._walkAction.getClip()?.name ?? null;
+  // Andando, el clip tiene que tomar el mando…
+  s.setPose(null);
+  s.setMoving(true);
+  for (let i = 0; i < 40; i++) s.update(1 / 30);
+  out.pesoAndando = +s._walkAction.getEffectiveWeight().toFixed(2);
+  // …y soltarlo en cuanto hay una pose del juego, que el .glb no trae.
+  s.setPose("coffee");
+  for (let i = 0; i < 40; i++) s.update(1 / 30);
+  out.pesoEnPose = +s._walkAction.getEffectiveWeight().toFixed(2);
+  s.setMoving(false);
+  return out;
+});
+if (walk) {
+  check(walk.tieneClip, "el cuerpo importado trae su ciclo de andar", walk.clip ?? "");
+  check(walk.pesoAndando > 0.9, "andando manda el clip del archivo", `peso ${walk.pesoAndando}`);
+  check(walk.pesoEnPose < 0.1, "en una pose del juego el clip se aparta", `peso ${walk.pesoEnPose}`);
+}
+
 check(errors.length === 0, "sin errores de consola", errors.slice(0, 3).join(" | "));
 
 await browser.close();
