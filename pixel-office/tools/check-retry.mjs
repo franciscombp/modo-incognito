@@ -1,5 +1,11 @@
 // Reintentar el día después de perderlo en el cruce.
 //
+// EL CRUCE ESTÁ DESACTIVADO en el día 1 publicado (su bloque se llama
+// `$minigame`), pero el código sigue vivo y el día puede reactivarlo cuando
+// quiera, así que esta comprobación NO se tira: se lo vuelve a activar solo
+// para ella, interceptando el JSON del día. Lo primero que mira, eso sí, es
+// que el día tal como se publica abra en el ASCENSOR.
+//
 // El fallo que motiva esta comprobación: al perder la avenida se muestra el
 // vestíbulo (con las puertas cerradas, porque no llegaste) y la tarjeta de
 // "Te ascendieron a cliente". El botón de Reintentar volvía a lanzar el día,
@@ -15,6 +21,32 @@ const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium",
 });
 const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+
+// Primero, el día tal cual se publica: tiene que abrir en el ascensor.
+await page.goto(url, { waitUntil: "networkidle" });
+await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
+await page.evaluate(() => {
+  window.__game.engine.save.setCharacter("giu");
+  window.__game.engine.menus.close();
+  window.__game.engine.startDay(0);
+});
+await page.waitForTimeout(1200);
+const opensAtLift = await page.evaluate(() => {
+  const lobby = document.querySelector(".lobby-scene");
+  return !!lobby && !lobby.classList.contains("hidden") && !window.__game.engine.crossingActive;
+});
+
+// A partir de aquí, con el cruce puesto a mano: el ciclo de derrota y
+// reintento es código vivo y hay que seguir vigilándolo.
+await page.route("**/data/levels/dia-1.json*", async (route) => {
+  const res = await route.fetch();
+  const day = await res.json();
+  if (day.$minigame) {
+    day.minigame = day.$minigame;
+    delete day.$minigame;
+  }
+  await route.fulfill({ response: res, body: JSON.stringify(day) });
+});
 await page.goto(url, { waitUntil: "networkidle" });
 await page.waitForFunction(() => !!window.__game, null, { timeout: 20000 });
 await page.evaluate(() => {
@@ -75,7 +107,8 @@ function assert(label, ok) {
   if (!ok) failed++;
 }
 
-assert("el día 1 abre en el cruce", out.firstRun);
+assert("el día 1 publicado abre en el ascensor, no en la calle", opensAtLift);
+assert("con el cruce puesto, el día 1 abre en él", out.firstRun);
 assert("perder el cruce muestra la tarjeta de despido", out.lostShowsResult);
 assert("perder el cruce deja el vestíbulo puesto", out.lostShowsLobby);
 assert("Reintentar vuelve a la avenida", out.secondRun);
