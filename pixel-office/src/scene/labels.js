@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { iconImage, hasIcon } from "../ui/icons.js";
 
 // Cheap billboard text label rendered onto a canvas texture, so we can tag
 // rooms without pulling in a font/CSS-renderer dependency yet.
@@ -77,13 +78,22 @@ export function createLabel(
   });
   ctx.shadowBlur = 0;
 
-  if (icon) {
-    ctx.font = `${iconSize}px 'Segoe UI Emoji', 'Segoe UI', sans-serif`;
-    ctx.textAlign = "left";
-    ctx.fillText(icon, padding - 4, canvas.height / 2 + 1);
+  const texture = new THREE.CanvasTexture(canvas);
+
+  // El icono es un DIBUJO, no un carácter: antes se pintaba con una fuente de
+  // emoji y salía distinto en cada sistema (ver ui/icons.js). Como llega
+  // como imagen, puede no estar lista en esta misma vuelta — de ahí el
+  // repintado y el `needsUpdate`.
+  if (icon && hasIcon(icon)) {
+    const img = iconImage(icon, { color: textColor, size: Math.round(iconSize) });
+    const drawIcon = () => {
+      ctx.drawImage(img, padding - 6, (canvas.height - iconSize) / 2, iconSize, iconSize);
+      texture.needsUpdate = true;
+    };
+    if (img.complete && img.naturalWidth) drawIcon();
+    else img.addEventListener("load", drawIcon, { once: true });
   }
 
-  const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
 
   const material = new THREE.SpriteMaterial({ map: texture, depthTest: true, transparent: true });

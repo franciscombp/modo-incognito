@@ -7,6 +7,7 @@
 // drops the base under your thumb, which is what makes this playable
 // one-handed on a phone instead of forcing you to hunt for a fixed circle.
 import { buzz } from "./settings.js";
+import { icon as svgIcon, hasIcon } from "../ui/icons.js";
 
 export function createTouchControls(player, root, { onZoom, onInspect, onPause } = {}) {
   const isTouch =
@@ -102,8 +103,8 @@ export function createTouchControls(player, root, { onZoom, onInspect, onPause }
     return btn;
   }
 
-  makeHoldButton("touch-btn-pretend", "⌨️", "FINGIR", "f");
-  makeHoldButton("touch-btn-interact", "✋", "USAR", "e");
+  makeHoldButton("touch-btn-pretend", svgIcon("keyboard", { size: 26 }), "FINGIR", "f");
+  makeHoldButton("touch-btn-interact", svgIcon("hand", { size: 26 }), "USAR", "e");
 
   // ---- Camera / map utilities, top-right so they never fight the thumbs ----
   const utils = document.createElement("div");
@@ -130,7 +131,7 @@ export function createTouchControls(player, root, { onZoom, onInspect, onPause }
     makeTapButton("＋", "Acercar", () => onZoom(0.18));
     makeTapButton("－", "Alejar", () => onZoom(-0.18));
   }
-  if (onInspect) makeTapButton("🗺️", "Inspeccionar plano", onInspect);
+  if (onInspect) makeTapButton(svgIcon("map", { size: 22 }), "Inspeccionar plano", onInspect);
   if (onPause) makeTapButton("⏸", "Pausa", onPause);
 
   return { isTouch };

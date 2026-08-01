@@ -12,7 +12,7 @@
 //        "intro":  [ ...nodos de diálogo... ],
 //        "onFail": {
 //          "dialogue": [ ...nodos... ],
-//          "icon":  "🚑",
+//          "icon":  "door",   // nombre de ui/icons.js, nunca un emoji
 //          "title": "Te ascendieron a cliente",
 //          "body":  "Nunca llegaste a cruzar la avenida."
 //        }

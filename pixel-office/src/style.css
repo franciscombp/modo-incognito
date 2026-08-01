@@ -32,6 +32,8 @@
 }
 
 :root {
+  /* Marcas de la interfaz, dibujadas. Ver src/ui/icons.js. */
+  --icon-check: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12.5l5 5 10-11'/%3E%3C/svg%3E");
   --ink: #3a3028;
   --paper: #f7f0e3;
   --dim: #9a8d7c;
@@ -1232,9 +1234,16 @@ body.touch-device #hint {
   display: none;
 }
 
+/* Marca DIBUJADA, no un carácter: un glifo depende de la fuente que tenga el
+   sistema y no se ve igual en todas partes (ver src/ui/icons.js). */
 .action-done::before {
-  content: "✔";
-  color: var(--lime, #7be07a);
+  content: "";
+  display: block;
+  width: 1em;
+  height: 1em;
+  background: var(--lime, #7be07a);
+  -webkit-mask: var(--icon-check) center / contain no-repeat;
+  mask: var(--icon-check) center / contain no-repeat;
   filter: drop-shadow(0 0 18px rgba(123, 224, 122, 0.8));
 }
 
@@ -3286,4 +3295,19 @@ body.crossing-open #hint {
     max-width: calc(100% - 140px);
     margin-right: 130px;
   }
+}
+
+/* ---- Iconos dibujados (src/ui/icons.js) ----
+   Van dentro de líneas de texto (títulos del HUD, botones, chips de estado),
+   así que se alinean con la letra en vez de sentarse sobre la línea base, y
+   heredan el color del sitio donde caen. */
+.px-icon {
+  display: inline-block;
+  vertical-align: -0.15em;
+  flex: none;
+}
+
+.px-icon-slot {
+  display: inline-flex;
+  align-items: center;
 }

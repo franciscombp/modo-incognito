@@ -496,9 +496,9 @@ export class Game {
 
     buzz([12, 40, 18]);
     sfxComplete();
-    this.toast(`${station.label} ✔${nerveLabel} · +${gained}s`);
+    this.toast(`${station.label}${nerveLabel} · +${gained}s`);
     this._actionFlash = {
-      icon: station.icon ?? "❓",
+      icon: station.icon ?? "question",
       label: station.label,
       pose: station.pose ?? null,
       timer: 1.1,
@@ -534,7 +534,7 @@ export class Game {
     this.perkLeft = PERK_DURATION;
     if (perk === "caffeine") {
       this._perkSpeedMul = 1.35;
-      this.toast("☕ Cafeína: +35% de velocidad");
+      this.toast("Cafeína: +35% de velocidad");
     }
   }
 
@@ -902,7 +902,7 @@ export class Game {
     if (this.player.isDoingActivity && this.nearStation) {
       return {
         id: this.nearStation.id,
-        icon: this.nearStation.icon ?? "❓",
+        icon: this.nearStation.icon ?? "question",
         label: this.nearStation.label,
         pose: this.nearStation.pose ?? null,
         progress: this.nearStation.progress / this.nearStation.time,
@@ -922,7 +922,7 @@ export class Game {
     if (this.player.isPretending) {
       return {
         id: "pretend",
-        icon: "⌨️",
+        icon: "keyboard",
         label: "Fingiendo que trabajas",
         pose: "work",
         progress: null,

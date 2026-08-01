@@ -24,7 +24,10 @@
     "activities[].time: cuanto SE TARDA en hacerla (segundos de aguante).",
     "activities[].reward: cuanto RELOJ regala al completarla. No hay puntos:",
     "la unica moneda del juego es la jornada, y cada escaqueo la alarga.",
-    "activities[].riskRate: sospecha por segundo mientras la haces."
+    "activities[].riskRate: sospecha por segundo mientras la haces.",
+    "activities[].icon: NOMBRE de icono, no un emoji — se dibuja en SVG (ver",
+    "src/ui/icons.js). Un emoji lo pinta la fuente del sistema y sale distinto",
+    "en cada plataforma, que es justo lo que no se puede controlar desde aquí."
   ],
   "footprint": [
     [
@@ -627,7 +630,7 @@
       "id": "coffee",
       "label": "Tomar café",
       "type": "coffee",
-      "icon": "☕",
+      "icon": "coffee",
       "x": 8.8,
       "z": 4.4,
       "area": "cafeteria",
@@ -641,7 +644,7 @@
       "id": "chat",
       "label": "Chismear con colegas",
       "type": "chat",
-      "icon": "💬",
+      "icon": "chat",
       "x": 25.900000000000002,
       "z": -1,
       "area": "cafeteria",
@@ -654,7 +657,7 @@
       "id": "movie",
       "label": "Ver película",
       "type": "movie",
-      "icon": "🎬",
+      "icon": "movie",
       "x": 6.2,
       "z": 8.200000000000001,
       "area": "auditorio",
@@ -667,7 +670,7 @@
       "id": "sleep",
       "label": "Dormir en el escritorio",
       "type": "sleep",
-      "icon": "😴",
+      "icon": "sleep",
       "x": -9,
       "z": 6.300000000000001,
       "area": "segmentos_sur",
@@ -680,7 +683,7 @@
       "id": "snack",
       "label": "Comer a escondidas",
       "type": "snack",
-      "icon": "🍔",
+      "icon": "snack",
       "x": 13.8,
       "z": 14,
       "area": "bpone",
@@ -693,7 +696,7 @@
       "id": "stretch",
       "label": "Estirar «cinco minutos»",
       "type": "sleep",
-      "icon": "🧘",
+      "icon": "stretch",
       "x": -2,
       "z": 0.30000000000000004,
       "area": "banos_sur",
@@ -706,7 +709,7 @@
       "id": "meeting",
       "label": "Colarte en una reunión ajena",
       "type": "movie",
-      "icon": "📊",
+      "icon": "meeting",
       "x": 36.6,
       "z": -1.7000000000000002,
       "area": "sala4",
@@ -719,7 +722,7 @@
       "id": "window",
       "label": "Mirar por la ventana",
       "type": "coffee",
-      "icon": "🪟",
+      "icon": "window",
       "x": 35.300000000000004,
       "z": 11.9,
       "area": "evolucion",
@@ -861,7 +864,6 @@
       "scene": [
         {
           "speaker": "Nota en la pizarra",
-          "portrait": "📝",
           "text": "«Sala 6 reservada indefinidamente por Gaps 1.» Lleva tres años reservada. Nadie ha entrado."
         }
       ]
@@ -875,12 +877,10 @@
       "scene": [
         {
           "speaker": "Puerta de escaleras",
-          "portrait": "🪜",
           "text": "Alguien pegó un post-it: «Si el jefe pregunta, estoy en el piso 8»."
         },
         {
           "speaker": "Tú",
-          "portrait": "🙂",
           "text": "Voy a robarme esta excusa."
         }
       ]
@@ -894,7 +894,6 @@
       "scene": [
         {
           "speaker": "Cajero de pruebas",
-          "portrait": "🏧",
           "text": "SALDO DISPONIBLE: 999.999.999. Ambiente de QA. No te emociones."
         }
       ]
@@ -908,7 +907,6 @@
       "scene": [
         {
           "speaker": "Proyector",
-          "portrait": "📽️",
           "text": "Sigue proyectando el mismo deck del kickoff de hace dos años. Diapositiva 4: «Quick wins»."
         }
       ]
@@ -922,7 +920,6 @@
       "scene": [
         {
           "speaker": "Cafetera",
-          "portrait": "☕",
           "text": "Cartel: «Fuera de servicio». Debajo, en lápiz: «mentira, dale dos golpes»."
         }
       ]
@@ -936,12 +933,10 @@
       "scene": [
         {
           "speaker": "Cartel en el muro",
-          "portrait": "🚧",
           "text": "«Ala norte: acceso restringido durante la remodelación. Perdonen las molestias (llevamos dos años perdonándolas).»"
         },
         {
           "speaker": "Tú",
-          "portrait": "🙂",
           "text": "Un muro con puerta en la mitad del piso. Muy de aquí: no lo cierran, solo lo hacen incómodo."
         }
       ]
@@ -1157,7 +1152,7 @@
     {
       "id": "sala1",
       "label": "Sala 1",
-      "icon": "🚪",
+      "icon": "door",
       "kind": "meeting",
       "x": -23.200000000000003,
       "z": -0.30000000000000004,
@@ -1169,7 +1164,7 @@
     {
       "id": "sala2",
       "label": "Sala 2",
-      "icon": "🚪",
+      "icon": "door",
       "kind": "meeting",
       "x": -29.400000000000002,
       "z": 10.4,
@@ -1181,7 +1176,7 @@
     {
       "id": "mesa_equipo",
       "label": "Tu puesto",
-      "icon": "🪑",
+      "icon": "question",
       "kind": "desk",
       "x": -11.200000000000001,
       "z": 5.9,
@@ -1190,7 +1185,7 @@
     {
       "id": "sala6",
       "label": "Sala 6",
-      "icon": "🚪",
+      "icon": "door",
       "kind": "meeting",
       "x": 37.800000000000004,
       "z": -0.6000000000000001,
@@ -1202,7 +1197,7 @@
     {
       "id": "sala4",
       "label": "Sala 4",
-      "icon": "🚪",
+      "icon": "door",
       "kind": "meeting",
       "x": 27,
       "z": -9.700000000000001,
@@ -1214,7 +1209,7 @@
     {
       "id": "sala5",
       "label": "Sala 5",
-      "icon": "🚪",
+      "icon": "door",
       "kind": "meeting",
       "x": 22.5,
       "z": -9.3,

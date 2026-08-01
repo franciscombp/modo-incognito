@@ -400,17 +400,17 @@ function buildArea(area, world, ctx) {
 function iconFor(area) {
   switch (area.kind) {
     case AREA_KINDS.MEETING:
-      return "📅";
+      return "calendar";
     case AREA_KINDS.SOCIAL:
-      return "☕";
+      return "coffee";
     case AREA_KINDS.AUDITORIUM:
-      return "🎬";
+      return "movie";
     case AREA_KINDS.CORE:
-      return area.id.startsWith("banos") ? "🚻" : "🪜";
+      return area.id.startsWith("banos") ? "restroom" : "stairs";
     case AREA_KINDS.ELEVATOR:
-      return "🛗";
+      return "elevator";
     default:
-      return "👥";
+      return "people";
   }
 }
 

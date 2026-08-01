@@ -42,8 +42,8 @@ export function createGuides(root, camera) {
       task.update({
         x: target.x,
         z: target.z,
-        icon: target.icon ?? "•",
-        top: area ? `${WING[area.wing] ?? "PISO 7"} · ${area.name}` : "PISO 7",
+        icon: target.icon ?? "diamond",
+        top: area ? `${WING[area.wing] ?? "PISO 10"} · ${area.name}` : "PISO 10",
         label: target.label,
         meta:
           state.nearStation && state.nearStation.id === target.id
@@ -66,7 +66,7 @@ export function createGuides(root, camera) {
       x: state.bossPos.x,
       z: state.bossPos.z,
       y: 2.2,
-      icon: state.bossState === "CHASE" ? "🚨" : "🕴️",
+      icon: state.bossState === "CHASE" ? "siren" : "boss",
       top: `JEFE · NIVEL ${state.heat}`,
       label: info.label,
       meta: `${Math.round(bossDist)} m`,

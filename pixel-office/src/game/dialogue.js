@@ -9,6 +9,7 @@
 
 import { sfxMove, sfxSelect, sfxAdvance, sfxType } from "./sfx.js";
 import { createPortrait3D } from "../ui/portrait3d.js";
+import { icon as svgIcon } from "../ui/icons.js";
 
 const ADVANCE_KEYS = new Set([" ", "enter", "e"]);
 const NEXT_KEYS = new Set(["arrowdown", "s", "tab"]);
@@ -52,7 +53,7 @@ export function createDialogue(root, { looks = null } = {}) {
   const narratorEl = document.createElement("div");
   narratorEl.className = "vn-narrator hidden";
   narratorEl.innerHTML = `
-    <div class="vn-narrator-title"><span class="vn-narrator-icon">📞</span>Steven el Daddy</div>
+    <div class="vn-narrator-title"><span class="vn-narrator-icon">${svgIcon("phone", { size: 15 })}</span>Steven el Daddy</div>
     <div class="vn-narrator-text"></div>
   `;
   layer.appendChild(narratorEl);
@@ -303,7 +304,6 @@ export function createDialogue(root, { looks = null } = {}) {
             await playLine(
               {
                 speaker: opt.replySpeaker ?? "Tú",
-                portrait: "🙂",
                 sheet: opt.replySheet ?? fallbackSheet ?? "npc-camina",
                 text: opt.reply,
               },

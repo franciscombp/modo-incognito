@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { WORLD_SCALE as S } from "../scene/config.js";
+import { icon as svgIcon, hasIcon } from "./icons.js";
 
 const WING_LABEL = { sur: "ALA SUR", norte: "ALA NORTE", centro: "CENTRO" };
 
@@ -61,7 +62,7 @@ export function createCompass(root, camera) {
       ? `${WING_LABEL[area.wing] ?? "PISO 7"} · ${area.name}`
       : "PISO 7";
 
-    iconEl.textContent = target.icon ?? "•";
+    iconEl.innerHTML = svgIcon(hasIcon(target.icon) ? target.icon : "diamond", { size: 16 });
     labelEl.textContent = target.label;
     // La tecla ya la dice el cartel que flota sobre el objeto; aquí basta
     // con avisar de que estás encima.

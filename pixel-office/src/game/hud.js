@@ -1,5 +1,6 @@
 import { ACTIVITY_COLORS, AREA_KINDS } from "../scene/floorplan.js";
 import { sfxMove, sfxSelect } from "./sfx.js";
+import { icon as svgIcon, hasIcon } from "../ui/icons.js";
 
 function fmtTime(s) {
   const m = Math.floor(s / 60);
@@ -95,7 +96,7 @@ export function createHud(root) {
 
   const objectivesPanel = el("div", "hud-panel hud-objectives", topBar);
   const objTitleRow = el("div", "hud-panel-title", objectivesPanel);
-  objTitleRow.innerHTML = `<span class="hud-title-icon">🎯</span> OBJETIVOS <span class="hud-objectives-count"></span>`;
+  objTitleRow.innerHTML = `${svgIcon("diamond", { size: 14 })} OBJETIVOS <span class="hud-objectives-count"></span>`;
   const objectivesCount = objTitleRow.querySelector(".hud-objectives-count");
   const objectivesList = el("div", "hud-objectives-list", objectivesPanel);
   addCollapseToggle(objTitleRow, objectivesPanel, "objectives");
@@ -107,7 +108,7 @@ export function createHud(root) {
   let heatStarEls = [];
   const suspicionWrap = el("div", "hud-panel hud-suspicion", centerCol);
   const susTitleRow = el("div", "hud-panel-title", suspicionWrap);
-  susTitleRow.innerHTML = `<span class="hud-title-icon">👁️</span> SOSPECHA`;
+  susTitleRow.innerHTML = `${svgIcon("eye", { size: 14 })} SOSPECHA`;
   const suspicionTrack = el("div", "hud-suspicion-track", suspicionWrap);
   const suspicionFill = el("div", "hud-suspicion-fill", suspicionTrack);
   const suspicionGlint = el("div", "hud-suspicion-glint", suspicionFill);
@@ -120,7 +121,7 @@ export function createHud(root) {
   const rightCol = el("div", "hud-right", topBar);
   const timerPanel = el("div", "hud-panel hud-timer", rightCol);
   const timerTitleRow = el("div", "hud-panel-title", timerPanel);
-  timerTitleRow.innerHTML = `<span class="hud-title-icon">⏱️</span> JORNADA`;
+  timerTitleRow.innerHTML = `${svgIcon("clock", { size: 14 })} JORNADA`;
   const clockValue = el("div", "hud-clock-value", timerPanel);
   const timerValue = el("div", "hud-timer-value", timerPanel);
   const timerTrack = el("div", "hud-timer-track", timerPanel);
@@ -129,7 +130,7 @@ export function createHud(root) {
 
   const scorePanel = el("div", "hud-panel hud-scorepanel", rightCol);
   const scoreTitleRow = el("div", "hud-panel-title", scorePanel);
-  scoreTitleRow.innerHTML = `<span class="hud-title-icon">⏱️</span> TIEMPO EXTRA`;
+  scoreTitleRow.innerHTML = `${svgIcon("clock", { size: 14 })} TIEMPO EXTRA`;
   const scoreRow = el("div", "hud-score", scorePanel);
   const scoreValue = el("span", "hud-score-value", scoreRow);
   const comboChip = el("span", "hud-combo", scoreRow);
@@ -170,7 +171,7 @@ export function createHud(root) {
       return;
     }
     actionScene.classList.remove("hidden");
-    actionLabel.textContent = action.done ? `${action.label} ✔` : action.label ?? "";
+    actionLabel.innerHTML = action.done ? `${action.label} ${svgIcon("check", { size: 15 })}` : action.label ?? "";
     actionTrack.classList.toggle("hidden", action.progress == null);
     if (action.progress != null) {
       actionFill.style.width = `${Math.round(Math.min(1, Math.max(0, action.progress)) * 100)}%`;
@@ -188,7 +189,7 @@ export function createHud(root) {
   const introBlurb = el("div", "intro-card-blurb", introCard);
 
   function showIntroCard({ icon, name, blurb }) {
-    introIcon.textContent = icon ?? "👁️";
+    introIcon.innerHTML = svgIcon(icon && hasIcon(icon) ? icon : "eye", { size: 34 });
     introName.textContent = name ?? "";
     introBlurb.textContent = blurb ?? "";
     introCard.classList.remove("hidden");
@@ -210,7 +211,7 @@ export function createHud(root) {
   // cara (ver GABO_TEAMS_INTERVAL en game.js).
   const teamsToast = el("div", "teams-toast hidden", hud);
   const teamsHeader = el("div", "teams-toast-header", teamsToast);
-  el("span", "teams-toast-icon", teamsHeader, "💬");
+  el("span", "teams-toast-icon", teamsHeader).innerHTML = svgIcon("chat", { size: 15 });
   el("span", "teams-toast-app", teamsHeader, "Teams");
   const teamsFrom = el("div", "teams-toast-from", teamsToast);
   const teamsText = el("div", "teams-toast-text", teamsToast);
@@ -253,7 +254,7 @@ export function createHud(root) {
 
   /** Shown between days; `actions` are [{ label, primary, onClick }]. */
   function showResult({ icon, title, body, win, actions, timeLeft, timeGained }) {
-    overlayIcon.textContent = icon;
+    overlayIcon.innerHTML = svgIcon(hasIcon(icon) ? icon : "diamond", { size: 56 });
     overlayTitle.textContent = title;
     overlayTitle.classList.toggle("win", !!win);
     overlayTitle.classList.toggle("lose", !win);
@@ -343,7 +344,7 @@ export function createHud(root) {
       const r = objectiveRows[i];
       r.row.classList.toggle("done", !!o.done);
       r.dot.style.background = hex(ACTIVITY_COLORS[o.type] ?? 0xffffff);
-      r.iconSpan.textContent = o.done ? "✓" : o.icon ?? "•";
+      r.iconSpan.innerHTML = o.done ? svgIcon("star", { size: 15 }) : svgIcon(hasIcon(o.icon) ? o.icon : "diamond", { size: 15 });
       r.labelSpan.textContent = o.label;
       if (!o.done && o.progress > 0) {
         if (!r.bar) {
@@ -387,7 +388,7 @@ export function createHud(root) {
         heatStars.innerHTML = "";
         heatStarEls = Array.from({ length: state.maxHeat }, () => {
           const s = el("span", "off", heatStars);
-          s.textContent = "★";
+          s.innerHTML = svgIcon("star", { size: 12 });
           return s;
         });
       }
@@ -408,7 +409,7 @@ export function createHud(root) {
 
     perkChip.classList.toggle("visible", !!state.perk);
     if (state.perk) {
-      perkChip.textContent = `☕ CAFEÍNA ${Math.ceil(state.perkLeft)}s`;
+      perkChip.innerHTML = `${svgIcon("coffee", { size: 14 })} CAFEÍNA ${Math.ceil(state.perkLeft)}s`;
       perkChip.style.setProperty("--p", state.perkLeft / state.perkDuration);
     }
 
@@ -438,12 +439,12 @@ export function createHud(root) {
     }
 
     const statusBits = [];
-    if (state.isHiding) statusBits.push("🫥 ESCONDIDA");
-    if (state.isPretending) statusBits.push("⌨️ FINGIENDO TRABAJAR");
-    if (state.bossState === "CHASE") statusBits.push("🚨 ¡TE PERSIGUE!");
-    else if (state.bossState === "SEARCH") statusBits.push("🔎 TE ESTÁ BUSCANDO");
-    else if (state.bossState === "INVESTIGATE") statusBits.push("❓ DISTRAÍDO");
-    statusBadge.textContent = statusBits.join("   ·   ");
+    if (state.isHiding) statusBits.push(`${svgIcon("hide", { size: 14 })} ESCONDIDA`);
+    if (state.isPretending) statusBits.push(`${svgIcon("keyboard", { size: 14 })} FINGIENDO TRABAJAR`);
+    if (state.bossState === "CHASE") statusBits.push(`${svgIcon("siren", { size: 14 })} ¡TE PERSIGUE!`);
+    else if (state.bossState === "SEARCH") statusBits.push(`${svgIcon("search", { size: 14 })} TE ESTÁ BUSCANDO`);
+    else if (state.bossState === "INVESTIGATE") statusBits.push(`${svgIcon("question", { size: 14 })} DISTRAÍDO`);
+    statusBadge.innerHTML = statusBits.join("   ·   ");
     statusBadge.classList.toggle("visible", statusBits.length > 0);
     statusBadge.classList.toggle("alert", state.bossState === "CHASE");
 

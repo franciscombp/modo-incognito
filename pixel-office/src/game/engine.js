@@ -300,7 +300,7 @@ export function createEngine({
           ...(egg.scene ?? []),
           {
             speaker: "Secreto encontrado",
-            portrait: "🥚",
+            portrait: null,
             text: `Llevas ${save.state.eggs.length} de ${eggIds.length}. +250 puntos.`,
           },
         ]),
@@ -500,7 +500,7 @@ export function createEngine({
     camera.setFraming(0.55);
     for (const m of onDuty) {
       camera.setFocus(m.position);
-      hud.showIntroCard({ icon: m.name ? "👁️" : "❓", name: m.name, blurb: dialogues.cast[m.cast]?.blurb });
+      hud.showIntroCard({ icon: "eye", name: m.name, blurb: dialogues.cast[m.cast]?.blurb });
       await wait(1250);
     }
     hud.hideIntroCard();
@@ -605,7 +605,7 @@ export function createEngine({
     hud.setVisible(true);
     if (onFail.dialogue) await dialogue.play(withSprites(onFail.dialogue), ctx);
     hud.showResult({
-      icon: onFail.icon ?? "🚪",
+      icon: onFail.icon ?? "door",
       title: onFail.title ?? "Te ascendieron a cliente",
       body: onFail.body ?? "No llegaste a empezar la jornada.",
       win: false,
@@ -645,7 +645,7 @@ export function createEngine({
     actions.push({ label: "Menú", onClick: () => openTitle() });
 
     hud.showResult({
-      icon: result.win ? (isLast ? "🏆" : "🎉") : "🚪",
+      icon: result.win ? (isLast ? "trophy" : "party") : "door",
       title: result.win
         ? day.winTitle ?? (isLast ? "Semana completada" : `${day.title}: superado`)
         : "Te ascendieron a cliente",
