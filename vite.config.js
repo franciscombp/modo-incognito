@@ -28,7 +28,6 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, "index.html"),
-        creador: resolve(import.meta.dirname, "creador/index.html"),
         "creador/mapas": resolve(import.meta.dirname, "creador/mapas/index.html"),
         "creador/personajes": resolve(import.meta.dirname, "creador/personajes/index.html"),
         "creador/musica": resolve(import.meta.dirname, "creador/musica/index.html"),
