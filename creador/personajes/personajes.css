@@ -15,7 +15,27 @@ main {
 }
 
 /* ─────────────────────────────────────────────────────────────────
+   TÍTULOS DE SECCIÓN
+   Statement-like, con mucho aire
+   ───────────────────────────────────────────────────────────────── */
+
+.panel h2 {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  margin: 0 0 16px 0 !important;
+  padding-bottom: 12px !important;
+  border-bottom: 2px solid var(--builder-accent) !important;
+  color: var(--builder-accent) !important;
+}
+
+.panel h2:first-of-type {
+  margin-top: 0 !important;
+}
+
+/* ─────────────────────────────────────────────────────────────────
    REPARTO (CAST LIST)
+   Protagonista visual después del título
    ───────────────────────────────────────────────────────────────── */
 
 .cast-list {
@@ -24,7 +44,7 @@ main {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
 }
 
 .cast-list li {
@@ -35,15 +55,16 @@ main {
 .cast-list button {
   flex: 1;
   text-align: left;
-  padding: 6px 9px;
+  padding: 10px 12px;
   border: 1px solid var(--builder-border);
-  border-radius: 3px;
+  border-radius: 4px;
   background: white;
   color: var(--builder-text);
   font: inherit;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: all 0.2s ease;
 }
 
 .cast-list button:hover {
@@ -93,12 +114,13 @@ main {
 .stage-bar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 9px 14px;
+  gap: 20px;
+  padding: 16px 20px;
   border-top: 1px solid var(--builder-border);
-  background: var(--builder-panel);
+  background: linear-gradient(90deg, var(--builder-panel) 0%, rgba(237, 227, 213, 0.5) 100%);
   flex-wrap: wrap;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .stage-bar label {
@@ -121,20 +143,34 @@ main {
 
 /* ─────────────────────────────────────────────────────────────────
    FORMULARIO DE RECETA
+   Limpio y bien espaciado
    ───────────────────────────────────────────────────────────────── */
+
+.panel.right h2 {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  margin: 0 0 20px 0 !important;
+  padding-bottom: 12px !important;
+  border-bottom: 2px solid var(--builder-accent) !important;
+  color: var(--builder-accent) !important;
+}
 
 .campo {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 7px;
+  gap: 12px;
+  margin-bottom: 12px;
   font-size: 12px;
 }
 
 .campo > span {
   color: var(--builder-text-secondary);
-  font-weight: 500;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  flex: 0 0 auto;
 }
 
 .campo input[type="text"],
