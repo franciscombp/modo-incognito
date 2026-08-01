@@ -109,6 +109,7 @@ export async function loadGameData() {
   const [
     charactersRaw,
     looksRaw,
+    modelsRaw,
     dialoguesRaw,
     modesRaw,
     bossConfigRaw,
@@ -120,6 +121,9 @@ export async function loadGameData() {
     // Recetas de los muñecos 3D. Si faltan, cada personaje se monta con la
     // receta por defecto de character3d.js: el juego se ve gris, pero arranca.
     getJSON(manifest.characters3d ?? "characters3d.json").catch(() => ({ characters: {} })),
+    // Índice de public/models/, generado por tools/index-models.mjs. Si falta,
+    // el reparto entero se monta con primitivas: se ve, pero sin los cuerpos.
+    getJSON("models.json").catch(() => ({ bodies: {}, faces: {} })),
     getJSON(manifest.dialogues ?? "dialogues.json").catch(() => ({ cast: {}, encounters: {}, barks: {} })),
     getJSON(manifest.modes ?? "modes.json").catch(() => ({ characters: {} })),
     getJSON(manifest.bossConfig ?? "boss-config.json").catch(() => null),
@@ -160,7 +164,7 @@ export async function loadGameData() {
     scenes,
     levels,
     rigs: new Map(rigList.map((r) => [r.id, r])),
-    looks: prepareLooks(looksRaw),
+    looks: prepareLooks(looksRaw, modelsRaw),
     codeEggs: manifest.codeEggs ?? [],
   };
 }
@@ -198,10 +202,22 @@ export function preloadBaseModels(looks) {
  * traía el plano), así que aquí se aplanan los alias y se devuelve un `get()`
  * que responde a todos ellos y nunca deja a nadie sin cara.
  */
-function prepareLooks(raw) {
+function prepareLooks(raw, models = { bodies: {}, faces: {} }) {
   const characters = raw.characters ?? {};
   const aliases = raw.aliases ?? {};
   const extras = raw.extras ?? [];
+
+  // EL ARCHIVO MANDA. Si en public/models/ hay un `<id>.glb`, ese personaje
+  // usa ese cuerpo — no hace falta declararlo en characters3d.json, que es lo
+  // que hace que meter un personaje sea dejar el archivo y nada más. Un
+  // `baseModel` escrito a mano sigue valiendo, para apuntar a otro nombre.
+  for (const [id, recipe] of Object.entries(characters)) {
+    if (recipe.baseModel) continue;
+    const file = models.bodies?.[id];
+    if (file) recipe.baseModel = file;
+    const face = models.faces?.[id];
+    if (face) recipe.faces = face;
+  }
 
   const get = (name) => {
     if (!name) return characters.generic ?? null;

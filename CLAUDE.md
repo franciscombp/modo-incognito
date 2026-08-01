@@ -8,15 +8,16 @@ no la dupliques aquí.
 ## Estado: MVP del día 1
 
 La campaña publicada es **solo el día 1** y está pulida de punta a punta:
-cruce de la avenida → ascensor → tres actividades (café, película, comer) en
-el **ala sur**, con Gabo atado a la jugadora. Los archivos `dia-2`..`dia-5`
+ascensor → tres actividades (café, película, comer) en el **ala sur**, con
+Gabo atado a la jugadora. El cruce de la avenida existe y funciona, pero está
+DESACTIVADO (ver más abajo) para tener el foco en el piso. Los archivos `dia-2`..`dia-5`
 siguen en `public/data/levels/` pero **no están en `manifest.json` →
 `levels`**, así que el juego no los ve. Si te piden reactivar un día, es
 añadir su id a esa lista y nada más — no hay código que tocar.
 
 Si te piden algo del día 1, revisa que no rompas ninguna de sus tres piezas:
 `levels/dia-1.json` (reglas y guion), `scenes/piso7.json` (plano, muro,
-actividades) y `src/scene/crossing3d.js` (el cruce).
+actividades) y `src/ui/lobby.js` (el ascensor con el que abre).
 
 ## Qué es esto
 
@@ -26,9 +27,12 @@ bajo `pixel-office/public/data/`; el motor en `pixel-office/src/` solo lee
 esos datos. Para añadir o cambiar contenido casi nunca hace falta tocar
 código — mira primero si hay un JSON para eso.
 
-**Lore, para diálogo nuevo:** la Tribu Canales diseña en el Centro Digital de
-un banco. El meta-chiste (código secreto `incognito`, en
-`manifest.json` → `codeEggs`, y el cierre de `levels/dia-5.json`) es que
+**Lore, para diálogo nuevo:** la Célula Gris diseña en el Piso 10. Los nombres
+son genéricos A PROPÓSITO — nada de identificar al corporativo real ni su
+jerga interna, que es lo que quita filo por el lado equivocado. Los nombres de
+las personas y los chismes personales sí se quedan. El meta-chiste (código
+secreto `incognito`, en `manifest.json` → `codeEggs`, y el cierre de
+`levels/dia-5.json`) es que
 "fingir que trabajas" es la coartada del equipo para programar en secreto
 este mismo juego — idea original de César y Manu, programado de verdad por
 Fran con Claude Code de copiloto. No reveles el chiste fuera de esos dos
@@ -105,6 +109,22 @@ fuera. Sin `baseModel`, sigue el camino procedural de siempre
 (`_buildProcedural`) — que es el de todo el resto del reparto. Los dos acaban
 con el MISMO rig y las MISMAS poses, así que nada de lo que hay por encima
 (poses, props, tinte) necesita saber por cuál vino un personaje.
+
+**`baseModel` NO se escribe a mano.** `public/models/` es una carpeta de
+subida directa: se deja `<id>.glb` y ese personaje usa ese cuerpo, sin tocar
+ningún JSON. Lo hace posible `tools/index-models.mjs`, que lista la carpeta y
+escribe `public/data/models.json` — el navegador no puede listar un
+directorio, así que alguien tiene que hacerlo antes. Corre solo en `prebuild`
+y `predev`, también en CI. `<id>.faces.png` hace lo mismo con las expresiones.
+El contrato completo, con lo que debe traer un `.glb`, está en
+`public/models/README.md`, que es lo que lee quien vaya a modelar.
+
+**Los gestos de un cuerpo importado van PEGADOS DELANTE** (`faceSheet.js`), al
+estilo Animal Crossing: un plano colgado del hueso de la cabeza que enseña una
+celda de una tira, y cambiar de expresión es mover el recorte. No se puede
+hacer de otra forma — la cara de un `.glb` vive dentro de su textura y
+redibujarla le borraría la piel. Sin tira, ese personaje no gesticula y
+`setExpression` no le hace nada.
 
 Un `.glb` nuevo tiene que traer el rig con nombres convencionales (`Hips`,
 `Spine`, `LeftArm`…): `baseModel.js` los reetiqueta al cargar, y un hueso que
@@ -334,6 +354,21 @@ en una captura.
   DOM en cada frame porque todos cambian de tamaño con la pantalla; reservar
   una banda fija solo acierta en un tamaño. `npm run check:layout` es lo que
   lo vigila.
+- **Nadie se representa con un emoji ni con un pliego.** Quien habla en un
+  diálogo y quien sale en la pantalla de selección son SIEMPRE su muñeco 3D
+  (importado o procedural). `looks.get()` nunca devuelve vacío: el que no
+  tiene receta propia usa la genérica. Los pliegos de `public/sprites/` ya no
+  pintan personajes — se quedan como referencia de color de las recetas. Los
+  emojis que quedan son iconos de interfaz y de objeto (botones, actividades),
+  que es otra cosa.
+- **El día 1 arranca en el ascensor.** El cruce de la avenida está desactivado
+  a propósito: en `levels/dia-1.json` su bloque se llama `$minigame`, y
+  recuperarlo es devolverle el nombre `minigame`. El piso se monta CON LAS
+  PUERTAS CERRADAS (`prepareFloor`, llamado antes de `lobby.hide()`): al
+  revés, la animación de apertura enseñaba durante segundo y medio el piso
+  como quedó del intento anterior. Y `applyPrologue` va después de montarlo
+  porque empieza con `if (!game) return` — llamándolo antes, la elección del
+  ascensor no hacía nada en absoluto.
 - **Un secuaz te aborda solo cuando te TOCA** (`minionTouches` en `game.js`),
   no cuando te ve. Es un radio de contacto, no de interacción; subirlo
   reintroduce el "Crispo me habla desde el otro lado del pasillo".

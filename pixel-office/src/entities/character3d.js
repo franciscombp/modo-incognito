@@ -3,7 +3,8 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { screenToGround, facingFromGround } from "../scene/iso.js";
 import { buildSkeleton, skinGeometry, rigidGeometry } from "./skinning.js";
 import { faceTexture, projectFaceUVs } from "./face.js";
-import { loadBaseModel, peekBaseModel, instantiateBase, modelUrlFor } from "./baseModel.js";
+import { loadBaseModel, peekBaseModel, instantiateBase, modelUrlFor, loadFaceSheet } from "./baseModel.js";
+import { attachFaceSheet } from "./faceSheet.js";
 
 /**
  * PERSONAJES 3D COZY, CON ESQUELETO DE VERDAD.
@@ -969,6 +970,22 @@ export class Character3D {
     };
     this._hipRest = bones.get("Hips")?.position.y ?? 0;
 
+    // Los gestos, si el personaje trae su tira (ver faceSheet.js). Se pega
+    // AHORA si la imagen ya está; si no, se engancha en cuanto llegue, sin
+    // bloquear el montaje del cuerpo.
+    this._face = null;
+    if (r.faces) {
+      const head = bones.get("Head");
+      const build = (tex) => {
+        if (!tex || !this._built) return;
+        this._face = attachFaceSheet(head, tex, { height: H, tune: r.face });
+        this._face?.set(this._expression ?? "neutral");
+      };
+      const tex = loadFaceSheet(r.faces);
+      if (tex.then) tex.then(build).catch(() => {});
+      else build(tex);
+    }
+
     // LA CAMINATA VIENE EN EL ARCHIVO. Nuestro paso procedural está calibrado
     // para el muñeco chibi — zancadas de 0.72 rad, que en un cuerpo humano se
     // ven como marcha militar. Si el .glb trae su propio ciclo de andar, manda
@@ -1083,7 +1100,14 @@ export class Character3D {
    */
   setExpression(name) {
     if (!this._built || name === this._expression) return;
-    // Un cuerpo importado trae la cara dentro de su propia textura: no hay
+    // Un cuerpo importado gesticula con su tira de caras, si la trae (ver
+    // faceSheet.js): es un recorte distinto, no una textura nueva.
+    if (this._face) {
+      this._expression = name;
+      this._face.set(name);
+      return;
+    }
+    // Y si no la trae, su cara vive dentro de la textura del modelo: no hay
     // nada que redibujar, y pisarle el `map` le borraría la piel entera.
     if (!this._built.faceMat) return;
     this._expression = name;
@@ -1285,6 +1309,8 @@ export class Character3D {
     this._mixer?.stopAllAction();
     this._mixer = null;
     this._walkAction = null;
+    this._face?.dispose();
+    this._face = null;
     this._extras.forEach((m) => {
       m.geometry.dispose();
       m.material.map?.dispose();

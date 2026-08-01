@@ -109,6 +109,30 @@ export function modelUrlFor(file) {
   return `${base}models/${file}`;
 }
 
+const faceCache = new Map();
+const faceLoader = new THREE.TextureLoader();
+
+/**
+ * La tira de gestos de un personaje (`<id>.faces.png`).
+ *
+ * Devuelve la textura YA CARGADA si se pidió antes, y una promesa la primera
+ * vez. La asimetría es a propósito: los retratos de los menús se montan y se
+ * fotografían en la misma vuelta, y con una espera de por medio salen en
+ * blanco. Cada personaje recibe su COPIA: cada uno recorta su celda, y
+ * compartir la textura sería compartir el gesto.
+ */
+export function loadFaceSheet(file) {
+  const url = modelUrlFor(file);
+  const hit = faceCache.get(url);
+  if (hit) return hit.isTexture ? hit.clone() : hit.then((t) => t.clone());
+  const loading = faceLoader.loadAsync(url).then((tex) => {
+    faceCache.set(url, tex);
+    return tex.clone();
+  });
+  faceCache.set(url, loading);
+  return loading;
+}
+
 /**
  * El modelo si ya llegó, o null.
  *

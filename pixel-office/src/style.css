@@ -324,7 +324,7 @@ body.touch-device #hint {
 }
 
 .hud-objectives::before {
-  content: "▚ TRIBU CANALES // P10 · CENTRO DIGITAL";
+  content: "▚ CÉLULA GRIS // PISO 10";
   display: block;
   margin-bottom: 8px;
   font-size: 11px;
@@ -1484,23 +1484,7 @@ body.touch-device #hint {
 /* Retrato de sprite: ampliado y recortado en primer plano, al estilo de un
    busto de visual novel — el marco se lleva parte del sprite por los bordes
    a propósito, igual que en la referencia. */
-.vn-portrait-sprite {
-  width: 192px;
-  height: 264px;
-  background-repeat: no-repeat;
-  /* 400% = una celda de la rejilla 4x4, sea cual sea la resolución del
-     pliego. Los dibujados a mano son de 512x704 y los generados de 128x176:
-     con un tamaño en píxeles fijo, unos salían recortados y otros diminutos. */
-  background-size: 400% 400%;
-  image-rendering: pixelated;
-  transform: translateY(10%) scale(2.35);
-  transform-origin: center 65%;
-}
 
-.vn-portrait-emoji.hidden,
-.vn-portrait-sprite.hidden {
-  display: none;
-}
 
 /* Retrato 3D: el mismo muñeco del piso, encuadrado de busto. Ocupa el marco
    entero y se apoya en el borde de abajo, como un busto de novela visual. */
@@ -1887,20 +1871,7 @@ body.touch-device #hint {
 
 /* Miniatura del sprite real del personaje (mismo pliego 4x4 que el retrato
    de diálogo, recortado a su primer fotograma) en vez del emoji genérico. */
-.px-char-sprite {
-  display: block;
-  width: 72px;
-  height: 99px;
-  background-repeat: no-repeat;
-  background-position: 0 0;
-  background-size: 288px 396px;
-  image-rendering: pixelated;
-  filter: drop-shadow(0 4px 0 rgba(var(--ink-rgb), 0.4));
-}
 
-.px-char.locked .px-char-sprite {
-  filter: grayscale(1) brightness(0.6);
-}
 
 /* Foto del muñeco 3D (ver ui/charshot.js). Más alta que el pliego porque el
    muñeco sale de cuerpo entero y no recortado a una celda de la rejilla. */
@@ -2676,9 +2647,6 @@ body.vn-open #hint {
     bottom: calc(100% - 74px);
   }
 
-  .vn-portrait-sprite {
-    transform: scale(0.6) translateY(-6px);
-  }
 
   .vn-box {
     padding: 26px 14px 14px 98px;
@@ -2765,11 +2733,6 @@ body.vn-open #hint {
     bottom: auto;
   }
 
-  .vn-portrait-sprite {
-    transform: scale(1.8) translateY(5%);
-    width: 128px;
-    height: 176px;
-  }
 
   .vn-box {
     padding: 22px 14px 12px 78px;

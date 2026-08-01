@@ -11,10 +11,12 @@
     "alguien redibuja un pliego, se vuelve a correr y se comparan.",
     "",
     "CAMPOS",
-    "  baseModel un .glb de public/models/ que sustituye al cuerpo generado.",
-    "            Con él, el resto de campos de cuerpo (hair, top, bottom…) no",
-    "            se montan: el modelo ya viene esculpido. Sin él, el motor arma",
-    "            el muñeco con primitivas, que es el caso normal.",
+    "  baseModel NO SE ESCRIBE AQUÍ. Si dejas `<id>.glb` en public/models/, ese",
+    "            personaje usa ese cuerpo solo (lo indexa tools/index-models.mjs",
+    "            antes de cada build). Con cuerpo importado, el resto de campos",
+    "            de cuerpo (hair, top, bottom…) no se montan: ya viene esculpido.",
+    "            Escribirlo a mano solo sirve para apuntar a otro nombre.",
+    "  faces     igual: `<id>.faces.png` en public/models/ le da expresiones.",
     "  skin      color de la piel",
     "  eyes      color de los ojos",
     "  hair      { color, style, streak }",
@@ -64,7 +66,6 @@
   "characters": {
     "gabo": {
       "$note": "El jefe. Gafas de sol dentro de la oficina, que es todo lo que hay que saber de él.",
-      "baseModel": "gabo.glb",
       "skin": "#e0a860",
       "hair": {
         "color": "#302828",
@@ -91,7 +92,6 @@
       }
     },
     "giuli": {
-      "baseModel": "giuli.glb",
       "skin": "#e8a060",
       "hair": {
         "color": "#3a2c20",
