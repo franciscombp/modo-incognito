@@ -11,14 +11,14 @@ import { resolve } from "node:path";
 // el juego sigue cargando el de ayer. Colgando el sello de la URL, cada build
 // pide archivos que la caché no ha visto nunca.
 //
-// El BUILDER es una entrada más, no un archivo suelto en `public/`. Estuvo
-// ahí y no funcionaba publicado: `public/` se copia tal cual, sin resolver
+// Los EDITORES son entradas más, no archivos sueltos en `public/`. Estuvieron
+// ahí y no funcionaban publicados: `public/` se copia tal cual, sin resolver
 // imports, así que había que traerse three de un CDN (y de una versión de
 // 2021, incompatible con el motor) y colgar el bundle del juego con su hash
 // escrito a mano — hash que Vite regenera en cada build, con lo que la página
-// se rompía en el deploy siguiente. Como entrada de verdad, Vite le resuelve
+// se rompía en el deploy siguiente. Como entradas de verdad, Vite les resuelve
 // `three` y el `character3d.js` REAL del motor, que es justo lo que hace que
-// el editor no pueda desincronizarse de lo que sale al jugar.
+// los editores no puedan desincronizarse de lo que sale al jugar.
 export default defineConfig({
   base: "./",
   define: {
@@ -29,7 +29,9 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, "index.html"),
         builder: resolve(import.meta.dirname, "builder/index.html"),
-        personajes: resolve(import.meta.dirname, "builder/personajes.html"),
+        "editor/pisos": resolve(import.meta.dirname, "builder/editor/pisos/index.html"),
+        "editor/personajes": resolve(import.meta.dirname, "builder/editor/personajes/index.html"),
+        "editor/musica": resolve(import.meta.dirname, "builder/editor/musica/index.html"),
       },
     },
   },

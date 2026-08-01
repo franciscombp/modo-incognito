@@ -3,220 +3,122 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Builder · Modo Incógnito</title>
+    <title>Editores · Modo Incógnito</title>
     <link rel="icon" href="../favicon.png" />
-    <link rel="stylesheet" href="builder.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: system-ui, -apple-system, sans-serif;
+        background: linear-gradient(135deg, #2a2520 0%, #3d3531 100%);
+        color: #e8dcc8;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+      .container {
+        max-width: 900px;
+        width: 100%;
+      }
+      h1 {
+        text-align: center;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+      }
+      .subtitle {
+        text-align: center;
+        color: #c9b8a8;
+        margin-bottom: 3rem;
+        font-size: 1.1rem;
+      }
+      .editors {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+      }
+      .card {
+        background: rgba(60, 52, 45, 0.8);
+        border: 1px solid #5d4e42;
+        border-radius: 8px;
+        padding: 2rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+      .card:hover {
+        background: rgba(80, 70, 60, 0.9);
+        border-color: #c9a97a;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+      }
+      .card h2 {
+        font-size: 1.5rem;
+        margin: 0;
+      }
+      .card p {
+        color: #c9b8a8;
+        line-height: 1.5;
+        flex-grow: 1;
+      }
+      .button {
+        background: #8b6f47;
+        color: white;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        transition: background 0.3s ease;
+        align-self: flex-start;
+      }
+      .button:hover {
+        background: #a3825a;
+      }
+      .emoji {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+      }
+    </style>
   </head>
   <body>
-    <header class="bar">
-      <h1>BUILDER · <span>Modo Incógnito</span></h1>
-      <div class="bar-group">
-        <label class="file">
-          Abrir escena…
-          <input type="file" id="open-scene" accept=".json" hidden />
-        </label>
-        <label class="file">
-          Abrir día…
-          <input type="file" id="open-level" accept=".json" hidden />
-        </label>
-        <button id="reload">Recargar del juego</button>
+    <div class="container">
+      <h1>🎮 Modo Incógnito</h1>
+      <p class="subtitle">Editores del juego</p>
+
+      <div class="editors">
+        <a href="editor/pisos/" class="card">
+          <div class="emoji">🗺️</div>
+          <h2>Editor de Pisos</h2>
+          <p>Diseña y edita los planos, decorados y zonas interactivas del juego. Dibuja la disposición de salas, muebles y áreas jugables.</p>
+          <button class="button">Abrir editor</button>
+        </a>
+
+        <a href="editor/personajes/" class="card">
+          <div class="emoji">👤</div>
+          <h2>Editor de Personajes</h2>
+          <p>Crea y personaliza el reparto del juego. Elige piel, ropa, accesorios y visualiza cómo se ve en 3D con las diferentes poses.</p>
+          <button class="button">Abrir editor</button>
+        </a>
+
+        <a href="editor/musica/" class="card">
+          <div class="emoji">🎵</div>
+          <h2>Editor de Música</h2>
+          <p>Compón y ajusta la banda sonora del juego. Configura temas, BPM, capas de instrumentos y escucha en tiempo real.</p>
+          <button class="button">Abrir editor</button>
+        </a>
       </div>
-      <div class="bar-group right">
-        <button id="copy-scene" class="primary">Copiar escena JSON</button>
-        <button id="copy-level" class="primary">Copiar día JSON</button>
-        <button id="download">Descargar los dos</button>
-      </div>
-    </header>
-
-    <main>
-      <aside class="panel left">
-        <div class="tabs" id="tabs">
-          <button class="tab on" data-tab="plano">Plano</button>
-          <button class="tab" data-tab="dia">Día</button>
-          <button class="tab" data-tab="ayuda">Ayuda</button>
-        </div>
-
-        <section class="tabpage on" data-page="plano">
-          <h2>Añadir</h2>
-          <div class="add-grid" id="add-grid"></div>
-
-          <h2>Capas</h2>
-          <div id="layers"></div>
-
-          <h2>Objetos</h2>
-          <div class="list" id="object-list"></div>
-        </section>
-
-        <section class="tabpage" data-page="dia">
-          <h2>El día</h2>
-          <div id="level-form"></div>
-        </section>
-
-        <section class="tabpage" data-page="ayuda">
-          <div class="help">
-            <h3>Herramientas de Edición</h3>
-            <dl>
-              <dt><b>S</b> — Spawn (Ingreso)</dt>
-              <dd>Edita dónde aparece el jugador al comenzar el nivel. Haz clic para mover.</dd>
-
-              <dt><b>B</b> — Boss Spawn (Jefe)</dt>
-              <dd>Edita dónde aparece el jefe al comenzar. Haz clic para mover.</dd>
-
-              <dt><b>R</b> — Routes (Rutas)</dt>
-              <dd>
-                Edita las rutas que siguen los jefes y secuaces (igual que el piso).
-                <ul>
-                  <li>Clic en ruta punteada — selecciona esa ruta (se resalta en color)</li>
-                  <li>Clic en nodo — selecciona ese nodo</li>
-                  <li>Clic + Arrastrar en nodo — mueve ese punto de la ruta</li>
-                  <li>Clic entre nodos — crea un nodo nuevo en el medio</li>
-                  <li>Mayús + Arrastrar — mueve sin ajuste a rejilla</li>
-                  <li>Delete — borra el nodo seleccionado</li>
-                </ul>
-              </dd>
-
-              <dt><b>F</b> — Footprint (Perímetro)</dt>
-              <dd>
-                Edita el contorno del piso (la forma del espacio jugable).
-                <ul>
-                  <li>Clic en nodo: arrastra para mover</li>
-                  <li>Clic en espacio: crea nodo en el segmento más cercano</li>
-                  <li>Delete: elimina nodo seleccionado</li>
-                  <li>Mayús + Arrastrar — mueve sin rejilla</li>
-                </ul>
-              </dd>
-            </dl>
-
-            <h3>Edición de Paredes</h3>
-            <dl>
-              <dt>Paredes (líneas grises)</dt>
-              <dd>
-                Son muros que dividen el espacio. Pueden tener puertas.
-                <ul>
-                  <li>Clic en pared — selecciona (se resalta en rojo)</li>
-                  <li>Clic + Arrastrar en pared — mueve toda la pared perpendicular</li>
-                  <li>Clic + Arrastrar en tiradores (círculos cyan) — redimensiona la pared</li>
-                  <li>Clic + Arrastrar en puerta (círculo amarillo) — mueve solo la puerta</li>
-                  <li>Delete — elimina la pared seleccionada</li>
-                  <li>Mayús + Arrastrar — mueve sin rejilla</li>
-                </ul>
-                Para crear una pared nueva, edita manualmente el JSON: copia una barrera existente, cambia <code>at</code> (posición perpendicular), <code>from</code> y <code>to</code> (inicio y fin).
-              </dd>
-            </dl>
-
-            <h3>Tipos de Objetos en el Plano</h3>
-            <dl>
-              <dt>Zonas (rectángulos azules claro)</dt>
-              <dd>
-                Son áreas del piso con nombre y características.
-                <ul>
-                  <li>Pueden ser salas (open-office, meeting, etc.)</li>
-                  <li>Tienen sillas, color, nivel de riesgo</li>
-                  <li>Arrastra para mover, tira de esquinas para redimensionar</li>
-                </ul>
-              </dd>
-
-              <dt>Pasillos (rectángulos gris claro)</dt>
-              <dd>
-                Son espacios de circulación entre zonas. Se usan para conectar áreas.
-              </dd>
-
-              <dt>Actividades (puntos amarillos)</dt>
-              <dd>
-                Son tareas que el jugador puede realizar (café, película, comer, etc.).
-                <ul>
-                  <li>Cada actividad tiene tiempo, puntos y riesgo</li>
-                  <li>Se vinculan a una zona específica</li>
-                </ul>
-              </dd>
-
-              <dt>Lugares Seguros (círculos cyan)</dt>
-              <dd>
-                Son zonas donde el jugador puede fingir que trabaja sin ser visto.
-                <ul>
-                  <li>Tienen radio de cobertura</li>
-                  <li>Pueden ser permanentes (desk) o temporales (meeting)</li>
-                </ul>
-              </dd>
-
-              <dt>Rutas (líneas punteadas de color)</dt>
-              <dd>
-                Son caminos que siguen los jefes y secuaces.
-                <ul>
-                  <li>Cada ruta es una serie de puntos conectados</li>
-                  <li>Los personajes IA las patrullan</li>
-                </ul>
-              </dd>
-
-              <dt>Footprint (perímetro)</dt>
-              <dd>
-                Es el borde del piso donde termina el espacio jugable.
-              </dd>
-            </dl>
-
-            <h3>Interacción General</h3>
-            <ul>
-              <li><b>Clic + Arrastrar</b> en objeto — mover objeto.</li>
-              <li><b>Tiradores en esquinas</b> de zona — redimensionar.</li>
-              <li><b>Rueda del ratón</b> — zoom (acerca/aleja).</li>
-              <li><b>Espacio + Arrastrar</b> (o botón central) — desplazar vista.</li>
-              <li><b>Mayús + Arrastrar</b> — mover sin ajuste a rejilla.</li>
-              <li><b>Delete / Backspace</b> — borrar lo seleccionado.</li>
-            </ul>
-
-            <h3>Información Técnica</h3>
-            <p>
-              Editor del <b>plano</b> (<code>scenes/*.json</code>) y del
-              <b>día</b> (<code>levels/*.json</code>). Todo en unidades de
-              plano — el motor las multiplica por <code>WORLD_SCALE</code>.
-            </p>
-            <p>
-              El <b>aviso rojo de zonas solapadas</b> vigila que los rectángulos
-              de <code>areas</code> no se pisen entre sí.
-            </p>
-            <p>
-              El builder <b>no escribe en el repo</b>. Copia el JSON y pégalo en
-              <code>pixel-office/public/data/…</code>, después corre
-              <code>npm run build:pages</code>.
-            </p>
-          </div>
-        </section>
-      </aside>
-
-      <div class="stage">
-        <canvas id="canvas"></canvas>
-        <div class="hud" id="stage-hud"></div>
-        <div class="warn hidden" id="warn"></div>
-
-        <div class="toolbar">
-          <div class="tool-group">
-            <button class="tool" id="tool-spawn" title="Spawn (S)" data-key="S">
-              <span>🚪</span>
-              <span class="label">Ingreso</span>
-            </button>
-            <button class="tool" id="tool-boss" title="Boss Spawn (B)" data-key="B">
-              <span>👿</span>
-              <span class="label">Jefe</span>
-            </button>
-            <button class="tool" id="tool-routes" title="Routes (R)" data-key="R">
-              <span>🛤️</span>
-              <span class="label">Rutas</span>
-            </button>
-            <button class="tool" id="tool-footprint" title="Footprint (F)" data-key="F">
-              <span>🟨</span>
-              <span class="label">Piso</span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <aside class="panel right">
-        <h2 id="prop-title">Nada seleccionado</h2>
-        <div id="props"></div>
-      </aside>
-    </main>
-
-    <div class="toast hidden" id="toast"></div>
-    <script type="module" src="builder.js"></script>
+    </div>
   </body>
 </html>

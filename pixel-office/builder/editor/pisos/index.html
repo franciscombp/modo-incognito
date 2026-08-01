@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Builder · Modo Incógnito</title>
+    <link rel="icon" href="../../favicon.png" />
+    <link rel="stylesheet" href="builder.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <h1>BUILDER · <span>Modo Incógnito</span></h1>
+      <div class="bar-group">
+        <label class="file">
+          Abrir escena…
+          <input type="file" id="open-scene" accept=".json" hidden />
+        </label>
+        <label class="file">
+          Abrir día…
+          <input type="file" id="open-level" accept=".json" hidden />
+        </label>
+        <button id="reload">Recargar del juego</button>
+      </div>
+      <div class="bar-group right">
+        <button id="copy-scene" class="primary">Copiar escena JSON</button>
+        <button id="copy-level" class="primary">Copiar día JSON</button>
+        <button id="download">Descargar los dos</button>
+      </div>
+    </header>
+
+    <main>
+      <aside class="panel left">
+        <div class="tabs" id="tabs">
+          <button class="tab on" data-tab="plano">Plano</button>
+          <button class="tab" data-tab="dia">Día</button>
+          <button class="tab" data-tab="ayuda">Ayuda</button>
+        </div>
+
+        <section class="tabpage on" data-page="plano">
+          <h2>Añadir</h2>
+          <div class="add-grid" id="add-grid"></div>
+
+          <h2>Capas</h2>
+          <div id="layers"></div>
+
+          <h2>Objetos</h2>
+          <div class="list" id="object-list"></div>
+        </section>
+
+        <section class="tabpage" data-page="dia">
+          <h2>El día</h2>
+          <div id="level-form"></div>
+        </section>
+
+        <section class="tabpage" data-page="ayuda">
+          <div class="help">
+            <h3>Herramientas de Edición</h3>
+            <dl>
+              <dt><b>S</b> — Spawn (Ingreso)</dt>
+              <dd>Edita dónde aparece el jugador al comenzar el nivel. Haz clic para mover.</dd>
+
+              <dt><b>B</b> — Boss Spawn (Jefe)</dt>
+              <dd>Edita dónde aparece el jefe al comenzar. Haz clic para mover.</dd>
+
+              <dt><b>R</b> — Routes (Rutas)</dt>
+              <dd>
+                Edita las rutas que siguen los jefes y secuaces (igual que el piso).
+                <ul>
+                  <li>Clic en ruta punteada — selecciona esa ruta (se resalta en color)</li>
+                  <li>Clic en nodo — selecciona ese nodo</li>
+                  <li>Clic + Arrastrar en nodo — mueve ese punto de la ruta</li>
+                  <li>Clic entre nodos — crea un nodo nuevo en el medio</li>
+                  <li>Mayús + Arrastrar — mueve sin ajuste a rejilla</li>
+                  <li>Delete — borra el nodo seleccionado</li>
+                </ul>
+              </dd>
+
+              <dt><b>F</b> — Footprint (Perímetro)</dt>
+              <dd>
+                Edita el contorno del piso (la forma del espacio jugable).
+                <ul>
+                  <li>Clic en nodo: arrastra para mover</li>
+                  <li>Clic en espacio: crea nodo en el segmento más cercano</li>
+                  <li>Delete: elimina nodo seleccionado</li>
+                  <li>Mayús + Arrastrar — mueve sin rejilla</li>
+                </ul>
+              </dd>
+            </dl>
+
+            <h3>Edición de Paredes</h3>
+            <dl>
+              <dt>Paredes (líneas grises)</dt>
+              <dd>
+                Son muros que dividen el espacio. Pueden tener puertas.
+                <ul>
+                  <li>Clic en pared — selecciona (se resalta en rojo)</li>
+                  <li>Clic + Arrastrar en pared — mueve toda la pared perpendicular</li>
+                  <li>Clic + Arrastrar en tiradores (círculos cyan) — redimensiona la pared</li>
+                  <li>Clic + Arrastrar en puerta (círculo amarillo) — mueve solo la puerta</li>
+                  <li>Delete — elimina la pared seleccionada</li>
+                  <li>Mayús + Arrastrar — mueve sin rejilla</li>
+                </ul>
+                Para crear una pared nueva, edita manualmente el JSON: copia una barrera existente, cambia <code>at</code> (posición perpendicular), <code>from</code> y <code>to</code> (inicio y fin).
+              </dd>
+            </dl>
+
+            <h3>Tipos de Objetos en el Plano</h3>
+            <dl>
+              <dt>Zonas (rectángulos azules claro)</dt>
+              <dd>
+                Son áreas del piso con nombre y características.
+                <ul>
+                  <li>Pueden ser salas (open-office, meeting, etc.)</li>
+                  <li>Tienen sillas, color, nivel de riesgo</li>
+                  <li>Arrastra para mover, tira de esquinas para redimensionar</li>
+                </ul>
+              </dd>
+
+              <dt>Pasillos (rectángulos gris claro)</dt>
+              <dd>
+                Son espacios de circulación entre zonas. Se usan para conectar áreas.
+              </dd>
+
+              <dt>Actividades (puntos amarillos)</dt>
+              <dd>
+                Son tareas que el jugador puede realizar (café, película, comer, etc.).
+                <ul>
+                  <li>Cada actividad tiene tiempo, puntos y riesgo</li>
+                  <li>Se vinculan a una zona específica</li>
+                </ul>
+              </dd>
+
+              <dt>Lugares Seguros (círculos cyan)</dt>
+              <dd>
+                Son zonas donde el jugador puede fingir que trabaja sin ser visto.
+                <ul>
+                  <li>Tienen radio de cobertura</li>
+                  <li>Pueden ser permanentes (desk) o temporales (meeting)</li>
+                </ul>
+              </dd>
+
+              <dt>Rutas (líneas punteadas de color)</dt>
+              <dd>
+                Son caminos que siguen los jefes y secuaces.
+                <ul>
+                  <li>Cada ruta es una serie de puntos conectados</li>
+                  <li>Los personajes IA las patrullan</li>
+                </ul>
+              </dd>
+
+              <dt>Footprint (perímetro)</dt>
+              <dd>
+                Es el borde del piso donde termina el espacio jugable.
+              </dd>
+            </dl>
+
+            <h3>Interacción General</h3>
+            <ul>
+              <li><b>Clic + Arrastrar</b> en objeto — mover objeto.</li>
+              <li><b>Tiradores en esquinas</b> de zona — redimensionar.</li>
+              <li><b>Rueda del ratón</b> — zoom (acerca/aleja).</li>
+              <li><b>Espacio + Arrastrar</b> (o botón central) — desplazar vista.</li>
+              <li><b>Mayús + Arrastrar</b> — mover sin ajuste a rejilla.</li>
+              <li><b>Delete / Backspace</b> — borrar lo seleccionado.</li>
+            </ul>
+
+            <h3>Información Técnica</h3>
+            <p>
+              Editor del <b>plano</b> (<code>scenes/*.json</code>) y del
+              <b>día</b> (<code>levels/*.json</code>). Todo en unidades de
+              plano — el motor las multiplica por <code>WORLD_SCALE</code>.
+            </p>
+            <p>
+              El <b>aviso rojo de zonas solapadas</b> vigila que los rectángulos
+              de <code>areas</code> no se pisen entre sí.
+            </p>
+            <p>
+              El builder <b>no escribe en el repo</b>. Copia el JSON y pégalo en
+              <code>pixel-office/public/data/…</code>, después corre
+              <code>npm run build:pages</code>.
+            </p>
+          </div>
+        </section>
+      </aside>
+
+      <div class="stage">
+        <canvas id="canvas"></canvas>
+        <div class="hud" id="stage-hud"></div>
+        <div class="warn hidden" id="warn"></div>
+
+        <div class="toolbar">
+          <div class="tool-group">
+            <button class="tool" id="tool-spawn" title="Spawn (S)" data-key="S">
+              <span>🚪</span>
+              <span class="label">Ingreso</span>
+            </button>
+            <button class="tool" id="tool-boss" title="Boss Spawn (B)" data-key="B">
+              <span>👿</span>
+              <span class="label">Jefe</span>
+            </button>
+            <button class="tool" id="tool-routes" title="Routes (R)" data-key="R">
+              <span>🛤️</span>
+              <span class="label">Rutas</span>
+            </button>
+            <button class="tool" id="tool-footprint" title="Footprint (F)" data-key="F">
+              <span>🟨</span>
+              <span class="label">Piso</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <aside class="panel right">
+        <h2 id="prop-title">Nada seleccionado</h2>
+        <div id="props"></div>
+      </aside>
+    </main>
+
+    <div class="toast hidden" id="toast"></div>
+    <script type="module" src="builder.js"></script>
+  </body>
+</html>
