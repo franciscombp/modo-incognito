@@ -26,41 +26,49 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
  */
 
 /**
- * Del rig del modelo al nuestro.
+ * MAPEO FLEXIBLE DE HUESOS.
  *
- * Es lo que hace que NO haya que reescribir las poses: `POSE_LIBRARY` habla de
- * "LeftArm" y "Spine", así que a los huesos importados se les cambia el nombre
- * al cargarlos y todo lo demás sigue funcionando igual.
- *
- * El mapeo sale de los nodos del propio glTF. Ojo con dos:
- *  · `wrist * ` es nuestra mano (el modelo cuelga los dedos de ahí).
- *  · `lower_leg *.001` es el tobillo, y hace de nuestro pie — el modelo no
- *    tiene hueso de pie de verdad.
+ * Mapeos para diferentes rigs. El motor detecta el rig al cargar y aplica
+ * el mapeo correcto automáticamente. Los mapeos heredados se quedan para
+ * compatibilidad hacia atrás, pero el defecto es ahora el rig estándar
+ * (Mixamo/Rigify: Hips, Spine, Chest, etc.).
  */
-export const BONE_MAP = {
+
+// Rig heredado de base.gltf (para compatibilidad)
+const BONE_MAP_BASE_LEGACY = {
   hips_40: "Hips",
   spine_33: "Spine",
   chest_32: "Chest",
   neck_16: "Neck",
   head_15: "Head",
-
   "shoulder L_14": "LeftShoulder",
   "upper_arm L_13": "LeftArm",
   "lower_arm L_12": "LeftForeArm",
   "wrist L_11": "LeftHand",
-
   "shoulder R_31": "RightShoulder",
   "upper_arm R_30": "RightArm",
   "lower_arm R_29": "RightForeArm",
   "wrist R_28": "RightHand",
-
   "upper_Leg L_36": "LeftUpLeg",
   "lower_leg L_35": "LeftLeg",
   "lower_leg L.001_34": "LeftFoot",
-
   "upper_Leg R_39": "RightUpLeg",
   "lower_leg R_38": "RightLeg",
   "lower_leg R.001_37": "RightFoot",
+};
+
+// Mapeo estándar (Mixamo, Rigify, rigs convencionales)
+// Estos ya tienen los nombres correctos, pero los alias ayudan con variantes
+const BONE_MAP_STANDARD = {
+  // Alias para variantes comunes
+  "Spine01": "Spine",
+  "Spine02": "Chest",
+  "Spine1": "Spine",
+  "Spine2": "Chest",
+  "Chest1": "Chest",
+  "neck": "Neck",
+  "Neck1": "Neck",
+  "Armature": "", // Nodo padre, ignorar
 };
 
 /** Qué parte del cuerpo es cada malla, para poder darles color distinto. */
@@ -159,26 +167,100 @@ export function peekBaseModel(url) {
  */
 const sanitize = (name) => name.replace(/\s/g, "_").replace(/[\\[\]./:]/g, "");
 
-const BONE_LOOKUP = new Map(Object.entries(BONE_MAP).map(([k, v]) => [sanitize(k), v]));
+/** Detecta qué tipo de rig tiene el modelo y devuelve el mapeo apropiado. */
+function detectRigAndGetMapping(root) {
+  const boneNames = new Set();
+  root.traverse((obj) => {
+    if (obj.isBone) boneNames.add(sanitize(obj.name));
+  });
+
+  // Si tiene los huesos legacy de base.gltf
+  if (boneNames.has("hips_40")) {
+    return new Map(Object.entries(BONE_MAP_BASE_LEGACY).map(([k, v]) => [sanitize(k), v]));
+  }
+
+  // Si ya tiene nombres estándar (Hips, Spine, etc.), solo aplicar alias
+  // Crear mapeo de alias para variantes
+  const mapping = new Map(
+    Object.entries(BONE_MAP_STANDARD).map(([k, v]) => [sanitize(k), v])
+  );
+
+  // Que los huesos que ya tienen nombre correcto no se modifiquen
+  const standardBones = [
+    "Hips",
+    "Spine",
+    "Chest",
+    "Neck",
+    "Head",
+    "LeftShoulder",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "RightShoulder",
+    "RightArm",
+    "RightForeArm",
+    "RightHand",
+    "LeftUpLeg",
+    "LeftLeg",
+    "LeftFoot",
+    "RightUpLeg",
+    "RightLeg",
+    "RightFoot",
+  ];
+
+  for (const bone of standardBones) {
+    if (boneNames.has(bone)) {
+      mapping.set(bone, bone); // No renombrar
+    }
+  }
+
+  return mapping;
+}
 
 /** Reetiqueta el esqueleto importado con nuestros nombres. */
 function renameBones(root) {
-  const missing = new Set(BONE_LOOKUP.values());
+  const mapping = detectRigAndGetMapping(root);
+  const required = new Set([
+    "Hips",
+    "Spine",
+    "Head",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "RightArm",
+    "RightForeArm",
+    "RightHand",
+    "LeftUpLeg",
+    "LeftLeg",
+    "LeftFoot",
+    "RightUpLeg",
+    "RightLeg",
+    "RightFoot",
+  ]);
+  const missing = new Set(required);
+
   root.traverse((obj) => {
     if (!obj.isBone) return;
-    const ours = BONE_LOOKUP.get(sanitize(obj.name));
-    if (ours) {
-      obj.name = ours;
-      missing.delete(ours);
+    const sanitized = sanitize(obj.name);
+    const newName = mapping.get(sanitized);
+
+    if (newName) {
+      if (newName !== "") {
+        obj.name = newName;
+        missing.delete(newName);
+      }
+      // Si newName es "", es un nodo ignorable (Armature, etc.)
+    } else if (required.has(obj.name)) {
+      // Ya tiene nombre correcto
+      missing.delete(obj.name);
     }
-    // Un modelo exportado con un rig convencional YA se llama como nosotros;
-    // no hay nada que traducir y no es que le falte el hueso.
-    if (missing.has(obj.name)) missing.delete(obj.name);
   });
-  // Un hueso que no aparece deja poses a medias sin decir nada: la pierna no
-  // se dobla y no hay error en ninguna parte. Mejor que lo cante.
+
+  // Advertir si faltan huesos críticos
   if (missing.size) {
-    console.warn(`baseModel: no se encontraron estos huesos en el modelo: ${[...missing].join(", ")}`);
+    console.warn(
+      `baseModel: no se encontraron estos huesos en el modelo: ${[...missing].join(", ")}`
+    );
   }
 }
 
