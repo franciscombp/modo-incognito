@@ -6,172 +6,124 @@
     <title>Music Builder · Modo Incógnito</title>
     <link rel="icon" href="../../favicon.png" />
     <link rel="stylesheet" href="../../src/style/design-system.css" />
-    <link rel="stylesheet" href="../../src/style/tailwind.css" />
-    <style>
-      /* Music builder specific styles */
-      .sequencer { gap: 1rem; }
-      .layer-track { gap: 0.5rem; }
-      .step-grid { gap: 0.25rem; }
-    </style>
+    <link rel="stylesheet" href="../../src/style/builders.css" />
+    <link rel="stylesheet" href="musica-specific.css" />
   </head>
-  <body class="bg-background text-foreground">
-    <div class="flex h-screen flex-col">
-      <!-- Header -->
-      <header class="flex items-center justify-between gap-4 border-b border-border bg-card px-6 py-3">
-        <div class="flex items-center gap-4">
-          <h1 class="text-xl font-bold">🎵 MUSIC BUILDER</h1>
-          <span id="playing-indicator" class="hidden animate-pulse text-sm font-bold text-accent">● EN VIVO</span>
-        </div>
-        <div class="flex items-center gap-3">
-          <select id="theme-select" class="rounded-cozy border border-border bg-input px-3 py-2 text-sm">
-            <option value="">-- Selecciona un tema --</option>
-            <option value="main">Main (Principal)</option>
-            <option value="title">Title (Menú)</option>
-            <option value="calm">Calm (Tranquilo)</option>
-            <option value="tense">Tense (Tenso)</option>
-            <option value="chase">Chase (Persecución)</option>
-            <option value="crossing">Crossing (Cruzar)</option>
-          </select>
-          <label class="cursor-pointer rounded-cozy border border-border bg-input px-3 py-2 text-sm font-medium hover:bg-muted">
-            📥 Importar
-            <input type="file" id="import-theme" accept=".json" hidden />
-          </label>
-        </div>
-        <div class="flex gap-2">
-          <button id="play-theme" disabled class="rounded-cozy bg-accent px-4 py-2 text-sm font-bold text-accent-foreground disabled:opacity-50">
-            ▶ Play
-          </button>
-          <button id="export-theme" disabled class="rounded-cozy bg-secondary px-4 py-2 text-sm font-bold text-secondary-foreground disabled:opacity-50">
-            ⬇ Export
-          </button>
-        </div>
-      </header>
+  <body>
+    <header class="bar">
+      <h1>MUSIC BUILDER · <span>Modo Incógnito</span></h1>
+      <span id="playing-indicator" class="playing-indicator hidden">● EN VIVO</span>
+      <div class="bar-group">
+        <select id="theme-select">
+          <option value="">-- Selecciona un tema --</option>
+          <option value="main">Main (Principal)</option>
+          <option value="title">Title (Menú)</option>
+          <option value="calm">Calm (Tranquilo)</option>
+          <option value="tense">Tense (Tenso)</option>
+          <option value="chase">Chase (Persecución)</option>
+          <option value="crossing">Crossing (Cruzar)</option>
+        </select>
+        <label class="file">
+          Importar tema…
+          <input type="file" id="import-theme" accept=".json" hidden />
+        </label>
+      </div>
+      <div class="bar-group right">
+        <button id="play-theme" class="primary" disabled>▶ Reproducir en bucle</button>
+        <button id="export-theme" class="primary" disabled>⬇ Exportar JSON</button>
+      </div>
+    </header>
 
-      <!-- Main content -->
-      <main class="flex flex-1 overflow-hidden gap-4 p-4">
-        <!-- Left panel: Properties -->
-        <aside class="w-64 overflow-y-auto space-y-6 rounded-cozy border border-border bg-card p-4 shadow-cozy">
-          <!-- Parámetros -->
-          <section>
-            <h2 class="mb-3 border-b border-border pb-2 text-sm font-bold uppercase tracking-wide text-accent">Parámetros</h2>
-            <div class="space-y-3">
-              <div>
-                <label class="block text-xs font-medium text-muted-foreground">BPM</label>
-                <input type="number" id="bpm" min="60" max="200" step="1" disabled class="w-full rounded-cozy border border-border bg-input px-2 py-1 text-sm focus:border-accent focus:ring-2 focus:ring-accent" />
-              </div>
-              <div>
-                <label class="block text-xs font-medium text-muted-foreground">Steps/Compás</label>
-                <input type="number" id="steps" min="4" max="16" step="1" disabled class="w-full rounded-cozy border border-border bg-input px-2 py-1 text-sm focus:border-accent focus:ring-2 focus:ring-accent" />
-              </div>
-            </div>
-          </section>
-
-          <!-- Layers -->
-          <section>
-            <h2 class="mb-3 border-b border-border pb-2 text-sm font-bold uppercase tracking-wide text-accent">Capas</h2>
-            <div class="space-y-2">
-              <label class="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" id="layer-bass" checked disabled class="rounded cursor-pointer accent-accent" />
-                <span>Bass</span>
-              </label>
-              <label class="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" id="layer-lead" checked disabled class="rounded cursor-pointer accent-accent" />
-                <span>Lead</span>
-              </label>
-              <label class="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" id="layer-pad" checked disabled class="rounded cursor-pointer accent-accent" />
-                <span>Pad</span>
-              </label>
-              <label class="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" id="layer-perc" disabled class="rounded cursor-pointer accent-accent" />
-                <span>Perc</span>
-              </label>
-              <label class="flex items-center gap-2 text-xs cursor-pointer">
-                <input type="checkbox" id="layer-brass" checked disabled class="rounded cursor-pointer accent-accent" />
-                <span>Brass</span>
-              </label>
-            </div>
-          </section>
-
-          <!-- Mix -->
-          <section>
-            <h2 class="mb-3 border-b border-border pb-2 text-sm font-bold uppercase tracking-wide text-accent">Mix</h2>
-            <div class="space-y-3">
-              <div>
-                <div class="mb-1 flex items-center justify-between text-xs">
-                  <span>Bass</span>
-                  <span class="font-bold text-accent" id="mix-bass-val">0.8</span>
-                </div>
-                <input type="range" id="mix-bass" min="0" max="1" step="0.05" value="0.8" disabled class="w-full cursor-pointer accent-accent" />
-              </div>
-              <div>
-                <div class="mb-1 flex items-center justify-between text-xs">
-                  <span>Lead</span>
-                  <span class="font-bold text-accent" id="mix-lead-val">0.75</span>
-                </div>
-                <input type="range" id="mix-lead" min="0" max="1" step="0.05" value="0.75" disabled class="w-full cursor-pointer accent-accent" />
-              </div>
-              <div>
-                <div class="mb-1 flex items-center justify-between text-xs">
-                  <span>Pad</span>
-                  <span class="font-bold text-accent" id="mix-pad-val">0.4</span>
-                </div>
-                <input type="range" id="mix-pad" min="0" max="1" step="0.05" value="0.4" disabled class="w-full cursor-pointer accent-accent" />
-              </div>
-              <div>
-                <div class="mb-1 flex items-center justify-between text-xs">
-                  <span>Perc</span>
-                  <span class="font-bold text-accent" id="mix-perc-val">0.5</span>
-                </div>
-                <input type="range" id="mix-perc" min="0" max="1" step="0.05" value="0.5" disabled class="w-full cursor-pointer accent-accent" />
-              </div>
-              <div>
-                <div class="mb-1 flex items-center justify-between text-xs">
-                  <span>Brass</span>
-                  <span class="font-bold text-accent" id="mix-brass-val">0.6</span>
-                </div>
-                <input type="range" id="mix-brass" min="0" max="1" step="0.05" value="0.6" disabled class="w-full cursor-pointer accent-accent" />
-              </div>
-            </div>
-          </section>
-
-          <!-- Note reference -->
-          <section>
-            <h2 class="mb-3 border-b border-border pb-2 text-xs font-bold uppercase tracking-wide text-accent">Referencias</h2>
-            <div class="space-y-2 rounded-cozy border-l-3 border-accent bg-muted/20 p-3 text-xs leading-relaxed text-muted-foreground">
-              <p><strong class="text-accent">Octavas:</strong> C2, C3, C4, C5, C6</p>
-              <p><strong class="text-accent">Semitonos:</strong> C, C#, D, Eb, E, F, F#, G, Ab, A, Bb, B</p>
-              <p><strong class="text-accent">Ejemplo:</strong> "C4", "Eb4", "Ab2"</p>
-              <p><strong class="text-accent">Silencio:</strong> null</p>
-            </div>
-          </section>
-        </aside>
-
-        <!-- Center: Sequencer -->
-        <div class="flex-1 flex flex-col gap-4 min-w-0">
-          <div id="sequencer" class="flex-1 overflow-y-auto space-y-4 rounded-cozy border border-border bg-card p-4 shadow-cozy">
-            <!-- Generado por JS -->
+    <main>
+      <aside class="panel left">
+        <section class="properties">
+          <h2>Parámetros</h2>
+          <div class="param-group">
+            <label>
+              BPM
+              <input type="number" id="bpm" min="60" max="200" step="1" disabled />
+            </label>
+            <label>
+              Pasos por compás
+              <input type="number" id="steps" min="4" max="16" step="1" disabled />
+            </label>
           </div>
-          <div class="flex gap-2">
-            <button id="stop-play" disabled class="flex-1 rounded-cozy border border-border bg-input px-4 py-2 text-sm font-bold text-foreground hover:bg-muted disabled:opacity-50">
-              ⏹ Detener
-            </button>
-            <button id="clear-theme" disabled class="flex-1 rounded-cozy border border-border bg-destructive px-4 py-2 text-sm font-bold text-destructive-foreground hover:opacity-90 disabled:opacity-50">
-              🗑 Limpiar
-            </button>
+
+          <h2>Capas</h2>
+          <div class="layers">
+            <div class="layer">
+              <input type="checkbox" id="layer-bass" checked disabled />
+              <label for="layer-bass">Bass (Bajo)</label>
+            </div>
+            <div class="layer">
+              <input type="checkbox" id="layer-lead" checked disabled />
+              <label for="layer-lead">Lead (Melodía)</label>
+            </div>
+            <div class="layer">
+              <input type="checkbox" id="layer-pad" checked disabled />
+              <label for="layer-pad">Pad (Colchón)</label>
+            </div>
+            <div class="layer">
+              <input type="checkbox" id="layer-perc" disabled />
+              <label for="layer-perc">Perc (Percusión)</label>
+            </div>
+            <div class="layer">
+              <input type="checkbox" id="layer-brass" checked disabled />
+              <label for="layer-brass">Brass (Trompetas)</label>
+            </div>
           </div>
+
+          <h2>Mix</h2>
+          <div class="mix">
+            <label>
+              Bass: <span id="mix-bass-val">0.8</span>
+              <input type="range" id="mix-bass" min="0" max="1" step="0.05" value="0.8" disabled />
+            </label>
+            <label>
+              Lead: <span id="mix-lead-val">0.75</span>
+              <input type="range" id="mix-lead" min="0" max="1" step="0.05" value="0.75" disabled />
+            </label>
+            <label>
+              Pad: <span id="mix-pad-val">0.4</span>
+              <input type="range" id="mix-pad" min="0" max="1" step="0.05" value="0.4" disabled />
+            </label>
+            <label>
+              Perc: <span id="mix-perc-val">0.5</span>
+              <input type="range" id="mix-perc" min="0" max="1" step="0.05" value="0.5" disabled />
+            </label>
+            <label>
+              Brass: <span id="mix-brass-val">0.6</span>
+              <input type="range" id="mix-brass" min="0" max="1" step="0.05" value="0.6" disabled />
+            </label>
+          </div>
+
+          <h2>Notas de Referencia</h2>
+          <div class="note-ref">
+            <p><strong>Octavas:</strong> C2, C3, C4, C5, C6</p>
+            <p><strong>Semitonos:</strong> C, C#, D, Eb, E, F, F#, G, Ab, A, Bb, B</p>
+            <p><strong>Ejemplo:</strong> "C4", "Eb4", "Ab2"</p>
+            <p><strong>Silencio:</strong> null</p>
+            <p><strong>▲ / ▼</strong> en cada paso suben o bajan la nota un semitono.</p>
+            <p>▶ Escuchar repite el tema en bucle hasta que le des a ⏹ Detener.</p>
+          </div>
+        </section>
+      </aside>
+
+      <div class="stage">
+        <div class="sequencer" id="sequencer"></div>
+        <div class="controls">
+          <button id="stop-play" class="secondary" disabled>⏹ Detener</button>
+          <button id="clear-theme" class="secondary" disabled>🗑 Limpiar</button>
         </div>
+      </div>
 
-        <!-- Right panel: Info -->
-        <aside class="w-80 overflow-y-auto space-y-4 rounded-cozy border border-border bg-card p-4 shadow-cozy">
-          <div>
-            <h2 id="info-title" class="mb-2 border-b border-border pb-2 text-sm font-bold text-accent">Selecciona un tema</h2>
-            <div id="info-content" class="space-y-2 text-xs text-muted-foreground"></div>
-          </div>
-        </aside>
-      </main>
-    </div>
+      <aside class="panel right">
+        <h2 id="info-title">Selecciona un tema</h2>
+        <div id="info-content" class="info"></div>
+      </aside>
+    </main>
 
+    <div class="toast hidden" id="toast"></div>
     <script type="module" src="music.js"></script>
   </body>
 </html>
