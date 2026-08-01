@@ -1298,17 +1298,20 @@ export class Character3D {
   /** Aplica la pose REST a los huesos importados de forma ABSOLUTA (no relativa),
    *  estableciendo una postura natural como su nuevo reposo. */
   _applyRestPose(bones) {
-    // Aplicar rotaciones absolutas del REST a cada hueso
-    const euler = new THREE.Euler();
+    // Limpiar el restQuat para que setBoneRotation escriba directamente,
+    // no de forma relativa al T-pose guardado del archivo.
+    for (const bone of bones.values()) {
+      bone.userData.restQuat = null;
+    }
+
+    // Aplicar la pose REST directamente, sin relativizar a la T-pose.
     for (const [name, angles] of Object.entries(REST)) {
       const bone = bones.get(BONE_OF[name]);
       if (!bone || name === "lift" || name === "hands") continue;
-      // Aplicar la rotación de forma ABSOLUTA (no relativa a restQuat)
-      euler.set(angles[0], angles[1], angles[2]);
-      bone.quaternion.setFromEuler(euler);
+      setBoneRotation(bone, angles[0], angles[1], angles[2]);
     }
-    // Guardar la nueva postura como el reposo, no la del archivo (T-pose).
-    // Ahora las poses futuras serán RELATIVAS a esta postura natural.
+
+    // Guardar la nueva postura como el reposo, no la del archivo.
     for (const bone of bones.values()) {
       bone.userData.restQuat = bone.quaternion.clone();
     }
