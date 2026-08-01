@@ -27,7 +27,7 @@ ligera. Los personajes mezclan arquetipos típicos (el quejoso, el que
 siempre se salva de todo, el jefe inseguro con apodo ridículo) con guiños a
 gente real de la oficina — la gracia está en que cualquiera de la Tribu
 pueda reconocerse, y reconozca sobre todo lo malo: la microgestión, los
-favoritismos, el "banco innovador" que no lo es, la cultura de "familia" que
+favoritismos, la "institución innovadora" que no lo es, la cultura de "familia" que
 se usa para pedir más sin dar más. Si escribes diálogo nuevo, que tenga
 filo — un chiste sin nada que criticar es solo relleno.
 
@@ -608,7 +608,7 @@ src/
     loader.js      carga y valida los JSON de public/data
   ui/
     menus.js       título, elegir día, ajustes, ayuda y pausa
-    cameraPanel.js el banco de pruebas de la cámara
+    cameraPanel.js el panel de pruebas de la cámara
     compass.js     tarjeta de tarea activa + marcador de destino
     popups.js      números de puntuación flotantes
   game/
