@@ -252,24 +252,23 @@ export function createHud(root) {
   }
 
   /** Shown between days; `actions` are [{ label, primary, onClick }]. */
-  function showResult({ icon, title, body, win, actions, rank, timeLeft, levelDuration }) {
+  function showResult({ icon, title, body, win, actions, timeLeft, timeGained }) {
     overlayIcon.textContent = icon;
     overlayTitle.textContent = title;
     overlayTitle.classList.toggle("win", !!win);
     overlayTitle.classList.toggle("lose", !win);
 
+    // El resultado del día son dos cifras de reloj: lo que te regalaste
+    // escaqueándote, y lo que te sobraba cuando acabó. Ni puntos ni rango.
     overlayScore.innerHTML = "";
-    if (timeLeft != null) {
+    if (timeGained != null || timeLeft != null) {
       const box = el("div", "hud-result-score", overlayScore);
-      const extraTime = Math.max(0, timeLeft - levelDuration);
-      if (extraTime > 0) {
-        el("span", "hud-result-points", box, `+${Math.ceil(extraTime)}s 🎯`);
+      if (timeGained != null) {
+        el("span", "hud-result-points", box, `+${Math.round(timeGained)}s ganados`);
       }
-    }
-    if (rank) {
-      const badge = el("div", `hud-rank rank-${rank.label}`, overlayScore);
-      el("span", "hud-rank-letter", badge, rank.label);
-      el("span", "hud-rank-blurb", badge, rank.blurb);
+      if (timeLeft != null) {
+        el("span", "hud-result-target", box, `${Math.max(0, Math.round(timeLeft))}s de sobra`);
+      }
     }
 
     overlayBody.textContent = body;
@@ -399,8 +398,7 @@ export function createHud(root) {
       });
     }
 
-    const extraTime = Math.max(0, state.timeLeft - state.levelDuration);
-    scoreValue.textContent = `${Math.ceil(extraTime)}s`;
+    scoreValue.textContent = `+${Math.round(state.timeGained)}s`;
     const comboOn = state.combo > 1;
     comboChip.classList.toggle("on", comboOn);
     comboText.textContent = `x${state.combo.toFixed(1)}`;

@@ -19,7 +19,12 @@
     "En \"meeting\" es un hueco de verdad por el que se pasa: si lo pones contra",
     "la fachada o contra el vecino, la sala deja de ser alcanzable y",
     "`npm run check:doors` lo canta. En \"core\" el bloque es macizo y la puerta",
-    "es solo decorado, pero se ve igual."
+    "es solo decorado, pero se ve igual.",
+    "",
+    "activities[].time: cuanto SE TARDA en hacerla (segundos de aguante).",
+    "activities[].reward: cuanto RELOJ regala al completarla. No hay puntos:",
+    "la unica moneda del juego es la jornada, y cada escaqueo la alarga.",
+    "activities[].riskRate: sospecha por segundo mientras la haces."
   ],
   "footprint": [
     [
@@ -628,9 +633,9 @@
       "area": "cafeteria",
       "riskRate": 14,
       "time": 3,
-      "points": 100,
       "perk": "caffeine",
-      "pose": "coffee"
+      "pose": "coffee",
+      "reward": 17
     },
     {
       "id": "chat",
@@ -642,8 +647,8 @@
       "area": "cafeteria",
       "riskRate": 22,
       "time": 5,
-      "points": 160,
-      "pose": "shrug"
+      "pose": "shrug",
+      "reward": 27
     },
     {
       "id": "movie",
@@ -655,8 +660,8 @@
       "area": "auditorio",
       "riskRate": 32,
       "time": 6,
-      "points": 260,
-      "pose": "movie"
+      "pose": "movie",
+      "reward": 43
     },
     {
       "id": "sleep",
@@ -668,8 +673,8 @@
       "area": "segmentos_sur",
       "riskRate": 36,
       "time": 2.5,
-      "points": 220,
-      "pose": "sleep"
+      "pose": "sleep",
+      "reward": 37
     },
     {
       "id": "snack",
@@ -681,8 +686,8 @@
       "area": "bpone",
       "riskRate": 24,
       "time": 4,
-      "points": 190,
-      "pose": "eat"
+      "pose": "eat",
+      "reward": 32
     },
     {
       "id": "stretch",
@@ -694,8 +699,8 @@
       "area": "banos_sur",
       "riskRate": 20,
       "time": 3.5,
-      "points": 150,
-      "pose": "sleep"
+      "pose": "sleep",
+      "reward": 25
     },
     {
       "id": "meeting",
@@ -707,8 +712,8 @@
       "area": "sala4",
       "riskRate": 30,
       "time": 5,
-      "points": 230,
-      "pose": "movie"
+      "pose": "movie",
+      "reward": 38
     },
     {
       "id": "window",
@@ -720,8 +725,8 @@
       "area": "evolucion",
       "riskRate": 24,
       "time": 4,
-      "points": 170,
-      "pose": "coffee"
+      "pose": "coffee",
+      "reward": 28
     }
   ],
   "hidingSpots": [

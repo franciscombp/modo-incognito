@@ -69,10 +69,11 @@ const WASHO_SLOW_MUL = 0.55;
 // se recarga: agotado, esa sala está quemada hasta mañana.
 const SAFE_SPOT_BUDGET = 25;
 
-// Scoring. The fun is in *how* you slack off, not just whether you finish, so
-// the score rewards nerve: doing a forbidden thing with the boss breathing
-// down your neck is worth several times doing it in an empty wing, and
-// chaining activities without a warning stacks a multiplier.
+// La única moneda es el RELOJ. No hay puntos: cada cosa prohibida que haces
+// te alarga la jornada, y el descaro paga — hacerla con el jefe encima vale
+// varias veces hacerla en un ala vacía, y encadenarlas sin que te pillen
+// multiplica. Perder aquí es quedarte sin reloj, no quedarte corto de puntos.
+const EGG_TIME_BONUS = 45; // un secreto encontrado vale su buen rato
 const COMBO_WINDOW = 22; // seconds to chain the next activity
 const COMBO_STEP = 0.5; // +0.5x per link
 const COMBO_MAX = 4;
@@ -87,7 +88,6 @@ const DEFAULT_RULES = {
   objectives: null, // null = every forbidden activity
   decayMul: 1,
   distractionsOff: false,
-  targetScore: 1000,
   // Personaje elegido (modes.json), fusionado sobre las reglas del día.
   minionSuspicionMul: 1,
   explore: false, // Kiara: ya renunció, nada le afecta
@@ -166,6 +166,7 @@ export class Game {
     this.paused = false;
     this._finished = false;
 
+    this.timeGained = 0; // reloj regalado hoy; es lo que enseña el HUD
     this.combo = 1;
     this.comboLeft = 0;
     this.perk = null;
@@ -480,10 +481,13 @@ export class Game {
       nerveLabel = " · con el jefe cerca";
     }
 
-    const baseSeconds = station.time ?? 8;
-    const gained = Math.round(baseSeconds * (this.combo + nerve));
-    this.timeLeft += gained;
-    this.onPopup?.({ text: `+${gained}s`, sub: station.label, x: station.x, z: station.z, kind: "major" });
+    // `reward`, no `time`: `time` es lo que TARDA la actividad, no lo que da.
+    const gained = this._grantTime(station.reward ?? 20, {
+      at: station,
+      sub: this.combo > 1 ? `x${this.combo.toFixed(1)}` : "",
+      kind: nerve ? "nerve" : "score",
+      extraMul: nerve,
+    });
 
     this.combo = Math.min(COMBO_MAX, this.combo + COMBO_STEP);
     this.comboLeft = COMBO_WINDOW;
@@ -492,26 +496,36 @@ export class Game {
 
     buzz([12, 40, 18]);
     sfxComplete();
-    this.toast(`${station.label} ✔${nerveLabel}`);
+    this.toast(`${station.label} ✔${nerveLabel} · +${gained}s`);
     this._actionFlash = {
       icon: station.icon ?? "❓",
       label: station.label,
       pose: station.pose ?? null,
       timer: 1.1,
     };
-    this.onPopup?.({
-      text: `+${gained}`,
-      sub: this.combo > 1 ? `x${this.combo.toFixed(1)}` : "",
-      x: station.x,
-      z: station.z,
-      kind: nerve ? "nerve" : "score",
-    });
   }
 
-  award(seconds, label, at) {
-    const gained = Math.round(seconds * this.combo);
+  /**
+   * La ÚNICA puerta por la que se regala reloj.
+   *
+   * Ya no hay puntos: todo lo que antes puntuaba ahora alarga la jornada. Pasa
+   * todo por aquí para que `timeGained` (lo que enseña el HUD) no se pueda
+   * quedar desincronizado de `timeLeft` — que es justo lo que pasaba cuando
+   * cada sitio sumaba por su cuenta.
+   */
+  _grantTime(seconds, { at, label = "", sub = "", kind = "minor", extraMul = 0 } = {}) {
+    const gained = Math.max(1, Math.round(seconds * (this.combo + extraMul)));
     this.timeLeft += gained;
-    this.onPopup?.({ text: `+${gained}s`, sub: label, x: at.x, z: at.z, kind: "minor" });
+    this.timeGained += gained;
+    if (at) {
+      this.onPopup?.({ text: `+${gained}s`, sub: sub || label, x: at.x, z: at.z, kind });
+    }
+    return gained;
+  }
+
+  /** Alarga la jornada. `seconds` es el bono base, antes del combo. */
+  award(seconds, label, at) {
+    return this._grantTime(seconds, { at, label, kind: "minor" });
   }
 
   applyPerk(perk) {
@@ -768,8 +782,7 @@ export class Game {
       this._eggDwell.set(egg.id, Math.max(0, dwell));
       if (dwell >= egg.dwell) {
         this._foundEggs.add(egg.id);
-        this.timeLeft += 30;
-        this.onPopup?.({ text: `+30s 🥚`, sub: egg.label ?? "Secret", x: egg.x, z: egg.z, kind: "major" });
+        this._grantTime(EGG_TIME_BONUS, { at: egg, sub: "secreto", kind: "nerve" });
         this.onEgg(egg);
       }
     }
@@ -810,7 +823,11 @@ export class Game {
       win,
       warnings: this.warnings,
       timeLeft: this.timeLeft,
-      elapsed: this.rules.duration - this.timeLeft,
+      timeGained: this.timeGained,
+      // Lo vivido de verdad: la jornada base MÁS lo que te regalaste, menos lo
+      // que queda. Sin sumar `timeGained` la cuenta salía corta en todo lo que
+      // hubieras ganado durante el día.
+      elapsed: this.rules.duration + this.timeGained - this.timeLeft,
       objectives: this.objectives,
       eggsFound: this._foundEggs.size,
     });
@@ -955,6 +972,7 @@ export class Game {
       win: this.win,
       message: this.message,
       area: this.currentArea,
+      timeGained: this.timeGained,
       combo: this.combo,
       comboLeft: this.comboLeft,
       comboWindow: COMBO_WINDOW,
