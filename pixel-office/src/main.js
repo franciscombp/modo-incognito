@@ -11,7 +11,7 @@ import { skyTexture, ATMOSPHERE } from "./scene/cozy.js";
 import * as floorplan from "./scene/floorplan.js";
 import { setActiveScene } from "./scene/floorplan.js";
 import * as iso from "./scene/iso.js";
-import { loadGameData } from "./data/loader.js";
+import { loadGameData, preloadBaseModels } from "./data/loader.js";
 import { Player } from "./entities/player.js";
 import { NPC } from "./entities/npc.js";
 import { Boss } from "./entities/boss.js";
@@ -74,6 +74,9 @@ scene.add(key);
 async function boot() {
   // ---- Content: everything the game is made of comes from public/data ----
   const data = await loadGameData();
+  // Los cuerpos esculpidos van por su cuenta: pesan, y el juego tiene que
+  // poder arrancar mientras llegan. Ver `preloadBaseModels`.
+  const baseModelsReady = preloadBaseModels(data.looks);
   const firstLevel = data.levels[0];
   setActiveScene(data.scenes.get(firstLevel.scene));
 
@@ -533,6 +536,11 @@ async function boot() {
 
   boot0?.remove();
   engine.start();
+
+  // Los cuerpos esculpidos suelen llegar antes que la jugadora a la pantalla
+  // de selección, pero si no, esas tarjetas están enseñando el pliego: en
+  // cuanto están, se vuelven a dibujar con el muñeco 3D.
+  baseModelsReady.then(() => engine.menus.refreshCharacters());
 
   // Los controles de abajo son una nota de bienvenida: se apagan en cuanto la
   // jugadora se mueve por su cuenta (o tras un rato, si se queda mirando), y

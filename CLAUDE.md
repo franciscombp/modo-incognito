@@ -110,6 +110,32 @@ Un `.glb` nuevo tiene que traer el rig con nombres convencionales (`Hips`,
 `Spine`, `LeftArm`…): `baseModel.js` los reetiqueta al cargar, y un hueso que
 no aparezca deja poses a medias avisando solo por consola.
 
+**Tres trampas de este camino, las tres pagadas ya:**
+
+- **`mergeRecipe` es un FILTRO, no una fusión.** Devuelve un objeto nuevo con
+  una lista fija de campos, así que un campo que no esté nombrado ahí se
+  pierde en silencio. `baseModel` faltaba, y el resultado fue que todo el
+  camino del `.glb` se escribió, se publicó y no llegó a ejecutarse nunca:
+  todo el mundo salía por el camino procedural, que se ve igual de bien y por
+  eso no cantó.
+- **Las poses se aplican como giro RELATIVO al reposo** (`setBoneRotation` +
+  `restQuat`). Un rig importado ya viene girado — es lo que lo mantiene de pie
+  y mirando al frente — y escribir el ángulo encima lo dejaba tumbado y en
+  cruz. En el esqueleto propio los huesos nacen sin rotar, así que ahí da
+  igual y el comportamiento no cambia.
+- **Los retratos de los menús se sacan en UNA vuelta** (`charshot.js`), y un
+  `.glb` no está listo en la primera. Por eso hay `preloadBaseModels()` al
+  arrancar y un montaje síncrono si ya está en memoria; y por eso
+  `characterShot` devuelve null en vez de fotografiar el vacío, que además
+  se cacheaba y dejaba la tarjeta en blanco para siempre.
+
+Un cuerpo importado **no gesticula**: su cara viene dentro de su textura, no
+en una aparte que se pueda redibujar, así que `setExpression` no le hace nada.
+
+Lo vigila `npm run check:basemodel`, y a propósito NO mira una captura: mira
+que el `.glb` se pida por red y que la malla en escena sea la del archivo.
+Una captura fue justo lo que no delató el fallo la primera vez.
+
 - **Para editarlos**: `builder/personajes.html` — vista previa 3D en vivo,
   selectores por pieza y visor de poses. Importa el módulo REAL del juego con
   un import map, así que no puede desincronizarse del motor. No escribe en el

@@ -1,7 +1,7 @@
 {
   "name": "pixel-office",
   "version": "1.0.0",
-  "description": "Modo Inc\u00f3gnito \u2014 oficina isom\u00e9trica oblicua en Three.js",
+  "description": "Modo Incógnito — oficina isométrica oblicua en Three.js",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,7 +19,7 @@
     "check:pursuit": "node tools/check-pursuit.mjs",
     "check:music": "node tools/check-music.mjs",
     "check:layout": "node tools/check-layout.mjs",
-    "check": "npm run check:reachable && npm run check:doors && npm run check:chase && npm run check:modes && npm run check:charselect && npm run check:catch && npm run check:minion-proximity && npm run check:suspicion && npm run check:safespots && npm run check:pursuit && npm run check:vision && npm run check:crossing && npm run check:poses && npm run check:retry && npm run check:music && npm run check:layout",
+    "check": "npm run check:reachable && npm run check:doors && npm run check:chase && npm run check:modes && npm run check:charselect && npm run check:catch && npm run check:minion-proximity && npm run check:suspicion && npm run check:safespots && npm run check:pursuit && npm run check:vision && npm run check:crossing && npm run check:poses && npm run check:retry && npm run check:music && npm run check:basemodel && npm run check:layout",
     "check:visual": "node tools/shoot.mjs",
     "check:menus": "node tools/shoot-menus.mjs",
     "format:data": "node tools/format-data.mjs",
@@ -31,7 +31,8 @@
     "check:cast": "node tools/shoot-cast.mjs",
     "palette": "python3 tools/extract-palette.py",
     "check:base": "node tools/shoot-base.mjs",
-    "check:face": "node tools/shoot-face.mjs"
+    "check:face": "node tools/shoot-face.mjs",
+    "check:basemodel": "node tools/check-basemodel.mjs"
   },
   "license": "ISC",
   "dependencies": {

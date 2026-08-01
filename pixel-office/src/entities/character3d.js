@@ -3,7 +3,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { screenToGround, facingFromGround } from "../scene/iso.js";
 import { buildSkeleton, skinGeometry, rigidGeometry } from "./skinning.js";
 import { faceTexture, projectFaceUVs } from "./face.js";
-import { loadBaseModel, instantiateBase } from "./baseModel.js";
+import { loadBaseModel, peekBaseModel, instantiateBase, modelUrlFor } from "./baseModel.js";
 
 /**
  * PERSONAJES 3D COZY, CON ESQUELETO DE VERDAD.
@@ -72,6 +72,31 @@ const P = {
 // a los huesos reales, para que las poses se sigan leyendo sin saberse el rig.
 // Ángulos en radianes; en brazos y piernas, x NEGATIVO va hacia delante.
 // ---------------------------------------------------------------------------
+/**
+ * Gira un hueso SIN PERDER SU POSTURA DE REPOSO.
+ *
+ * El esqueleto que montamos nosotros nace con todos los huesos sin rotar, así
+ * que ahí da igual escribir el ángulo directamente. Un rig importado NO: sus
+ * huesos ya vienen girados (es lo que lo mantiene de pie y mirando al frente),
+ * y escribir encima lo tumbaba y lo dejaba en cruz.
+ *
+ * Con `restQuat` guardado al montarlo, la pose pasa a ser un giro RELATIVO a
+ * esa postura. Sin `restQuat` — el caso del muñeco generado — se comporta
+ * exactamente como antes.
+ */
+const _poseEuler = new THREE.Euler();
+const _poseQuat = new THREE.Quaternion();
+function setBoneRotation(bone, x, y, z) {
+  const rest = bone.userData?.restQuat;
+  if (!rest) {
+    bone.rotation.set(x, y, z);
+    return;
+  }
+  _poseEuler.set(x, y, z);
+  _poseQuat.setFromEuler(_poseEuler);
+  bone.quaternion.copy(rest).multiply(_poseQuat);
+}
+
 const BONE_OF = {
   torso: "Spine",
   chest: "Chest",
@@ -218,6 +243,10 @@ function mergeRecipe(recipe) {
     return { ...DEFAULT_RECIPE[key], ...(value ?? {}) };
   };
   return {
+    // OJO: esta lista es un filtro, no una fusión — lo que no se nombre aquí
+    // se pierde en silencio. `baseModel` faltaba, y por eso el camino del .glb
+    // no llegó a ejecutarse nunca: llegaba siempre como undefined.
+    baseModel: r.baseModel ?? null,
     skin: r.skin ?? DEFAULT_RECIPE.skin,
     eyes: r.eyes ?? DEFAULT_RECIPE.eyes,
     blush: r.blush === undefined ? DEFAULT_RECIPE.blush : r.blush,
@@ -481,10 +510,22 @@ export class Character3D {
     const r = mergeRecipe(recipe);
     this.recipe = r;
 
-    // Si la receta especifica un modelo GLB (como "giuli.glb"), cárgalo (fire-and-forget).
+    // Un cuerpo importado tarda en llegar, y `setRecipe` se llama más de una
+    // vez seguida al elegir personaje. Sin este testigo, la carga vieja aún
+    // en vuelo se colgaba de `object` DESPUÉS de la nueva y quedaban dos
+    // cuerpos superpuestos, con `_built` apuntando solo a uno.
+    const token = (this._buildToken = (this._buildToken ?? 0) + 1);
     if (r.baseModel) {
-      this._buildFromGLB(r).catch((e) => {
-        console.error(`Error cargando modelo ${r.baseModel}:`, e);
+      // Si ya está en memoria se monta AHORA, sin ceder el turno: los menús
+      // montan un personaje y le sacan la foto en la misma vuelta, y con una
+      // espera de por medio la foto salía en blanco.
+      const cached = peekBaseModel(modelUrlFor(r.baseModel));
+      if (cached) {
+        this._assembleGLB(cached, r);
+        return;
+      }
+      this._buildFromGLB(r, token).catch((e) => {
+        if (token === this._buildToken) console.error(`No se pudo cargar ${r.baseModel}:`, e);
       });
       return;
     }
@@ -811,37 +852,69 @@ export class Character3D {
     this.setTint(this._tint);
   }
 
-  async _buildFromGLB(r) {
-    const H = this.height;
-    const modelUrl = `/public/models/${r.baseModel}`;
-    const gltf = await loadBaseModel(modelUrl);
-    const inst = instantiateBase(gltf, { height: H });
-    const { root, bones, meshes } = inst;
+  /**
+   * Cuerpo ESCULPIDO FUERA (`recipe.baseModel`), en vez de montado con
+   * primitivas. Lo usan los personajes que alguien modeló aparte.
+   *
+   * La diferencia de fondo con `_buildProcedural` es la CARA: el muñeco
+   * generado la lleva pintada en una textura aparte que podemos redibujar
+   * para cambiar de expresión, y un modelo importado ya trae la suya dentro
+   * de su propia textura. Así que aquí no se le pega ninguna cara encima —
+   * hacerlo dejaba dos caras superpuestas — y a cambio este personaje no
+   * gesticula: `setExpression` no tiene nada que redibujar.
+   */
+  async _buildFromGLB(r, token) {
+    const gltf = await loadBaseModel(modelUrlFor(r.baseModel));
+    // Mientras se descargaba pueden haberte cambiado de personaje.
+    if (token !== undefined && token !== this._buildToken) return;
+    this._assembleGLB(gltf, r);
+  }
 
-    // El modelo importado reemplaza el cuerpo procedural.
-    // TODO: soportar customización de colores/pelo/accesorios sobre el modelo base.
-    // Por ahora, la cara procedural todavía seSobreescribe.
-    const mesh = root.children[0]; // el modelo clonado
-    if (mesh.isSkinnedMesh) {
-      mesh.frustumCulled = false;
+  /** El montaje en sí, sin nada que esperar. Ver `_buildFromGLB`. */
+  _assembleGLB(gltf, r) {
+    const H = this.height;
+    const { root, bones, model } = instantiateBase(gltf, { height: H });
+
+    // La malla de verdad, no el Group que la envuelve: es de donde salen el
+    // esqueleto y el material, y `root.children[0]` daba el envoltorio.
+    let mesh = null;
+    model.traverse((o) => {
+      if (!mesh && o.isSkinnedMesh) mesh = o;
+    });
+    if (!mesh) throw new Error(`El modelo ${r.baseModel} no trae ningún SkinnedMesh`);
+
+    // Rig convencional pero no idéntico al nuestro: las poses hablan de
+    // "Chest" y "Neck", y un export típico encadena Spine → Spine01 →
+    // Spine02 → neck. Sin estos dos alias el torso y el cuello se quedan
+    // quietos en todas las poses, sin que nada lo diga.
+    if (!bones.has("Chest")) {
+      const chest = bones.get("Spine02") ?? bones.get("Spine01");
+      if (chest) bones.set("Chest", chest);
     }
+    if (!bones.has("Neck")) {
+      const neck = bones.get("neck") ?? bones.get("Neck01");
+      if (neck) bones.set("Neck", neck);
+    }
+
+    // La postura de reposo del rig, que es lo que lo mantiene de pie y con los
+    // brazos donde toca. Las poses se aplican COMO GIRO RELATIVO a esto (ver
+    // `setBoneRotation`); escribiendo el ángulo directamente, el personaje
+    // salía tumbado y en cruz.
+    for (const bone of bones.values()) {
+      bone.userData.restQuat = bone.quaternion.clone();
+    }
+
     this.object.add(root);
 
-    // Cabeza con textura (igual que procedural).
-    const headR = 0.22; // aproximado, ajustar según modelo
-    const headMesh = new THREE.Mesh(
-      projectFaceUVs(headGeometry(new THREE.Vector3(0, 0, 0), headR)),
-      new THREE.MeshLambertMaterial({ map: faceTexture(r, "neutral") })
-    );
-    const headBone = bones.get("Head");
-    if (headBone) {
-      headMesh.position.y = 0.1; // ajustar según posición del modelo
-      headBone.add(headMesh);
-    }
+    // La sombra de contacto se dimensiona con el ANCHO real del modelo. En el
+    // muñeco generado salía del radio de la cabeza, que aquí no conocemos.
+    const box = new THREE.Box3().setFromObject(model);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const footprint = Math.max(size.x, size.z) * 0.6;
 
-    // Sombra.
     const shadow = new THREE.Mesh(
-      new THREE.CircleGeometry(headR * 1.75, 24),
+      new THREE.CircleGeometry(footprint, 24),
       new THREE.MeshBasicMaterial({
         map: getShadowTexture(),
         transparent: true,
@@ -854,25 +927,30 @@ export class Character3D {
     shadow.renderOrder = -1;
     this.object.add(shadow);
 
-    // Props (taza, teléfono, plato).
+    // Utilería, a escala del modelo y no de un radio de cabeza inventado.
+    const propR = size.y * 0.11;
     const rightHand = bones.get("RightHand");
     const leftHand = bones.get("LeftHand");
     this._props = {
-      cup: rightHand ? makeCup(rightHand, headR, "#f4efe6") : null,
-      phone: rightHand ? makePhone(rightHand, headR, "#22252e") : null,
-      plate: leftHand ? makePlate(leftHand, headR) : null,
+      cup: rightHand ? makeCup(rightHand, propR, "#f4efe6") : null,
+      phone: rightHand ? makePhone(rightHand, propR, "#22252e") : null,
+      plate: leftHand ? makePlate(leftHand, propR) : null,
     };
 
     this._built = {
-      mesh,
+      mesh: root, // lo que se cuelga de `object`, y lo que hay que descolgar
+      geometry: mesh.geometry,
+      material: mesh.material,
       skeleton: mesh.skeleton ?? null,
       bones,
       byName: bones,
       root,
       shadow,
-      headR,
-      headMesh,
-      faceMat: headMesh.material,
+      headR: propR,
+      // Sin cara propia: el modelo ya la trae. `_dispose`, `setTint` y
+      // `setExpression` tratan estos dos como opcionales.
+      headMesh: null,
+      faceMat: null,
     };
     this._hipRest = bones.get("Hips")?.position.y ?? 0;
     this._applyPose();
@@ -962,8 +1040,10 @@ export class Character3D {
   setTint(scalar) {
     this._tint = scalar;
     if (!this._built) return;
-    this._built.material.color.setScalar(scalar);
-    this._built.faceMat.color.setScalar(scalar);
+    // Un modelo importado no tiene cara aparte, así que `faceMat` puede faltar.
+    for (const mat of [this._built.material, this._built.faceMat]) {
+      if (mat) mat.color.setScalar(scalar);
+    }
   }
 
   /**
@@ -972,6 +1052,9 @@ export class Character3D {
    */
   setExpression(name) {
     if (!this._built || name === this._expression) return;
+    // Un cuerpo importado trae la cara dentro de su propia textura: no hay
+    // nada que redibujar, y pisarle el `map` le borraría la piel entera.
+    if (!this._built.faceMat) return;
     this._expression = name;
     this._built.faceMat.map?.dispose();
     this._built.faceMat.map = faceTexture(this.recipe, name);
@@ -1065,7 +1148,7 @@ export class Character3D {
       const bone = byName.get(BONE_OF[key]);
       if (!bone) return;
       const [x, y, z] = angles(key);
-      bone.rotation.set(x * blend + extraX, y * blend, z * blend);
+      setBoneRotation(bone, x * blend + extraX, y * blend, z * blend);
     };
 
     set("torso");
@@ -1092,12 +1175,16 @@ export class Character3D {
     for (const side of ["Left", "Right"]) {
       for (const f of FINGERS) {
         const curl = mix(relax.curl, f === "Index" && hand.index != null ? hand.index : hand.curl);
-        byName.get(`${side}${f}1`)?.rotation.set(curl, 0, 0);
-        byName.get(`${side}${f}2`)?.rotation.set(curl * 0.85, 0, 0);
+        const b1 = byName.get(`${side}${f}1`);
+        const b2 = byName.get(`${side}${f}2`);
+        if (b1) setBoneRotation(b1, curl, 0, 0);
+        if (b2) setBoneRotation(b2, curl * 0.85, 0, 0);
       }
       const th = mix(relax.thumb, hand.thumb);
-      byName.get(`${side}Thumb1`)?.rotation.set(th * 0.6, 0, 0);
-      byName.get(`${side}Thumb2`)?.rotation.set(th * 0.9, 0, 0);
+      const t1 = byName.get(`${side}Thumb1`);
+      const t2 = byName.get(`${side}Thumb2`);
+      if (t1) setBoneRotation(t1, th * 0.6, 0, 0);
+      if (t2) setBoneRotation(t2, th * 0.9, 0, 0);
     }
 
     // El bote de la caminata sube y baja la cadera entera, que es de donde
@@ -1132,12 +1219,17 @@ export class Character3D {
     if (this._built) {
       this.object.remove(this._built.mesh);
       this.object.remove(this._built.shadow);
-      this._built.mesh.geometry.dispose();
-      this._built.material.dispose();
-      this._built.headMesh.geometry.dispose();
-      this._built.faceMat.map?.dispose();
-      this._built.faceMat.dispose();
-      this._built.skeleton.dispose?.();
+      // `geometry` explícito: en un cuerpo importado lo que se cuelga de
+      // `object` es el envoltorio, y la geometría vive en la malla de dentro.
+      (this._built.geometry ?? this._built.mesh.geometry)?.dispose();
+      this._built.material?.dispose();
+      // Cara aparte: solo la tiene el muñeco generado (ver `_buildFromGLB`).
+      this._built.headMesh?.geometry.dispose();
+      if (this._built.faceMat) {
+        this._built.faceMat.map?.dispose();
+        this._built.faceMat.dispose();
+      }
+      this._built.skeleton?.dispose?.();
       this._built.shadow.geometry.dispose();
       this._built.shadow.material.dispose();
     }
