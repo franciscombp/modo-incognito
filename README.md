@@ -7,8 +7,8 @@ Juego web en Three.js: eres una empleada del Piso 10 que intenta **no trabajar**
 > de principio a fin: cruzas la avenida Amazonas, subes por el ascensor y
 > tienes tres cosas que hacer (tomar café, ver película, comer) en el **ala
 > sur**, con Gabo pegado a ti todo el rato. Los días 2 a 5 siguen escritos en
-> `pixel-office/public/data/levels/` pero están **fuera de**
-> [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json)
+> `motor/public/data/levels/` pero están **fuera de**
+> [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/manifest.json)
 > → `levels`, así que no aparecen. Volver a activarlos es añadir su id a esa
 > lista; no hay nada más que tocar.
 
@@ -44,7 +44,7 @@ Se publica en <https://franciscombp.github.io/modo-incognito/> desde `main`.
 **El repositorio usa una sola rama.**
 
 Cada push a `main` dispara `.github/workflows/deploy-pages.yml`: compila
-`pixel-office/` en CI y publica `dist/` directo a GitHub Pages. *Settings →
+`motor/` en CI y publica `dist/` directo a GitHub Pages. *Settings →
 Pages* debe estar en modo **GitHub Actions** (no "Deploy from a branch") — no
 hay ningún build commiteado en el repo, así que ese es el único modo que
 funciona.
@@ -52,54 +52,54 @@ funciona.
 ## Quiero cambiar X → edito Y
 
 Tabla rápida con enlaces directos a GitHub. Todo el contenido del juego vive
-en JSON bajo `pixel-office/public/data/`; el motor (`pixel-office/src/`) solo
+en JSON bajo `motor/public/data/`; el motor (`motor/src/`) solo
 lee esos archivos, así que para el 90% de los cambios **no hace falta tocar
 código**.
 
 | Quiero cambiar… | Edito este archivo |
 | --- | --- |
-| Qué personajes/modos puede elegir la jugadora | [`modes.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/modes.json) |
-| Estadísticas de la jugadora, el jefe y los NPC (velocidad, visión, sprite) | [`characters.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/characters.json) |
-| Cualquier diálogo (compañeros, secuaces, jefe) | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/dialogues.json) |
-| El guion de un día concreto (reglas, prólogo, secuaces de turno) | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/data/levels) |
-| El plano de la oficina (zonas, escondites, distracciones, secretos) | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) |
-| El balance de IA del jefe / sospecha | [`boss-config.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/boss-config.json) |
-| Qué puede hacer una opción de diálogo (`effect`) | [`src/game/effects.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/effects.js) |
-| Registrar un minijuego nuevo (antes de la jornada) | [`src/game/minigames.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/minigames.js) |
-| Los efectos de sonido 8-bit (menús, diálogo, acciones) (código) | [`src/game/sfx.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/sfx.js) |
-| La pista de música y cómo reacciona al juego | [`src/game/soundtrackTrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrackTrack.js) + [`public/audio/`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/audio) |
-| El soundtrack procedural de respaldo (notas, tempo, mezcla) | [`src/game/soundtrackThemes.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrackThemes.js) |
-| Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrack.js) |
-| Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) |
-| Colocar zonas, tareas, lugares seguros… con el ratón | [`pixel-office/builder/`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/builder) — ver «El builder» más abajo |
-| Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/style.css) |
-| **Cómo es cada personaje en 3D** (piel, pelo, ropa, complexión) | [`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/characters3d.json) — se edita con [`personajes.html`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/builder) |
-| Cómo se monta un muñeco 3D y sus poses (código) | [`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/character3d.js) |
-| El esqueleto: dónde está cada articulación y cómo se reparten los pesos (código) | [`src/entities/skinning.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/skinning.js) |
-| La paleta cozy del decorado (suelos, muebles, cielo, niebla) | [`src/scene/cozy.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/cozy.js) |
-| Sacar los colores de un personaje de su pliego dibujado | [`tools/extract-palette.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/extract-palette.py) · `npm run palette` |
-| Ver el reparto 3D entero, o un personaje en sus 8 poses | [`tools/shoot-cast.mjs`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/shoot-cast.mjs) · `npm run check:cast` |
-| Los pliegos dibujados (retratos de diálogo, selección de personaje, y de donde salió el color de cada receta 3D) | [`public/sprites/*.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/sprites) |
-| Ilustraciones grandes de actividades (opcional, con emoji de respaldo) | [`public/actions/<id>.png`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/public/actions) |
-| Cómo decide y persigue el jefe/los secuaces (código) | [`src/entities/boss.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/boss.js) |
-| Reglas centrales de una jornada (código) | [`src/game/game.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/game.js) |
-| El flujo de campaña día a día (código) | [`src/game/engine.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/engine.js) |
-| El HUD (tarjetas, radar, indicadores) (código) | [`src/game/hud.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/hud.js) |
-| El sistema de diálogo a pantalla completa (código) | [`src/game/dialogue.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/dialogue.js) |
-| La construcción 3D de la oficina (código) | [`src/scene/builder.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/builder.js) |
-| La cámara (código) | [`src/scene/camera.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/camera.js) y [`src/scene/config.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/config.js) |
-| Los menús (título, elegir día, ajustes, pausa) (código) | [`src/ui/menus.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/menus.js) |
-| Los controles táctiles (código) | [`src/game/touchControls.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/touchControls.js) |
-| El vestíbulo de ascensores (segunda "escena", antes del piso) (código) | [`src/ui/lobby.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/ui/lobby.js) |
-| El minijuego de cruzar la avenida: carriles, tráfico, cámara, coches 3D (código) | [`src/scene/crossing3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/crossing3d.js) |
-| Qué días forman la campaña (activar/desactivar días) | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) → `levels` |
-| El muro que separa las alas y su puerta | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) → `barriers` |
-| Que el jefe se quede pegado a la jugadora | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/levels) → `rules.bossTether` |
-| Qué pose hace la jugadora en cada actividad | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/scenes/piso7.json) → `activities[].pose` |
-| Meter pliegos de sprites dibujados a mano (los normaliza a la rejilla 4x4) | [`tools/pack-sprites.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/pack-sprites.py) |
-| La animación de espera de un personaje (qué hace si lo dejas quieto) | [`data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/sprites) |
-| Las plantillas en blanco para dibujar un personaje nuevo | [`art/plantillas/`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/art/plantillas) · las genera [`tools/make-sprite-template.py`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/tools/make-sprite-template.py) |
-| Los mensajes de Teams de Gabo | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/dialogues.json) → `teamsMessages.gabo` |
+| Qué personajes/modos puede elegir la jugadora | [`modes.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/modes.json) |
+| Estadísticas de la jugadora, el jefe y los NPC (velocidad, visión, sprite) | [`characters.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/characters.json) |
+| Cualquier diálogo (compañeros, secuaces, jefe) | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/dialogues.json) |
+| El guion de un día concreto (reglas, prólogo, secuaces de turno) | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/tree/main/motor/public/data/levels) |
+| El plano de la oficina (zonas, escondites, distracciones, secretos) | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/scenes/piso7.json) |
+| El balance de IA del jefe / sospecha | [`boss-config.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/boss-config.json) |
+| Qué puede hacer una opción de diálogo (`effect`) | [`src/game/effects.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/effects.js) |
+| Registrar un minijuego nuevo (antes de la jornada) | [`src/game/minigames.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/minigames.js) |
+| Los efectos de sonido 8-bit (menús, diálogo, acciones) (código) | [`src/game/sfx.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/sfx.js) |
+| La pista de música y cómo reacciona al juego | [`src/game/soundtrackTrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/soundtrackTrack.js) + [`public/audio/`](https://github.com/franciscombp/modo-incognito/tree/main/motor/public/audio) |
+| El soundtrack procedural de respaldo (notas, tempo, mezcla) | [`src/game/soundtrackThemes.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/soundtrackThemes.js) |
+| Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/soundtrack.js) |
+| Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/manifest.json) |
+| Colocar zonas, tareas, lugares seguros… con el ratón | [`motor/builder/`](https://github.com/franciscombp/modo-incognito/tree/main/motor/builder) — ver «El builder» más abajo |
+| Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/style.css) |
+| **Cómo es cada personaje en 3D** (piel, pelo, ropa, complexión) | [`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/characters3d.json) — se edita con [`personajes.html`](https://github.com/franciscombp/modo-incognito/tree/main/motor/builder) |
+| Cómo se monta un muñeco 3D y sus poses (código) | [`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/entities/character3d.js) |
+| El esqueleto: dónde está cada articulación y cómo se reparten los pesos (código) | [`src/entities/skinning.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/entities/skinning.js) |
+| La paleta cozy del decorado (suelos, muebles, cielo, niebla) | [`src/scene/cozy.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/scene/cozy.js) |
+| Sacar los colores de un personaje de su pliego dibujado | [`tools/extract-palette.py`](https://github.com/franciscombp/modo-incognito/blob/main/motor/tools/extract-palette.py) · `npm run palette` |
+| Ver el reparto 3D entero, o un personaje en sus 8 poses | [`tools/shoot-cast.mjs`](https://github.com/franciscombp/modo-incognito/blob/main/motor/tools/shoot-cast.mjs) · `npm run check:cast` |
+| Los pliegos dibujados (retratos de diálogo, selección de personaje, y de donde salió el color de cada receta 3D) | [`public/sprites/*.png`](https://github.com/franciscombp/modo-incognito/tree/main/motor/public/sprites) |
+| Ilustraciones grandes de actividades (opcional, con emoji de respaldo) | [`public/actions/<id>.png`](https://github.com/franciscombp/modo-incognito/tree/main/motor/public/actions) |
+| Cómo decide y persigue el jefe/los secuaces (código) | [`src/entities/boss.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/entities/boss.js) |
+| Reglas centrales de una jornada (código) | [`src/game/game.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/game.js) |
+| El flujo de campaña día a día (código) | [`src/game/engine.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/engine.js) |
+| El HUD (tarjetas, radar, indicadores) (código) | [`src/game/hud.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/hud.js) |
+| El sistema de diálogo a pantalla completa (código) | [`src/game/dialogue.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/dialogue.js) |
+| La construcción 3D de la oficina (código) | [`src/scene/builder.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/scene/builder.js) |
+| La cámara (código) | [`src/scene/camera.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/scene/camera.js) y [`src/scene/config.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/scene/config.js) |
+| Los menús (título, elegir día, ajustes, pausa) (código) | [`src/ui/menus.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/ui/menus.js) |
+| Los controles táctiles (código) | [`src/game/touchControls.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/touchControls.js) |
+| El vestíbulo de ascensores (segunda "escena", antes del piso) (código) | [`src/ui/lobby.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/ui/lobby.js) |
+| El minijuego de cruzar la avenida: carriles, tráfico, cámara, coches 3D (código) | [`src/scene/crossing3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/scene/crossing3d.js) |
+| Qué días forman la campaña (activar/desactivar días) | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/manifest.json) → `levels` |
+| El muro que separa las alas y su puerta | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/scenes/piso7.json) → `barriers` |
+| Que el jefe se quede pegado a la jugadora | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/levels) → `rules.bossTether` |
+| Qué pose hace la jugadora en cada actividad | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/scenes/piso7.json) → `activities[].pose` |
+| Meter pliegos de sprites dibujados a mano (los normaliza a la rejilla 4x4) | [`tools/pack-sprites.py`](https://github.com/franciscombp/modo-incognito/blob/main/motor/tools/pack-sprites.py) |
+| La animación de espera de un personaje (qué hace si lo dejas quieto) | [`data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/sprites) |
+| Las plantillas en blanco para dibujar un personaje nuevo | [`art/plantillas/`](https://github.com/franciscombp/modo-incognito/blob/main/motor/art/plantillas) · las genera [`tools/make-sprite-template.py`](https://github.com/franciscombp/modo-incognito/blob/main/motor/tools/make-sprite-template.py) |
+| Los mensajes de Teams de Gabo | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/dialogues.json) → `teamsMessages.gabo` |
 
 Cada JSON de `public/data/` trae su propio campo `"$comment"` al principio
 explicando su esquema — ábrelo y léelo antes de editarlo a ciegas.
@@ -109,14 +109,14 @@ Lee primero [`CLAUDE.md`](https://github.com/franciscombp/modo-incognito/blob/ma
 
 ## El builder: editar el plano y el día con el ratón
 
-En [`pixel-office/builder/`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/builder)
+En [`motor/builder/`](https://github.com/franciscombp/modo-incognito/tree/main/motor/builder)
 hay un editor 2D del plano (`scenes/*.json`) y del día (`levels/*.json`). No
-necesita build propio: lee en vivo los JSON de `pixel-office/public/data/`,
+necesita build propio: lee en vivo los JSON de `motor/public/data/`,
 que tiene al lado. Vive dentro de `public/` para que lo sirva el mismo
 servidor que el juego y para que **salga publicado con él**:
 
 ```bash
-cd pixel-office && npm run dev
+cd motor && npm run dev
 # → http://localhost:5173/builder/
 ```
 
@@ -133,14 +133,14 @@ pinta en rojo y lo dice, porque el motor no lo admite.
 
 El builder **no escribe en el repo a propósito**. Cuando termines, «Copiar
 escena JSON» / «Copiar día JSON» (o «Descargar los dos»), pegas en
-`pixel-office/public/data/…` y haces commit. Así nunca te pisa un archivo por
+`motor/public/data/…` y haces commit. Así nunca te pisa un archivo por
 accidente y el diff lo revisas tú.
 
 ### El builder de personajes
 
 En el mismo servidor, `/builder/personajes.html` es el editor del **reparto
 3D**. Un personaje no es un modelo: es una receta en
-[`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/characters3d.json)
+[`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/characters3d.json)
 (piel, pelo y su estilo, prenda de arriba, pantalón, zapatos, complementos,
 complexión), y el motor monta el muñeco con primitivas a partir de ella. Por
 eso **añadir a alguien al reparto son diez líneas de JSON** y no modelar nada.
@@ -151,7 +151,7 @@ caminando. Importa el **mismo módulo que usa el juego**, no una copia: si
 alguien añade un peinado al motor, aparece aquí solo.
 
 ```bash
-cd pixel-office && npm run dev
+cd motor && npm run dev
 # → http://localhost:5173/builder/personajes.html
 ```
 
@@ -165,23 +165,23 @@ node tools/shoot-cast.mjs poses.png poses:giuli      # uno, en sus 8 poses
 
 ## Arquitectura del repo
 
-- **`pixel-office/`** — el proyecto fuente real (Vite + Three.js). Aquí es
+- **`motor/`** — el proyecto fuente real (Vite + Three.js). Aquí es
   donde se edita todo: código en `src/`, contenido en `public/data/`, sprites
   en `public/sprites/`.
 - **Raíz del repo** (`music/`, `audio/`) — activos que se sirven directos,
   sin build. El builder **ya no vive aquí**: estuvo duplicado en la raíz y en
-  `pixel-office/builder/`, y cada copia acabó con cambios que la otra
+  `motor/builder/`, y cada copia acabó con cambios que la otra
   no tenía (la raíz ganó el dibujo de las puertas, la publicada perdió el
   control de busto). Ahora hay una sola, dentro de `public/`.
 
 No hay ningún build commiteado en el repo. `.github/workflows/deploy-pages.yml`
-compila `pixel-office/` y publica `dist/` a GitHub Pages en cada push a
+compila `motor/` y publica `dist/` a GitHub Pages en cada push a
 `main` — basta con hacer commit y push normales, sin ningún paso extra.
 
 ## Desarrollo
 
 ```bash
-cd pixel-office
+cd motor
 npm ci
 npm run dev            # servidor local
 npm run build          # build de producción a dist/
@@ -236,7 +236,7 @@ al jefe metiéndose bajo los controles táctiles.
 
 ## Contenido en JSON
 
-Todo el contenido vive en `pixel-office/public/data/` y se carga en tiempo de
+Todo el contenido vive en `motor/public/data/` y se carga en tiempo de
 ejecución. **Para añadir escenarios, personajes o niveles no hay que tocar el
 motor**:
 
@@ -279,7 +279,7 @@ ala sur (donde pasa el día 1) del ala norte:
 coordenada, `from`/`to` el tramo que cubre y `door` un hueco **de verdad**:
 se cruza andando y el navmesh lo ve, no es un adorno. Sin `door`, el muro es
 macizo. El motor lo dibuja y lo mete en la colisión solo, en
-[`src/scene/builder.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/builder.js).
+[`src/scene/builder.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/scene/builder.js).
 
 ### Poses de las actividades
 
@@ -291,13 +291,13 @@ Una actividad puede decir qué pose hace la jugadora mientras la ejecuta:
 
 Las poses son **procedurales y comunes a todo el reparto**: viven en
 `POSE_LIBRARY`, dentro de
-[`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/character3d.js),
+[`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/entities/character3d.js),
 como dos posturas entre las que el muñeco va y viene (tomando café la taza
 sube y baja, comiendo la mano va a la boca y vuelve). Ya no dependen de que el
 pliego de ese personaje las tenga dibujadas: **todos pueden hacerlas todas**.
 
 Las poses mueven los **huesos** de un esqueleto de verdad
-([`skinning.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/skinning.js)),
+([`skinning.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/entities/skinning.js)),
 así que la malla se deforma en el pliegue en vez de girar como una pieza. El
 esqueleto está expuesto en `character.skeleton` con nombres de rig
 convencional, que es lo que hace falta para engancharle un `AnimationMixer`
@@ -316,7 +316,7 @@ se aplica y que sigue moviéndose.
 ### El rig de un personaje
 
 Cada personaje con arte propio tiene un archivo en
-[`public/data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/sprites) que dice **qué hay
+[`public/data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/sprites) que dice **qué hay
 en cada celda de sus dos pliegos**. Antes esto vivía repartido entre
 `characters.json` y unas constantes dentro del motor; ahora se edita aquí:
 
@@ -349,7 +349,7 @@ personaje con `"rig": "<id>"`.
 ### Dibujar un personaje nuevo
 
 ```bash
-cd pixel-office
+cd motor
 python3 tools/make-sprite-template.py
 ```
 
@@ -388,7 +388,7 @@ mete la cabeza de una fila en los pies de la anterior. Antes de usarlos hay
 que pasarlos por:
 
 ```bash
-cd pixel-office
+cd motor
 python3 tools/pack-sprites.py          # todos
 python3 tools/pack-sprites.py guili-camina   # solo uno
 ```

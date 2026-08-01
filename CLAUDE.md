@@ -23,7 +23,7 @@ actividades) y `src/ui/lobby.js` (el ascensor con el que abre).
 
 Juego web isométrico (Vite + Three.js) de sigilo/comedia de oficina. Todo el
 contenido (personajes, diálogos, niveles, plano, balance de IA) está en JSON
-bajo `pixel-office/public/data/`; el motor en `pixel-office/src/` solo lee
+bajo `motor/public/data/`; el motor en `motor/src/` solo lee
 esos datos. Para añadir o cambiar contenido casi nunca hace falta tocar
 código — mira primero si hay un JSON para eso.
 
@@ -52,10 +52,10 @@ línea con naturalidad, no como referencia forzada.
 
 ## Estructura del repo
 
-- `pixel-office/` — el proyecto fuente real. **Edita siempre aquí.**
+- `motor/` — el proyecto fuente real. **Edita siempre aquí.**
 - Raíz del repo (`music/`, `audio/`) — activos que se sirven directos, sin
   build.
-- `pixel-office/builder/` — el editor del plano y del reparto. Es una
+- `motor/builder/` — el editor del plano y del reparto. Es una
   **entrada más de Vite** (ver `vite.config.js` → `rollupOptions.input`), así
   que lo sirve el mismo servidor que el juego y sale publicado con él.
   **Hay UNA sola copia.** Estuvo duplicado aquí y en la raíz del repo, y cada
@@ -65,9 +65,9 @@ línea con naturalidad, no como referencia forzada.
 
 No hay copia del build en la raíz. GitHub Pages está configurado en modo
 "GitHub Actions" (`.github/workflows/deploy-pages.yml`): cada push a `main`
-compila `pixel-office/` en CI y publica `dist/` como artefacto de Pages.
+compila `motor/` en CI y publica `dist/` como artefacto de Pages.
 **Nunca** hace falta correr un build ni commitear nada generado antes de
-pushear — si tocaste `pixel-office/src/` o `pixel-office/public/data/`, con
+pushear — si tocaste `motor/src/` o `motor/public/data/`, con
 el commit y push normales basta; el workflow se encarga del resto.
 
 **Cachés:** Vite le pone un hash al JS y al CSS, pero lo de `public/` (los
@@ -223,7 +223,7 @@ diálogo y la pantalla de selección de personaje, y son la referencia de la que
 salió el color de cada receta. `tools/pack-sprites.py` los normaliza a la
 rejilla 4x4 de 128x176 (no vienen regulares: cortarlos por «ancho / 4» mete la
 cabeza de una fila en los pies de la anterior). Su sitio es siempre
-`pixel-office/public/sprites/`.
+`motor/public/sprites/`.
 
 ### La estética cozy
 
@@ -426,7 +426,7 @@ en una captura.
   por qué. Si separas otra vez esas dos banderas, comprueba que la suite
   entera sigue entrando al piso.
 
-## El builder (`pixel-office/builder/`)
+## El builder (`motor/builder/`)
 
 Editor 2D del plano y del día: lo sirve el mismo servidor que el juego, en
 `http://localhost:5173/builder/` (`npm run dev`). Lee los mismos JSON que el
@@ -445,13 +445,13 @@ que garantiza que el editor no se desincronice de lo que sale al jugar.
 
 ## Cómo probar cambios
 
-Los tests (`pixel-office/tools/check-*.mjs`) son scripts de Playwright que
+Los tests (`motor/tools/check-*.mjs`) son scripts de Playwright que
 abren el juego real en un navegador headless y leen su estado interno vía
 `window.__game`. **Necesitan el build servido en `http://localhost:4173/`
 antes de correr** — no funcionan contra el servidor de `npm run dev`.
 
 ```bash
-cd pixel-office
+cd motor
 npm run build && npm run preview &   # deja el preview corriendo en :4173
 npm run check                        # corre todos los check:* en orden
 ```

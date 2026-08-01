@@ -28,10 +28,10 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(import.meta.dirname, "index.html"),
-        builder: resolve(import.meta.dirname, "builder/index.html"),
-        "editor/pisos": resolve(import.meta.dirname, "builder/editor/pisos/index.html"),
-        "editor/personajes": resolve(import.meta.dirname, "builder/editor/personajes/index.html"),
-        "editor/musica": resolve(import.meta.dirname, "builder/editor/musica/index.html"),
+        creador: resolve(import.meta.dirname, "creador/index.html"),
+        "editor/mapas": resolve(import.meta.dirname, "creador/editor/mapas/index.html"),
+        "editor/personajes": resolve(import.meta.dirname, "creador/editor/personajes/index.html"),
+        "editor/musica": resolve(import.meta.dirname, "creador/editor/musica/index.html"),
       },
     },
   },
