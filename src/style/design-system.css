@@ -1,16 +1,16 @@
 /* =====================================================================
-   DESIGN SYSTEM · Modo Incógnito
+   DESIGN SYSTEM · Modo Incógnito (MAL Approach)
 
    Sistema de diseño unificado compartido por el juego y todas las
    herramientas (creador). Define colores, tipografía, espaciado, y
    componentes base reutilizables.
 
-   Estética: COZY. Papel crema, tinta marrón cálida, acentos terracota
-   y salvia. Esquinas suaves, cristal esmerilado.
+   Estética: MODERN VIBRANT. Papel crema, tinta negra pura, acentos rojo
+   vibrante y azul. Transiciones suaves, componentes limpios.
 
    ESTRUCTURA:
-   1. Token Bases - valores primitivos sin semántica (--color-*)
-   2. Semantic Tokens - significado funcional (--primary-*, --accent-*)
+   1. Design Tokens - escala moderna de colores HSL
+   2. Semantic Tokens - significado funcional
    3. Backward Compatibility - variables legadas para migración gradual
    ===================================================================== */
 
@@ -23,57 +23,90 @@
 
 :root {
   /* ─────────────────────────────────────────────────────────────────
-     1. PRIMITIVE TOKEN BASES
-     Valores de color brutos, sin propósito semántico.
+     DESIGN TOKENS - Modern Scale
      ───────────────────────────────────────────────────────────────── */
 
-  --color-cream: #f7f0e3;
-  --color-brown-dark: #3a3028;
-  --color-brown-warm: #7c6b58;
-  --color-brown-warm-dim: #9a8d7c;
-  --color-terracota: #c2795a;
-  --color-terracota-hover: #d4846a;
-  --color-rose: #c2678d;
-  --color-purple: #8b73c4;
-  --color-purple-dark: #6b56a0;
-  --color-amber: #d9a34a;
-  --color-sage: #86a86a;
-  --color-red: #cf5a51;
-  --color-slate: #3a4256;
+  /* TYPOGRAPHY */
+  --font-display: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-serif: "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+
+  /* SPACING */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+  --space-3xl: 100px;
+
+  /* RADIUS */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 20px;
+  --radius-full: 9999px;
+
+  /* TRANSITIONS */
+  --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* COLORS (Light Mode - Cream & Vibrant Ink) */
+  --accent-main: 355 66.67% 33.3%;
+  /* Vibrant Red */
+  --accent-blue: 235 85% 50%;
+  /* Bright Blue */
+  --accent-soft: 355 66.67% 33.3% / 0.1;
+
+  --bg-000: 45 30% 96%;
+  /* Paper Cream */
+  --bg-050: 45 28% 95%;
+  /* Light Cream */
+  --bg-100: 45 25% 94%;
+  /* Darker Cream */
+
+  --text-000: 0 0% 5%;
+  /* Pitch Black Ink */
+  --text-100: 0 0% 15%;
+  /* Dark Ink */
+  --text-200: 0 0% 35%;
+  /* Medium Gray */
+  --text-faint: 0 0% 55%;
+  /* Light Gray */
+
+  --border-100: 0 0% 0% / 0.08;
+  --border-200: 0 0% 0% / 0.15;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --glass-bg: rgba(255, 255, 255, 0.85);
 
   /* ─────────────────────────────────────────────────────────────────
-     2. SEMANTIC TOKENS
-     Significado funcional: qué rol juega cada color en la interfaz.
+     2. SEMANTIC TOKENS (Backward Compatibility)
      ───────────────────────────────────────────────────────────────── */
 
-  /* Paleta de Fondo y Texto */
-  --primary-bg: var(--color-cream);
-  --primary-text: var(--color-brown-dark);
-  --secondary-text: var(--color-brown-warm);
-  --tertiary-text: var(--color-brown-warm-dim);
-  --disabled-text: var(--color-brown-warm-dim);
+  --primary-bg: hsl(var(--bg-000));
+  --primary-text: hsl(var(--text-000));
+  --secondary-text: hsl(var(--text-100));
+  --tertiary-text: hsl(var(--text-200));
+  --disabled-text: hsl(var(--text-faint));
 
-  /* Acentos e Interacción */
-  --accent-primary: var(--color-terracota);
-  --accent-primary-hover: var(--color-terracota-hover);
-  --accent-secondary: var(--color-rose);
-  --accent-tertiary: var(--color-purple);
-  --accent-tertiary-dark: var(--color-purple-dark);
-  --accent-success: var(--color-sage);
+  --accent-primary: hsl(var(--accent-main));
+  --accent-primary-hover: hsl(355 66.67% 40%);
+  --accent-secondary: hsl(var(--accent-blue));
+  --accent-tertiary: hsl(var(--accent-blue) / 0.2);
+  --accent-tertiary-dark: hsl(var(--accent-blue) / 0.15);
+  --accent-success: hsl(120 70% 50%);
 
-  /* Estados y Feedback */
-  --state-warning: var(--color-amber);
-  --state-error: var(--color-red);
-  --state-success: var(--color-sage);
+  --state-warning: hsl(45 90% 50%);
+  --state-error: hsl(0 84% 60%);
+  --state-success: hsl(120 70% 50%);
 
-  /* Colores RGB para transparencias */
-  --primary-text-rgb: 58, 48, 40;
-  --accent-primary-rgb: 194, 121, 90;
+  --primary-text-rgb: 5, 5, 5;
+  --accent-primary-rgb: 194, 30, 52;
 
   /* ─────────────────────────────────────────────────────────────────
-     3. BACKWARD COMPATIBILITY
-     Variables legadas redirigidas a tokens semánticos.
-     Facilita migración gradual del código existente.
+     3. LEGACY COMPATIBILITY
      ───────────────────────────────────────────────────────────────── */
 
   --ink: var(--primary-text);
@@ -81,38 +114,33 @@
   --paper: var(--primary-bg);
   --dim: var(--tertiary-text);
   --cyan: var(--accent-primary);
-  --magenta: var(--accent-secondary);
-  --violet: var(--accent-tertiary);
-  --violet-dim: var(--accent-tertiary-dark);
-  --amber: var(--state-warning);
-  --lime: var(--accent-success);
-  --red: var(--state-error);
-  --cyan-rgb: var(--accent-primary-rgb);
+  --magenta: hsl(var(--accent-blue));
+  --violet: hsl(var(--accent-blue));
+  --violet-dim: hsl(var(--accent-blue) / 0.5);
+  --amber: hsl(45 90% 50%);
+  --lime: hsl(120 70% 50%);
+  --red: hsl(0 84% 60%);
+  --cyan-rgb: var(--primary-text-rgb);
   --ink-rgb: var(--primary-text-rgb);
 
-  /* ─────────────────────────────────────────────────────────────────
-     4. COMPONENTES Y UTILIDADES
-     ───────────────────────────────────────────────────────────────── */
-
-  /* Iconografía */
+  /* Componentes */
   --icon-check: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12.5l5 5 10-11'/%3E%3C/svg%3E");
 
-  /* Fondos y Bordes */
-  --line: rgba(160, 132, 104, 0.5);
-  --glass: rgba(247, 240, 227, 0.9);
-  --panel: linear-gradient(180deg, rgba(250, 244, 233, 0.96), rgba(240, 231, 216, 0.96));
-  --scan: repeating-linear-gradient(180deg, rgba(120, 96, 70, 0.02) 0 1px, transparent 1px 3px);
+  --line: rgba(0, 0, 0, 0.08);
+  --glass: rgba(255, 255, 255, 0.85);
+  --panel: rgba(250, 248, 245, 0.96);
+  --scan: repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.02) 0 1px, transparent 1px 3px);
 
   /* Tipografía */
-  --sans: "Segoe UI", system-ui, sans-serif;
-  --mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+  --sans: var(--font-sans);
+  --mono: var(--font-mono);
 
-  /* Espaciado (generoso para estética statement) */
-  --cut: 8px;               /* Radio de esquinas */
-  --gap: 8px;               /* Mínimo */
-  --gap-lg: 16px;           /* Normal */
-  --gap-xl: 24px;           /* Grande */
-  --gap-xxl: 32px;          /* Muy grande */
+  /* Espaciado (mantener escala) */
+  --cut: 10px;
+  --gap: 8px;
+  --gap-lg: 16px;
+  --gap-xl: 24px;
+  --gap-xxl: 32px;
 
   /* Safe Area (notches en móvil) */
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -122,17 +150,44 @@
   --ui-scale: calc(min(100vw / 1920, 100vh / 1080));
   --ui-scale-factor: 1;
 
-  /* Sombras (cálidas, no duras) */
-  --shadow-sm: 0 1px 3px rgba(58, 48, 40, 0.08);
-  --shadow-md: 0 4px 12px rgba(58, 48, 40, 0.15);
-  --shadow-lg: 0 12px 24px rgba(58, 48, 40, 0.2);
-  --shadow-xl: 0 20px 40px rgba(58, 48, 40, 0.25);
+  /* Sombras (modernas, sutiles) */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 12px 48px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 64px rgba(0, 0, 0, 0.12);
 
   /* Z-Index */
   --z-base: 1;
   --z-overlay: 100;
   --z-modal: 1000;
   --z-tooltip: 10000;
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+  :root:not(.light-mode) {
+    --accent-main: 355 66.67% 45%;
+    --accent-blue: 235 85% 65%;
+    --accent-soft: 355 66.67% 45% / 0.15;
+
+    --bg-000: 45 8% 10%;
+    --bg-050: 45 8% 11.5%;
+    --bg-100: 45 8% 13%;
+
+    --text-000: 48 33% 98%;
+    --text-100: 50 10% 88%;
+    --text-200: 50 9% 75%;
+    --text-faint: 50 5% 50%;
+
+    --border-100: 48 33% 97% / 0.08;
+    --border-200: 48 33% 97% / 0.18;
+    --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+    --shadow-md: 0 16px 48px rgba(0, 0, 0, 0.4);
+    --glass-bg: rgba(14, 14, 14, 0.85);
+
+    --primary-text-rgb: 248, 248, 248;
+    --accent-primary-rgb: 204, 51, 85;
+  }
 }
 
 /* ═════════════════════════════════════════════════════════════════════
@@ -145,59 +200,74 @@ body {
   height: 100%;
   font-family: var(--sans);
   font-size: 14px;
-  line-height: 1.5;
-  color: var(--primary-text);
-  background-color: var(--primary-bg);
+  line-height: 1.6;
+  color: hsl(var(--text-000));
+  background-color: hsl(var(--bg-000));
   overscroll-behavior: none;
   touch-action: manipulation;
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-weight: 600;
 }
 
 /* ═════════════════════════════════════════════════════════════════════
    COMPONENTES REUTILIZABLES
    ═════════════════════════════════════════════════════════════════════ */
 
-/* Botones - Prominentes con sombra y hover */
+/* Botones - Modernos y limpios */
 .btn,
 button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
   font-family: inherit;
-  font-size: 0.9375rem;
-  font-weight: 700;
-  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: var(--space-sm) var(--space-lg);
   border: none;
-  border-radius: var(--cut);
+  border-radius: var(--radius-md);
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-  background: var(--accent-primary);
+  transition: var(--transition-fast);
+  background: hsl(var(--accent-main));
   color: white;
-  box-shadow: var(--shadow-md);
-  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-sm);
+  letter-spacing: 0.01em;
 }
 
 .btn:hover,
 button:hover {
-  background: var(--accent-primary-hover);
-  box-shadow: var(--shadow-lg);
-  transform: translateY(-2px);
+  background: hsl(var(--accent-main) / 0.9);
+  box-shadow: var(--shadow-md);
 }
 
 .btn:active,
 button:active {
-  transform: translateY(0);
+  transform: scale(0.98);
   box-shadow: var(--shadow-sm);
+}
+
+.btn:disabled,
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn.secondary,
 button.secondary {
   background: white;
-  color: var(--primary-text);
-  border: 1px solid var(--line);
+  color: hsl(var(--text-000));
+  border: 1px solid hsl(var(--border-100));
   box-shadow: var(--shadow-sm);
 }
 
 .btn.secondary:hover,
 button.secondary:hover {
-  background: var(--primary-bg);
+  background: hsl(var(--bg-050));
   border-color: var(--accent-primary);
   color: var(--accent-primary);
   box-shadow: var(--shadow-md);
