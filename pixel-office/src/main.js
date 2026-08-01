@@ -272,6 +272,7 @@ async function boot() {
     codeEggs: data.codeEggs,
     manifest: data.manifest,
     dialogues: data.dialogues,
+    looks: data.looks,
     modes: data.modes,
     bossConfig: data.bossConfig,
     playerSheet: modeOf(save.characterId)?.sheet ?? chars.player.sheet,
