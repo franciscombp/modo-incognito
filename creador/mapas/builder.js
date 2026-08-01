@@ -107,7 +107,7 @@ const KINDS = {
     make: (x, z) => ({
       id: "seguro_nuevo",
       label: "Sala nueva",
-      icon: "🚪",
+      icon: "door",
       kind: "meeting",
       x,
       z,

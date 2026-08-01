@@ -191,20 +191,20 @@
 
         <div class="toolbar">
           <div class="tool-group">
-            <button class="tool" id="tool-spawn" title="Spawn (S)" data-key="S">
-              <span>🚪</span>
+            <button class="tool" id="tool-spawn" title="Spawn (S)" data-key="S" data-icon="door">
+              <span class="icon-slot"></span>
               <span class="label">Ingreso</span>
             </button>
-            <button class="tool" id="tool-boss" title="Boss Spawn (B)" data-key="B">
-              <span>👿</span>
+            <button class="tool" id="tool-boss" title="Boss Spawn (B)" data-key="B" data-icon="boss">
+              <span class="icon-slot"></span>
               <span class="label">Jefe</span>
             </button>
-            <button class="tool" id="tool-routes" title="Routes (R)" data-key="R">
-              <span>🛤️</span>
+            <button class="tool" id="tool-routes" title="Routes (R)" data-key="R" data-icon="routes">
+              <span class="icon-slot"></span>
               <span class="label">Rutas</span>
             </button>
-            <button class="tool" id="tool-footprint" title="Footprint (F)" data-key="F">
-              <span>🟨</span>
+            <button class="tool" id="tool-footprint" title="Footprint (F)" data-key="F" data-icon="grid">
+              <span class="icon-slot"></span>
               <span class="label">Piso</span>
             </button>
           </div>
@@ -219,5 +219,6 @@
 
     <div class="toast hidden" id="toast"></div>
     <script type="module" src="builder.js"></script>
+    <script type="module" src="../../src/ui/load-phosphor-builder-icons.js"></script>
   </body>
 </html>
