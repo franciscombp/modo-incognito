@@ -1,19 +1,8 @@
 /* =====================================================================
-   Modo Incógnito — hoja de estilo única.
-   Reescrita de cero: las pasadas anteriores se fueron apilando y acabaron
-   peleándose por especificidad (avisos desbordados, paneles recortados).
-   Aquí cada elemento se define una sola vez.
+   Modo Incógnito — hoja de estilo principal
 
-   Lenguaje visual: COZY, el mismo del piso. Papel crema, tinta marrón cálida
-   y acentos terracota y salvia. Esquinas suaves y cristal esmerilado claro.
-
-   Antes era pixel art cyberpunk — neón cian sobre negro. Con el edificio en
-   tonos cálidos, esa interfaz se leía como una capa de otro juego pegada
-   encima: lo único que compartían era la pantalla. Los NOMBRES de las
-   variables se conservan (--cyan, --magenta) aunque ya no describan su color,
-   porque se usan desde ochenta sitios; lo que cambia es su valor.
-
-   Reparto de la pantalla (nada comparte banda, así nada se solapa):
+   Importa el design system compartido (design-system.css) y añade
+   estilos específicos del juego. La interfaz se reparte así:
      · arriba izquierda  tareas del día
      · arriba centro     presión: día, sospecha, avisos
      · arriba derecha    reloj y puntos
@@ -21,65 +10,15 @@
      · centro-derecha    utilidades táctiles
      · abajo derecha     tarjeta de tarea activa
      · abajo             controles táctiles
-     · sobre los objetos prompt de interacción
+     · sobre objetos     prompt de interacción
    ===================================================================== */
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-:root {
-  /* Marcas de la interfaz, dibujadas. Ver src/ui/icons.js. */
-  --icon-check: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12.5l5 5 10-11'/%3E%3C/svg%3E");
-  --ink: #3a3028;
-  --paper: #f7f0e3;
-  --dim: #9a8d7c;
-  --cyan: #c2795a;
-  /* Los mismos colores en componentes sueltos, para poder pedir un alpha.
-     Antes las capas transparentes eran cian neón y blanco puro: sobre papel
-     crema, el blanco al 6% no se ve y el cian se lee como otro juego. */
-  --ink-rgb: 58, 48, 40;
-  --cyan-rgb: 194, 121, 90;
-  /* Texto secundario: el mismo marrón, aguado. Bastante contraste para leerse
-     sobre crema, poco para competir con el texto principal. */
-  --ink-soft: #7c6b58;
-  --magenta: #c2678d;
-  --violet: #8b73c4;
-  --violet-dim: #6b56a0;
-  --amber: #d9a34a;
-  --lime: #86a86a;
-  --red: #cf5a51;
-  --line: rgba(160, 132, 104, 0.5);
-  --glass: rgba(247, 240, 227, 0.9);
-  --panel: linear-gradient(180deg, rgba(250, 244, 233, 0.96), rgba(240, 231, 216, 0.96));
-  /* El relleno de escaneado era una trama de monitor CRT: fuera. Queda un
-     velo casi invisible que solo evita que los paneles salgan planos. */
-  --scan: repeating-linear-gradient(180deg, rgba(120, 96, 70, 0.02) 0 1px, transparent 1px 3px);
-  --mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
-  --sans: "Segoe UI", system-ui, sans-serif;
-  --cut: 10px;
-  --safe-b: env(safe-area-inset-bottom, 0px);
-  --safe-t: env(safe-area-inset-top, 0px);
-
-  /* Escalado de UI basado en 1920x1080: escala todo proporcionalmente
-     para que la interfaz se vea igual sin importar la resolución */
-  --ui-scale: calc(min(100vw / 1920, 100vh / 1080));
-  --ui-scale-factor: 1;
-}
+@import "./style/design-system.css";
 
 html,
 body {
-  width: 100%;
-  height: 100%;
   background: var(--ink);
   overflow: hidden;
-  font-family: var(--sans);
-  overscroll-behavior: none;
-  touch-action: manipulation;
-  -webkit-text-size-adjust: 100%;
 }
 
 #app {

@@ -31,6 +31,7 @@ export default defineConfig({
         "creador/mapas": resolve(import.meta.dirname, "creador/mapas/index.html"),
         "creador/personajes": resolve(import.meta.dirname, "creador/personajes/index.html"),
         "creador/musica": resolve(import.meta.dirname, "creador/musica/index.html"),
+        "creador/pantallas": resolve(import.meta.dirname, "creador/pantallas/index.html"),
       },
     },
   },

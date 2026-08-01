@@ -1,0 +1,243 @@
+/* =====================================================================
+   DESIGN SYSTEM · Modo Incógnito
+
+   Sistema de diseño unificado compartido por el juego y todas las
+   herramientas (creador). Define colores, tipografía, espaciado, y
+   componentes base reutilizables.
+
+   Estética: COZY. Papel crema, tinta marrón cálida, acentos terracota
+   y salvia. Esquinas suaves, cristal esmerilado.
+   ===================================================================== */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+:root {
+  /* ICONOGRAFÍA */
+  --icon-check: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4.5 12.5l5 5 10-11'/%3E%3C/svg%3E");
+
+  /* PALETA PRINCIPAL */
+  --ink: #3a3028;           /* Texto principal - marrón oscuro */
+  --ink-soft: #7c6b58;      /* Texto secundario - marrón aguado */
+  --paper: #f7f0e3;         /* Fondo principal - crema */
+  --dim: #9a8d7c;           /* Elemento deshabilitado */
+
+  /* COLORES RGB (para alpha transparencias) */
+  --ink-rgb: 58, 48, 40;
+  --cyan-rgb: 194, 121, 90;
+
+  /* ACENTOS */
+  --cyan: #c2795a;          /* Terracota primario */
+  --magenta: #c2678d;       /* Rosa secundario */
+  --violet: #8b73c4;        /* Púrpura - acento activo */
+  --violet-dim: #6b56a0;    /* Púrpura oscuro */
+  --amber: #d9a34a;         /* Ámbar - advertencia */
+  --lime: #86a86a;          /* Verde salvia */
+  --red: #cf5a51;           /* Rojo - error/crítico */
+
+  /* FONDOS Y BORDES */
+  --line: rgba(160, 132, 104, 0.5);
+  --glass: rgba(247, 240, 227, 0.9);
+  --panel: linear-gradient(180deg, rgba(250, 244, 233, 0.96), rgba(240, 231, 216, 0.96));
+  --scan: repeating-linear-gradient(180deg, rgba(120, 96, 70, 0.02) 0 1px, transparent 1px 3px);
+
+  /* TIPOGRAFÍA */
+  --sans: "Segoe UI", system-ui, sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
+
+  /* ESPACIADO */
+  --cut: 10px;              /* Radio de esquinas suaves */
+  --gap: 0.5rem;            /* Espaciado interno mínimo */
+  --gap-lg: 1rem;           /* Espaciado interno normal */
+  --gap-xl: 2rem;           /* Espaciado interno grande */
+
+  /* SAFE AREA (notches en móvil) */
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+
+  /* ESCALA DE UI (responsive a 1920x1080) */
+  --ui-scale: calc(min(100vw / 1920, 100vh / 1080));
+  --ui-scale-factor: 1;
+
+  /* SOMBRAS */
+  --shadow-sm: 0 2px 4px rgba(58, 48, 40, 0.1);
+  --shadow-md: 0 4px 8px rgba(58, 48, 40, 0.15);
+  --shadow-lg: 0 8px 16px rgba(58, 48, 40, 0.2);
+
+  /* Z-INDEX */
+  --z-base: 1;
+  --z-overlay: 100;
+  --z-modal: 1000;
+  --z-tooltip: 10000;
+}
+
+/* TIPOGRAFÍA BASE */
+html,
+body {
+  width: 100%;
+  height: 100%;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink);
+  background-color: var(--paper);
+  overscroll-behavior: none;
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+/* COMPONENTES REUTILIZABLES */
+
+/* Botones */
+.btn,
+button {
+  font-family: inherit;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--cut);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: var(--cyan);
+  color: white;
+}
+
+.btn:hover,
+button:hover {
+  background: #d4846a;
+  transform: translateY(-1px);
+}
+
+.btn.secondary,
+button.secondary {
+  background: var(--glass);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+
+.btn.secondary:hover,
+button.secondary:hover {
+  background: var(--panel);
+}
+
+.btn:disabled,
+button:disabled {
+  background: var(--dim);
+  color: #ccc;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Paneles */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--cut);
+  padding: var(--gap-lg);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(4px);
+}
+
+/* Inputs */
+input[type="text"],
+input[type="number"],
+textarea,
+select {
+  font-family: inherit;
+  font-size: 0.875rem;
+  padding: 0.5rem var(--gap-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--cut);
+  background: white;
+  color: var(--ink);
+  transition: border-color 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px rgba(194, 121, 90, 0.1);
+}
+
+/* Links */
+a {
+  color: var(--cyan);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+a:hover {
+  border-bottom-color: var(--cyan);
+}
+
+/* Headings */
+h1 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: var(--gap-lg);
+}
+
+h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: var(--gap-lg) 0 var(--gap);
+}
+
+h3 {
+  font-size: 1.125rem;
+  font-weight: 500;
+  margin: var(--gap-lg) 0 var(--gap);
+}
+
+/* Utilidades */
+.text-muted {
+  color: var(--ink-soft);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.gap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+}
+
+.gap-sm {
+  gap: var(--gap);
+}
+
+.gap-xl {
+  gap: var(--gap-xl);
+}
+
+.row {
+  display: flex;
+  gap: var(--gap-lg);
+  align-items: center;
+}
+
+.row-wrap {
+  flex-wrap: wrap;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
