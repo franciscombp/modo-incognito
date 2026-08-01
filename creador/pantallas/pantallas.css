@@ -1,0 +1,257 @@
+/* Pantallas - Storybook y Constructor de UI */
+
+body {
+  background: var(--paper);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* HEADER */
+.app-header {
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  padding: var(--gap-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.app-header h1 {
+  margin: 0 0 var(--gap) 0;
+  font-size: 1.5rem;
+}
+
+.subtitle {
+  color: var(--ink-soft);
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+/* MAIN LAYOUT */
+.app-main {
+  display: flex;
+  flex: 1;
+  gap: 1px;
+  background: var(--line);
+  overflow: hidden;
+}
+
+/* SIDEBAR - NAVEGACIÓN */
+.sidebar {
+  width: 220px;
+  background: var(--paper);
+  border-right: 1px solid var(--line);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.components-nav {
+  flex: 1;
+  padding: var(--gap-lg);
+}
+
+.components-nav h2 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+  margin: 0 0 var(--gap-lg) 0;
+  font-weight: 600;
+}
+
+.components-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.components-nav li {
+  margin: 0;
+}
+
+.nav-link {
+  display: block;
+  padding: 0.5rem var(--gap-lg);
+  color: var(--ink-soft);
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+}
+
+.nav-link:hover {
+  background: rgba(194, 121, 90, 0.1);
+  color: var(--cyan);
+}
+
+.nav-link.active {
+  background: rgba(194, 121, 90, 0.2);
+  color: var(--cyan);
+  font-weight: 500;
+}
+
+.sidebar-actions {
+  padding: var(--gap-lg);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+/* VIEWPORT - COMPONENTES */
+.viewport {
+  flex: 2;
+  background: var(--paper);
+  overflow-y: auto;
+  padding: var(--gap-xl);
+}
+
+.components {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-xl);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.component-section {
+  scroll-margin-top: 80px;
+}
+
+.component-section h3 {
+  font-size: 1rem;
+  margin: 0 0 var(--gap-lg) 0;
+  padding-bottom: var(--gap-lg);
+  border-bottom: 2px solid var(--line);
+}
+
+.component-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+}
+
+.component-item {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: var(--cut);
+  padding: var(--gap-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.component-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.component-preview {
+  display: flex;
+  gap: var(--gap-lg);
+  flex-wrap: wrap;
+  align-items: center;
+  min-height: 44px;
+}
+
+/* EDITOR PANEL */
+.editor-panel {
+  width: 300px;
+  background: var(--paper);
+  border-left: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.editor-panel h2 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--gap-lg);
+  border-bottom: 1px solid var(--line);
+  margin: 0;
+}
+
+.editor-container {
+  flex: 1;
+  overflow: hidden;
+  padding: var(--gap-lg);
+}
+
+.css-editor {
+  width: 100%;
+  height: 100%;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: var(--gap);
+  resize: none;
+  background: white;
+  color: var(--ink);
+}
+
+.css-editor:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 2px rgba(194, 121, 90, 0.1);
+}
+
+.editor-actions {
+  padding: var(--gap-lg);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+}
+
+.status-message {
+  padding: var(--gap);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--ink-soft);
+  min-height: 20px;
+}
+
+.status-message.success {
+  background: rgba(134, 168, 106, 0.2);
+  color: var(--lime);
+}
+
+.status-message.error {
+  background: rgba(207, 90, 81, 0.2);
+  color: var(--red);
+}
+
+/* SCROLL */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--paper);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--dim);
+}

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pantallas · Modo Incógnito</title>
+    <link rel="icon" href="../../favicon.png" />
+    <link rel="stylesheet" href="../../src/style/design-system.css" />
+    <link rel="stylesheet" href="pantallas.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="app-header">
+        <h1>🎨 Pantallas · Modo Incógnito</h1>
+        <p class="subtitle">Storybook de componentes y constructor de UI</p>
+      </header>
+
+      <main class="app-main">
+        <aside class="sidebar">
+          <nav class="components-nav">
+            <h2>Componentes</h2>
+            <ul>
+              <li><a href="#component-buttons" class="nav-link active">Botones</a></li>
+              <li><a href="#component-inputs" class="nav-link">Inputs</a></li>
+              <li><a href="#component-panels" class="nav-link">Paneles</a></li>
+              <li><a href="#component-dialogs" class="nav-link">Diálogos</a></li>
+              <li><a href="#component-hud" class="nav-link">HUD</a></li>
+              <li><a href="#component-menus" class="nav-link">Menús</a></li>
+            </ul>
+          </nav>
+
+          <div class="sidebar-actions">
+            <button class="btn secondary" id="export-btn">📥 Exportar CSS</button>
+            <button class="btn secondary" id="reset-btn">↺ Resetear</button>
+          </div>
+        </aside>
+
+        <section class="viewport">
+          <div class="components">
+            <!-- Componentes se generan en JavaScript -->
+          </div>
+        </section>
+
+        <aside class="editor-panel">
+          <h2>Editor CSS</h2>
+          <div class="editor-container">
+            <textarea id="css-editor" class="css-editor" placeholder="/* Edita CSS aquí para ver cambios en vivo */"></textarea>
+          </div>
+          <div class="editor-actions">
+            <button class="btn" id="apply-btn">✓ Aplicar cambios</button>
+            <button class="btn secondary" id="copy-btn">📋 Copiar al portapapeles</button>
+          </div>
+          <div id="status-message" class="status-message"></div>
+        </aside>
+      </main>
+    </div>
+
+    <script type="module" src="pantallas.js"></script>
+  </body>
+</html>

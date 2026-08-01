@@ -1,12 +1,7 @@
 {
   "$comment": [
-    "PERSONAJES. `sheet` es el nombre del PNG en public/sprites/<sheet>.png,",
-    "una rejilla de 4 columnas (ciclo de caminata) x 4 filas (sur/oeste/este/norte).",
-    "`actionSheet` es opcional y apunta al pliego *-acciones.png del mismo",
-    "personaje: la misma rejilla 4x4 leída como 8 poses de 2 fotogramas",
-    "(trabajar, dormir, café, comer, peli, teléfono, susto, encogerse) — ver",
-    "POSES en src/entities/sprite.js. Los pliegos dibujados a mano se pasan",
-    "antes por tools/pack-sprites.py, que los deja en la rejilla del motor.",
+    "PERSONAJES. Todo es 3D ahora (Character3D procedural o importado).",
+    "Los campos `sheet` y `actionSheet` son legacy (ya no se usan).",
     "Alturas, velocidades y radios están en unidades de plano; el motor los",
     "multiplica por WORLD_SCALE."
   ],
