@@ -24,6 +24,7 @@ import { createTouchControls } from "./game/touchControls.js";
 import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./game/settings.js";
 import { createPopups } from "./ui/popups.js";
 import { createAudioControl } from "./ui/audioControl.js";
+import { isMutedState, setMuted, getVolume, unmute } from "./game/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
 import { initCorporateUI } from "./ui/corporateUI.js";
 
@@ -616,6 +617,61 @@ async function boot() {
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);
+
+  // ---- Fullscreen & Privacy Controls (Modo Incógnito) ----
+  // F11 = fullscreen toggle
+  // M = mute/unmute
+  // Window blur = pause music (stealth mode - someone might be watching)
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "F11" || (e.ctrlKey && e.shiftKey && e.key === "f")) {
+      e.preventDefault();
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen?.().catch(err => {
+          console.log("Fullscreen denied:", err);
+        });
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+  });
+
+  // Mute toggle with 'V' key (Volume control)
+  window.addEventListener("keydown", (e) => {
+    if (e.key.toLowerCase() === "v" && !engine?.dialogue?.isOpen && !engine?.menus?.isOpen) {
+      e.preventDefault();
+      const wasMuted = isMutedState();
+      if (wasMuted) {
+        unmute(getVolume());
+      } else {
+        setMuted(true);
+      }
+    }
+  });
+
+  // Modo Incógnito: pause music when window loses focus
+  // (someone else might see the screen, keep it quiet)
+  let hadFocus = true;
+  window.addEventListener("focus", () => {
+    hadFocus = true;
+    // Resume music if needed
+  });
+
+  window.addEventListener("blur", () => {
+    hadFocus = false;
+    // Pause music - stealth mode
+    if (soundtrackState?.synth) {
+      soundtrackState.synth.muted = true;
+    }
+  });
+
+  // Expose audio control functions for external access
+  window.__audioControl = {
+    isMutedState,
+    getVolume,
+    setMuted,
+    unmute,
+  };
 
   // Exposed for the automated checks in tools/.
   window.__game = { world, navmesh, player, boss, engine, camera, scene, view, pixels, data, crossing3D, soundtrackState };

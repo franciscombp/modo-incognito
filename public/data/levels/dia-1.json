@@ -42,7 +42,7 @@
       }
     ],
     "onFail": {
-      "icon": "ambulance",
+      "icon": "alert",
       "title": "No fue tu día",
       "body": "Te atropellaron antes de llegar al piso.",
       "dialogue": [
