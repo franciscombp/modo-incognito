@@ -8,6 +8,7 @@
 // `then` is a nested array of nodes, so a branch is just another scene.
 
 import { sfxMove, sfxSelect, sfxAdvance, sfxType } from "./sfx.js";
+import { createPortrait3D } from "../ui/portrait3d.js";
 
 const ADVANCE_KEYS = new Set([" ", "enter", "e"]);
 const NEXT_KEYS = new Set(["arrowdown", "s", "tab"]);
@@ -19,7 +20,7 @@ const spriteUrl = (name) => `${BASE}sprites/${name}.png`;
 // cara sur y columna 0 es el fotograma de reposo — el retrato usa justo esa
 // esquina, ampliada x4 sin interpolar (ver .vn-portrait-sprite en style.css).
 
-export function createDialogue(root) {
+export function createDialogue(root, { looks = null } = {}) {
   const layer = document.createElement("div");
   layer.className = "vn-layer hidden";
   // Full-bleed cinematic box: letterbox bars, an oversized portrait that
@@ -63,8 +64,49 @@ export function createDialogue(root) {
   layer.appendChild(narratorEl);
   const narratorText = narratorEl.querySelector(".vn-narrator-text");
 
-  /** Retrato: sprite del personaje. Siempre usa sheets, nunca emojis. */
+  // El retrato es el MISMO muñeco 3D que anda por el piso, encuadrado de
+  // busto. El pliego de píxeles se queda de reserva por si no hay WebGL o el
+  // hablante no está en el reparto 3D.
+  const portrait3d = createPortrait3D(portrait);
+  let portraitMood = "neutral";
+
+  /**
+   * Qué receta 3D le toca a una línea.
+   *
+   * El hablante llega con nombre de pantalla ("Gabo", "Recepción"), no con id
+   * de reparto. El puente es el `sheet` que `withSprites` ya le enganchó:
+   * los nombres de pliego están entre los alias de characters3d.json, así que
+   * "gabo-camina" resuelve a la receta de Gabo. Se prueban los candidatos en
+   * orden y se acepta el primero que NO caiga en la receta genérica; si
+   * ninguno acierta, genérica — que tiene cara, a diferencia de la silueta
+   * gris de `npc-camina`.
+   */
+  function lookFor(node) {
+    if (!looks) return null;
+    const generic = looks.characters?.generic ?? null;
+    const speaker = typeof node.speaker === "string" ? node.speaker : null;
+    const candidates = [node.lookId, node.sheet, speaker, speaker?.toLowerCase()];
+    for (const c of candidates) {
+      if (!c) continue;
+      const look = looks.get(c);
+      if (look && look !== generic) return look;
+    }
+    return generic;
+  }
+
+  /** Retrato: el muñeco 3D del hablante; si no se puede, su pliego. */
   function setPortrait(node) {
+    portraitMood = node.mood ?? "neutral";
+    const look = node.look ?? lookFor(node);
+    if (look && portrait3d.show(look, portraitMood)) {
+      portrait3d.start();
+      portraitSprite.classList.add("hidden");
+      portraitEmoji.classList.add("hidden");
+      portrait.classList.add("has-3d");
+      return;
+    }
+
+    portrait.classList.remove("has-3d");
     let sheet = node.sheet;
 
     // Si no hay sheet, usar sprite específico basado en portrait o npc-camina como fallback
@@ -87,15 +129,24 @@ export function createDialogue(root) {
     portraitEmoji.classList.add("hidden");
   }
 
-  /** Mostrar narrador Steven el Daddy con mensaje. */
+  /**
+   * Mostrar narrador Steven el Daddy con mensaje.
+   *
+   * Mientras habla, la caja de diálogo se esconde: el narrador no tiene
+   * retrato ni línea que escribir, así que la caja se quedaba vacía debajo —
+   * y la primera línea del día 1 es suya, así que el juego abría con un panel
+   * en blanco. `vn-narrating` es lo que la aparta.
+   */
   function showNarrator(text) {
     narratorText.textContent = text;
     narratorEl.classList.remove("hidden");
+    layer.classList.add("vn-narrating");
   }
 
   /** Ocultar narrador. */
   function hideNarrator() {
     narratorEl.classList.add("hidden");
+    layer.classList.remove("vn-narrating");
   }
 
   let optionButtons = [];
@@ -120,6 +171,9 @@ export function createDialogue(root) {
       typingFull = text;
       typingResolve = resolve;
       textEl.textContent = "";
+      // La boca se abre mientras corre la máquina de escribir y se cierra al
+      // acabar la línea: el retrato deja de ser una foto y "dice" el texto.
+      portrait3d.setTalking(true, portraitMood);
       let i = 0;
       const step = () => {
         i += 1;
@@ -130,6 +184,7 @@ export function createDialogue(root) {
         if (i >= text.length) {
           typingTimer = null;
           typingResolve = null;
+          portrait3d.setTalking(false, portraitMood);
           resolve();
           return;
         }
@@ -145,6 +200,7 @@ export function createDialogue(root) {
     clearTimeout(typingTimer);
     typingTimer = null;
     textEl.textContent = typingFull;
+    portrait3d.setTalking(false, portraitMood);
     const resolve = typingResolve;
     typingResolve = null;
     resolve?.();
@@ -309,6 +365,10 @@ export function createDialogue(root) {
       active = false;
       layer.classList.add("hidden");
       document.body.classList.remove("vn-open");
+      // Con el diálogo cerrado el retrato no gasta un fotograma: el bucle del
+      // piso ya tiene bastante con lo suyo.
+      portrait3d.stop();
+      hideNarrator();
       optionsEl.innerHTML = "";
       optionButtons = [];
     }
@@ -323,6 +383,7 @@ export function createDialogue(root) {
     },
     dispose() {
       window.removeEventListener("keydown", onKey);
+      portrait3d.dispose();
       layer.remove();
     },
   };

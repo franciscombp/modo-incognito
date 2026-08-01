@@ -164,6 +164,34 @@ saturado se reserva para los personajes. La paleta entera está en
 - Si pasas un `color` explícito a `texturedMaterial()`, pisa la paleta. Es lo
   que dejaba los pasillos y los núcleos en gris frío después del cambio.
 
+### La interfaz también es cozy
+
+`src/style.css` **no** es pixel art cyberpunk: papel crema, tinta marrón y
+acento terracota. Los NOMBRES de las variables se conservan (`--cyan`,
+`--magenta`) aunque ya no describan su color, porque se usan desde ochenta
+sitios. Al escribir CSS nuevo:
+
+- El texto va en `var(--ink)` (o `--ink-soft` para lo secundario) y los
+  paneles en `--panel`/`--glass`. `var(--paper)` es CREMA: ponerlo como color
+  de texto sobre un panel lo deja invisible, que es exactamente lo que pasó
+  con medio HUD y con los menús al cambiar la paleta.
+- Para transparencias hay `rgba(var(--ink-rgb), a)` y
+  `rgba(var(--cyan-rgb), a)`. No metas `rgba(255,255,255,0.06)` (sobre crema
+  no se ve) ni `rgba(0,0,0,…)` (un filo negro duro rompe el conjunto).
+- Nada de halos de neón. Una sombra baja y cálida basta.
+
+Dos piezas montan el 3D DENTRO de la interfaz, y son la razón de que los
+menús y el diálogo ya no parezcan de otro juego:
+
+- `src/ui/portrait3d.js` — el retrato del diálogo es el mismo `Character3D`
+  del piso, encuadrado de busto, con la expresión atada al `mood` de la línea
+  y la boca abierta mientras corre la máquina de escribir. Solo dibuja con el
+  diálogo abierto. El pliego de píxeles se queda de reserva por si no hay
+  WebGL.
+- `src/ui/charshot.js` — la pantalla de selección es estática, así que cada
+  personaje sale como una FOTO (`toDataURL`) de un único renderer, no como un
+  lienzo vivo por tarjeta.
+
 Si tocas el HUD o el CSS, corre `npm run check:layout` antes de darlo por
 bueno: comprueba en seis tamaños de pantalla que nada se solape, se recorte
 ni se salga. Este tipo de fallo no se ve en el diff y es fácil que se cuele
@@ -213,6 +241,18 @@ en una captura.
   en `boss.js`). Bajarlo al suelo hace que, con la cámara oblicua, se dibuje
   encima del sprite y parezca salirle de la espalda. `npm run check:vision`
   vigila eso y que el haz no se desvíe del sprite más de media dirección.
+- **Una línea de diálogo con `narrator: true` no usa la caja**: se dibuja en
+  su propia tarjeta (`.vn-narrator`) y la caja se aparta con `vn-narrating`.
+  Estuvo con `bottom: -140px`, o sea entera fuera de pantalla, y como la
+  PRIMERA línea del día 1 es del narrador, el juego abría con un panel en
+  blanco esperando un clic que nadie sabía que había que dar. Si tocas ese
+  bloque, comprueba que la línea de Steven se lee al arrancar el día 1.
+- **La flecha de un rastreador esquiva lo que ya ocupa el borde**
+  (`src/ui/tracker.js`): la barra de arriba, la columna táctil, las tarjetas
+  de abajo, la franja de controles y la OTRA flecha. Cada bloqueo se mide del
+  DOM en cada frame porque todos cambian de tamaño con la pantalla; reservar
+  una banda fija solo acierta en un tamaño. `npm run check:layout` es lo que
+  lo vigila.
 - **Un secuaz te aborda solo cuando te TOCA** (`minionTouches` en `game.js`),
   no cuando te ve. Es un radio de contacto, no de interacción; subirlo
   reintroduce el "Crispo me habla desde el otro lado del pasillo".

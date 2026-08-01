@@ -47,6 +47,7 @@ export function createEngine({
   codeEggs = [],
   manifest = {},
   dialogues = { cast: {}, encounters: {}, barks: {} },
+  looks = null,
   modes = {},
   bossConfig = null,
   playerSheet = "npc-camina",
@@ -62,7 +63,7 @@ export function createEngine({
   const worldPrompt = createWorldPrompt(app, camera.camera, {
     isTouch: matchMedia("(pointer: coarse)").matches,
   });
-  const dialogue = createDialogue(app);
+  const dialogue = createDialogue(app, { looks });
   const lobby = createLobby(app);
   const save = createSave();
   let crossingActive = false;
@@ -207,6 +208,7 @@ export function createEngine({
     levels,
     save,
     modes,
+    looks,
     title: manifest.title ?? "Modo Incógnito",
     subtitle: manifest.subtitle ?? "",
     actions: {
