@@ -1,0 +1,40 @@
+/* =====================================================================
+   TAILWIND CSS PARA BUILDERS
+
+   Este archivo SOLO se importa en los builders (creador/).
+   El juego principal usa design-system.css sin Tailwind.
+   ===================================================================== */
+
+/* Tailwind directives */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Cozy theme variables para builders (sincronizadas con design-system) */
+:root {
+  --paper: #F3E9D8;
+  --ink: #4A3F33;
+  --ink-rgb: 74, 63, 51;
+  --ink-soft: #8B7355;
+  --brown: #6B5D4F;
+  --tan: #C4B5A0;
+  --terracotta: #C85A54;
+  --terracotta-light: #E17460;
+
+  --background: #F3E9D8;
+  --foreground: #4A3F33;
+  --card: #FEFCF9;
+  --card-foreground: #4A3F33;
+  --popover: #FEFCF9;
+  --popover-foreground: #4A3F33;
+  --muted: #D4C5B3;
+  --muted-foreground: #8B7355;
+  --accent: #C85A54;
+  --accent-foreground: #F3E9D8;
+  --destructive: #E55039;
+  --destructive-foreground: #FEFCF9;
+  --border: #E8D9C3;
+  --input: #FEFCF9;
+  --ring: #C85A54;
+  --radius: 6px;
+}
