@@ -1,336 +1,313 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="light">
-
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modo Incógnito — Storybook & Design System</title>
-    <link rel="icon" href="../../favicon.png" />
-    <link rel="stylesheet" href="../../src/style/design-system.css">
-    <link rel="stylesheet" href="../../src/style.css">
-    <style>
-        * {
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modo Incógnito — Componentes</title>
+  <link rel="stylesheet" href="../../src/style/design-system.css">
+  <style>
+    body {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      height: 100vh;
+      margin: 0;
+    }
 
-        body {
-            background-color: hsl(var(--bg-000));
-            margin: 0;
-            color: hsl(var(--text-100));
-            font-family: var(--font-sans);
-            min-height: 100vh;
-            transition: background-color 0.3s ease;
-        }
+    aside {
+      background: hsl(var(--bg-100));
+      border-right: 1px solid hsl(var(--border-100));
+      padding: 24px;
+      overflow-y: auto;
+      font-family: var(--font-sans);
+    }
 
-        /* Sidebar Styling */
-        .sb-sidebar {
-            width: 280px;
-            height: 100vh;
-            border-right: 1px solid hsl(var(--border-100));
-            padding: var(--space-xl) var(--space-lg);
-            position: fixed;
-            overflow-y: auto;
-            background: hsl(var(--bg-100) / 0.8);
-            backdrop-filter: blur(24px);
-            z-index: 1001;
-        }
+    aside h2 {
+      font-size: 16px;
+      margin: 0 0 24px 0;
+      color: hsl(var(--text-000));
+    }
 
-        .sb-sidebar-header {
-            margin-bottom: 40px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding-left: 10px;
-        }
+    aside h3 {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: hsl(var(--text-faint));
+      margin: 24px 0 12px 0;
+    }
 
-        .sb-sidebar-header span {
-            font-weight: 800;
-            font-size: 18px;
-            letter-spacing: -0.04em;
-            color: hsl(var(--text-000));
-        }
+    aside a {
+      display: block;
+      padding: 8px 12px;
+      margin-bottom: 4px;
+      border-radius: 6px;
+      color: hsl(var(--text-000));
+      text-decoration: none;
+      font-size: 14px;
+      cursor: pointer;
+      transition: var(--transition-fast);
+    }
 
-        .sb-theme-toggle {
-            width: 100%;
-            font-size: 13px;
-            height: 40px;
-            justify-content: flex-start;
-            gap: 12px;
-            margin-bottom: 32px;
-        }
+    aside a:hover {
+      background: hsl(var(--accent-main) / 0.1);
+      color: hsl(var(--accent-main));
+    }
 
-        .sb-nav-group {
-            margin-bottom: 32px;
-        }
+    main {
+      overflow-y: auto;
+      padding: 40px;
+    }
 
-        .sb-nav-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: hsl(var(--text-faint));
-            margin-bottom: 12px;
-            padding-left: 12px;
-            font-weight: 700;
-        }
+    .section {
+      display: none;
+    }
 
-        .sb-nav-link {
-            display: block;
-            padding: 10px 12px;
-            border-radius: 8px;
-            color: hsl(var(--text-100));
-            text-decoration: none;
-            font-size: 14px;
-            font-weight: 500;
-            transition: var(--transition-fast);
-        }
+    .section.active {
+      display: block;
+    }
 
-        .sb-nav-link:hover {
-            background: hsl(var(--bg-200));
-            color: hsl(var(--text-000));
-            transform: translateX(4px);
-        }
+    h1 {
+      margin-top: 0;
+      color: hsl(var(--text-000));
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
 
-        .sb-nav-link.active {
-            background: hsl(var(--accent-main));
-            color: white;
-        }
+    .desc {
+      color: hsl(var(--text-100));
+      margin-bottom: 32px;
+      font-size: 14px;
+    }
 
-        /* Content Area */
-        .sb-content {
-            margin-left: 280px;
-            padding: 60px;
-            max-width: 1400px;
-        }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
 
-        .sb-section {
-            margin-bottom: 100px;
-            scroll-margin-top: 100px;
-        }
+    .component-box {
+      padding: 24px;
+      border: 1px solid hsl(var(--border-100));
+      border-radius: var(--radius-lg);
+      background: white;
+    }
 
-        .sb-section-title {
-            font-size: 32px;
-            border-bottom: 2px solid hsl(var(--border-100));
-            padding-bottom: 16px;
-            margin-bottom: 48px;
-            color: hsl(var(--text-000));
-            font-family: var(--font-display);
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
+    .component-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: hsl(var(--text-faint));
+      margin-bottom: 16px;
+    }
 
-        .sb-section-title span {
-            font-family: var(--font-mono);
-            font-size: 14px;
-            opacity: 0.3;
-        }
-
-        .sb-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 24px;
-            margin-bottom: 40px;
-        }
-
-        /* Preview Box */
-        .sb-box {
-            background: hsl(var(--bg-100));
-            border: 1px solid hsl(var(--border-100));
-            border-radius: 20px;
-            padding: 32px;
-            position: relative;
-            overflow: visible;
-        }
-
-        .sb-box.bg-dotted {
-            background-image: radial-gradient(hsl(var(--text-000) / 0.12) 1.2px, transparent 0);
-            background-size: 24px 24px;
-        }
-
-        .sb-label {
-            position: absolute;
-            top: 16px;
-            right: 20px;
-            font-family: var(--font-mono);
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: hsl(var(--text-faint));
-        }
-
-        .sb-comp-head {
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            color: hsl(var(--text-200));
-            margin-bottom: 24px;
-            display: block;
-            letter-spacing: 0.05em;
-        }
-
-        .sb-variants-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 60px;
-        }
-
-        .type-sample {
-            display: grid;
-            grid-template-columns: 140px 1fr;
-            align-items: baseline;
-            gap: 24px;
-            padding: 16px 0;
-            border-bottom: 1px solid hsl(var(--border-100) / 0.5);
-        }
-
-        .type-label {
-            font-family: var(--font-mono);
-            font-size: 11px;
-            color: hsl(var(--text-faint));
-        }
-
-        .sb-code-block {
-            background: hsl(var(--bg-000));
-            border: 1px solid hsl(var(--border-100));
-            border-radius: 12px;
-            padding: 16px;
-            font-family: var(--font-mono);
-            font-size: 12px;
-            color: hsl(var(--text-200));
-            overflow-x: auto;
-            line-height: 1.5;
-        }
-
-        /* Responsive */
-        @media (max-width: 1100px) {
-            .sb-sidebar {
-                width: 260px;
-            }
-
-            .sb-content {
-                margin-left: 260px;
-                padding: 40px 32px;
-            }
-
-            .sb-section-title {
-                font-size: 24px;
-                margin-bottom: 32px;
-            }
-
-            .sb-box {
-                padding: 24px;
-            }
-        }
-
-        @media (max-width: 800px) {
-            .sb-sidebar {
-                position: fixed;
-                bottom: 0;
-                top: auto;
-                left: 0;
-                width: 100%;
-                height: 70px;
-                padding: 0 16px;
-                border-right: none;
-                border-top: 1px solid hsl(var(--border-100));
-                background: hsl(var(--bg-100) / 0.9);
-                backdrop-filter: blur(24px);
-                z-index: 2000;
-                display: flex;
-                align-items: center;
-            }
-
-            .sb-sidebar-header,
-            .sb-theme-toggle,
-            .sb-sidebar>div:nth-child(3) {
-                display: none !important;
-            }
-
-            nav {
-                display: flex;
-                flex-direction: row;
-                overflow-x: auto;
-                align-items: center;
-                width: 100%;
-                gap: 8px;
-                padding-bottom: 4px;
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-            }
-
-            nav::-webkit-scrollbar {
-                display: none;
-            }
-
-            .sb-nav-group {
-                display: contents;
-            }
-
-            .sb-nav-title {
-                display: none;
-            }
-
-            .sb-nav-link {
-                white-space: nowrap;
-                padding: 8px 16px;
-                background: hsl(var(--bg-200));
-                border: 1px solid hsl(var(--border-100));
-                border-radius: 20px;
-                font-size: 13px;
-                margin-bottom: 0;
-            }
-
-            .sb-nav-link:hover {
-                transform: none;
-            }
-
-            .sb-content {
-                margin-left: 0;
-                padding: 40px 16px 100px;
-            }
-
-            .sb-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Scrollbar custom */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: hsl(var(--border-100));
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: hsl(var(--border-200));
-        }
-    </style>
+    .component-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: hsl(var(--text-000));
+      margin-bottom: 12px;
+    }
+  </style>
 </head>
-
 <body>
-    <aside class="sb-sidebar">
-        <div class="sb-sidebar-header">
-            <span>MODO INCÓGNITO</span>
+  <aside>
+    <h2>Componentes</h2>
+
+    <h3>Atoms</h3>
+    <a onclick="show('buttons')">Buttons</a>
+    <a onclick="show('badges')">Badges</a>
+    <a onclick="show('inputs')">Inputs</a>
+
+    <h3>Molecules</h3>
+    <a onclick="show('panels')">Panels</a>
+    <a onclick="show('cards')">Cards</a>
+    <a onclick="show('tabs')">Tabs</a>
+
+    <h3>Organisms</h3>
+    <a onclick="show('dialogs')">Dialogs</a>
+    <a onclick="show('audio')">Audio Control</a>
+  </aside>
+
+  <main>
+    <!-- BUTTONS -->
+    <section id="buttons" class="section active">
+      <h1>Buttons</h1>
+      <p class="desc">Botones en diferentes variantes</p>
+      <div class="grid">
+        <div class="component-box">
+          <div class="component-label">Primary</div>
+          <button class="btn" style="width: 100%;">Aceptar</button>
         </div>
+        <div class="component-box">
+          <div class="component-label">Secondary</div>
+          <button class="btn secondary" style="width: 100%;">Cancelar</button>
+        </div>
+        <div class="component-box">
+          <div class="component-label">Ghost</div>
+          <button class="btn ghost" style="width: 100%;">Ayuda</button>
+        </div>
+        <div class="component-box">
+          <div class="component-label">Danger</div>
+          <button class="btn danger" style="width: 100%;">Eliminar</button>
+        </div>
+        <div class="component-box">
+          <div class="component-label">Small</div>
+          <button class="btn sm" style="width: 100%;">Pequeño</button>
+        </div>
+        <div class="component-box">
+          <div class="component-label">Large</div>
+          <button class="btn lg" style="width: 100%;">Grande</button>
+        </div>
+      </div>
+    </section>
 
-        <button class="btn sb-theme-toggle" id="theme-toggle" style="width: 100%; font-size: 13px; height: 40px; justify-content: flex-start; gap: 12px;">
-            <span>☀ Tema</span>
-        </button>
+    <!-- BADGES -->
+    <section id="badges" class="section">
+      <h1>Badges</h1>
+      <p class="desc">Indicadores de estado</p>
+      <div class="grid">
+        <div class="component-box">
+          <div class="component-label">Primary</div>
+          <span class="badge primary">Active</span>
+        </div>
+        <div class="component-box">
+          <div class="component-label">Success</div>
+          <span class="badge success">Success</span>
+        </div>
+        <div class="component-box">
+          <div class="component-label">Warning</div>
+          <span class="badge warning">Warning</span>
+        </div>
+        <div class="component-box">
+          <div class="component-label">Danger</div>
+          <span class="badge danger">Error</span>
+        </div>
+        <div class="component-box">
+          <div class="component-label">Secondary</div>
+          <span class="badge secondary">Neutral</span>
+        </div>
+      </div>
+    </section>
 
-        <nav id="sidebar-nav"></nav>
-    </aside>
+    <!-- INPUTS -->
+    <section id="inputs" class="section">
+      <h1>Inputs</h1>
+      <p class="desc">Campos de entrada</p>
+      <div class="grid">
+        <div class="component-box">
+          <div class="component-label">Text Input</div>
+          <input type="text" placeholder="Escribe algo...">
+        </div>
+        <div class="component-box">
+          <div class="component-label">Number Input</div>
+          <input type="number" placeholder="123">
+        </div>
+        <div class="component-box">
+          <div class="component-label">Select</div>
+          <select>
+            <option>Opción 1</option>
+            <option>Opción 2</option>
+            <option>Opción 3</option>
+          </select>
+        </div>
+      </div>
+    </section>
 
-    <main class="sb-content" id="main-content"></main>
+    <!-- PANELS -->
+    <section id="panels" class="section">
+      <h1>Panels</h1>
+      <p class="desc">Contenedores base</p>
+      <div class="grid">
+        <div class="component-box">
+          <div class="component-label">Default Panel</div>
+          <div class="panel">
+            <h3>Contenido</h3>
+            <p>Panel estándar del sistema</p>
+          </div>
+        </div>
+        <div class="component-box">
+          <div class="component-label">Glass Panel</div>
+          <div class="panel glass">
+            <h3>Con vidrio</h3>
+            <p>Efecto de vidrio esmerilado</p>
+          </div>
+        </div>
+        <div class="component-box">
+          <div class="component-label">Dark Panel</div>
+          <div class="panel dark">
+            <h3>Oscuro</h3>
+            <p>Variante oscura del panel</p>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <script type="module" src="./pantallas.js"></script>
+    <!-- CARDS -->
+    <section id="cards" class="section">
+      <h1>Cards</h1>
+      <p class="desc">Tarjetas con estilos</p>
+      <div class="grid">
+        <div class="component-box">
+          <div class="component-label">Card Glass</div>
+          <div class="glass-card">
+            <h4>Tarjeta moderna</h4>
+            <p>Con efecto de vidrio</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TABS -->
+    <section id="tabs" class="section">
+      <h1>Tabs</h1>
+      <p class="desc">Navegación con pestañas</p>
+      <div class="component-box">
+        <div style="border-bottom: 2px solid hsl(var(--border-100)); margin-bottom: 16px;">
+          <button class="btn ghost" style="border-bottom: 2px solid hsl(var(--accent-main)); width: auto; background: transparent;">Tab 1</button>
+          <button class="btn ghost" style="width: auto; background: transparent;">Tab 2</button>
+          <button class="btn ghost" style="width: auto; background: transparent;">Tab 3</button>
+        </div>
+        <p>Contenido de Tab 1</p>
+      </div>
+    </section>
+
+    <!-- DIALOGS -->
+    <section id="dialogs" class="section">
+      <h1>Dialogs</h1>
+      <p class="desc">Diálogos modales</p>
+      <div class="component-box">
+        <div class="component-label">Dialog Preview</div>
+        <div style="border: 2px solid hsl(var(--border-100)); border-radius: var(--radius-lg); padding: var(--space-2xl); background: hsl(var(--bg-000)); max-width: 400px;">
+          <h2 style="margin-top: 0;">¿Confirmación?</h2>
+          <p>¿Estás seguro de esta acción?</p>
+          <div style="display: flex; gap: var(--space-md); margin-top: var(--space-xl);">
+            <button class="btn secondary" style="flex: 1;">Cancelar</button>
+            <button class="btn" style="flex: 1;">Aceptar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- AUDIO CONTROL -->
+    <section id="audio" class="section">
+      <h1>Audio Control</h1>
+      <p class="desc">Control de audio y volumen</p>
+      <div class="component-box">
+        <div class="component-label">Audio Control Widget</div>
+        <div style="display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius-md); backdrop-filter: blur(8px); width: fit-content;">
+          <button class="btn ghost" style="width: 32px; height: 32px; padding: 0;">🔊</button>
+          <input type="range" min="0" max="100" value="70" style="width: 120px;">
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    function show(id) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+  </script>
 </body>
-
 </html>
