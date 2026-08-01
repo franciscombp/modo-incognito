@@ -312,7 +312,7 @@ export class Game {
     } else {
       this.player.isDoingActivity = false;
       // Fingir que trabajas es, literalmente, la pose de estar en el portátil.
-      this.player.pose = holdingF ? "work" : null;
+      this.player.pose = this.player.isPretending ? "work" : null;
     }
 
     this.distractionState.forEach((d) => {
