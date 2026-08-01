@@ -576,21 +576,38 @@ export function createEngine({
   const BOSS_GRACE_AFTER_WARN = 5;
 
   /** El jefe te aborda de verdad: diálogo de regaño y luego un respiro. */
-  async function handleWarn({ final }) {
-    if (final) return; // el outro de "despedida" ya cubre este caso
+  async function handleWarn({ warnings }) {
+    if (warnings === game.rules.maxWarnings) return; // el outro de "despedida" ya cubre este caso
     const encounter = dialogues.encounters.jefe;
-    if (encounter?.scenes?.length) {
+    if (!encounter?.scenes?.length) {
+      boss.grantGrace(BOSS_GRACE_AFTER_WARN);
+      return;
+    }
+
+    // Decide: formal warning or casual intimidation? More casual as warnings pile up.
+    const softChance = warnings === 1 ? 0 : warnings === 2 ? 0.3 : 0.6;
+    const useSoft = Math.random() < softChance && encounter.softWarnings?.length;
+
+    const persona = dialogues.cast.jefe;
+    let scene;
+
+    if (useSoft) {
+      // Casual intimidation line
+      const idx = Math.floor(Math.random() * encounter.softWarnings.length);
+      scene = encounter.softWarnings[idx];
+    } else {
+      // Formal amonestación scene
       const seen = save.getFlag("talk:jefe_warn") ?? 0;
       save.setFlag("talk:jefe_warn", seen + 1);
-      const scene = encounter.scenes[seen % encounter.scenes.length];
-      const persona = dialogues.cast.jefe;
-      await withPause(() =>
-        dialogue.play(
-          withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
-          ctx
-        )
-      );
+      scene = encounter.scenes[seen % encounter.scenes.length];
     }
+
+    await withPause(() =>
+      dialogue.play(
+        withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
+        ctx
+      )
+    );
     boss.grantGrace(BOSS_GRACE_AFTER_WARN);
   }
 

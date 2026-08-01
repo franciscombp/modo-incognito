@@ -133,6 +133,50 @@
             "text": "A este paso te voy a tener que ascender a cliente. Y créeme, ese ascenso no lo quieres."
           }
         ]
+      ],
+      "softWarnings": [
+        [
+          {
+            "speaker": "Gabo",
+            "mood": "tense",
+            "text": "Y la de trabajar, ¿te la sabes?"
+          }
+        ],
+        [
+          {
+            "speaker": "Gabo",
+            "mood": "tense",
+            "text": "Como que no quieres estar mucho tiempo en mi lista de favoritos, ¿eh?"
+          }
+        ],
+        [
+          {
+            "speaker": "Gabo",
+            "mood": "tense",
+            "text": "Te veo aquí y me pregunto si realmente necesitas este trabajo."
+          }
+        ],
+        [
+          {
+            "speaker": "Gabo",
+            "mood": "tense",
+            "text": "Me encanta tu ética de trabajo. De verdad. Es muy... optimista."
+          }
+        ],
+        [
+          {
+            "speaker": "Gabo",
+            "mood": "tense",
+            "text": "Tengo un puesto en rrhh. Me dieron carnet y todo. Espero no usarlo contigo."
+          }
+        ],
+        [
+          {
+            "speaker": "Gabo",
+            "mood": "tense",
+            "text": "Hoy me levante con ganas de ascender a alguien. Aún hay tiempo, ¿no?"
+          }
+        ]
       ]
     },
     "manu": {
