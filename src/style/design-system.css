@@ -107,11 +107,12 @@
   --sans: "Segoe UI", system-ui, sans-serif;
   --mono: ui-monospace, "Cascadia Mono", "Consolas", monospace;
 
-  /* Espaciado */
-  --cut: 10px;              /* Radio de esquinas suaves */
-  --gap: 0.5rem;            /* Espaciado interno mínimo */
-  --gap-lg: 1rem;           /* Espaciado interno normal */
-  --gap-xl: 2rem;           /* Espaciado interno grande */
+  /* Espaciado (generoso para estética statement) */
+  --cut: 8px;               /* Radio de esquinas */
+  --gap: 8px;               /* Mínimo */
+  --gap-lg: 16px;           /* Normal */
+  --gap-xl: 24px;           /* Grande */
+  --gap-xxl: 32px;          /* Muy grande */
 
   /* Safe Area (notches en móvil) */
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -121,10 +122,11 @@
   --ui-scale: calc(min(100vw / 1920, 100vh / 1080));
   --ui-scale-factor: 1;
 
-  /* Sombras */
-  --shadow-sm: 0 2px 4px rgba(58, 48, 40, 0.1);
-  --shadow-md: 0 4px 8px rgba(58, 48, 40, 0.15);
-  --shadow-lg: 0 8px 16px rgba(58, 48, 40, 0.2);
+  /* Sombras (cálidas, no duras) */
+  --shadow-sm: 0 1px 3px rgba(58, 48, 40, 0.08);
+  --shadow-md: 0 4px 12px rgba(58, 48, 40, 0.15);
+  --shadow-lg: 0 12px 24px rgba(58, 48, 40, 0.2);
+  --shadow-xl: 0 20px 40px rgba(58, 48, 40, 0.25);
 
   /* Z-Index */
   --z-base: 1;
@@ -155,36 +157,50 @@ body {
    COMPONENTES REUTILIZABLES
    ═════════════════════════════════════════════════════════════════════ */
 
-/* Botones */
+/* Botones - Prominentes con sombra y hover */
 .btn,
 button {
   font-family: inherit;
-  font-size: 0.875rem;
-  padding: 0.5rem 1rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  padding: 10px 16px;
   border: none;
   border-radius: var(--cut);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   background: var(--accent-primary);
   color: white;
+  box-shadow: var(--shadow-md);
+  letter-spacing: 0.02em;
 }
 
 .btn:hover,
 button:hover {
   background: var(--accent-primary-hover);
-  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+}
+
+.btn:active,
+button:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn.secondary,
 button.secondary {
-  background: var(--glass);
+  background: white;
   color: var(--primary-text);
   border: 1px solid var(--line);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn.secondary:hover,
 button.secondary:hover {
-  background: var(--panel);
+  background: var(--primary-bg);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  box-shadow: var(--shadow-md);
 }
 
 .btn:disabled,
@@ -192,16 +208,18 @@ button:disabled {
   background: var(--disabled-text);
   color: #ccc;
   cursor: not-allowed;
-  opacity: 0.6;
+  opacity: 0.5;
+  transform: none;
+  box-shadow: none;
 }
 
-/* Paneles */
+/* Paneles - Más sombra y aire */
 .panel {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--cut);
-  padding: var(--gap-lg);
-  box-shadow: var(--shadow-sm);
+  padding: var(--gap-xl);
+  box-shadow: var(--shadow-md);
   backdrop-filter: blur(4px);
 }
 
@@ -212,7 +230,7 @@ textarea,
 select {
   font-family: inherit;
   font-size: 0.875rem;
-  padding: 0.5rem var(--gap-lg);
+  padding: 8px 12px;
   border: 1px solid var(--line);
   border-radius: var(--cut);
   background: white;
@@ -226,7 +244,7 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--accent-primary);
-  box-shadow: 0 0 0 2px rgba(var(--accent-primary-rgb), 0.1);
+  box-shadow: 0 0 0 3px rgba(var(--accent-primary-rgb), 0.12);
 }
 
 /* Links */
@@ -241,23 +259,40 @@ a:hover {
   border-bottom-color: var(--accent-primary);
 }
 
-/* Headings */
+/* Headings - Tipografía jerárquica bold */
 h1 {
-  font-size: 1.75rem;
-  font-weight: 600;
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1.2;
   margin-bottom: var(--gap-lg);
+  color: var(--primary-text);
 }
 
 h2 {
   font-size: 1.5rem;
-  font-weight: 600;
-  margin: var(--gap-lg) 0 var(--gap);
+  font-weight: 700;
+  line-height: 1.3;
+  margin: var(--gap-xl) 0 var(--gap-lg) 0;
+  color: var(--primary-text);
+}
+
+h2:first-child {
+  margin-top: 0;
 }
 
 h3 {
   font-size: 1.125rem;
-  font-weight: 500;
-  margin: var(--gap-lg) 0 var(--gap);
+  font-weight: 700;
+  line-height: 1.3;
+  margin: var(--gap-lg) 0 var(--gap) 0;
+  color: var(--primary-text);
+}
+
+h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: var(--gap-lg) 0 var(--gap) 0;
+  color: var(--primary-text);
 }
 
 /* Utilidades */
