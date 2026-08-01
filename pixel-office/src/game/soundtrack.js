@@ -15,8 +15,8 @@ import { THEMES } from "./soundtrackThemes.js";
 let ready = false;
 let started = false;
 let currentThemeName = null;
-let bassSynth, leadSynth, padSynth, percSynth, brassSynth, stingerSynth;
-let bassGain, leadGain, padGain, percGain, brassGain, stingerGain;
+let bassSynth, leadSynth, padSynth, percSynth, brassSynth, stringSynth, stingerSynth;
+let bassGain, leadGain, padGain, percGain, brassGain, stringGain, stingerGain;
 let masterGain;
 let mainLoop = null;
 let percLoop = null;
@@ -28,7 +28,7 @@ let stepIndex = 0;
 // el siguiente tick puede recalcular un "time" que cae encima o antes del
 // anterior. Sin este guardián el synth lanzaba, y esos golpes perdidos/rotos
 // eran justo lo que se oía como "todo se mezcla mal" al cambiar de ánimo.
-const lastTrigger = { bass: -1, lead: -1, pad: -1, perc: -1, brass: -1 };
+const lastTrigger = { bass: -1, lead: -1, pad: -1, perc: -1, brass: -1, string: -1 };
 function safeTrigger(synth, key, note, duration, time) {
   if (time <= lastTrigger[key]) return;
   lastTrigger[key] = time;
@@ -51,6 +51,7 @@ function build() {
   padGain = new Tone.Gain(0).connect(masterGain);
   percGain = new Tone.Gain(0).connect(masterGain);
   brassGain = new Tone.Gain(0).connect(masterGain);
+  stringGain = new Tone.Gain(0).connect(masterGain);
 
   bassSynth = new Tone.Synth({
     oscillator: { type: "triangle" },
@@ -79,6 +80,13 @@ function build() {
     oscillator: { type: "sawtooth" },
     envelope: { attack: 0.008, decay: 0.22, sustain: 0.15, release: 0.2 },
   }).connect(brassGain);
+
+  // Strings sintetizados: onda cuadrada suave para acordes sostenidos
+  // tipo violín sintético (tímbrica más cálida que pad puro).
+  stringSynth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "square" },
+    envelope: { attack: 0.3, decay: 0.2, sustain: 0.7, release: 1.0 },
+  }).connect(stringGain);
 
   // Los stingers (victoria/derrota) tienen su propio sintetizador a
   // propósito. Compartir `leadSynth` con el bucle hacía que Tone lanzara
@@ -141,6 +149,8 @@ function ensureLoops() {
       if (padNote != null) safeTrigger(padSynth, "pad", padNote, "8n", time);
       const brassNote = theme.brass?.length ? theme.brass[stepIndex % theme.brass.length] : null;
       if (brassNote != null) safeTrigger(brassSynth, "brass", brassNote, "8n", time);
+      const stringNote = theme.string?.length ? theme.string[stepIndex % theme.string.length] : null;
+      if (stringNote != null) safeTrigger(stringSynth, "string", stringNote, "8n", time);
       stepIndex++;
     }, "8n").start(0);
   }
@@ -180,6 +190,7 @@ export async function setMood(name) {
   padGain.gain.rampTo(mix.pad, 0.5);
   percGain.gain.rampTo(mix.perc, 0.5);
   brassGain.gain.rampTo(mix.brass ?? 0, 0.5);
+  stringGain.gain.rampTo(mix.string ?? 0, 0.5);
 
   if (Tone.Transport.state !== "started") Tone.Transport.start();
 }
@@ -214,6 +225,7 @@ export function soundtrackState() {
           pad: +padGain.gain.value.toFixed(3),
           perc: +percGain.gain.value.toFixed(3),
           brass: +brassGain.gain.value.toFixed(3),
+          string: +stringGain.gain.value.toFixed(3),
         }
       : null,
   };
