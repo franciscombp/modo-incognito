@@ -29,9 +29,9 @@ export default defineConfig({
       input: {
         main: resolve(import.meta.dirname, "index.html"),
         creador: resolve(import.meta.dirname, "creador/index.html"),
-        "editor/mapas": resolve(import.meta.dirname, "creador/editor/mapas/index.html"),
-        "editor/personajes": resolve(import.meta.dirname, "creador/editor/personajes/index.html"),
-        "editor/musica": resolve(import.meta.dirname, "creador/editor/musica/index.html"),
+        "creador/mapas": resolve(import.meta.dirname, "creador/mapas/index.html"),
+        "creador/personajes": resolve(import.meta.dirname, "creador/personajes/index.html"),
+        "creador/musica": resolve(import.meta.dirname, "creador/musica/index.html"),
       },
     },
   },
