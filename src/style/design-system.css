@@ -1063,3 +1063,211 @@ h4 {
 #game-hud > * {
   pointer-events: auto;
 }
+
+/* ═════════════════════════════════════════════════════════════════════
+   DIALOGUE SYSTEM - Animal Crossing Style
+   ═════════════════════════════════════════════════════════════════════ */
+
+.vn-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: var(--space-2xl);
+  font-family: var(--font-sans);
+}
+
+.vn-layer.hidden {
+  display: none;
+}
+
+.vn-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  pointer-events: none;
+}
+
+.vn-bar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 20px;
+  background: hsl(var(--text-000));
+  pointer-events: none;
+}
+
+.vn-bar-top {
+  top: 0;
+}
+
+.vn-dock {
+  display: flex;
+  gap: var(--space-xl);
+  align-items: flex-end;
+  max-width: 1000px;
+  margin-bottom: calc(-1 * var(--space-xl));
+  z-index: 1;
+}
+
+.vn-portrait {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+}
+
+/* Dialogue Box - Animal Crossing Style */
+.vn-box {
+  background: white;
+  border: 3px solid hsl(var(--text-000));
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  min-width: 480px;
+  max-width: 600px;
+  position: relative;
+}
+
+.vn-box::before {
+  content: "";
+  position: absolute;
+  bottom: -12px;
+  left: 24px;
+  width: 0;
+  height: 0;
+  border-left: 12px solid transparent;
+  border-right: 0px solid transparent;
+  border-top: 12px solid white;
+  pointer-events: none;
+}
+
+/* Speaker name tab */
+.vn-speaker {
+  background: hsl(var(--text-000));
+  color: white;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  margin-bottom: var(--space-md);
+  display: inline-block;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.vn-speaker-text {
+  letter-spacing: 0.05em;
+}
+
+/* Dialogue text - typewriter effect */
+.vn-text {
+  color: hsl(var(--text-000));
+  font-size: 1rem;
+  line-height: 1.6;
+  min-height: 60px;
+  margin-bottom: var(--space-lg);
+  word-break: break-word;
+}
+
+.vn-text::after {
+  content: "▌";
+  animation: blink 0.6s infinite;
+}
+
+@keyframes blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+/* Options/Choices */
+.vn-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.vn-choice {
+  background: hsl(var(--bg-100));
+  border: 2px solid hsl(var(--border-100));
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 0.95rem;
+  color: hsl(var(--text-000));
+  text-align: left;
+}
+
+.vn-choice:hover {
+  border-color: hsl(var(--accent-main));
+  background: hsl(var(--accent-main) / 0.08);
+  transform: translateX(8px);
+}
+
+.vn-choice.selected {
+  border-color: hsl(var(--accent-main));
+  background: hsl(var(--accent-main) / 0.15);
+}
+
+/* Hint arrow */
+.vn-hint {
+  text-align: right;
+  font-size: 1.2rem;
+  color: hsl(var(--text-000));
+  animation: bounce 0.8s ease-in-out infinite;
+  margin-top: var(--space-sm);
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Narrator element (Steven el Daddy) */
+.vn-narrator {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: hsl(var(--accent-main));
+  color: white;
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  max-width: 320px;
+  box-shadow: 0 8px 24px hsl(var(--accent-main) / 0.3);
+  z-index: 998;
+  border: 2px solid white;
+}
+
+.vn-narrator.hidden {
+  display: none;
+}
+
+.vn-narrator-title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  margin-bottom: var(--space-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.vn-narrator-icon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.vn-narrator-text {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-break: break-word;
+}
