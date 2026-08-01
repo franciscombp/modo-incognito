@@ -36,6 +36,7 @@ const GABO_TEAMS_INTERVAL = [22, 42];
  */
 export function createEngine({
   app,
+  canvas,
   lights,
   renderer,
   scene,
@@ -476,6 +477,7 @@ export function createEngine({
       npcs,
       minions: onDuty,
       hud,
+      canvas,
       config: bossConfig,
       rules: mergedRules(day),
       onFinish: (result) => finishDay(day, result),
