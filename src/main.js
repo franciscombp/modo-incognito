@@ -286,6 +286,7 @@ async function boot() {
 
   const engine = createEngine({
     app,
+    canvas,
     renderer,
     scene,
     lights: { ambient, hemi, key },
