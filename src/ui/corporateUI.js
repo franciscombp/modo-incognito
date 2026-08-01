@@ -1,46 +1,80 @@
 /**
- * Corporate UI — Login & Dashboard Interface
+ * Corporate UI — Character Selection & Dashboard
  * Manages the Microsoft-style interface wrapper around the game
  */
+
+import { characterShot } from "./charshot.js";
+
+let selectedCharacterId = null;
 
 export function initCorporateUI() {
   const loginScreen = document.getElementById("login-screen");
   const corporateWrapper = document.getElementById("corporate-wrapper");
+  const characterGrid = document.getElementById("character-grid");
   const loginBtn = document.getElementById("login-btn");
-  const emailInput = document.getElementById("email");
-  const passwordInput = document.getElementById("password");
   const profileName = document.getElementById("profile-name");
   const profileAvatar = document.getElementById("profile-avatar");
+  const topbarTitle = document.getElementById("topbar-title");
   const sidebarItems = document.querySelectorAll(".sidebar-item");
 
-  // Extract name from email for display
-  function extractName(email) {
-    const name = email.split("@")[0].split(".").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
-    return name || "Jugador";
+  // Load and display characters
+  async function loadCharacters(data) {
+    const characters = data.looks?.characters || {};
+    const characterIds = Object.keys(characters).filter(id => id !== "generic");
+
+    // Clear grid
+    characterGrid.innerHTML = "";
+
+    // Add character cards
+    for (const id of characterIds) {
+      const recipe = characters[id];
+      const card = document.createElement("div");
+      card.className = "character-card";
+      card.setAttribute("data-character", id);
+
+      const image = document.createElement("div");
+      image.className = "character-card-image";
+
+      const name = document.createElement("div");
+      name.className = "character-card-name";
+      name.textContent = recipe.name || id.charAt(0).toUpperCase() + id.slice(1);
+
+      card.appendChild(image);
+      card.appendChild(name);
+      characterGrid.appendChild(card);
+
+      // Load character shot
+      const shot = characterShot(recipe);
+      if (shot) {
+        image.style.backgroundImage = `url(${shot})`;
+      } else {
+        image.style.background = `hsl(var(--accent-main) / 0.1)`;
+        image.style.display = "flex";
+        image.style.alignItems = "center";
+        image.style.justifyContent = "center";
+        image.textContent = recipe.name || id;
+      }
+
+      // Handle selection
+      card.addEventListener("click", () => selectCharacter(id, recipe.name || id));
+    }
   }
 
-  // Update profile display
-  function updateProfile(email) {
-    const name = extractName(email);
-    profileName.textContent = name;
-    // Set avatar initials
-    const initials = name
-      .split(" ")
-      .map(w => w[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-    profileAvatar.textContent = initials;
+  function selectCharacter(id, name) {
+    selectedCharacterId = id;
+
+    // Update UI
+    document.querySelectorAll(".character-card").forEach(c => c.classList.remove("selected"));
+    document.querySelector(`[data-character="${id}"]`)?.classList.add("selected");
+    loginBtn.disabled = false;
   }
 
-  // Handle login
+  // Handle character selection and transition to dashboard
   function handleLogin(e) {
     e.preventDefault();
-    const email = emailInput.value.trim();
-    const password = passwordInput.value.trim();
 
-    if (!email || !password) {
-      alert("Por favor completa todos los campos");
+    if (!selectedCharacterId) {
+      alert("Por favor selecciona un personaje");
       return;
     }
 
@@ -51,9 +85,24 @@ export function initCorporateUI() {
     setTimeout(() => {
       loginScreen.style.display = "none";
       corporateWrapper.classList.remove("hidden");
-      updateProfile(email);
-      // Store in sessionStorage for sidebar menu
-      sessionStorage.setItem("playerEmail", email);
+
+      // Update profile with character name
+      const characterName = document.querySelector(`[data-character="${selectedCharacterId}"] .character-card-name`)?.textContent || "Jugador";
+      profileName.textContent = characterName;
+      topbarTitle.textContent = characterName;
+
+      // Set avatar initials
+      const initials = characterName
+        .split(" ")
+        .map(w => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+      profileAvatar.textContent = initials;
+
+      // Store selected character
+      sessionStorage.setItem("selectedCharacter", selectedCharacterId);
+      window.__selectedCharacter = selectedCharacterId;
     }, 300);
   }
 
@@ -99,27 +148,13 @@ export function initCorporateUI() {
 
   // Event listeners
   loginBtn.addEventListener("click", handleLogin);
-  emailInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") handleLogin(e);
-  });
-  passwordInput.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") handleLogin(e);
-  });
-
   document.querySelectorAll(".sidebar-item[data-menu]").forEach(item => {
     item.addEventListener("click", handleSidebarClick);
   });
-
   document.getElementById("profile-menu").addEventListener("click", handleProfileClick);
 
-  // Initialize with stored email if exists
-  const storedEmail = sessionStorage.getItem("playerEmail");
-  if (storedEmail) {
-    emailInput.value = storedEmail;
-    updateProfile(storedEmail);
-  }
-
   return {
+    loadCharacters,
     showGame: () => {
       sidebarItems.forEach(el => el.classList.remove("active"));
       document.querySelector(".sidebar-item[data-menu='game']")?.classList.add("active");
