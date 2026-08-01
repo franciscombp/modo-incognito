@@ -120,6 +120,7 @@ export class Game {
     npcs,
     minions = [],
     hud,
+    canvas = null,
     rules = {},
     config = null,
     onFinish = null,
@@ -135,6 +136,7 @@ export class Game {
     this.onTalk = onTalk;
     this.onWarn = onWarn;
     this.hud = hud;
+    this.canvas = canvas;
     this.rules = { ...DEFAULT_RULES, ...rules };
     this.onFinish = onFinish;
     this.onEgg = onEgg;
@@ -256,9 +258,9 @@ export class Game {
     // la vez tu puesto solo te cubre MIENTRAS finges. Así que primero se mira
     // dónde estás (una pasada que no gasta nada), luego se decide si estás
     // fingiendo, y con eso ya se resuelve el lugar seguro de verdad.
-    const holdingE = this.player.keys.has("e");
-    const holdingF = this.player.keys.has("f");
-    this.player.isPretending = holdingF && this._standingInUsableSafeSpot(pos);
+    // SPACE/ENTER es la tecla unificada para acciones y fingir (según contexto)
+    const holdingSpace = this.player.keys.has(" ") || this.player.keys.has("enter");
+    this.player.isPretending = holdingSpace && this._standingInUsableSafeSpot(pos);
 
     this.inSafeSpot = this._updateSafeSpot(dt, pos);
     // Estar en un lugar seguro es la ÚNICA forma de quitarte de encima una
@@ -296,7 +298,8 @@ export class Game {
       }
     }
 
-    if (this.nearStation && holdingE && !holdingF) {
+    if (this.nearStation && holdingSpace && !this.player.isPretending) {
+      this.canvas?.focus?.();
       this.player.isDoingActivity = true;
       // La pose sale del JSON de la actividad (`pose`, ver scenes/*.json); si
       // el personaje no tiene hoja de acciones, sprite.js la ignora.
@@ -333,11 +336,12 @@ export class Game {
           Math.hypot(n.position.x - pos.x, n.position.z - pos.z) < INTERACT_RADIUS * 1.3
       ) ?? null;
 
-    if (holdingE && !this._prevInteractKey && this.nearNpc && !this.nearStation) {
+    if (holdingSpace && !this._prevInteractKey && this.nearNpc && !this.nearStation) {
+      this.canvas?.focus?.();
       const npc = this.nearNpc;
       this.talkCooldowns.set(npc.id ?? npc.cast, npc.talkCooldown ?? 40);
       this.onTalk?.(npc);
-    } else if (holdingE && !this._prevInteractKey && this.nearDistraction && !this.nearStation) {
+    } else if (holdingSpace && !this._prevInteractKey && this.nearDistraction && !this.nearStation) {
       const target = { x: this.nearDistraction.x, z: this.nearDistraction.z };
       if (this.boss.distract(target, DISTRACTION_EFFECT_DURATION)) {
         this.nearDistraction.cooldownLeft = this.nearDistraction.cooldown;
@@ -348,7 +352,7 @@ export class Game {
         this.toast("¡Ya te vio! Una distracción no lo detiene ahora.");
       }
     }
-    this._prevInteractKey = holdingE;
+    this._prevInteractKey = holdingSpace;
 
     // El jefe necesita saber cuánta sospecha hay YA para decidir si tantea
     // (fase lenta) o va con todo (fase rápida, ver boss.js/_speed()).

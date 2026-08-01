@@ -103,8 +103,7 @@ export function createTouchControls(player, root, { onZoom, onInspect, onPause }
     return btn;
   }
 
-  makeHoldButton("touch-btn-pretend", svgIcon("keyboard", { size: 26 }), "FINGIR", "f");
-  makeHoldButton("touch-btn-interact", svgIcon("hand", { size: 26 }), "USAR", "e");
+  makeHoldButton("touch-btn-interact", svgIcon("hand", { size: 26 }), "USAR / FINGIR", " ");
 
   // ---- Camera / map utilities, top-right so they never fight the thumbs ----
   const utils = document.createElement("div");
