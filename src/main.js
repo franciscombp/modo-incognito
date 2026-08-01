@@ -25,6 +25,7 @@ import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./g
 import { createPopups } from "./ui/popups.js";
 import { createAudioControl } from "./ui/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
+import { initCorporateUI } from "./ui/corporateUI.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 // Ver vite.config.js: sella los archivos de `public/`, que no llevan hash.
@@ -72,6 +73,9 @@ key.shadow.bias = -0.0018;
 scene.add(key);
 
 async function boot() {
+  // Initialize corporate UI (login screen and dashboard)
+  initCorporateUI();
+
   // ---- Content: everything the game is made of comes from public/data ----
   const data = await loadGameData();
   // Los cuerpos esculpidos van por su cuenta: pesan, y el juego tiene que
