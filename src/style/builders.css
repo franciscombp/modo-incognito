@@ -1,9 +1,8 @@
 /* =====================================================================
    BUILDERS UI FRAMEWORK · Modo Incógnito
 
-   Componentes comunes para todas las herramientas de creación (builders).
-   Reutiliza tokens del design-system pero crea una interfaz de desarrollo
-   coherente. Mantiene la paleta cozy incluso en herramientas "oscuras".
+   Interfaz profesional para herramientas de creación con estética 3D/cozy.
+   Tipografía statement, espaciado generoso, contenido como protagonista.
 
    Todas los builders importan:
    1. design-system.css (variables y base)
@@ -13,59 +12,71 @@
 
 /* ─────────────────────────────────────────────────────────────────
    AJUSTE DE VARIABLES PARA MODO BUILDER
-   Los builders usan una paleta más oscura pero dentro de la familia cozy
    ───────────────────────────────────────────────────────────────── */
 
 :root {
-  /* Override de paleta builder (más oscuro pero terracota, no cian) */
-  --builder-bg: #f5ede1;               /* Crema muy suave */
-  --builder-panel: #ede3d5;            /* Crema con más contraste */
-  --builder-panel-dark: #e5d9c9;       /* Crema más oscuro para paneles activos */
-  --builder-text: #3a3028;             /* Marrón oscuro (reutiliza ink) */
-  --builder-text-secondary: #7c6b58;   /* Marrón cálido medio (ink-soft) */
-  --builder-text-tertiary: #9a8d7c;    /* Marrón cálido apagado (dim) */
-  --builder-border: rgba(122, 107, 88, 0.25);  /* Borde marrón semitransparente */
-  --builder-accent: var(--accent-primary);    /* Terracota del design-system */
+  /* Paleta cozy profesional */
+  --builder-bg: #faf8f5;                 /* Blanco warmth */
+  --builder-panel: #f5ede1;              /* Crema suave (sidebars) */
+  --builder-panel-dark: #ede3d5;         /* Crema oscuro (hover) */
+  --builder-text: #3a3028;               /* Marrón oscuro */
+  --builder-text-secondary: #7c6b58;     /* Marrón cálido medio */
+  --builder-text-tertiary: #a8988a;      /* Marrón cálido apagado */
+  --builder-border: rgba(122, 107, 88, 0.15);  /* Borde muy sutil */
+  --builder-accent: var(--accent-primary);    /* Terracota */
+
+  /* Espaciado generoso */
+  --builder-gap-sm: 8px;
+  --builder-gap: 16px;
+  --builder-gap-lg: 24px;
+  --builder-gap-xl: 32px;
 }
 
 /* ─────────────────────────────────────────────────────────────────
    RESET GLOBAL BUILDERS
    ───────────────────────────────────────────────────────────────── */
 
-body.builder {
+body {
   background-color: var(--builder-bg);
   color: var(--builder-text);
   font-family: var(--sans);
-  font-size: 13px;
-  line-height: 1.5;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
 }
 
 /* ─────────────────────────────────────────────────────────────────
    BARRA SUPERIOR (HEADER)
-   Comun a todos los builders
+   Minimalista, con mucho aire
    ───────────────────────────────────────────────────────────────── */
 
 .bar {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 10px 14px;
+  gap: var(--builder-gap);
+  padding: 14px 20px;
   background: linear-gradient(
     180deg,
-    rgba(237, 227, 213, 0.98),
-    rgba(229, 217, 201, 0.96)
+    rgba(250, 248, 245, 0.99),
+    rgba(245, 237, 225, 0.98)
   );
   border-bottom: 1px solid var(--builder-border);
   position: sticky;
   top: 0;
   z-index: 50;
+  box-shadow: 0 1px 3px rgba(58, 48, 40, 0.05);
 }
 
 .bar h1 {
   margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.14em;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--builder-accent);
   flex: 0 1 auto;
@@ -74,11 +85,12 @@ body.builder {
 .bar h1 span {
   color: var(--builder-text-tertiary);
   font-weight: 400;
+  letter-spacing: 0.05em;
 }
 
 .bar-group {
   display: flex;
-  gap: 8px;
+  gap: var(--builder-gap-sm);
   align-items: center;
 }
 
@@ -88,7 +100,7 @@ body.builder {
 
 /* ─────────────────────────────────────────────────────────────────
    BOTONES Y CONTROLES
-   Unificados: todos usan los mismos estilos base
+   Simples pero prominentes
    ───────────────────────────────────────────────────────────────── */
 
 button,
@@ -96,12 +108,12 @@ button,
 .file {
   font: inherit;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 600;
   color: var(--builder-text);
-  background: var(--builder-panel);
+  background: white;
   border: 1px solid var(--builder-border);
-  padding: 6px 12px;
-  border-radius: 4px;
+  padding: 8px 14px;
+  border-radius: 5px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -109,9 +121,10 @@ button,
 button:hover,
 .btn:hover,
 .file:hover {
-  background: var(--builder-panel-dark);
+  background: var(--builder-panel);
   border-color: var(--builder-accent);
   color: var(--builder-accent);
+  box-shadow: 0 2px 6px rgba(194, 121, 90, 0.12);
 }
 
 button:active,
@@ -125,43 +138,46 @@ button:disabled,
   cursor: not-allowed;
 }
 
-/* Botón primario */
+/* Botón primario - muy prominente */
 button.primary,
 .btn.primary {
   background: var(--builder-accent);
   color: white;
   border-color: var(--builder-accent);
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(194, 121, 90, 0.2);
 }
 
 button.primary:hover,
 .btn.primary:hover {
   background: var(--accent-primary-hover);
   border-color: var(--accent-primary-hover);
+  box-shadow: 0 4px 12px rgba(194, 121, 90, 0.3);
+  transform: translateY(-1px);
 }
 
-/* Botón secundario */
+/* Botón secundario - minimalista */
 button.secondary,
 .btn.secondary {
   background: transparent;
   color: var(--builder-text-secondary);
-  border-color: var(--builder-border);
+  border-color: transparent;
 }
 
 button.secondary:hover,
 .btn.secondary:hover {
   background: var(--builder-panel);
-  color: var(--builder-text);
+  color: var(--builder-accent);
   border-color: var(--builder-accent);
 }
 
-/* Botón de peligro */
 button.danger {
   border-color: var(--state-error);
   color: var(--state-error);
 }
 
 button.danger:hover {
-  background: rgba(207, 90, 81, 0.1);
+  background: rgba(207, 90, 81, 0.08);
 }
 
 /* Input de archivo */
@@ -177,14 +193,18 @@ label.file {
 
 /* ─────────────────────────────────────────────────────────────────
    PANELES LATERALES (SIDEBARS)
+   Minimalistas, para asistir al contenido principal
    ───────────────────────────────────────────────────────────────── */
 
 .panel {
   background: var(--builder-panel);
   border: 1px solid var(--builder-border);
   overflow-y: auto;
-  padding: 12px;
-  font-size: 13px;
+  padding: var(--builder-gap-lg);
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--builder-gap);
 }
 
 .panel.left {
@@ -195,49 +215,66 @@ label.file {
   border-left: 1px solid var(--builder-border);
 }
 
+/* Tipografía de paneles - minimalista pero clara */
 .panel h2 {
-  margin: 12px 0 8px 0;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.1em;
+  margin: 0;
+  padding-top: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--builder-accent);
 }
 
+.panel h2:first-child {
+  padding-top: 0;
+}
+
 .panel h3 {
-  margin: 8px 0 4px 0;
+  margin: var(--builder-gap) 0 8px 0;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--builder-text);
+}
+
+.panel p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--builder-text-secondary);
+  line-height: 1.6;
 }
 
 /* ─────────────────────────────────────────────────────────────────
    TABS (PESTAÑAS)
-   Comun para navegación en paneles
+   Simples y elegantes
    ───────────────────────────────────────────────────────────────── */
 
 .tabs {
   display: flex;
   border-bottom: 1px solid var(--builder-border);
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: var(--builder-gap);
 }
 
 .tab {
   flex: 1;
-  padding: 8px 12px;
+  padding: 10px 0;
   border: none;
   border-bottom: 2px solid transparent;
   border-radius: 0;
   background: transparent;
   color: var(--builder-text-secondary);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   cursor: pointer;
   transition: all 0.2s ease;
+  text-transform: uppercase;
 }
 
 .tab:hover {
-  background: rgba(237, 227, 213, 0.5);
   color: var(--builder-text);
 }
 
@@ -256,44 +293,53 @@ label.file {
 
 /* ─────────────────────────────────────────────────────────────────
    AREA PRINCIPAL (STAGE/CANVAS)
+   El foco: mucho espacio y aire
    ───────────────────────────────────────────────────────────────── */
 
 .stage {
   position: relative;
-  background: var(--builder-bg);
+  background: linear-gradient(
+    135deg,
+    rgba(250, 248, 245, 0.5) 0%,
+    rgba(245, 237, 225, 0.3) 100%
+  );
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Canvas 2D */
+/* Canvas 2D/3D */
 canvas {
   display: block;
   width: 100%;
   height: 100%;
+  flex: 1;
 }
 
-/* HUD en canvas */
+/* HUD en canvas - muy sutil */
 .hud {
   position: absolute;
-  left: 10px;
-  bottom: 10px;
-  font-size: 11px;
+  left: 20px;
+  bottom: 20px;
+  font-size: 12px;
   color: var(--builder-text-tertiary);
   pointer-events: none;
-  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
 }
 
-/* Advertencia superpuesta */
+/* Advertencia superpuesta - statement */
 .warn {
   position: absolute;
-  right: 10px;
-  top: 10px;
-  max-width: 320px;
-  padding: 8px 10px;
-  font-size: 11px;
-  color: var(--state-error);
-  background: rgba(255, 240, 240, 0.95);
-  border: 1px solid var(--state-error);
-  border-radius: 4px;
+  right: 20px;
+  top: 20px;
+  max-width: 360px;
+  padding: 12px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: white;
+  background: var(--state-error);
+  border-radius: 5px;
+  box-shadow: 0 4px 12px rgba(207, 90, 81, 0.2);
 }
 
 .warn.hidden {
@@ -302,6 +348,7 @@ canvas {
 
 /* ─────────────────────────────────────────────────────────────────
    FORMULARIOS Y INPUTS
+   Claros y minimalistas
    ───────────────────────────────────────────────────────────────── */
 
 input[type="text"],
@@ -312,12 +359,12 @@ textarea,
 select {
   font: inherit;
   font-size: 13px;
-  padding: 6px 8px;
+  padding: 8px 10px;
   border: 1px solid var(--builder-border);
-  border-radius: 3px;
+  border-radius: 4px;
   background: white;
   color: var(--builder-text);
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 input[type="text"]:focus,
@@ -327,73 +374,79 @@ textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--builder-accent);
-  box-shadow: 0 0 0 2px rgba(194, 121, 90, 0.1);
+  box-shadow: 0 0 0 3px rgba(194, 121, 90, 0.1);
 }
 
 input[type="range"] {
   cursor: pointer;
+  height: 5px;
 }
 
 .field {
-  margin-bottom: 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: var(--builder-gap-sm);
 }
 
 .field label {
   display: block;
-  font-size: 11px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--builder-text-secondary);
-  margin-bottom: 3px;
 }
 
 .field.pair {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: var(--builder-gap-sm);
 }
 
 /* Checkboxes */
 .checks {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .checks label {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
+  gap: 10px;
+  font-size: 13px;
   color: var(--builder-text);
   cursor: pointer;
+  font-weight: 500;
 }
 
 .checks input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   cursor: pointer;
+  accent-color: var(--builder-accent);
 }
 
 /* ─────────────────────────────────────────────────────────────────
    NOTIFICACIONES (TOAST)
+   Prominentes pero no invasivas
    ───────────────────────────────────────────────────────────────── */
 
 .toast {
   position: fixed;
   left: 50%;
-  bottom: 22px;
+  bottom: 28px;
   transform: translateX(-50%);
-  padding: 10px 16px;
+  padding: 12px 18px;
   background: var(--builder-accent);
   color: white;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 500;
+  border-radius: 5px;
+  font-size: 13px;
+  font-weight: 600;
   z-index: 1000;
-  box-shadow: var(--shadow-md);
-  animation: toast-slide 0.3s ease-out;
+  box-shadow: 0 4px 16px rgba(194, 121, 90, 0.3);
+  animation: toast-slide 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .toast.hidden {
@@ -413,40 +466,42 @@ input[type="range"] {
 
 /* ─────────────────────────────────────────────────────────────────
    TEXTO DE AYUDA
+   Asistente, no competencia
    ───────────────────────────────────────────────────────────────── */
 
 .help {
   padding: 12px;
   font-size: 12px;
   color: var(--builder-text-secondary);
-  line-height: 1.6;
-  background: rgba(237, 227, 213, 0.5);
-  border-radius: 3px;
+  line-height: 1.7;
+  background: rgba(194, 121, 90, 0.05);
+  border-radius: 4px;
   border-left: 3px solid var(--builder-accent);
 }
 
 .help code {
-  background: rgba(122, 107, 88, 0.1);
+  background: rgba(58, 48, 40, 0.08);
   color: var(--builder-accent);
-  padding: 2px 4px;
+  padding: 2px 5px;
   border-radius: 2px;
   font-family: var(--mono);
+  font-size: 11px;
 }
 
 .help b {
   color: var(--builder-text);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .help dl {
-  margin: 8px 0;
+  margin: 10px 0;
 }
 
 .help dt {
   color: var(--builder-text);
-  margin-top: 6px;
-  margin-bottom: 2px;
-  font-weight: 600;
+  margin: 8px 0 3px 0;
+  font-weight: 700;
+  font-size: 12px;
 }
 
 .help dd {
@@ -456,20 +511,21 @@ input[type="range"] {
 }
 
 .help dd ul {
-  margin: 2px 0;
+  margin: 3px 0;
   padding-left: 20px;
   color: var(--builder-text-secondary);
 }
 
 .hint {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--builder-text-tertiary);
-  margin: -2px 0 8px 0;
+  margin: -4px 0 var(--builder-gap-sm) 0;
   line-height: 1.5;
+  font-style: italic;
 }
 
 /* ─────────────────────────────────────────────────────────────────
-   UTILIDADES
+   UTILIDADES Y LISTAS
    ───────────────────────────────────────────────────────────────── */
 
 .hidden {
@@ -479,29 +535,34 @@ input[type="range"] {
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 5px 0;
-  font-size: 11px;
+  gap: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: all 0.15s ease;
   border: 1px solid transparent;
-  border-radius: 2px;
+  border-radius: 4px;
+  color: var(--builder-text-secondary);
 }
 
 .row:hover {
-  background: var(--builder-panel-dark);
+  background: rgba(194, 121, 90, 0.08);
+  color: var(--builder-text);
 }
 
 .row.on {
   border-color: var(--builder-accent);
   color: var(--builder-accent);
-  background: rgba(194, 121, 90, 0.05);
+  background: rgba(194, 121, 90, 0.12);
+  font-weight: 600;
 }
 
 .row .tag {
   margin-left: auto;
-  font-size: 9px;
-  letter-spacing: 0.1em;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
   opacity: 0.6;
 }
 
@@ -518,26 +579,53 @@ input[type="range"] {
 main {
   display: grid;
   grid-template-columns: 280px 1fr 280px;
-  height: calc(100vh - 49px);
+  height: calc(100vh - 53px);
   gap: 0;
 }
 
-/* En pantallas pequeñas, ocultar paneles laterales */
+/* En pantallas pequeñas */
 @media (max-width: 1024px) {
   main {
     grid-template-columns: 1fr;
   }
+
   .panel {
     display: none;
   }
+
   .panel.left {
     display: block;
-    position: fixed;
+    position: absolute;
     left: 0;
-    top: 49px;
+    top: 53px;
     width: 100%;
-    height: calc(100vh - 49px);
+    height: calc(100vh - 53px);
     z-index: 200;
     overflow-y: auto;
+    border: none;
+    border-bottom: 1px solid var(--builder-border);
   }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   SCROLLBAR PERSONALIZADA
+   Subtle pero presente
+   ───────────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(122, 107, 88, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(122, 107, 88, 0.35);
 }
