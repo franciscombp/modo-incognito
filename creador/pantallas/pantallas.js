@@ -595,6 +595,70 @@ input[type="radio"] {
   font-size: 10px;
   opacity: 0.6;
 }`
+      },
+      {
+        label: 'Audio Control',
+        html: `<div style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: var(--glass); border: 1px solid var(--line); border-radius: 10px; backdrop-filter: blur(8px); width: fit-content;">
+          <button style="display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: none; background: transparent; cursor: pointer; transition: opacity 0.15s;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="color: var(--ink);">
+              <path d="M3 9v6M3 12h4l5-5v16l-5-5H3M20.5 7.5A9 9 0 0120.5 16.5M16 10a6 6 0 010 8"/>
+            </svg>
+          </button>
+          <input type="range" min="0" max="100" value="70" style="width: 120px; height: 4px; border-radius: 9999px; border: none; outline: none; cursor: pointer; appearance: none; background: linear-gradient(to right, hsl(var(--accent-main)) 0%, hsl(var(--accent-main)) 70%, hsl(var(--text-faint) / 0.3) 70%, hsl(var(--text-faint) / 0.3) 100%);">
+        </div>`,
+        css: `.audio-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--glass);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  backdrop-filter: blur(8px);
+}
+
+.audio-mute-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.audio-volume-slider {
+  width: 120px;
+  height: 4px;
+  cursor: pointer;
+}`
+      },
+      {
+        label: 'Status Badge',
+        html: `<div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <div style="padding: 6px 12px; background: hsl(120, 70%, 50%); color: white; border-radius: 20px; font-size: 12px; font-weight: 600;">Activo</div>
+          <div style="padding: 6px 12px; background: hsl(45, 90%, 50%); color: black; border-radius: 20px; font-size: 12px; font-weight: 600;">En espera</div>
+          <div style="padding: 6px 12px; background: hsl(0, 84%, 60%); color: white; border-radius: 20px; font-size: 12px; font-weight: 600;">Crítico</div>
+        </div>`,
+        css: `.status-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.active {
+  background: hsl(120, 70%, 50%);
+  color: white;
+}
+
+.status-badge.warning {
+  background: hsl(45, 90%, 50%);
+  color: black;
+}`
       }
     ]
   },
@@ -742,6 +806,80 @@ input[type="radio"] {
 .chat-message.npc .bubble {
   background: hsl(var(--bg-100));
   border: 1px solid hsl(var(--border-100));
+}`
+      }
+    ]
+  },
+
+  // ═══════════════════════════════════════════════════════════════
+  // INTERACTIVE SANDBOX
+  // ═══════════════════════════════════════════════════════════════
+
+  sandbox: {
+    category: 'Tools',
+    index: '14',
+    title: 'Interactive Sandbox',
+    items: [
+      {
+        label: 'Game HUD Layout',
+        html: `<div style="position: relative; width: 100%; aspect-ratio: 16/9; background: linear-gradient(135deg, hsl(var(--bg-000)) 0%, hsl(var(--bg-050)) 100%); border: 2px solid hsl(var(--border-100)); border-radius: 16px; overflow: hidden; display: flex; align-items: flex-end; justify-content: space-between; padding: 24px;">
+          <!-- Top-left: Time & Suspicion -->
+          <div style="position: absolute; top: 24px; left: 24px; display: flex; flex-direction: column; gap: 12px;">
+            <div style="background: hsl(var(--bg-100)); border: 1px solid hsl(var(--border-100)); border-radius: 12px; padding: 12px 16px; font-size: 12px; font-weight: 600; color: hsl(var(--accent-main));">TIEMPO: 23:45</div>
+            <div style="background: hsl(var(--bg-100)); border: 1px solid hsl(var(--border-100)); border-radius: 12px; padding: 12px 16px; width: 200px;">
+              <div style="font-size: 10px; color: hsl(var(--text-faint)); margin-bottom: 6px; text-transform: uppercase;">Sospecha</div>
+              <div style="width: 100%; height: 6px; background: hsl(var(--bg-050)); border-radius: 3px; overflow: hidden;">
+                <div style="width: 65%; height: 100%; background: linear-gradient(90deg, hsl(120, 70%, 50%), hsl(0, 84%, 60%));"></div>
+              </div>
+            </div>
+          </div>
+          <!-- Top-right: Audio Control -->
+          <div style="position: absolute; top: 24px; right: 24px; display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px); border: 1px solid hsl(var(--border-100)); border-radius: 10px;">
+            <button style="width: 32px; height: 32px; border: none; background: transparent; cursor: pointer;">🔊</button>
+            <input type="range" min="0" max="100" value="70" style="width: 100px; cursor: pointer;">
+          </div>
+          <!-- Bottom: Activity Selection -->
+          <div style="display: flex; gap: 12px; width: 100%; flex-wrap: wrap;">
+            <button style="flex: 1; min-width: 120px; padding: 12px; background: hsl(var(--accent-main)); color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer;">Café</button>
+            <button style="flex: 1; min-width: 120px; padding: 12px; background: hsl(var(--accent-main)); color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer;">Película</button>
+            <button style="flex: 1; min-width: 120px; padding: 12px; background: hsl(var(--accent-main)); color: white; border: none; border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer;">Comida</button>
+          </div>
+        </div>`,
+        css: `/* Game HUD Sandbox */
+.sandbox-game-hud {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: linear-gradient(135deg, hsl(var(--bg-000)) 0%, hsl(var(--bg-050)) 100%);
+  border: 2px solid hsl(var(--border-100));
+  border-radius: 16px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 24px;
+}`
+      },
+      {
+        label: 'Component Theme Tester',
+        html: `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+          <div style="padding: 20px; background: hsl(var(--bg-000)); border: 2px solid hsl(var(--border-100)); border-radius: 12px;">
+            <h4 style="margin-top: 0; color: hsl(var(--accent-main)); font-size: 12px; text-transform: uppercase; font-weight: 800; margin-bottom: 16px;">Light Mode</h4>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <button class="btn" style="width: 100%;">Primary Button</button>
+              <button class="btn secondary" style="width: 100%;">Secondary Button</button>
+              <div style="padding: 12px; background: hsl(var(--bg-100)); border: 1px solid hsl(var(--border-100)); border-radius: 8px; font-size: 13px;">Sample Card</div>
+            </div>
+          </div>
+          <div style="padding: 20px; background: hsl(var(--bg-000)); border: 2px solid hsl(var(--accent-main)); border-radius: 12px;">
+            <h4 style="margin-top: 0; color: hsl(var(--accent-main)); font-size: 12px; text-transform: uppercase; font-weight: 800; margin-bottom: 16px;">Dark Mode Preview</h4>
+            <p style="font-size: 12px; color: hsl(var(--text-200)); margin: 0;">Dark mode colors are automatically applied based on system preference using media queries.</p>
+          </div>
+        </div>`,
+        css: `.theme-tester {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
 }`
       }
     ]
