@@ -777,6 +777,61 @@ h4 {
   border-bottom-color: hsl(var(--accent-main));
 }
 
+.character-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-lg);
+  margin: var(--space-lg) 0;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: var(--space-sm);
+}
+
+.character-card {
+  position: relative;
+  border-radius: var(--radius-lg);
+  border: 2px solid hsl(var(--border-100));
+  background: hsl(var(--bg-100));
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  overflow: hidden;
+  aspect-ratio: 3/4;
+}
+
+.character-card:hover {
+  border-color: hsl(var(--accent-main));
+  box-shadow: var(--shadow-md);
+  transform: translateY(-4px);
+}
+
+.character-card.selected {
+  border-color: hsl(var(--accent-main));
+  background: hsl(var(--accent-main) / 0.08);
+  box-shadow: 0 0 0 3px hsl(var(--accent-main) / 0.2);
+}
+
+.character-card-image {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: var(--space-md);
+}
+
+.character-card-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: hsl(var(--text-000));
+  text-align: center;
+  background: rgba(255, 255, 255, 0.95);
+  padding: var(--space-sm) var(--space-md);
+  width: 100%;
+  backdrop-filter: blur(4px);
+}
+
 /* CORPORATE WRAPPER */
 .corporate-wrapper {
   position: fixed;

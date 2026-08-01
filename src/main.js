@@ -73,11 +73,23 @@ key.shadow.bias = -0.0018;
 scene.add(key);
 
 async function boot() {
-  // Initialize corporate UI (login screen and dashboard)
-  initCorporateUI();
-
   // ---- Content: everything the game is made of comes from public/data ----
   const data = await loadGameData();
+
+  // Initialize corporate UI with character selection
+  const corporateUI = initCorporateUI();
+  await corporateUI.loadCharacters(data);
+
+  // Wait for character selection (when dashboard becomes visible)
+  await new Promise(resolve => {
+    const checkInterval = setInterval(() => {
+      if (!document.getElementById("login-screen").style.display || document.getElementById("login-screen").style.display === "none") {
+        clearInterval(checkInterval);
+        // Give it a moment for the transition
+        setTimeout(resolve, 500);
+      }
+    }, 100);
+  });
   // Los cuerpos esculpidos van por su cuenta: pesan, y el juego tiene que
   // poder arrancar mientras llegan. Ver `preloadBaseModels`.
   const baseModelsReady = preloadBaseModels(data.looks);
