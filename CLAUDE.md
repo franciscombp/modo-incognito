@@ -354,6 +354,21 @@ en una captura.
   DOM en cada frame porque todos cambian de tamaño con la pantalla; reservar
   una banda fija solo acierta en un tamaño. `npm run check:layout` es lo que
   lo vigila.
+- **NINGÚN icono es un emoji.** Un emoji lo dibuja la fuente del sistema: el
+  mismo ☕ es una taza blanca en un iPhone, marrón en Android, plana en
+  Windows, y en algunas plataformas sale un cuadro vacío. Desde el juego eso
+  no se controla, así que TODO icono sale de `src/ui/icons.js` — SVG de trazo
+  de 24×24 con `currentColor`, que hereda el color de donde caiga. Los rótulos
+  del piso son textura de canvas y no admiten un `<svg>`, así que usan
+  `iconImage()`, la misma fuente pasada por imagen. Los datos piden iconos
+  POR NOMBRE (`"icon": "coffee"`), nunca por carácter.
+  Ojo con una trampa que ya costó un rato: un SVG inline puede omitir `xmlns`,
+  pero servido como imagen suelta sin él **no carga y no avisa** — se queda el
+  hueco y ya. Lo vigila `npm run check:no-emoji`, que además comprueba que los
+  iconos que pide el contenido existan de verdad.
+  Lo que SÍ se permite: emojis dentro del texto que escribe un personaje (que
+  Gabo ponga 💅 en un Teams es el chiste, y ahí da igual cómo lo pinte cada
+  sistema). Lo que no puede llevarlos es la interfaz.
 - **Nadie se representa con un emoji ni con un pliego.** Quien habla en un
   diálogo y quien sale en la pantalla de selección son SIEMPRE su muñeco 3D
   (importado o procedural). `looks.get()` nunca devuelve vacío: el que no

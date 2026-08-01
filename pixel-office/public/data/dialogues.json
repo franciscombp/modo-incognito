@@ -23,7 +23,6 @@
   "cast": {
     "manu": {
       "name": "Manu de la suerte",
-      "portrait": "🍀",
       "color": "#a8e05f",
       "sheet": "npc-camina",
       "blurb": "Amigo tuyo. Siempre le toca el parqueadero cubierto y nunca le auditan nada. Fue idea suya lo de \"llevar un registro\" de la resistencia — nadie sabe hasta dónde llegó esa idea.",
@@ -31,7 +30,6 @@
     },
     "cesar": {
       "name": "César",
-      "portrait": "😤",
       "color": "#ff6b81",
       "sheet": "npc-camina",
       "blurb": "Amigo tuyo, el más malcriadito de la tribu. Se queja en tiempo real — y hay quien dice que de tanto quejarse un día simplemente decidió construir algo en vez de seguir aguantando.",
@@ -39,7 +37,6 @@
     },
     "enriquetta": {
       "name": "Enriquetta",
-      "portrait": "💘",
       "color": "#ff9ad5",
       "sheet": "npc-camina",
       "blurb": "Amiga tuya. Chapter del amor: vive por y para el chisme romántico de la tribu.",
@@ -48,13 +45,11 @@
     "jefe": {
       "name": "Gabo",
       "alias": "Barbie Malibú",
-      "portrait": "🕴️",
       "color": "#e6483f",
       "sheet": "gabo-camina"
     },
     "chispita": {
       "name": "Chispita",
-      "portrait": "⚡",
       "color": "#f2c744",
       "sheet": "npc-camina",
       "friend": false,
@@ -62,7 +57,6 @@
     },
     "washo": {
       "name": "Washo",
-      "portrait": "🧽",
       "color": "#45e0d0",
       "sheet": "npc-camina",
       "friend": false,
@@ -70,7 +64,6 @@
     },
     "crispo": {
       "name": "Crispo",
-      "portrait": "🥨",
       "color": "#c08457",
       "sheet": "crispo-camina",
       "friend": false,
@@ -78,7 +71,6 @@
     },
     "giuli": {
       "name": "Giuli",
-      "portrait": "🧑‍🎨",
       "color": "#ffcf7a",
       "sheet": "guili-camina",
       "friend": true,
@@ -86,7 +78,6 @@
     },
     "fran_npc": {
       "name": "Fran",
-      "portrait": "🕵️‍♂️",
       "color": "#a8e05f",
       "sheet": "npc-camina",
       "friend": true,
@@ -94,13 +85,11 @@
     },
     "steven_el_daddy": {
       "name": "Steven el Daddy",
-      "portrait": "📞",
       "color": "#ff6b9d",
       "blurb": "Narrador. Habla desde el call center, guiándote a través del día."
     },
     "parce": {
       "name": "El Parce",
-      "portrait": "🥃",
       "color": "#e0a03c",
       "sheet": "npc-camina",
       "friend": true,
@@ -114,38 +103,32 @@
         [
           {
             "speaker": "Gabo",
-            "portrait": "🕴️",
             "mood": "angry",
             "text": "¡Te vi! No sé qué estabas haciendo, pero lo que sea que fuera, ya no lo hagas."
           },
           {
             "speaker": "Gabo",
-            "portrait": "🕴️",
             "text": "Quedas advertida. Voy a mirar para otro lado un momento, a ver si aprendes."
           },
           {
             "speaker": "Tú",
-            "portrait": "😅",
             "text": "Fue sin querer queriendo."
           }
         ],
         [
           {
             "speaker": "Gabo",
-            "portrait": "🕴️",
             "mood": "angry",
             "text": "Segunda vez. Empiezo a pensar que esto no es casualidad."
           },
           {
             "speaker": "Tú",
-            "portrait": "😬",
             "text": "Definitivamente no lo es."
           }
         ],
         [
           {
             "speaker": "Gabo",
-            "portrait": "🕴️",
             "mood": "angry",
             "text": "A este paso te voy a tener que ascender a cliente. Y créeme, ese ascenso no lo quieres."
           }
@@ -158,12 +141,10 @@
         [
           {
             "speaker": "Manu de la suerte",
-            "portrait": "🍀",
             "text": "¿Sabías que llevo cuatro años sin que me toque una guardia de fin de mes? Cuatro."
           },
           {
             "prompt": "Te ofrece «un poquito de su suerte».",
-            "portrait": "🍀",
             "options": [
               {
                 "label": "«Dame de esa suerte.»",
@@ -172,7 +153,6 @@
                 "then": [
                   {
                     "speaker": "Manu de la suerte",
-                    "portrait": "🍀",
                     "text": "Listo. El jefe acaba de irse al otro lado del piso. De nada."
                   }
                 ]
@@ -183,7 +163,6 @@
                 "then": [
                   {
                     "speaker": "Manu de la suerte",
-                    "portrait": "🍀",
                     "text": "Dice la que lleva veinte minutos sin trabajar y nadie se ha dado cuenta."
                   }
                 ]
@@ -194,7 +173,6 @@
         [
           {
             "speaker": "Manu de la suerte",
-            "portrait": "🍀",
             "text": "Ojo: hoy el jefe está raro. Yo que tú me quedaría cerca de las plantas.",
             "effect": "reveal-boss"
           }
@@ -202,21 +180,18 @@
         [
           {
             "speaker": "Manu de la suerte",
-            "portrait": "🍀",
             "text": "Me gané el sorteo del almuerzo otra vez. Ya me da vergüenza. Un poquito."
           }
         ],
         [
           {
             "speaker": "Manu de la suerte",
-            "portrait": "🍀",
             "text": "Mi secreto no es la suerte, es que nunca miro nervioso. Camina como si el pasillo fuera tuyo."
           }
         ],
         [
           {
             "speaker": "Manu de la suerte",
-            "portrait": "🍀",
             "text": "«No contaban con mi astucia» — Chapulín Colorado, y yo cada vez que esquivo una reunión de las 8am."
           }
         ]
@@ -228,13 +203,11 @@
         [
           {
             "speaker": "César",
-            "portrait": "😤",
             "mood": "tense",
             "text": "¿Tú también viste que movieron mi silla? MI silla. La que tiene el apoyabrazos bueno."
           },
           {
             "prompt": "Está a un comentario de gritar.",
-            "portrait": "😤",
             "options": [
               {
                 "label": "«Qué injusticia, César.»",
@@ -243,12 +216,10 @@
                 "then": [
                   {
                     "speaker": "César",
-                    "portrait": "😤",
                     "text": "¡EXACTO! Voy a escribir un correo. Con copia a todos. AHORA."
                   },
                   {
                     "speaker": "Tú",
-                    "portrait": "😏",
                     "text": "Perfecto. Eso lo tiene ocupado media hora y a mí me deja libre."
                   }
                 ]
@@ -260,7 +231,6 @@
                 "then": [
                   {
                     "speaker": "César",
-                    "portrait": "😤",
                     "mood": "angry",
                     "text": "¿SOLO UNA SILLA? ¡JEFE! ¡JEFE, VEN A ESCUCHAR ESTO!"
                   }
@@ -272,7 +242,6 @@
         [
           {
             "speaker": "César",
-            "portrait": "😤",
             "mood": "tense",
             "text": "El aire acondicionado está a 21. VEINTIUNO. Esto es un ataque personal."
           }
@@ -280,14 +249,12 @@
         [
           {
             "speaker": "César",
-            "portrait": "😤",
             "text": "Llevo tres sprints pidiendo un monitor curvo. Tres. Nadie me quiere en esta tribu."
           }
         ],
         [
           {
             "speaker": "César",
-            "portrait": "😤",
             "mood": "tense",
             "text": "¿Viste que en la cafetería ya no hay las galletas buenas? Voy a escalarlo. A quien sea. Hoy mismo."
           }
@@ -295,7 +262,6 @@
         [
           {
             "speaker": "César",
-            "portrait": "😤",
             "mood": "angry",
             "text": "«Vamo a calmarno» me dijo el de Talento Humano. A MÍ. El que menos calmado está en este edificio soy yo, con toda razón."
           }
@@ -308,12 +274,10 @@
         [
           {
             "speaker": "Enriquetta",
-            "portrait": "💘",
             "text": "Amor, ven, ven. ¿Ya supiste lo de Contact Center con el de Portales? Porque yo sí, y es PRECIOSO."
           },
           {
             "prompt": "Te tiene agarrada del brazo. Esto va a durar.",
-            "portrait": "💘",
             "options": [
               {
                 "label": "«Cuéntamelo TODO.»",
@@ -322,12 +286,10 @@
                 "then": [
                   {
                     "speaker": "Enriquetta",
-                    "portrait": "💘",
                     "text": "Se mandan reuniones de 15 minutos sin agenda. QUINCE MINUTOS. SIN AGENDA. Eso es amor del bueno."
                   },
                   {
                     "speaker": "Tú",
-                    "portrait": "😮",
                     "text": "En esta empresa, quince minutos sin agenda es prácticamente una pedida de mano."
                   }
                 ]
@@ -339,7 +301,6 @@
                 "then": [
                   {
                     "speaker": "Enriquetta",
-                    "portrait": "💘",
                     "text": "Tranquila, corazón, yo lo distraigo. Le pregunto por su boda. Se le ilumina la cara, tarda cuarenta minutos."
                   }
                 ]
@@ -350,28 +311,24 @@
         [
           {
             "speaker": "Enriquetta",
-            "portrait": "💘",
             "text": "El chapter del amor tiene un tablero Kanban. En «en progreso» hay cuatro corazones latiendo a la vez."
           }
         ],
         [
           {
             "speaker": "Enriquetta",
-            "portrait": "💘",
             "text": "A ti te vi hablando mucho con la cafetera. No juzgo, mi amor. Documento con cariño."
           }
         ],
         [
           {
             "speaker": "Enriquetta",
-            "portrait": "💘",
             "text": "Se rumora que Sistemas y Nómina se mandan mensajes con emoji de anillo. YO LO SÉ TODO, mi amor."
           }
         ],
         [
           {
             "speaker": "Enriquetta",
-            "portrait": "💘",
             "text": "«Las mujeres ya no lloran, facturan», mi amor. Yo ya llevo tres horas facturando chisme del bueno."
           }
         ]
@@ -383,13 +340,11 @@
         [
           {
             "speaker": "Chispita",
-            "portrait": "⚡",
             "mood": "tense",
             "text": "¡Ey, ey, ey! ¿Tú no deberías estar en tu puesto ahora mismo?"
           },
           {
             "prompt": "Te tiene fichada. Y le encanta correr a contarlo.",
-            "portrait": "⚡",
             "options": [
               {
                 "label": "«Voy de camino, justo iba.»",
@@ -398,7 +353,6 @@
                 "then": [
                   {
                     "speaker": "Chispita",
-                    "portrait": "⚡",
                     "text": "Bueno. Te acompaño. Es que voy para allá igual. Casualidad."
                   }
                 ]
@@ -410,7 +364,6 @@
                 "then": [
                   {
                     "speaker": "Chispita",
-                    "portrait": "⚡",
                     "mood": "angry",
                     "text": "¡YO ESTOY TRABAJANDO! ¡JEFE! ¡JEFE, ESCUCHE LO QUE ME DIJO!"
                   }
@@ -422,21 +375,18 @@
         [
           {
             "speaker": "Chispita",
-            "portrait": "⚡",
             "text": "Hoy he dado catorce mil pasos. Catorce mil. Y no he hecho ni una tarea."
           }
         ],
         [
           {
             "speaker": "Chispita",
-            "portrait": "⚡",
             "text": "¿Sabes qué es lo peor? Que me pagan lo mismo que a ti. Y yo sí hago cardio."
           }
         ],
         [
           {
             "speaker": "Chispita",
-            "portrait": "⚡",
             "text": "Ya tú sabe. Corro por este piso como si fuera el Rigo ese del meme, subiéndome al carro antes de que Gabo me vea llorar."
           }
         ]
@@ -448,12 +398,10 @@
         [
           {
             "speaker": "Washo",
-            "portrait": "🧽",
             "text": "Desde aquí se ve todo el ala. Todo. Incluida la cafetera."
           },
           {
             "prompt": "No parpadea. Es incómodo.",
-            "portrait": "🧽",
             "options": [
               {
                 "label": "«¿Y qué has visto hoy?»",
@@ -462,7 +410,6 @@
                 "then": [
                   {
                     "speaker": "Washo",
-                    "portrait": "🧽",
                     "text": "Al jefe. Está por allá. Te lo digo por informar, no por ayudarte. Yo no ayudo."
                   }
                 ]
@@ -477,21 +424,18 @@
         [
           {
             "speaker": "Washo",
-            "portrait": "🧽",
             "text": "Yo no acuso a nadie. Yo documento. Es distinto. Legalmente es muy distinto."
           }
         ],
         [
           {
             "speaker": "Washo",
-            "portrait": "🧽",
             "text": "No parpadeo porque si parpadeo te pierdo. Y si te pierdo, ¿para qué existo?"
           }
         ],
         [
           {
             "speaker": "Washo",
-            "portrait": "🧽",
             "text": "«No era penal», dijiste cuando te vi con la cámara apagada en la reunión. Yo tengo el clip. Siempre tengo el clip."
           }
         ]
@@ -503,12 +447,10 @@
         [
           {
             "speaker": "Crispo",
-            "portrait": "🥨",
             "text": "Esa silla lleva veintidós minutos vacía. La tuya, digo."
           },
           {
             "prompt": "No se ha movido del sitio en todo el día.",
-            "portrait": "🥨",
             "options": [
               {
                 "label": "«Estaba en una reunión.»",
@@ -517,7 +459,6 @@
                 "then": [
                   {
                     "speaker": "Crispo",
-                    "portrait": "🥨",
                     "text": "Mmm. No aparece en el calendario. Pero bueno. Lo anoto como reunión."
                   }
                 ]
@@ -529,7 +470,6 @@
                 "then": [
                   {
                     "speaker": "Crispo",
-                    "portrait": "🥨",
                     "mood": "angry",
                     "text": "Yo VIGILO. Vigilar es un puesto. Y ahora te vigilo a ti específicamente."
                   }
@@ -541,21 +481,18 @@
         [
           {
             "speaker": "Crispo",
-            "portrait": "🥨",
             "text": "Llevo la cuenta de todo el mundo. En papel. El papel no se cae como el sistema."
           }
         ],
         [
           {
             "speaker": "Crispo",
-            "portrait": "🥨",
             "text": "No hace falta correr. Si esperas lo suficiente, todo el mundo pasa por aquí."
           }
         ],
         [
           {
             "speaker": "Crispo",
-            "portrait": "🥨",
             "text": "Fue sin querer queriendo, dijiste la última vez que te vi lejos del puesto. Yo también anoté eso sin querer queriendo."
           }
         ]
@@ -567,12 +504,10 @@
         [
           {
             "speaker": "Giuli",
-            "portrait": "🧑‍🎨",
             "text": "Llevo dos horas con esta pose de «estoy pensando en el layout». Es mentira. Estoy pensando en el almuerzo."
           },
           {
             "prompt": "Te invita a fingir junto a ella un rato.",
-            "portrait": "🧑‍🎨",
             "options": [
               {
                 "label": "«Me apunto.»",
@@ -581,7 +516,6 @@
                 "then": [
                   {
                     "speaker": "Giuli",
-                    "portrait": "🧑‍🎨",
                     "text": "Perfecto. Eso sí, el reloj no perdona: fingir bien hace que el día vuele.",
                     "effect": "time+"
                   }
@@ -597,21 +531,18 @@
         [
           {
             "speaker": "Giuli",
-            "portrait": "🧑‍🎨",
             "text": "Dato curioso: si finges lo suficientemente bien, hasta el reloj de la oficina te cree."
           }
         ],
         [
           {
             "speaker": "Giuli",
-            "portrait": "🧑‍🎨",
             "text": "Mi rider de Figma dice «en revisión» desde el martes pasado. Es arte conceptual, en realidad."
           }
         ],
         [
           {
             "speaker": "Giuli",
-            "portrait": "🧑‍🎨",
             "text": "Estoy en modo Shakira: aunque me pregunten qué hago, la cadera —digo, el mouse— no miente. Sigue moviéndose. Nada más."
           }
         ]
@@ -623,12 +554,10 @@
         [
           {
             "speaker": "Fran",
-            "portrait": "🕵️‍♂️",
             "text": "Dora la criticona reporta: hoy el jefe amaneció de mal humor. Camina distinto."
           },
           {
             "prompt": "Te ofrece hablar un rato para que se te baje la sospecha.",
-            "portrait": "🕵️‍♂️",
             "options": [
               {
                 "label": "«Cuéntame más.»",
@@ -637,7 +566,6 @@
                 "then": [
                   {
                     "speaker": "Fran",
-                    "portrait": "🕵️‍♂️",
                     "text": "Ojo: si no hay sospecha rondando, puede que esté yo mismo ocupando algún objetivo. Ten paciencia."
                   }
                 ]
@@ -652,21 +580,18 @@
         [
           {
             "speaker": "Fran",
-            "portrait": "🕵️‍♂️",
             "text": "Con antigüedad uno aprende: nunca corras delante del jefe. Camina rápido, eso sí."
           }
         ],
         [
           {
             "speaker": "Fran",
-            "portrait": "🕵️‍♂️",
             "text": "Dora la criticona también critica: esa reunión pudo ser un correo. Todas pudieron ser un correo."
           }
         ],
         [
           {
             "speaker": "Fran",
-            "portrait": "🕵️‍♂️",
             "text": "Estoy compilando algo. No preguntes qué. «No contaban con mi astucia» aplica también a los sprints."
           }
         ]
@@ -678,12 +603,10 @@
         [
           {
             "speaker": "El Parce",
-            "portrait": "🥃",
             "text": "Ey, parcera, venga le cuento un secreto: tengo una petaca de Amarillo en el cajón. «El amarillo que nos unió», que dicen."
           },
           {
             "prompt": "Te la ofrece, tapa ya destornillada.",
-            "portrait": "🥃",
             "options": [
               {
                 "label": "«Un traguito no hace daño.»",
@@ -692,12 +615,10 @@
                 "then": [
                   {
                     "speaker": "El Parce",
-                    "portrait": "🥃",
                     "text": "¡Eso es! Al seco. Ahora sonría normal, que si el jefe la ve así de contenta sospecha."
                   },
                   {
                     "speaker": "Tú",
-                    "portrait": "😵‍💫",
                     "text": "Uf. Esto quema más que la reunión de las tres."
                   }
                 ]
@@ -709,7 +630,6 @@
                 "then": [
                   {
                     "speaker": "El Parce",
-                    "portrait": "🥃",
                     "text": "Sabia decisión. La guardo pa' la hora del cierre. Esa sí es sagrada."
                   }
                 ]
@@ -720,14 +640,12 @@
         [
           {
             "speaker": "El Parce",
-            "portrait": "🥃",
             "text": "En mi pueblo dicen que el Amarillo no emborracha, «solo desinhibe». Yo lo tengo comprobado once veces."
           }
         ],
         [
           {
             "speaker": "El Parce",
-            "portrait": "🥃",
             "mood": "tense",
             "text": "Shhh. Baje la voz que ayer casi me pilla el jefe con la petaca. Por poco la bautizo con aguardiente a él."
           }
@@ -735,14 +653,12 @@
         [
           {
             "speaker": "El Parce",
-            "portrait": "🥃",
             "text": "Un consejo de parcero: nunca mezcle Amarillo con café de la cafetería. Ya sé por qué lo digo."
           }
         ],
         [
           {
             "speaker": "El Parce",
-            "portrait": "🥃",
             "text": "Ala parce, ¿vio el partido? No, mentiras, aquí no se ve nada. Yo solo vengo a ofrecerle un traguito y a decir «vamo a calmarno» cuando el jefe pasa."
           }
         ]

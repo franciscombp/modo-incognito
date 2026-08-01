@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { WORLD_SCALE as S } from "../scene/config.js";
+import { icon as svgIcon, hasIcon } from "./icons.js";
 
 // Un rastreador = una tarjeta abajo + un marcador que sigue a su objetivo.
 //
@@ -100,7 +101,7 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
     layer.classList.add("visible");
 
     topEl.textContent = target.top ?? "";
-    iconEl.textContent = target.icon ?? "•";
+    iconEl.innerHTML = svgIcon(hasIcon(target.icon) ? target.icon : "diamond", { size: 16 });
     labelEl.textContent = target.label ?? "";
     metaEl.textContent = target.meta ?? "";
 

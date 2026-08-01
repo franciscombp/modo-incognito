@@ -51,7 +51,6 @@
       "scene": [
         {
           "speaker": "???",
-          "portrait": "🎮",
           "text": "Has despertado el modo leyenda. El jefe no sabrá por qué hoy caminas tan segura."
         }
       ]
@@ -69,7 +68,6 @@
       "scene": [
         {
           "speaker": "Sistema",
-          "portrait": "💸",
           "text": "Consulta de nómina denegada. Vuelva a intentarlo el día 30, como todos."
         }
       ]
@@ -90,42 +88,35 @@
       "scene": [
         {
           "speaker": "Giuli",
-          "portrait": "🧑‍🎨",
           "sheet": "guili-camina",
           "text": "Shhh, ven. ¿Ya te diste cuenta? \"Fingir que trabajas\" no es fingir. Es la coartada."
         },
         {
           "speaker": "Giuli",
-          "portrait": "🧑‍🎨",
           "sheet": "guili-camina",
           "text": "Creen que diseñamos flujos. En realidad, cada vez que finges, alguien de la Célula está programando el juego que estás jugando ahora mismo."
         },
         {
           "speaker": "Tú",
-          "portrait": "😳",
           "text": "¿O sea que Modo Incógnito es literal? ¿Es el nombre en clave Y el juego de verdad?"
         },
         {
           "speaker": "Giuli",
-          "portrait": "🧑‍🎨",
           "sheet": "guili-camina",
           "text": "Los dos. Así mantenemos viva la creatividad en un lugar que preferiría que no la tuviéramos. No se lo digas a Gabo."
         },
         {
           "speaker": "Giuli",
-          "portrait": "🧑‍🎨",
           "sheet": "guili-camina",
           "text": "La idea fue de César y Manu, un día que César se quejó tan fuerte que a alguien se le ocurrió construir algo en vez de seguir aguantando. Fran es quien lo está programando de verdad."
         },
         {
           "speaker": "Giuli",
-          "portrait": "🧑‍🎨",
           "sheet": "guili-camina",
           "text": "Con ayuda, eso sí. Fran no programa solo — programa con Claude Code al lado, fingiendo que es una reunión de arquitectura."
         },
         {
           "speaker": "Tú",
-          "portrait": "😏",
           "text": "Así que hasta la IA está fingiendo que trabaja aquí."
         }
       ]

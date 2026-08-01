@@ -2,6 +2,7 @@ import { SETTINGS_SCHEMA, getSettings, setSettings, subscribeSettings, buzz } fr
 import { sfxMove, sfxSelect, sfxBack, sfxOpen } from "../game/sfx.js";
 import { createCameraPanel } from "./cameraPanel.js";
 import { characterShot } from "./charshot.js";
+import { icon as svgIcon } from "./icons.js";
 
 // Every full-screen menu the game has: title, day select, settings (game +
 // camera), how-to-play and pause. They all live in one overlay that swaps
@@ -24,7 +25,12 @@ function el(tag, className, parent, text) {
 function button(parent, label, { primary = false, icon = "", onClick, back = false } = {}) {
   const btn = el("button", `px-btn${primary ? " px-btn-primary" : ""}`, parent);
   btn.type = "button";
-  if (icon) el("span", "px-btn-icon", btn, icon);
+  // Icono DIBUJADO, no un carácter: un emoji lo pinta la fuente del sistema y
+  // cambia de forma y color en cada plataforma. Ver ui/icons.js.
+  if (icon) {
+    const slot = el("span", "px-btn-icon", btn);
+    slot.innerHTML = svgIcon(icon);
+  }
   el("span", null, btn, label);
   btn.addEventListener("click", () => {
     buzz(10);
@@ -79,26 +85,26 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   const titleMenu = el("div", "px-menu-list", titleScreen);
   const continueBtn = button(titleMenu, "Continuar", {
     primary: true,
-    icon: "▶",
+    icon: "play",
     onClick: () => actions.play(save.dayIndex),
   });
   button(titleMenu, "Nueva semana", {
-    icon: "✦",
+    icon: "star",
     onClick: () => {
       save.setDayIndex(0);
       actions.play(0);
     },
   });
-  button(titleMenu, "Elegir día", { icon: "▦", onClick: () => show("days") });
+  button(titleMenu, "Elegir día", { icon: "grid", onClick: () => show("days") });
   button(titleMenu, "Personaje", {
-    icon: "🕵️",
+    icon: "incognito",
     onClick: () => {
       renderCharacters();
       show("characters");
     },
   });
-  button(titleMenu, "Ajustes", { icon: "⚙", onClick: () => show("settings") });
-  button(titleMenu, "Cómo se juega", { icon: "?", onClick: () => show("help") });
+  button(titleMenu, "Ajustes", { icon: "gear", onClick: () => show("settings") });
+  button(titleMenu, "Cómo se juega", { icon: "help", onClick: () => show("help") });
   const charBadge = el("div", "px-title-char", titleScreen);
   const titleFoot = el("div", "px-title-foot", titleScreen);
 
@@ -305,7 +311,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
       <li><b>Tu puesto</b> — nunca se gasta ni se ocupa, pero solo te cubre mientras finges.</li>
       <li><b>Esconderse</b> — pisa un círculo verde: dejas de ser visible.</li>
       <li><b>Distracciones</b> — las estrellas amarillas se llevan al jefe a otro sitio.</li>
-      <li><b>Inspeccionar el plano</b> — <kbd>M</kbd> · botón 🗺️</li>
+      <li><b>Inspeccionar el plano</b> — <kbd>M</kbd> · botón MAPA</li>
       <li><b>Pausa</b> — <kbd>Esc</kbd></li>
       <li><b>Orbitar la cámara</b> — botón derecho o dos dedos</li>
     </ul>
@@ -322,10 +328,10 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   el("h2", "px-screen-title-text", pauseScreen, "Pausa");
   const pauseInfo = el("p", "px-pause-info", pauseScreen);
   const pauseMenu = el("div", "px-menu-list", pauseScreen);
-  button(pauseMenu, "Continuar", { primary: true, icon: "▶", onClick: () => actions.resume() });
-  button(pauseMenu, "Reiniciar día", { icon: "↺", onClick: () => actions.restart() });
-  button(pauseMenu, "Ajustes", { icon: "⚙", onClick: () => show("settings") });
-  button(pauseMenu, "Menú principal", { icon: "⌂", onClick: () => actions.toTitle() });
+  button(pauseMenu, "Continuar", { primary: true, icon: "play", onClick: () => actions.resume() });
+  button(pauseMenu, "Reiniciar día", { icon: "back", onClick: () => actions.restart() });
+  button(pauseMenu, "Ajustes", { icon: "gear", onClick: () => show("settings") });
+  button(pauseMenu, "Menú principal", { icon: "grid", onClick: () => actions.toTitle() });
 
   // ---------------- Plumbing ----------------
   function show(name) {

@@ -38,29 +38,25 @@
       },
       {
         "speaker": "Tú",
-        "portrait": "🙂",
         "text": "Nadie pone esto en la oferta de trabajo. «Se valorará experiencia esquivando busetas.»"
       }
     ],
     "onFail": {
-      "icon": "🚑",
+      "icon": "door",
       "title": "Te ascendieron a cliente",
       "body": "Nunca llegaste a cruzar la avenida.",
       "dialogue": [
         {
           "speaker": "Tú",
-          "portrait": "😰",
           "text": "Jefe... me atropellaron cruzando la Amazonas. No voy a poder entrar."
         },
         {
           "speaker": "Gabo",
-          "portrait": "🕴️",
           "mood": "angry",
           "text": "¿Perdón? Eso se avisa CON TIEMPO. No se improvisa un atropello."
         },
         {
           "speaker": "Gabo",
-          "portrait": "🕴️",
           "mood": "angry",
           "text": "Quedas ascendida a cliente. Con efecto inmediato."
         }
@@ -76,28 +72,23 @@
     },
     {
       "speaker": "Recepción",
-      "portrait": "🛗",
       "text": "Piso 10. Ala sur. Del muro para allá no pase: llevan dos años «remodelando» el ala norte."
     },
     {
       "speaker": "Tú",
-      "portrait": "🙂",
       "text": "Primer día. Plan: parecer ocupada, lograr absolutamente nada."
     },
     {
       "speaker": "Tú",
-      "portrait": "🤫",
       "text": "Bueno, casi nada. Diseñadora de banco de día. Lo demás… mejor lo hablamos bajito."
     },
     {
       "speaker": "Gabo",
-      "portrait": "🕴️",
       "mood": "tense",
       "text": "¡Bienvenida! Yo soy quien camina por aquí todo el día. Casualidad, ¿no?"
     },
     {
       "prompt": "Te pregunta qué vas a hacer primero.",
-      "portrait": "🕴️",
       "options": [
         {
           "label": "«Revisar el backlog, obvio.»",
@@ -113,32 +104,26 @@
     },
     {
       "speaker": "Gabo",
-      "portrait": "🕴️",
       "text": "Perfecto. Te estaré observando… de forma completamente normal. Desde cerquita. Como una familia."
     },
     {
       "speaker": "Tú",
-      "portrait": "😐",
       "text": "¿Va a estar así todo el día?"
     },
     {
       "speaker": "Gabo",
-      "portrait": "🕴️",
       "text": "Yo no superviso, yo acompaño. Ah, y esa de ahí es Crispo. No te preocupes por ella. Bueno, un poco sí."
     },
     {
       "speaker": "Crispo",
-      "portrait": "🥨",
       "text": "..."
     },
     {
       "speaker": "Tú",
-      "portrait": "😐",
       "text": "¿Es... amigable?"
     },
     {
       "speaker": "Gabo",
-      "portrait": "🕴️",
       "text": "Define amigable. Crispo es nuestro sistema de vigilancia con forma de persona. Apenas se mueve, pero lo ve absolutamente todo."
     },
     {
@@ -148,31 +133,26 @@
     },
     {
       "speaker": "Tú",
-      "portrait": "🙂",
       "text": "Día uno y ya tengo público. Vamo a calmarno."
     }
   ],
   "outroWin": [
     {
       "speaker": "Tú",
-      "portrait": "😌",
       "text": "Café tomado, película vista, almuerzo cometido. Día uno: productividad cero, moral intacta."
     },
     {
       "speaker": "Gabo",
-      "portrait": "🕴️",
       "text": "Excelente primer día. No sé exactamente qué hiciste, pero te vi ocupadísima. Eso aquí es lo que cuenta."
     },
     {
       "speaker": "Tú",
-      "portrait": "🤫",
       "text": "Es literalmente lo único que cuenta. Y ese es el chiste."
     }
   ],
   "outroLose": [
     {
       "speaker": "Gabo",
-      "portrait": "🕴️",
       "mood": "angry",
       "text": "En tu primer día. Increíble. Mañana empezamos de nuevo."
     }
@@ -183,18 +163,15 @@
     "intro": [
       {
         "speaker": "Steven el Daddy",
-        "portrait": "🛗",
         "text": "Planta baja. Cinco personas delante de ti en la fila del ascensor. El reloj del vestíbulo marca 8:57."
       },
       {
         "speaker": "Tú",
-        "portrait": "🙂",
         "text": "Tres minutos. Es matemática pura: o el ascensor, o siete pisos de escaleras."
       }
     ],
     "choice": {
       "prompt": "¿Cómo subes al piso 10?",
-      "portrait": "🛗",
       "options": [
         {
           "label": "Esperar el ascensor",

@@ -1,3 +1,4 @@
+import { icon as svgIcon } from "./icons.js";
 // Vestíbulo de ascensores: una segunda "escena" propia para el prólogo de
 // cada día. Antes, mientras elegías si esperar/subir/colarte en el
 // diálogo del ascensor, el piso ya se veía detrás a través del velo del
@@ -29,9 +30,9 @@ export function createLobby(root) {
   signName.textContent = "PISO 10";
 
   const deco = el("div", "lobby-deco", layer);
-  el("span", "lobby-plant", deco).textContent = "🪴";
-  el("span", "lobby-waiting", deco).textContent = "🧍";
-  el("span", "lobby-waiting lobby-waiting-2", deco).textContent = "🧍‍♂️";
+  el("span", "lobby-plant", deco).innerHTML = svgIcon("plant", { size: 42 });
+  el("span", "lobby-waiting", deco).innerHTML = svgIcon("person", { size: 38 });
+  el("span", "lobby-waiting lobby-waiting-2", deco).innerHTML = svgIcon("person", { size: 34 });
 
   let opening = false;
 

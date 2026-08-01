@@ -21,12 +21,10 @@
   "intro": [
     {
       "speaker": "Compañera",
-      "portrait": "💬",
       "text": "Regla no escrita: si caminas con una laptop abierta, nadie te pregunta nada."
     },
     {
       "prompt": "¿Aceptas el consejo?",
-      "portrait": "💬",
       "options": [
         {
           "label": "«Anotado.»",
@@ -44,14 +42,12 @@
   "outroWin": [
     {
       "speaker": "Tú",
-      "portrait": "😴",
       "text": "Dormir en el escritorio es una habilidad. Y yo estoy escalando."
     }
   ],
   "outroLose": [
     {
       "speaker": "Gabo",
-      "portrait": "🕴️",
       "mood": "angry",
       "text": "Segundo día, segunda charla. Vamos mal."
     }
@@ -62,13 +58,11 @@
     "intro": [
       {
         "speaker": "Steven el Daddy",
-        "portrait": "🛗",
         "text": "Segundo día. Ya reconoces a la gente de la fila. Ellos a ti también."
       }
     ],
     "choice": {
       "prompt": "El ascensor está lleno. ¿Te metes igual?",
-      "portrait": "🛗",
       "options": [
         {
           "label": "Esperar el siguiente",

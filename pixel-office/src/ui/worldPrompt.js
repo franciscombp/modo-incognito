@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { WORLD_SCALE as S } from "../scene/config.js";
+import { icon as svgIcon, hasIcon } from "./icons.js";
 
 // The interaction prompt lives *on the object*, not in a corner of the HUD.
 //
@@ -61,7 +62,7 @@ export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
       target = {
         x: state.nearNpc.position.x,
         z: state.nearNpc.position.z,
-        icon: "💬",
+        icon: "chat",
         label: `Hablar con ${state.nearNpc.displayName}`,
         hint: `PULSA ${keyName}`,
         progress: 0,
@@ -71,7 +72,7 @@ export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
       target = {
         x: state.nearDistraction.x,
         z: state.nearDistraction.z,
-        icon: "⭐",
+        icon: "star",
         label: state.nearDistraction.label,
         hint: `PULSA ${keyName}`,
         progress: 0,
@@ -90,7 +91,7 @@ export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
       ((1 - v.y) / 2) * h
     }px)`;
 
-    keyEl.textContent = target.icon;
+    keyEl.innerHTML = svgIcon(hasIcon(target.icon) ? target.icon : "diamond", { size: 18 });
     labelEl.textContent = target.label;
     hintEl.textContent = target.hint;
     fillEl.style.width = `${Math.round(THREE.MathUtils.clamp(target.progress, 0, 1) * 100)}%`;
