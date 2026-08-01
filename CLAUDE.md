@@ -23,7 +23,7 @@ actividades) y `src/ui/lobby.js` (el ascensor con el que abre).
 
 Juego web isométrico (Vite + Three.js) de sigilo/comedia de oficina. Todo el
 contenido (personajes, diálogos, niveles, plano, balance de IA) está en JSON
-bajo `motor/public/data/`; el motor en `motor/src/` solo lee
+bajo `public/data/`; el motor en `src/` solo lee
 esos datos. Para añadir o cambiar contenido casi nunca hace falta tocar
 código — mira primero si hay un JSON para eso.
 
@@ -52,29 +52,25 @@ línea con naturalidad, no como referencia forzada.
 
 ## Estructura del repo
 
-- `motor/` — el proyecto fuente real. **Edita siempre aquí.**
-- Raíz del repo (`music/`, `audio/`) — activos que se sirven directos, sin
-  build.
-- `motor/builder/` — el editor del plano y del reparto. Es una
-  **entrada más de Vite** (ver `vite.config.js` → `rollupOptions.input`), así
-  que lo sirve el mismo servidor que el juego y sale publicado con él.
-  **Hay UNA sola copia.** Estuvo duplicado aquí y en la raíz del repo, y cada
-  copia acabó con cambios que la otra no tenía: la de la raíz ganó el dibujo
-  de las puertas, la publicada perdió el control de busto. Si vuelves a
-  copiarlo a otro sitio, volverá a pasar.
+- `src/` — código fuente del juego y tools (motor, UI, scene, etc.)
+- `public/data/` — contenido del juego en JSON: personajes, diálogos, niveles, 
+  escenas, balance de IA
+- `public/` — assets estáticos: sprites, modelos GLB, audio
+- `creador/` — herramientas visuales (mapas, personajes, música, pantallas).
+  Son **entradas separadas de Vite** (ver `vite.config.js` → `rollupOptions.input`),
+  así que se sirven desde el mismo servidor que el juego y salen publicadas con él.
+  **Hay UNA sola copia** de cada tool: nunca la duplices a otro sitio.
+- `tools/` — scripts de verificación y utilidades (check-*, extract-palette, etc.)
 
-No hay copia del build en la raíz. GitHub Pages está configurado en modo
-"GitHub Actions" (`.github/workflows/deploy-pages.yml`): cada push a `main`
-compila `motor/` en CI y publica `dist/` como artefacto de Pages.
-**Nunca** hace falta correr un build ni commitear nada generado antes de
-pushear — si tocaste `motor/src/` o `motor/public/data/`, con
-el commit y push normales basta; el workflow se encarga del resto.
+GitHub Pages está configurado en modo "GitHub Actions" (`.github/workflows/deploy-pages.yml`):
+cada push a `main` compila todo en CI y publica `dist/` como artefacto. **Nunca** hace
+falta correr un build ni commitear nada generado — si tocaste `src/` o `public/data/`,
+con el commit y push normales basta; el workflow se encarga del resto.
 
-**Cachés:** Vite le pone un hash al JS y al CSS, pero lo de `public/` (los
-JSON de contenido, los pliegos) se sirve con su nombre de siempre y el
-navegador se lo queda. Por eso cada build lleva un sello, `__BUILD_ID__`
-(`vite.config.js`, y `BUILD_ID` = id de la ejecución en el workflow), que se
-cuelga como `?v=` de esas URLs. Si añades una ruta nueva a algo de `public/`,
+**Cachés:** Vite hashea el JS y el CSS, pero lo de `public/` se sirve con su nombre
+de siempre y el navegador se lo queda en caché. Por eso cada build lleva un sello,
+`__BUILD_ID__` (`vite.config.js`, y `BUILD_ID` = id de la ejecución en el workflow),
+que se cuelga como `?v=` de esas URLs. Si añades una ruta nueva a algo de `public/`,
 cuélgale el sello también o publicarás cambios que nadie verá.
 
 ## Dónde se extiende el juego (no metas esto en el motor)
@@ -223,7 +219,7 @@ diálogo y la pantalla de selección de personaje, y son la referencia de la que
 salió el color de cada receta. `tools/pack-sprites.py` los normaliza a la
 rejilla 4x4 de 128x176 (no vienen regulares: cortarlos por «ancho / 4» mete la
 cabeza de una fila en los pies de la anterior). Su sitio es siempre
-`motor/public/sprites/`.
+`public/sprites/`.
 
 ### La estética cozy
 
@@ -426,32 +422,37 @@ en una captura.
   por qué. Si separas otra vez esas dos banderas, comprueba que la suite
   entera sigue entrando al piso.
 
-## El builder (`motor/builder/`)
+## Los builders (`creador/`)
 
-Editor 2D del plano y del día: lo sirve el mismo servidor que el juego, en
-`http://localhost:5173/builder/` (`npm run dev`). Lee los mismos JSON que el
-juego y devuelve JSON para pegar — **no escribe en el repo a propósito**. Si
-añades un tipo de objeto nuevo a las escenas, añádele su entrada al registro
-`KINDS` de `builder.js` (cómo se dibuja, qué campos tiene, qué sale al
-crearlo); el resto del editor no se toca.
+Herramientas visuales para editar el juego sin tocar código. Son **entradas
+separadas de Vite** (ver `vite.config.js` → `rollupOptions.input`), así que se
+sirven desde el mismo servidor que el juego en `http://localhost:5173/creador/` 
+(`npm run dev`) y salen publicadas con él.
 
-**No lo metas en `public/`.** Estuvo ahí y no funcionaba publicado: `public/`
-se copia tal cual, sin resolver imports, así que hubo que traerse `three` de
-un CDN (de una versión de 2021, incompatible con el motor) y colgar el bundle
-del juego con su hash escrito a mano — hash que Vite regenera en cada build,
-con lo que la página se rompía en el deploy siguiente. Como entrada de Vite,
-`personajes.js` importa el `character3d.js` REAL del motor, que es lo único
-que garantiza que el editor no se desincronice de lo que sale al jugar.
+- `creador/mapas/` — editor 2D del plano y del día. Lee los mismos JSON que el 
+  juego y devuelve JSON para pegar — **no escribe en el repo a propósito**. Si
+  añades un tipo de objeto nuevo a las escenas, añádele su entrada al registro
+  `KINDS` de `mapas.js` (cómo se dibuja, qué campos tiene, qué sale al crearlo).
+- `creador/personajes/` — visor 3D de personajes en vivo, selectores por pieza,
+  poses y visor de texturas.
+- `creador/musica/` — constructor de la pista principal con control de ánimo,
+  tempo, mezcla y playhead en vivo.
+- `creador/pantallas/` — Storybook y constructor de UI/CSS vivo.
+
+**Son entrada de Vite, no de `public/`.** Estuvieron en `public/` y no funcionaban:
+se copian sin resolver imports, así que hubo que traerse librerías de CDN (viejas,
+incompatibles) y colgar bundles con hashes escritos a mano. Como entradas de Vite,
+importan el código REAL del motor (`character3d.js`, `main.js`), así que nunca se
+desincronzan de lo que sale al jugar.
 
 ## Cómo probar cambios
 
-Los tests (`motor/tools/check-*.mjs`) son scripts de Playwright que
+Los tests (`tools/check-*.mjs`) son scripts de Playwright que
 abren el juego real en un navegador headless y leen su estado interno vía
 `window.__game`. **Necesitan el build servido en `http://localhost:4173/`
 antes de correr** — no funcionan contra el servidor de `npm run dev`.
 
 ```bash
-cd motor
 npm run build && npm run preview &   # deja el preview corriendo en :4173
 npm run check                        # corre todos los check:* en orden
 ```
