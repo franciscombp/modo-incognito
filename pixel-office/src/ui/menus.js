@@ -62,6 +62,20 @@ export function formatSpare(seconds) {
 export function createMenus(root, { levels, save, actions, modes = {}, looks = null, title = "Modo Incógnito", subtitle = "" }) {
   const layer = el("div", "px-menu hidden", root);
   const scrim = el("div", "px-menu-scrim", layer);
+
+  // La barra de aplicación de la "plataforma": marca a la izquierda, estado
+  // del sistema a la derecha. Es la cáscara que hace que el menú se lea como
+  // la herramienta corporativa en la que el equipo finge trabajar — que es
+  // exactamente el lore. Decorativa a propósito (pointer-events: none en su
+  // CSS): jamás roba un clic ni entra en el orden de foco.
+  const platBar = el("div", "px-plat-bar", layer);
+  const platBrand = el("div", "px-plat-brand", platBar);
+  platBrand.innerHTML = `${svgIcon("incognito", { size: 26 })}<span>${title}</span><span class="px-plat-suite">Panel de gestión</span>`;
+  const platRight = el("div", "px-plat-right", platBar);
+  platRight.innerHTML =
+    `<span class="px-plat-chip"><i class="px-dot"></i>Sistemas operativos</span>` +
+    (subtitle ? `<span class="px-plat-chip">${subtitle}</span>` : "");
+
   const stage = el("div", "px-menu-stage", layer);
 
   let currentScreen = null;

@@ -273,6 +273,19 @@ menús y el diálogo ya no parezcan de otro juego:
   personaje sale como una FOTO (`toDataURL`) de un único renderer, no como un
   lienzo vivo por tarjeta.
 
+**La interfaz es un dashboard de mentira.** Menús y HUD imitan una plataforma
+corporativa moderna (tarjetas blancas sobre vidrio, acento verde "sistema
+operativo", chips de estado, números tabulares) — el lore lo pide: Modo
+Incógnito es la coartada del equipo y tiene que parecer la herramienta en la
+que fingen trabajar. Todo ese skin vive en UNA capa de overrides al final de
+`src/style.css` («SKIN "PLATAFORMA"»), que re-tematiza los tokens de `:root`
+(`--cyan` ya no es cian: es el verde de acento; `--violet` es el primario) y
+pisa los componentes por cascada. Los bloques históricos de arriba NO se
+editan — documentan de dónde viene cada decisión; si algo se ve del skin
+viejo, su override falta en esa capa. La barra de aplicación del menú
+(`px-plat-bar`, en `menus.js`) es decorativa a propósito: pointer-events
+none, nunca roba clics.
+
 Si tocas el HUD o el CSS, corre `npm run check:layout` antes de darlo por
 bueno: comprueba en seis tamaños de pantalla que nada se solape, se recorte
 ni se salga. Este tipo de fallo no se ve en el diff y es fácil que se cuele
