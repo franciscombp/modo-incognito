@@ -1,7 +1,66 @@
-# Creador · Modo Incógnito
+# Herramientas de Creación · Modo Incógnito
 
-Editores del contenido del juego. Cada uno modifica una parte distinta:
+Suite de editores especializados para crear y modificar contenido del juego sin necesidad de tocar código. Todos los editores leen los mismos datos que el juego y devuelven JSON o CSS para copiar y pegar — **no escriben en el repo a propósito**.
 
-- **[Mapas](/creador/mapas/)** — Diseña y edita los planos, decorados y zonas interactivas del juego. Dibuja la disposición de salas, muebles y áreas jugables.
-- **[Personajes](/creador/personajes/)** — Crea y personaliza el reparto del juego. Elige piel, ropa, accesorios y visualiza cómo se ve en 3D con las diferentes poses.
-- **[Música](/creador/musica/)** — Compón y ajusta la banda sonora del juego. Configura temas, BPM, capas de instrumentos y escucha en tiempo real.
+## Builders
+
+### [Personajes](personajes/)
+
+Editor 3D de personajes. Monta cada muñeco con los componentes visuales que lo forman (piel, pelo, prenda, pantalón, zapatos, accesorios, complexión) y te permite ajustar colores y poses en vivo.
+
+- **Lee:** `public/data/characters3d.json`
+- **Devuelve:** receta JSON de un personaje para copiar a `public/data/characters3d.json`
+- **Funciones:** selector de pose, preview de las ocho direcciones, cambio de color en cada componente, visor de poses
+
+### [Mapas](mapas/)
+
+Editor 2D del plano y de la mecánica del día. Crea y edita salas, pasillos, actividades, zonas seguras, rutas de IA, puntos de spawn, y todo lo que vive en el espacio del piso.
+
+- **Lee:** `public/data/scenes/piso7.json` y `public/data/levels/dia-1.json`
+- **Devuelve:** escena completa o día completo para copiar a `public/data/`
+- **Funciones:** herramientas para spawn, rutas, perímetro, paredes con puertas, edición de propiedades por objeto, validaciones (áreas solapadas, puertas inaccesibles, puntos inalcanzables)
+
+### [Música](musica/)
+
+Secuenciador de temas musicales. Toca proceduralmente con Tone.js: bajo, melodía, colchón, percusión y trompetas. Cada nota es editable, y puedes escuchar en bucle mientras ajustas.
+
+- **Lee:** `public/data/soundtrack-themes.json`
+- **Devuelve:** tema completo en JSON para copiar a `public/data/soundtrack-themes.json`
+- **Funciones:** selector de tema, BPM y pasos por compás, control de capas, mixer de volumen, editor de notas por paso, reproducción en vivo
+
+### [Pantallas](pantallas/)
+
+Storybook de componentes UI y constructor de interfaces. Visualiza el catálogo completo de botones, inputs, paneles, diálogos, HUD y menús con editor de CSS en vivo.
+
+- **Lee:** componentes desde `src/style/design-system.css`
+- **Devuelve:** CSS personalizado para componentes específicos
+- **Funciones:** navegación por tipo de componente, editor de CSS con preview en vivo, exportación de estilos personalizados
+
+## Cómo usarlos
+
+1. Abre el builder que necesites en tu navegador (cada uno en su propia URL)
+2. Carga los datos existentes o empieza de cero
+3. Edita en vivo — la interfaz te muestra cambios al instante
+4. Copia el JSON o CSS que genera
+5. Pégalo en el archivo correspondiente en `public/data/` (o `src/style/`)
+6. **El builder no escribe en el repo,** así que el git status sigue limpio hasta que hagas commit
+
+## Ubicación
+
+Todos los builders están integrados en Vite como entradas separadas. En desarrollo local (`npm run dev`):
+
+- [personajes](http://localhost:5173/creador/personajes/)
+- [mapas](http://localhost:5173/creador/mapas/)
+- [música](http://localhost:5173/creador/musica/)
+- [pantallas](http://localhost:5173/creador/pantallas/)
+
+En producción se publican bajo `/creador/` en el dominio del juego.
+
+## Paleta y diseño
+
+Los builders heredan el **design system** completo del juego:
+- Colores cozy (papel crema, tinta marrón, acento terracota)
+- Tipografía y espaciado
+- Componentes de interfaz consistentes
+
+Editar `src/style/design-system.css` actualiza todos los builders de inmediato.
