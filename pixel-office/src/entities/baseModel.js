@@ -74,18 +74,25 @@ export const MESH_ROLES = {
 let loading = null;
 
 /**
+ * Cache de modelos por URL. Permite cargar múltiples bases (giuli.glb, gabo.glb, etc.)
+ * sin recargar desde la red.
+ */
+const modelCache = new Map();
+
+/**
  * Carga el modelo UNA vez. Todos los personajes salen de clonarlo, que es lo
  * único viable con veinticinco en pantalla.
  */
-export function loadBaseModel(url) {
-  if (!loading) {
-    loading = new GLTFLoader().loadAsync(url).then((gltf) => {
+export function loadBaseModel(url = "/public/models/base.glb") {
+  if (!modelCache.has(url)) {
+    const loading = new GLTFLoader().loadAsync(url).then((gltf) => {
       gltf.scene.updateMatrixWorld(true);
       renameBones(gltf.scene);
       return gltf;
     });
+    modelCache.set(url, loading);
   }
-  return loading;
+  return modelCache.get(url);
 }
 
 /**
