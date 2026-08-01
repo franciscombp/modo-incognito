@@ -7,7 +7,8 @@ This is a comprehensive design system storybook organized by atomic design princ
 - **Atoms** (3 sections): Buttons, Tags, Forms
 - **Molecules** (4 sections): Cards, Logic Elements, Game UI, Layouts
 - **Organisms** (3 sections): Dialogs, Chat/Messages
-- **Identity** (1 section): Branding
+- **Tools** (1 section): Interactive Sandbox for testing components in game context
+- **Identity** (1 section): Branding & Voice
 
 ## Using Phosphore Icons
 
@@ -123,6 +124,33 @@ All components use these CSS custom properties from `src/style/design-system.css
 </div>
 ```
 
+## Audio Control Component
+
+The game includes a built-in audio control in the HUD (top-right corner):
+- **Muted by default** for better UX (browser autoplay policies)
+- **Volume slider** (0-100%) with visual feedback
+- **Auto-unmute**: Moving the slider automatically unmutes audio
+- **Persistent state**: User's volume preference is saved
+
+```javascript
+import { createAudioControl } from './ui/audioControl.js';
+const audioControl = createAudioControl();
+app.appendChild(audioControl);
+```
+
+## Interactive Sandbox
+
+The storybook includes an **Interactive Sandbox** section for testing components in realistic game scenarios:
+- **Game HUD Layout**: See how components arrange in the actual game
+- **Theme Tester**: Preview light/dark mode rendering
+- **Component Composition**: Test multi-component layouts
+
+The sandbox helps designers verify:
+- Spacing and alignment
+- Color contrast in context
+- Responsive behavior
+- Theme consistency
+
 ## Dos and Don'ts
 
 ### ✅ DO
@@ -132,6 +160,7 @@ All components use these CSS custom properties from `src/style/design-system.css
 - Use semantic CSS variables (`--accent-main`, `--text-000`, etc.)
 - Keep components reusable and modular
 - Test responsiveness across screen sizes
+- Use the Interactive Sandbox to verify component placement
 
 ### ❌ DON'T
 
@@ -140,6 +169,7 @@ All components use these CSS custom properties from `src/style/design-system.css
 - Create one-off components without adding to storybook
 - Mix spacing scales (e.g., 15px, 22px)
 - Assume a single screen size
+- Add UI components without updating the storybook
 
 ## Adding New Components
 

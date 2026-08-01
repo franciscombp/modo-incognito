@@ -4243,3 +4243,24 @@ input[type="range"]:focus-visible {
     border-color: var(--cyan);
   }
 }
+
+/* ================= Audio Control ================= */
+.audio-control {
+  position: fixed;
+  top: var(--space-lg);
+  right: var(--space-lg);
+  z-index: 50;
+  pointer-events: auto;
+}
+
+.audio-mute-btn {
+  transition: var(--transition-fast);
+}
+
+.audio-mute-btn:active {
+  transform: scale(0.92);
+}
+
+.audio-volume-slider {
+  accent-color: hsl(var(--accent-main));
+}
