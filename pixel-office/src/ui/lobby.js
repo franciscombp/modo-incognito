@@ -26,7 +26,7 @@ export function createLobby(root) {
   const signFloor = el("div", "lobby-sign-floor", sign);
   signFloor.textContent = "10";
   const signName = el("div", "lobby-sign-name", sign);
-  signName.textContent = "CENTRO DIGITAL";
+  signName.textContent = "PISO 10";
 
   const deco = el("div", "lobby-deco", layer);
   el("span", "lobby-plant", deco).textContent = "🪴";

@@ -28,7 +28,7 @@
       "route": "sur"
     }
   ],
-  "minigame": {
+  "$minigame": {
     "id": "crossing",
     "intro": [
       {
@@ -67,6 +67,7 @@
       ]
     }
   },
+  "$minigameNota": "Desactivado a propósito: el día 1 arranca en el ascensor para centrar el foco en el piso. Para recuperar el cruce de la avenida basta con volver a llamar a esta clave `minigame`.",
   "intro": [
     {
       "speaker": "Steven el Daddy",

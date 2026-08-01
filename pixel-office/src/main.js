@@ -28,7 +28,6 @@ import { soundtrackState } from "./game/soundtrack.js";
 const BASE = import.meta.env.BASE_URL ?? "/";
 // Ver vite.config.js: sella los archivos de `public/`, que no llevan hash.
 const BUILD = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
-const sheetUrl = (name) => `${BASE}sprites/${name}.png?v=${BUILD}`;
 
 const canvas = document.getElementById("scene");
 const app = document.getElementById("app");

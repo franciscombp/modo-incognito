@@ -1,0 +1,17 @@
+{
+  "$comment": [
+    "GENERADO POR tools/index-models.mjs — no se edita a mano.",
+    "Se regenera solo antes de cada build (script `prebuild`).",
+    "",
+    "Es el índice de public/models/, que el navegador no puede listar por su",
+    "cuenta. Para añadir un personaje NO hay que tocar ningún JSON: se deja",
+    "  <id>.glb        su cuerpo",
+    "  <id>.faces.png  sus expresiones (opcional)",
+    "y en el siguiente build aparece aquí solo. Ver public/models/README.md."
+  ],
+  "bodies": {
+    "gabo": "gabo.glb",
+    "giuli": "giuli.glb"
+  },
+  "faces": {}
+}

@@ -14,9 +14,6 @@ const ADVANCE_KEYS = new Set([" ", "enter", "e"]);
 const NEXT_KEYS = new Set(["arrowdown", "s", "tab"]);
 const PREV_KEYS = new Set(["arrowup", "w"]);
 
-const BASE = import.meta.env.BASE_URL ?? "/";
-const BUILD = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
-const spriteUrl = (name) => `${BASE}sprites/${name}.png?v=${BUILD}`;
 // Cada hoja es una rejilla de 4x4 (128x176 px, marcos de 32x44): fila 0 es la
 // cara sur y columna 0 es el fotograma de reposo — el retrato usa justo esa
 // esquina, ampliada x4 sin interpolar (ver .vn-portrait-sprite en style.css).
@@ -32,8 +29,6 @@ export function createDialogue(root, { looks = null } = {}) {
     <div class="vn-bar vn-bar-top"></div>
     <div class="vn-dock">
       <div class="vn-portrait">
-        <span class="vn-portrait-emoji"></span>
-        <span class="vn-portrait-sprite hidden"></span>
       </div>
       <div class="vn-box" role="dialog" aria-live="polite">
         <div class="vn-speaker"><span class="vn-speaker-text"></span></div>
@@ -47,8 +42,6 @@ export function createDialogue(root, { looks = null } = {}) {
 
   const box = layer.querySelector(".vn-box");
   const portrait = layer.querySelector(".vn-portrait");
-  const portraitEmoji = layer.querySelector(".vn-portrait-emoji");
-  const portraitSprite = layer.querySelector(".vn-portrait-sprite");
   const speakerEl = layer.querySelector(".vn-speaker");
   const speakerText = layer.querySelector(".vn-speaker-text");
   const textEl = layer.querySelector(".vn-text");
@@ -101,33 +94,18 @@ export function createDialogue(root, { looks = null } = {}) {
     const look = node.look ?? lookFor(node);
     if (look && portrait3d.show(look, portraitMood)) {
       portrait3d.start();
-      portraitSprite.classList.add("hidden");
-      portraitEmoji.classList.add("hidden");
+      portrait.classList.remove("vn-portrait-off");
       portrait.classList.add("has-3d");
       return;
     }
 
+    // Sin 3D no hay retrato. Antes se caía al pliego de píxeles (y antes de
+    // eso, a un emoji): quien habla se representa SIEMPRE con su muñeco, y
+    // `lookFor` nunca devuelve vacío — el que no tiene receta propia usa la
+    // genérica. Si aquí no hay muñeco es que no hay WebGL, y entonces la
+    // caja de diálogo se queda sin retrato en vez de enseñar otra cosa.
     portrait.classList.remove("has-3d");
-    let sheet = node.sheet;
-
-    // Si no hay sheet, usar sprite específico basado en portrait o npc-camina como fallback
-    if (!sheet && node.portrait) {
-      const emojiMap = {
-        "🛎️": "reception",
-        "📞": "reception",
-        "🎙️": "narrator",
-        "🥚": "placeholder-1",
-        "🗨️": "placeholder-2",
-      };
-      sheet = emojiMap[node.portrait] || "npc-camina";
-    } else if (!sheet) {
-      sheet = "npc-camina";
-    }
-
-    portraitSprite.style.backgroundImage = `url(${spriteUrl(sheet)})`;
-    portraitSprite.style.backgroundPosition = "0 0";
-    portraitSprite.classList.remove("hidden");
-    portraitEmoji.classList.add("hidden");
+    portrait.classList.add("vn-portrait-off");
   }
 
   /**

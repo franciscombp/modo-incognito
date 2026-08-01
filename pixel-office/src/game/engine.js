@@ -424,16 +424,43 @@ export function createEngine({
       }
       if (day.prologue.choice) nodes.push(day.prologue.choice);
       await dialogue.play(withSprites(nodes), ctx);
-      applyPrologue(day);
-      await lobby.hide();
     }
 
-    // Ahora sí: configurar el piso y crear el Game.
+    // EL PISO SE PREPARA CON LAS PUERTAS AÚN CERRADAS.
+    //
+    // Antes se abrían primero y el día se montaba después, así que durante
+    // el segundo y medio que dura la animación el hueco del ascensor
+    // enseñaba el piso TAL COMO QUEDÓ del intento anterior — con la jugadora
+    // ya plantada en el 10 antes de haber llegado. Ahora se abren sobre el
+    // día que empieza.
+    const onDuty = prepareFloor(day);
+    // Y la elección del ascensor se aplica aquí, no antes: `applyPrologue`
+    // arranca con `if (!game) return`, así que mientras se llamaba antes de
+    // montar el día no hacía absolutamente nada — esperar, subir por las
+    // escaleras o colarse daban todos lo mismo.
+    applyPrologue(day);
+
+    if (day.prologue && !skipPrologue) await lobby.hide();
+    hud.setVisible(true);
+
+    camera.setFraming(1);
+
+    await introduceMinions(onDuty);
+    await dialogue.play(withSprites(day.intro ?? []), ctx);
+    if (!menuPaused) game.setPaused(false);
+  }
+
+  /**
+   * Monta el día en el piso y devuelve los secuaces de turno.
+   *
+   * Va aparte para poder llamarlo ANTES de abrir el ascensor: lo que las
+   * puertas descubren tiene que ser ya el día que empieza.
+   */
+  function prepareFloor(day) {
     inLevel = true;
     bossSpeedBonus = 1;
     applyTheme(day.theme, { renderer, scene, ...lights });
     hud.setDay(day);
-    hud.setVisible(true);
     hud.hideResult();
     setMood("calm");
     teamsTimer = null;
@@ -457,13 +484,10 @@ export function createEngine({
       onTalk: (npc, opts) => talkTo(npc, opts),
       onWarn: (info) => handleWarn(info),
     });
+    // Pausado: el reloj no puede correr mientras se abren las puertas ni
+    // durante la presentación de los secuaces.
     game.setPaused(true);
-
-    camera.setFraming(1);
-
-    await introduceMinions(onDuty);
-    await dialogue.play(withSprites(day.intro ?? []), ctx);
-    if (!menuPaused) game.setPaused(false);
+    return onDuty;
   }
 
   /**

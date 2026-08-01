@@ -7,8 +7,6 @@ import { characterShot } from "./charshot.js";
 // camera), how-to-play and pause. They all live in one overlay that swaps
 // screens, so only one thing can ever be on top of the game.
 
-const BUILD = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
-const SPRITE_BASE = `${import.meta.env.BASE_URL ?? "/"}sprites/`;
 
 // Cada uno posa a su manera en la tarjeta, para que la pantalla no sean cinco
 // muñecos idénticos en posición de firmes. Es solo presentación: la pose no
@@ -160,18 +158,14 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
       );
       card.type = "button";
       card.disabled = locked;
-      // El muñeco 3D de verdad, el mismo que vas a mover por el piso. Los
-      // pliegos siguen de reserva: si el navegador no da WebGL, la pantalla
-      // de selección no se puede quedar sin enseñar a quién eliges.
+      // SIEMPRE el muñeco 3D, el mismo que vas a mover por el piso. Antes
+      // caía al pliego de píxeles y, si tampoco había, a un emoji: elegías un
+      // dibujo pixelado para entrar a un juego 3D. `looks.get` nunca devuelve
+      // vacío, así que quien no tenga receta propia sale con la genérica.
       const shot = looks ? characterShot(looks.get(id) ?? looks.get(mode.sheet), CARD_POSE[id]) : null;
       if (shot) {
         const thumb = el("span", "px-char-shot", card);
         thumb.style.backgroundImage = `url(${shot})`;
-      } else if (mode.sheet) {
-        const thumb = el("span", "px-char-sprite", card);
-        thumb.style.backgroundImage = `url(${SPRITE_BASE}${mode.sheet}.png?v=${BUILD})`;
-      } else {
-        el("span", "px-day-num", card, mode.portrait ?? "🙂");
       }
       el(
         "span",

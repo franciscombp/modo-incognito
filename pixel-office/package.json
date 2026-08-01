@@ -32,7 +32,10 @@
     "palette": "python3 tools/extract-palette.py",
     "check:base": "node tools/shoot-base.mjs",
     "check:face": "node tools/shoot-face.mjs",
-    "check:basemodel": "node tools/check-basemodel.mjs"
+    "check:basemodel": "node tools/check-basemodel.mjs",
+    "index:models": "node tools/index-models.mjs",
+    "prebuild": "node tools/index-models.mjs",
+    "predev": "node tools/index-models.mjs"
   },
   "license": "ISC",
   "dependencies": {
