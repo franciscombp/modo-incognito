@@ -129,7 +129,7 @@ export function createHud(root) {
 
   const scorePanel = el("div", "hud-panel hud-scorepanel", rightCol);
   const scoreTitleRow = el("div", "hud-panel-title", scorePanel);
-  scoreTitleRow.innerHTML = `<span class="hud-title-icon">◆</span> PUNTOS`;
+  scoreTitleRow.innerHTML = `<span class="hud-title-icon">⏱️</span> TIEMPO EXTRA`;
   const scoreRow = el("div", "hud-score", scorePanel);
   const scoreValue = el("span", "hud-score-value", scoreRow);
   const comboChip = el("span", "hud-combo", scoreRow);
@@ -252,21 +252,18 @@ export function createHud(root) {
   }
 
   /** Shown between days; `actions` are [{ label, primary, onClick }]. */
-  function showResult({ icon, title, body, win, actions, rank, score, target }) {
+  function showResult({ icon, title, body, win, actions, rank, timeLeft, levelDuration }) {
     overlayIcon.textContent = icon;
     overlayTitle.textContent = title;
     overlayTitle.classList.toggle("win", !!win);
     overlayTitle.classList.toggle("lose", !win);
 
     overlayScore.innerHTML = "";
-    if (score != null) {
+    if (timeLeft != null) {
       const box = el("div", "hud-result-score", overlayScore);
-      el("span", "hud-result-points", box, `${score.toLocaleString("es")} pts`);
-      if (target) {
-        const track = el("div", "hud-result-track", box);
-        const fill = el("div", "hud-result-fill", track);
-        fill.style.width = `${Math.min(100, Math.round((score / target) * 100))}%`;
-        el("span", "hud-result-target", box, `objetivo ${target.toLocaleString("es")}`);
+      const extraTime = Math.max(0, timeLeft - levelDuration);
+      if (extraTime > 0) {
+        el("span", "hud-result-points", box, `+${Math.ceil(extraTime)}s 🎯`);
       }
     }
     if (rank) {
@@ -402,7 +399,8 @@ export function createHud(root) {
       });
     }
 
-    scoreValue.textContent = state.score.toLocaleString("es");
+    const extraTime = Math.max(0, state.timeLeft - state.levelDuration);
+    scoreValue.textContent = `${Math.ceil(extraTime)}s`;
     const comboOn = state.combo > 1;
     comboChip.classList.toggle("on", comboOn);
     comboText.textContent = `x${state.combo.toFixed(1)}`;

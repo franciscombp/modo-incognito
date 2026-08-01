@@ -24,8 +24,8 @@ export const EFFECTS = {
     },
   },
 
-  "score+": {
-    label: "Puntos por una buena conversación",
+  "time+": {
+    label: "Gana 2 minutos por una buena conversación",
     run: (game) => game.award(120, "Buena conversación", game.player.position),
   },
 
