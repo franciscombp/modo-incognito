@@ -596,10 +596,8 @@ export function createEngine({
     inLevel = false;
     playStinger(result.win ? "victory" : "defeat");
     save.setHadWarningYesterday(result.warnings > 0);
-    const target = result.targetScore ?? 1000;
-    const rank = rankFor(result.score, target);
-    if (result.win) save.completeDay(day.id, { seconds: Math.round(result.elapsed), score: result.score });
-    else save.recordScore(day.id, result.score);
+    if (result.win) save.completeDay(day.id, { seconds: Math.round(result.elapsed) });
+    else save.recordScore(day.id, { timeLeft: result.timeLeft });
 
     await dialogue.play(withSprites((result.win ? day.outroWin : day.outroLose) ?? []), ctx);
 
@@ -623,16 +621,13 @@ export function createEngine({
 
     hud.showResult({
       icon: result.win ? (isLast ? "🏆" : "🎉") : "🚪",
-      // `winTitle` deja que el día ponga su propio titular: con la campaña
-      // recortada al día 1 (ver manifest.json), "Semana completada" mentía.
       title: result.win
         ? day.winTitle ?? (isLast ? "Semana completada" : `${day.title}: superado`)
         : "Te ascendieron a cliente",
-      rank: result.win ? rank : null,
-      score: result.score,
-      target,
+      timeLeft: result.timeLeft,
+      levelDuration: result.elapsed > 0 ? (result.elapsed + result.timeLeft) : day.rules?.duration,
       body: result.win
-        ? `${done}/${result.objectives.length} actividades · ${result.eggsFound} secretos hoy · objetivo ${target} pts`
+        ? `${done}/${result.objectives.length} actividades · ${result.eggsFound} secretos hoy`
         : result.warnings >= (day.rules?.maxWarnings ?? 3)
         ? "Sin advertencias de sobra: te ascienden a cliente."
         : "Se acabó la jornada con objetivos pendientes.",

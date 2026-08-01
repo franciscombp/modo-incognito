@@ -166,7 +166,6 @@ export class Game {
     this.paused = false;
     this._finished = false;
 
-    this.score = 0;
     this.combo = 1;
     this.comboLeft = 0;
     this.perk = null;
@@ -481,9 +480,10 @@ export class Game {
       nerveLabel = " · con el jefe cerca";
     }
 
-    const base = station.points ?? 120;
-    const gained = Math.round(base * (this.combo + nerve));
-    this.score += gained;
+    const baseSeconds = station.time ?? 8;
+    const gained = Math.round(baseSeconds * (this.combo + nerve));
+    this.timeLeft += gained;
+    this.onPopup?.({ text: `+${gained}s`, sub: station.label, x: station.x, z: station.z, kind: "major" });
 
     this.combo = Math.min(COMBO_MAX, this.combo + COMBO_STEP);
     this.comboLeft = COMBO_WINDOW;
@@ -508,10 +508,10 @@ export class Game {
     });
   }
 
-  award(points, label, at) {
-    const gained = Math.round(points * this.combo);
-    this.score += gained;
-    this.onPopup?.({ text: `+${gained}`, sub: label, x: at.x, z: at.z, kind: "minor" });
+  award(seconds, label, at) {
+    const gained = Math.round(seconds * this.combo);
+    this.timeLeft += gained;
+    this.onPopup?.({ text: `+${gained}s`, sub: label, x: at.x, z: at.z, kind: "minor" });
   }
 
   applyPerk(perk) {
@@ -768,7 +768,8 @@ export class Game {
       this._eggDwell.set(egg.id, Math.max(0, dwell));
       if (dwell >= egg.dwell) {
         this._foundEggs.add(egg.id);
-        this.score += 250;
+        this.timeLeft += 30;
+        this.onPopup?.({ text: `+30s 🥚`, sub: egg.label ?? "Secret", x: egg.x, z: egg.z, kind: "major" });
         this.onEgg(egg);
       }
     }
@@ -805,14 +806,8 @@ export class Game {
     this.win = win;
     this._clearPerk();
 
-    // Finishing early is worth something: the clock you didn't need is a
-    // bonus, so speed and nerve both pay off.
-    if (win) this.score += Math.round(this.timeLeft * 4);
-
     this.onFinish?.({
       win,
-      score: this.score,
-      targetScore: this.rules.targetScore,
       warnings: this.warnings,
       timeLeft: this.timeLeft,
       elapsed: this.rules.duration - this.timeLeft,
@@ -960,14 +955,12 @@ export class Game {
       win: this.win,
       message: this.message,
       area: this.currentArea,
-      score: this.score,
       combo: this.combo,
       comboLeft: this.comboLeft,
       comboWindow: COMBO_WINDOW,
       perk: this.perk,
       perkLeft: this.perkLeft,
       perkDuration: PERK_DURATION,
-      targetScore: this.rules.targetScore,
     };
     return this.lastSnapshot;
   }
