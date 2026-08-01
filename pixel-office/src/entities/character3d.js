@@ -1001,11 +1001,11 @@ export class Character3D {
       this._walkAction.setEffectiveWeight(0);
     }
 
-    // Aplicar la pose REST a los huesos para que su restQuat sea la postura
-    // natural, no la pose T del archivo. Sin esto, un personaje importado que
-    // esté quieto vuelve a T-pose porque el rest quaternion guardado fue el de
-    // la exportación.
+    // Aplicar la pose REST a los huesos importados para establecer una postura
+    // natural como base. Esto reemplaza la pose T del modelo con la pose REST
+    // procedural, que es la que mantiene al personaje de pie de forma natural.
     this._applyRestPose(bones);
+    this._hipRest = bones.get("Hips").position.y;
     this._applyPose();
     this.setTint(this._tint);
   }
@@ -1151,15 +1151,20 @@ export class Character3D {
     this._applyPose();
   }
 
-  /** Aplica la pose REST a los huesos importados para establecer una postura
-   *  natural como su reposo, reemplazando la pose T del modelo original. */
+  /** Aplica la pose REST a los huesos importados de forma ABSOLUTA (no relativa),
+   *  estableciendo una postura natural como su nuevo reposo. */
   _applyRestPose(bones) {
+    // Aplicar rotaciones absolutas del REST a cada hueso
+    const euler = new THREE.Euler();
     for (const [name, angles] of Object.entries(REST)) {
       const bone = bones.get(BONE_OF[name]);
       if (!bone || name === "lift" || name === "hands") continue;
-      setBoneRotation(bone, angles[0], angles[1], angles[2]);
+      // Aplicar la rotación de forma ABSOLUTA (no relativa a restQuat)
+      euler.set(angles[0], angles[1], angles[2]);
+      bone.quaternion.setFromEuler(euler);
     }
-    // Guardar la nueva postura como el reposo, no la del archivo.
+    // Guardar la nueva postura como el reposo, no la del archivo (T-pose).
+    // Ahora las poses futuras serán RELATIVAS a esta postura natural.
     for (const bone of bones.values()) {
       bone.userData.restQuat = bone.quaternion.clone();
     }
