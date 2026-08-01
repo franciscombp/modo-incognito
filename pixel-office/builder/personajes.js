@@ -1,15 +1,16 @@
 import * as THREE from "three";
-
-// Obtener Character3D desde el bundle del juego (GitHub Pages) o import directo (desarrollo)
-const getModule = async () => {
-  if (window.__char3d?.Character3D) return window.__char3d;
-  return import("../pixel-office/src/entities/character3d.js").catch(() => {
-    throw new Error("No se pudo cargar Character3D ni desde window.__char3d ni desde import directo");
-  });
-};
-
-const mod = await getModule();
-const { Character3D, POSES, HAIR_STYLES, TOP_STYLES, BOTTOM_STYLES, ACCESSORIES, DEFAULT_RECIPE } = mod;
+// El MISMO módulo que usa el juego, no una copia ni el bundle ya compilado:
+// es lo único que garantiza que lo que ves aquí sea lo que sale al jugar. Si
+// alguien añade un peinado al motor, aparece aquí solo.
+import {
+  Character3D,
+  POSES,
+  HAIR_STYLES,
+  TOP_STYLES,
+  BOTTOM_STYLES,
+  ACCESSORIES,
+  DEFAULT_RECIPE,
+} from "../src/entities/character3d.js";
 
 // Builder de PERSONAJES de Modo Incógnito.
 //
@@ -21,7 +22,7 @@ const { Character3D, POSES, HAIR_STYLES, TOP_STYLES, BOTTOM_STYLES, ACCESSORIES,
 // receta, así que "añadir un personaje" son diez líneas de JSON y no modelar
 // nada. Este editor es el sitio donde se escriben esas diez líneas viéndolas.
 
-const DATA = "../pixel-office/public/data/";
+const DATA = "../data/";
 const HEIGHT = 1.6;
 
 // ---------------------------------------------------------------- estado
@@ -154,6 +155,7 @@ const CAMPOS = [
   COLOR("eyes", "Ojos"),
   RANGO("build.width", "Complexión", 0.85, 1.25, 0.01),
   RANGO("build.belly", "Barriga", 0, 0.5, 0.02),
+  RANGO("build.bust", "Busto", 0, 1, 0.05),
 
   { grupo: "Pelo" },
   COLOR("hair.color", "Color"),

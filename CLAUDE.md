@@ -49,9 +49,15 @@ línea con naturalidad, no como referencia forzada.
 ## Estructura del repo
 
 - `pixel-office/` — el proyecto fuente real. **Edita siempre aquí.**
-- Raíz del repo (`builder/`, `music/`, `audio/`) — herramientas y activos que
-  se sirven directos, sin build. `builder/builder.js` lee JSON en vivo de
-  `pixel-office/public/data/`.
+- Raíz del repo (`music/`, `audio/`) — activos que se sirven directos, sin
+  build.
+- `pixel-office/builder/` — el editor del plano y del reparto. Es una
+  **entrada más de Vite** (ver `vite.config.js` → `rollupOptions.input`), así
+  que lo sirve el mismo servidor que el juego y sale publicado con él.
+  **Hay UNA sola copia.** Estuvo duplicado aquí y en la raíz del repo, y cada
+  copia acabó con cambios que la otra no tenía: la de la raíz ganó el dibujo
+  de las puertas, la publicada perdió el control de busto. Si vuelves a
+  copiarlo a otro sitio, volverá a pasar.
 
 No hay copia del build en la raíz. GitHub Pages está configurado en modo
 "GitHub Actions" (`.github/workflows/deploy-pages.yml`): cada push a `main`
@@ -302,14 +308,22 @@ en una captura.
   por qué. Si separas otra vez esas dos banderas, comprueba que la suite
   entera sigue entrando al piso.
 
-## El builder (`builder/`)
+## El builder (`pixel-office/builder/`)
 
-Editor 2D del plano y del día, sin build ni dependencias: se sirve el repo y
-se abre `http://localhost:8000/builder/`. Lee los mismos JSON que el juego y
-devuelve JSON para pegar — **no escribe en el repo a propósito**. Si añades un
-tipo de objeto nuevo a las escenas, añádele su entrada al registro `KINDS` de
-`builder/builder.js` (cómo se dibuja, qué campos tiene, qué sale al crearlo);
-el resto del editor no se toca.
+Editor 2D del plano y del día: lo sirve el mismo servidor que el juego, en
+`http://localhost:5173/builder/` (`npm run dev`). Lee los mismos JSON que el
+juego y devuelve JSON para pegar — **no escribe en el repo a propósito**. Si
+añades un tipo de objeto nuevo a las escenas, añádele su entrada al registro
+`KINDS` de `builder.js` (cómo se dibuja, qué campos tiene, qué sale al
+crearlo); el resto del editor no se toca.
+
+**No lo metas en `public/`.** Estuvo ahí y no funcionaba publicado: `public/`
+se copia tal cual, sin resolver imports, así que hubo que traerse `three` de
+un CDN (de una versión de 2021, incompatible con el motor) y colgar el bundle
+del juego con su hash escrito a mano — hash que Vite regenera en cada build,
+con lo que la página se rompía en el deploy siguiente. Como entrada de Vite,
+`personajes.js` importa el `character3d.js` REAL del motor, que es lo único
+que garantiza que el editor no se desincronice de lo que sale al jugar.
 
 ## Cómo probar cambios
 

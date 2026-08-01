@@ -71,9 +71,9 @@ código**.
 | El soundtrack procedural de respaldo (notas, tempo, mezcla) | [`src/game/soundtrackThemes.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrackThemes.js) |
 | Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/game/soundtrack.js) |
 | Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/manifest.json) |
-| Colocar zonas, tareas, lugares seguros… con el ratón | [`builder/`](https://github.com/franciscombp/modo-incognito/tree/main/builder) — ver «El builder» más abajo |
+| Colocar zonas, tareas, lugares seguros… con el ratón | [`pixel-office/builder/`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/builder) — ver «El builder» más abajo |
 | Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/style.css) |
-| **Cómo es cada personaje en 3D** (piel, pelo, ropa, complexión) | [`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/characters3d.json) — se edita con [`builder/personajes.html`](https://github.com/franciscombp/modo-incognito/tree/main/builder) |
+| **Cómo es cada personaje en 3D** (piel, pelo, ropa, complexión) | [`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/public/data/characters3d.json) — se edita con [`personajes.html`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/builder) |
 | Cómo se monta un muñeco 3D y sus poses (código) | [`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/character3d.js) |
 | El esqueleto: dónde está cada articulación y cómo se reparten los pesos (código) | [`src/entities/skinning.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/entities/skinning.js) |
 | La paleta cozy del decorado (suelos, muebles, cielo, niebla) | [`src/scene/cozy.js`](https://github.com/franciscombp/modo-incognito/blob/main/pixel-office/src/scene/cozy.js) |
@@ -109,15 +109,15 @@ Lee primero [`CLAUDE.md`](https://github.com/franciscombp/modo-incognito/blob/ma
 
 ## El builder: editar el plano y el día con el ratón
 
-En [`builder/`](https://github.com/franciscombp/modo-incognito/tree/main/builder)
+En [`pixel-office/builder/`](https://github.com/franciscombp/modo-incognito/tree/main/pixel-office/builder)
 hay un editor 2D del plano (`scenes/*.json`) y del día (`levels/*.json`). No
-necesita build: lee en vivo los JSON de `pixel-office/public/data/`, así que
-basta con servir la raíz del repo con cualquier servidor estático y abrir
-`/builder/`:
+necesita build propio: lee en vivo los JSON de `pixel-office/public/data/`,
+que tiene al lado. Vive dentro de `public/` para que lo sirva el mismo
+servidor que el juego y para que **salga publicado con él**:
 
 ```bash
-python3 -m http.server 8000   # desde la raíz del repo
-# → http://localhost:8000/builder/
+cd pixel-office && npm run dev
+# → http://localhost:5173/builder/
 ```
 
 Carga los mismos archivos que lee el juego y te deja **arrastrar** zonas,
@@ -151,8 +151,8 @@ caminando. Importa el **mismo módulo que usa el juego**, no una copia: si
 alguien añade un peinado al motor, aparece aquí solo.
 
 ```bash
-python3 -m http.server 8000   # desde la raíz del repo
-# → http://localhost:8000/builder/personajes.html
+cd pixel-office && npm run dev
+# → http://localhost:5173/builder/personajes.html
 ```
 
 Para verlos todos de golpe sin abrir el navegador, con el juego servido en
@@ -168,8 +168,11 @@ node tools/shoot-cast.mjs poses.png poses:giuli      # uno, en sus 8 poses
 - **`pixel-office/`** — el proyecto fuente real (Vite + Three.js). Aquí es
   donde se edita todo: código en `src/`, contenido en `public/data/`, sprites
   en `public/sprites/`.
-- **Raíz del repo** (`builder/`, `music/`, `audio/`) — herramientas y activos
-  que se sirven directos, sin build.
+- **Raíz del repo** (`music/`, `audio/`) — activos que se sirven directos,
+  sin build. El builder **ya no vive aquí**: estuvo duplicado en la raíz y en
+  `pixel-office/builder/`, y cada copia acabó con cambios que la otra
+  no tenía (la raíz ganó el dibujo de las puertas, la publicada perdió el
+  control de busto). Ahora hay una sola, dentro de `public/`.
 
 No hay ningún build commiteado en el repo. `.github/workflows/deploy-pages.yml`
 compila `pixel-office/` y publica `dist/` a GitHub Pages en cada push a
