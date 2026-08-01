@@ -5,74 +5,96 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Personajes · Modo Incógnito</title>
     <link rel="icon" href="../../favicon.png" />
-    <link rel="stylesheet" href="../../src/style/design-system.css" />
-    <link rel="stylesheet" href="../../src/style/builders.css" />
-    <link rel="stylesheet" href="personajes.css" />
-
+    <link rel="stylesheet" href="../../src/style.css" />
+    <style>
+      /* Character builder specific overrides */
+      main {
+        grid-template-columns: 240px 1fr 300px;
+      }
+      @media (max-width: 900px) {
+        main {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto 320px auto;
+          overflow-y: auto;
+        }
+      }
+    </style>
   </head>
-  <body>
-    <header class="bar">
-      <h1>PERSONAJES · <span>Modo Incógnito</span></h1>
-      <div class="bar-group">
-        <button id="nuevo">Nuevo personaje</button>
-        <button id="recargar">Recargar del juego</button>
+  <body class="bg-background text-foreground">
+    <!-- Header -->
+    <header class="flex items-center justify-between gap-4 border-b border-border bg-card px-6 py-3">
+      <h1 class="text-xl font-bold">👤 PERSONAJES · <span class="text-sm font-normal text-muted-foreground">Modo Incógnito</span></h1>
+      <div class="flex gap-2">
+        <button id="nuevo" class="rounded-cozy border border-border bg-input px-3 py-2 text-sm font-medium hover:bg-muted">
+          + Nuevo
+        </button>
+        <button id="recargar" class="rounded-cozy border border-border bg-input px-3 py-2 text-sm font-medium hover:bg-muted">
+          🔄 Recargar
+        </button>
       </div>
-      <div class="bar-group right">
-        <button id="copiar-uno" class="primary">Copiar esta receta</button>
-        <button id="copiar-todo" class="primary">Copiar characters3d.json</button>
-        <button id="descargar">Descargar</button>
+      <div class="flex gap-2">
+        <button id="copiar-uno" class="rounded-cozy bg-accent px-3 py-2 text-sm font-bold text-accent-foreground hover:opacity-90">
+          📋 Copiar
+        </button>
+        <button id="copiar-todo" class="rounded-cozy bg-accent px-3 py-2 text-sm font-bold text-accent-foreground hover:opacity-90">
+          💾 JSON Completo
+        </button>
+        <button id="descargar" class="rounded-cozy border border-border bg-input px-3 py-2 text-sm font-medium hover:bg-muted">
+          ⬇ Descargar
+        </button>
       </div>
     </header>
 
-    <main>
-      <aside class="panel left">
-        <h2>Reparto</h2>
-        <ul id="lista" class="cast-list"></ul>
+    <!-- Main -->
+    <main class="grid h-[calc(100%-53px)]">
+      <!-- Left panel: Cast list -->
+      <aside class="border-r border-border bg-card p-4 overflow-y-auto">
+        <h2 class="mb-4 border-b border-border pb-2 text-sm font-bold uppercase tracking-wide text-accent">Reparto</h2>
+        <ul id="lista" class="space-y-1"></ul>
 
-        <h2>Cómo se usa</h2>
-        <p class="help">
-          Un personaje no es un modelo 3D: es la receta que ves a la derecha.
-          Toca los campos, mira el muñeco, y cuando te guste copia el JSON y
-          pégalo en
-          <code>pixel-office/public/data/characters3d.json</code>.
-        </p>
-        <p class="help">
-          Los colores de partida salieron de los pliegos que dibujó el equipo,
-          con <code>python3 tools/extract-palette.py</code>. Si alguien
-          redibuja un pliego, se vuelve a correr y se comparan.
-        </p>
-        <p class="help">
-          Este editor no escribe en el repo a propósito, igual que el builder
-          del plano.
-        </p>
+        <h2 class="mb-3 mt-6 border-b border-border pb-2 text-sm font-bold uppercase tracking-wide text-accent">Cómo se usa</h2>
+        <div class="space-y-2 text-xs text-muted-foreground leading-relaxed">
+          <p>
+            Un personaje no es un modelo 3D: es la <strong class="text-foreground">receta</strong> que ves a la derecha.
+            Toca los campos, mira el muñeco, y cuando te guste copia el JSON.
+          </p>
+          <p>
+            Los colores salieron de los pliegos con <code class="bg-muted/50 px-1 rounded">extract-palette.py</code>.
+          </p>
+          <p>
+            Este editor no escribe en el repo a propósito.
+          </p>
+        </div>
       </aside>
 
-      <section class="stage">
-        <canvas id="vista"></canvas>
-        <div class="stage-bar">
-          <label>
-            Pose
-            <select id="pose"></select>
+      <!-- Center: Canvas -->
+      <section class="flex flex-col bg-card">
+        <canvas id="vista" class="flex-1 w-full block cursor-grab active:cursor-grabbing" style="image-rendering: auto;"></canvas>
+        <div class="flex flex-wrap items-center gap-4 border-t border-border bg-gradient-to-r from-card to-card/50 px-4 py-3 text-sm">
+          <label class="flex items-center gap-2 font-medium text-foreground cursor-pointer">
+            <span>Pose</span>
+            <select id="pose" class="rounded-cozy border border-border bg-input px-2 py-1 text-xs cursor-pointer"></select>
           </label>
-          <label class="check">
-            <input type="checkbox" id="caminar" />
+          <label class="flex items-center gap-2 text-xs cursor-pointer">
+            <input type="checkbox" id="caminar" class="rounded cursor-pointer accent-accent" />
             Caminando
           </label>
-          <label class="check">
-            <input type="checkbox" id="girar" />
+          <label class="flex items-center gap-2 text-xs cursor-pointer">
+            <input type="checkbox" id="girar" class="rounded cursor-pointer accent-accent" />
             Girar solo
           </label>
-          <span class="hint">Arrastra para girar · rueda para acercar</span>
+          <span class="ml-auto text-xs text-muted-foreground">Arrastra para girar · rueda para acercar</span>
         </div>
       </section>
 
-      <aside class="panel right">
-        <h2>Receta</h2>
-        <div id="form"></div>
+      <!-- Right panel: Recipe form -->
+      <aside class="border-l border-border bg-card p-4 overflow-y-auto">
+        <h2 class="mb-4 border-b border-border pb-2 text-sm font-bold uppercase tracking-wide text-accent">Receta</h2>
+        <div id="form" class="space-y-3"></div>
       </aside>
     </main>
 
-    <div id="aviso" class="toast"></div>
+    <div id="aviso" class="fixed bottom-4 right-4 max-w-sm rounded-cozy bg-accent px-4 py-3 text-sm font-medium text-accent-foreground shadow-cozy-lg hidden"></div>
 
     <script type="module" src="./personajes.js"></script>
   </body>
