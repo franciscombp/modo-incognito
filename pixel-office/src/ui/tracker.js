@@ -168,19 +168,33 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
 
       // Y la otra flecha manda sobre esta, por orden de llegada: la segunda se
       // sube lo justo para no taparse con la primera.
-      const frame = Math.round(performance.now() / 8);
+      //
+      // El frame se identifica con el reloj de la línea de tiempo del
+      // documento, que es EL MISMO valor durante todo un frame (es el que
+      // recibe requestAnimationFrame). Un bucket de `performance.now()` no
+      // vale: los dos rastreadores se actualizan seguidos, y si sus dos
+      // llamadas caían a un lado y otro del corte, el segundo vaciaba la
+      // lista, no veía al primero, y las dos flechas se dibujaban encima.
+      const frame = document.timeline?.currentTime ?? performance.now();
       if (frame !== placedFrame) {
         placedFrame = frame;
         placedMarkers.length = 0;
       }
-      let box = { left: sx - halfMarker, top: sy - markerH / 2, width: halfMarker * 2, height: markerH };
+      // `sy` es el CENTRO del marcador; las cajas se llevan en coordenadas de
+      // borde. Mezclarlo dejaba cada caja media flecha más abajo de donde
+      // estaba de verdad, así que la segunda se subía de menos.
+      const boxAt = (centerY) => ({
+        left: sx - halfMarker,
+        top: centerY - markerH / 2,
+        width: halfMarker * 2,
+        height: markerH,
+      });
       for (const taken of placedMarkers) {
-        if (!overlaps(box, taken)) continue;
+        if (!overlaps(boxAt(sy), taken)) continue;
         sy = taken.top - BOTTOM_SAFE_MARGIN - markerH / 2;
-        box = { ...box, top: sy - markerH / 2 };
       }
       sy = Math.max(sy, topSafe);
-      placedMarkers.push({ ...box, top: sy - markerH / 2 });
+      placedMarkers.push(boxAt(sy));
 
       angle = Math.atan2(nx, ny) * (180 / Math.PI);
     }
