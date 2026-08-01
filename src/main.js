@@ -23,6 +23,7 @@ import { createSave } from "./game/save.js";
 import { createTouchControls } from "./game/touchControls.js";
 import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./game/settings.js";
 import { createPopups } from "./ui/popups.js";
+import { createAudioControl } from "./ui/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
@@ -262,6 +263,10 @@ async function boot() {
   }
 
   const popups = createPopups(app, camera);
+
+  // Audio control: muted by default until user interaction
+  const audioControl = createAudioControl();
+  app.appendChild(audioControl);
 
   const engine = createEngine({
     app,
