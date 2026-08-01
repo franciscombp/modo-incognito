@@ -300,7 +300,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   el("h2", "px-screen-title-text", helpScreen, "Cómo se juega");
   const helpBody = el("div", "px-help", helpScreen);
   helpBody.innerHTML = `
-    <p>Eres diseñadora en el Centro Digital de un banco. Tu trabajo de mentira es
+    <p>Eres diseñadora en el Piso 10. Tu trabajo de mentira es
     <b>no trabajar</b>: café, película, comer. El jefe patrulla la
     planta con un cono de visión. (Tu trabajo de verdad es otra cosa —
     hay quien dice que fingir es, en realidad, la única forma de seguir

@@ -14,7 +14,7 @@
     "basta con volver a nombrarlos aquí, no hay nada más que tocar."
   ],
   "title": "Modo Incógnito",
-  "subtitle": "Tribu Canales · Piso 10 · Centro Digital",
+  "subtitle": "Célula Gris · Piso 10",
   "characters": "characters.json",
   "characters3d": "characters3d.json",
   "modes": "modes.json",
@@ -98,7 +98,7 @@
           "speaker": "Giuli",
           "portrait": "🧑‍🎨",
           "sheet": "guili-camina",
-          "text": "El banco cree que diseñamos flujos de crédito. En realidad, cada vez que finges, alguien de la Tribu está programando el juego que estás jugando ahora mismo."
+          "text": "Creen que diseñamos flujos. En realidad, cada vez que finges, alguien de la Célula está programando el juego que estás jugando ahora mismo."
         },
         {
           "speaker": "Tú",
