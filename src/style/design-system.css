@@ -98,9 +98,9 @@
   --accent-tertiary-dark: hsl(var(--accent-blue) / 0.15);
   --accent-success: hsl(120 70% 50%);
 
-  --state-warning: hsl(45 90% 50%);
-  --state-error: hsl(0 84% 60%);
-  --state-success: hsl(120 70% 50%);
+  --state-warning: 45 90% 50%;
+  --state-error: 0 84% 60%;
+  --state-success: 120 70% 50%;
 
   --primary-text-rgb: 5, 5, 5;
   --accent-primary-rgb: 194, 30, 52;
@@ -117,9 +117,9 @@
   --magenta: hsl(var(--accent-blue));
   --violet: hsl(var(--accent-blue));
   --violet-dim: hsl(var(--accent-blue) / 0.5);
-  --amber: hsl(45 90% 50%);
-  --lime: hsl(120 70% 50%);
-  --red: hsl(0 84% 60%);
+  --amber: hsl(var(--state-warning));
+  --lime: hsl(var(--state-success));
+  --red: hsl(var(--state-error));
   --cyan-rgb: var(--primary-text-rgb);
   --ink-rgb: var(--primary-text-rgb);
 
