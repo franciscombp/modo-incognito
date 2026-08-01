@@ -73,6 +73,21 @@ const P = {
 // Ángulos en radianes; en brazos y piernas, x NEGATIVO va hacia delante.
 // ---------------------------------------------------------------------------
 /**
+ * Busca un clip por palabra suelta en su nombre.
+ *
+ * Los exportadores no se ponen de acuerdo: el mismo ciclo sale como "Walking",
+ * como "Armature|walking_man|baselayer" o como "mixamo.com". Por eso se busca
+ * por trozo y sin distinguir mayúsculas, en vez de por nombre exacto.
+ */
+function pickClip(clips, words) {
+  for (const w of words) {
+    const hit = clips.find((c) => c.name.toLowerCase().includes(w));
+    if (hit) return hit;
+  }
+  return null;
+}
+
+/**
  * Gira un hueso SIN PERDER SU POSTURA DE REPOSO.
  *
  * El esqueleto que montamos nosotros nace con todos los huesos sin rotar, así
@@ -953,6 +968,22 @@ export class Character3D {
       faceMat: null,
     };
     this._hipRest = bones.get("Hips")?.position.y ?? 0;
+
+    // LA CAMINATA VIENE EN EL ARCHIVO. Nuestro paso procedural está calibrado
+    // para el muñeco chibi — zancadas de 0.72 rad, que en un cuerpo humano se
+    // ven como marcha militar. Si el .glb trae su propio ciclo de andar, manda
+    // ese: para eso lo exportó quien modeló el personaje.
+    this._mixer = null;
+    this._walkAction = null;
+    const clips = gltf.animations ?? [];
+    const walkClip = pickClip(clips, ["walk", "walking", "caminar", "andar"]);
+    if (walkClip) {
+      this._mixer = new THREE.AnimationMixer(model);
+      this._walkAction = this._mixer.clipAction(walkClip);
+      this._walkAction.play();
+      this._walkAction.setEffectiveWeight(0);
+    }
+
     this._applyPose();
     this.setTint(this._tint);
   }
@@ -1071,6 +1102,22 @@ export class Character3D {
 
     if (this._pose) this._poseT += dt * (this._pose.speed ?? 1.5);
     if (this._moving && this._blend < 0.5) this._walkPhase += dt * (this.rig.walk.fps || 8) * 0.78;
+
+    // Quién manda sobre los huesos. El clip del archivo y nuestras poses
+    // escriben LOS MISMOS huesos, así que no pueden correr a la vez: el último
+    // en escribir gana y sale un temblor. Mientras camina manda el clip; en
+    // cuanto hay una pose (café, dormir, susto) vuelven las nuestras, que son
+    // las que el juego necesita y ningún .glb trae.
+    if (this._walkAction) {
+      const want = this._moving && this._blend < 0.5 ? 1 : 0;
+      const w = this._walkAction.getEffectiveWeight();
+      const next = w + (want - w) * Math.min(1, dt * 10);
+      this._walkAction.setEffectiveWeight(next);
+      this._mixer.update(dt);
+      // A pleno peso no se toca nada más: pisar el clip con `_applyPose` es
+      // justo lo que devolvía la marcha militar.
+      if (next > 0.99) return;
+    }
 
     this._applyPose();
   }
@@ -1233,6 +1280,11 @@ export class Character3D {
       this._built.shadow.geometry.dispose();
       this._built.shadow.material.dispose();
     }
+    // El clip del archivo, si lo había. Sin soltarlo, un personaje que pase de
+    // cuerpo importado a generado se queda con la caminata del anterior.
+    this._mixer?.stopAllAction();
+    this._mixer = null;
+    this._walkAction = null;
     this._extras.forEach((m) => {
       m.geometry.dispose();
       m.material.map?.dispose();

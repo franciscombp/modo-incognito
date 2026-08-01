@@ -132,6 +132,17 @@ no aparezca deja poses a medias avisando solo por consola.
 Un cuerpo importado **no gesticula**: su cara viene dentro de su textura, no
 en una aparte que se pueda redibujar, así que `setExpression` no le hace nada.
 
+**La caminata la pone el ARCHIVO, si la trae.** Nuestro paso procedural está
+calibrado para el muñeco chibi y apenas dobla la rodilla (28° contra los 52°
+de un ciclo de andar de verdad): en un cuerpo humano se lee como marcha
+militar. Por eso, si el `.glb` trae un clip de andar, se reproduce con un
+`AnimationMixer` y manda él mientras el personaje camina. El clip y
+`_applyPose` escriben LOS MISMOS huesos, así que nunca corren a la vez —
+en cuanto hay una pose del juego (café, dormir, susto), que ningún `.glb`
+trae, el clip se aparta. Los nombres de clip los busca `pickClip()` por trozo,
+porque cada exportador los llama de una manera (`Walking`,
+`Armature|walking_man|baselayer`, `mixamo.com`…).
+
 Lo vigila `npm run check:basemodel`, y a propósito NO mira una captura: mira
 que el `.glb` se pida por red y que la malla en escena sea la del archivo.
 Una captura fue justo lo que no delató el fallo la primera vez.
