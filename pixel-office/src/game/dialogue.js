@@ -86,6 +86,11 @@ export function createDialogue(root, { looks = null } = {}) {
       const look = looks.get(c);
       if (look && look !== generic) return look;
     }
+    // Si no hay modelo específico y el personaje no existe (recepcion, narrador, etc.),
+    // devolver null para que se muestre en modo narrador, no con el genérico.
+    if (speaker && !looks.get(speaker) && !looks.get(speaker?.toLowerCase())) {
+      return null;
+    }
     return generic;
   }
 
@@ -252,15 +257,20 @@ export function createDialogue(root, { looks = null } = {}) {
     optionsEl.classList.add("hidden");
     optionButtons = [];
 
-    // Steven el Daddy narrator mode: display in narrator element instead of dialogue box
-    if (node.narrator || node.speaker === "Steven el Daddy") {
+    // Steven el Daddy narrator mode: display in narrator element instead of dialogue box.
+    // Also handles characters without visible models (recepcion, narrador, etc.) by showing them as narrator.
+    const resolvedSpeaker = resolve(node.speaker, ctx);
+    const speakerLook = node.look ?? lookFor({ ...node, speaker: resolvedSpeaker });
+    const isInvisibleCharacter = resolvedSpeaker && !speakerLook && node.speaker !== "Steven el Daddy";
+
+    if (node.narrator || resolvedSpeaker === "Steven el Daddy" || isInvisibleCharacter) {
       showNarrator(resolve(node.text, ctx));
       await waitForAdvance();
       hideNarrator();
       return;
     }
 
-    const speaker = resolve(node.speaker, ctx) ?? "";
+    const speaker = resolvedSpeaker ?? "";
     speakerText.textContent = speaker;
     speakerEl.classList.toggle("hidden", !speaker);
     setPortrait(node);
