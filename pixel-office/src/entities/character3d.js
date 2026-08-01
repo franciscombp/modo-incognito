@@ -702,21 +702,20 @@ export class Character3D {
     // El cordón de la credencial lo lleva todo el mundo en los pliegos: es lo
     // que hace que el reparto se lea como la misma oficina.
     if (r.badge) {
+      // Un cordón de verdad: dos tiras que BAJAN DEL CUELLO y convergen en la
+      // tarjeta. Antes eran dos óvalos verticales sueltos y la tarjeta más
+      // abajo, sin tocarse: a la distancia de la cámara del piso colaba, pero
+      // en el retrato del diálogo se ven de cerca y eran tres manchas
+      // moradas flotando sobre el pecho.
+      const cardTop = new THREE.Vector3(0, chest.y - 0.036 * H, torsoR * 0.88);
       for (const dir of [-1, 1]) {
-        const strap = ellipsoid(
-          new THREE.Vector3(dir * torsoR * 0.4, chest.y - 0.01 * H, torsoR * 0.78),
-          torsoR * 0.07,
-          torsoR * 0.34,
-          torsoR * 0.06
-        );
-        add(strap, r.badge, ["rigid", "Chest"]);
+        const collar = new THREE.Vector3(dir * torsoR * 0.46, chest.y + 0.028 * H, torsoR * 0.5);
+        add(limb(collar, cardTop, torsoR * 0.045, torsoR * 0.038), r.badge, ["rigid", "Chest"]);
       }
-      const card = ellipsoid(
-        new THREE.Vector3(0, chest.y - 0.06 * H, torsoR * 0.84),
-        torsoR * 0.2,
-        torsoR * 0.26,
-        torsoR * 0.07
-      );
+      // La tarjeta es una plaquita plana, no un huevo: el canto recto es lo
+      // que la lee como credencial y no como un colgante.
+      const card = new THREE.BoxGeometry(torsoR * 0.42, torsoR * 0.54, torsoR * 0.08);
+      card.translate(0, cardTop.y - torsoR * 0.24, cardTop.z + torsoR * 0.02);
       add(card, r.badge, ["rigid", "Chest"]);
     }
 

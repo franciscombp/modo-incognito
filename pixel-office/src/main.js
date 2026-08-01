@@ -26,7 +26,9 @@ import { createPopups } from "./ui/popups.js";
 import { soundtrackState } from "./game/soundtrack.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
-const sheetUrl = (name) => `${BASE}sprites/${name}.png`;
+// Ver vite.config.js: sella los archivos de `public/`, que no llevan hash.
+const BUILD = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
+const sheetUrl = (name) => `${BASE}sprites/${name}.png?v=${BUILD}`;
 
 const canvas = document.getElementById("scene");
 const app = document.getElementById("app");
@@ -272,6 +274,7 @@ async function boot() {
     codeEggs: data.codeEggs,
     manifest: data.manifest,
     dialogues: data.dialogues,
+    looks: data.looks,
     modes: data.modes,
     bossConfig: data.bossConfig,
     playerSheet: modeOf(save.characterId)?.sheet ?? chars.player.sheet,

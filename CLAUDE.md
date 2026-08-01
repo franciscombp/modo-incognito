@@ -60,6 +60,13 @@ compila `pixel-office/` en CI y publica `dist/` como artefacto de Pages.
 pushear — si tocaste `pixel-office/src/` o `pixel-office/public/data/`, con
 el commit y push normales basta; el workflow se encarga del resto.
 
+**Cachés:** Vite le pone un hash al JS y al CSS, pero lo de `public/` (los
+JSON de contenido, los pliegos) se sirve con su nombre de siempre y el
+navegador se lo queda. Por eso cada build lleva un sello, `__BUILD_ID__`
+(`vite.config.js`, y `BUILD_ID` = id de la ejecución en el workflow), que se
+cuelga como `?v=` de esas URLs. Si añades una ruta nueva a algo de `public/`,
+cuélgale el sello también o publicarás cambios que nadie verá.
+
 ## Dónde se extiende el juego (no metas esto en el motor)
 
 Dos registros aislados a propósito. Si te piden "añade un efecto" o "añade un
@@ -164,6 +171,34 @@ saturado se reserva para los personajes. La paleta entera está en
 - Si pasas un `color` explícito a `texturedMaterial()`, pisa la paleta. Es lo
   que dejaba los pasillos y los núcleos en gris frío después del cambio.
 
+### La interfaz también es cozy
+
+`src/style.css` **no** es pixel art cyberpunk: papel crema, tinta marrón y
+acento terracota. Los NOMBRES de las variables se conservan (`--cyan`,
+`--magenta`) aunque ya no describan su color, porque se usan desde ochenta
+sitios. Al escribir CSS nuevo:
+
+- El texto va en `var(--ink)` (o `--ink-soft` para lo secundario) y los
+  paneles en `--panel`/`--glass`. `var(--paper)` es CREMA: ponerlo como color
+  de texto sobre un panel lo deja invisible, que es exactamente lo que pasó
+  con medio HUD y con los menús al cambiar la paleta.
+- Para transparencias hay `rgba(var(--ink-rgb), a)` y
+  `rgba(var(--cyan-rgb), a)`. No metas `rgba(255,255,255,0.06)` (sobre crema
+  no se ve) ni `rgba(0,0,0,…)` (un filo negro duro rompe el conjunto).
+- Nada de halos de neón. Una sombra baja y cálida basta.
+
+Dos piezas montan el 3D DENTRO de la interfaz, y son la razón de que los
+menús y el diálogo ya no parezcan de otro juego:
+
+- `src/ui/portrait3d.js` — el retrato del diálogo es el mismo `Character3D`
+  del piso, encuadrado de busto, con la expresión atada al `mood` de la línea
+  y la boca abierta mientras corre la máquina de escribir. Solo dibuja con el
+  diálogo abierto. El pliego de píxeles se queda de reserva por si no hay
+  WebGL.
+- `src/ui/charshot.js` — la pantalla de selección es estática, así que cada
+  personaje sale como una FOTO (`toDataURL`) de un único renderer, no como un
+  lienzo vivo por tarjeta.
+
 Si tocas el HUD o el CSS, corre `npm run check:layout` antes de darlo por
 bueno: comprueba en seis tamaños de pantalla que nada se solape, se recorte
 ni se salga. Este tipo de fallo no se ve en el diff y es fácil que se cuele
@@ -181,6 +216,19 @@ en una captura.
   orden en que `update()` resuelve fingir/lugar seguro, corre
   `npm run check:safespots`: las dos cosas se pisan (fingir exige estar en un
   sitio seguro, y tu puesto exige fingir) y es fácil dejar un ciclo tonto.
+  Dos lugares seguros **no pueden solaparse**, ni repetir `id`: si se pisan,
+  uno se ocupa o se gasta y el otro te sigue cubriendo desde el mismo metro
+  cuadrado, así que la mecánica de "se gasta" deja de existir sin que nada
+  falle a la vista. Hubo un duplicado encima de la Sala 1 justo así.
+- **`scenes/piso7.json` → `areas[].doorSide`**: qué pared lleva la puerta
+  (`frente` = +z, por defecto; `fondo` = -z; `norte` = +x; `sur` = -x). En una
+  sala de vidrio es un hueco de VERDAD: puesta contra la fachada o contra el
+  bloque del vecino, la sala queda inentrable y el plano se ve idéntico. Es el
+  fallo más fácil de cometer y el más difícil de ver. `npm run check:doors`
+  comprueba que a cada sala se puede entrar y, si no, **dice qué lado sí
+  funciona** (recarga el juego probando los otros tres). También avisa cuando
+  la mesa se come la sala entera y no cabe nadie, que ninguna puerta arregla.
+  El builder pinta el hueco sobre la pared, así que ahí se ve de un vistazo.
 - **`scenes/piso7.json` → `barriers`**: el muro que separa las alas. Su
   `door` es un hueco de verdad, y el navmesh cuenta con él: si lo cierras,
   medio piso deja de ser alcanzable y `npm run check:reachable` lo canta.
@@ -213,6 +261,18 @@ en una captura.
   en `boss.js`). Bajarlo al suelo hace que, con la cámara oblicua, se dibuje
   encima del sprite y parezca salirle de la espalda. `npm run check:vision`
   vigila eso y que el haz no se desvíe del sprite más de media dirección.
+- **Una línea de diálogo con `narrator: true` no usa la caja**: se dibuja en
+  su propia tarjeta (`.vn-narrator`) y la caja se aparta con `vn-narrating`.
+  Estuvo con `bottom: -140px`, o sea entera fuera de pantalla, y como la
+  PRIMERA línea del día 1 es del narrador, el juego abría con un panel en
+  blanco esperando un clic que nadie sabía que había que dar. Si tocas ese
+  bloque, comprueba que la línea de Steven se lee al arrancar el día 1.
+- **La flecha de un rastreador esquiva lo que ya ocupa el borde**
+  (`src/ui/tracker.js`): la barra de arriba, la columna táctil, las tarjetas
+  de abajo, la franja de controles y la OTRA flecha. Cada bloqueo se mide del
+  DOM en cada frame porque todos cambian de tamaño con la pantalla; reservar
+  una banda fija solo acierta en un tamaño. `npm run check:layout` es lo que
+  lo vigila.
 - **Un secuaz te aborda solo cuando te TOCA** (`minionTouches` en `game.js`),
   no cuando te ve. Es un radio de contacto, no de interacción; subirlo
   reintroduce el "Crispo me habla desde el otro lado del pasillo".

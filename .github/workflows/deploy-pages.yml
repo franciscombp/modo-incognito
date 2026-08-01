@@ -39,6 +39,11 @@ jobs:
 
       - name: Build
         working-directory: pixel-office
+        # BUILD_ID sella los archivos de `public/` (ver vite.config.js). Con el
+        # id de la ejecución, cada publicación pide URLs que ninguna caché ha
+        # visto, y además se puede saber de qué deploy salió lo que se sirve.
+        env:
+          BUILD_ID: ${{ github.run_id }}-${{ github.run_attempt }}
         run: npm run build
 
       - uses: actions/configure-pages@v5
