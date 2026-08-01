@@ -16,119 +16,15 @@
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <!-- LOGIN SCREEN - CHARACTER SELECTION -->
-    <div id="login-screen" class="login-screen">
-      <div class="login-container">
-        <div class="login-left">
-          <div class="login-logo">
-            <h1>Modo Incógnito</h1>
-            <p>Elige tu personaje para esta jornada laboral</p>
-          </div>
-        </div>
-        <div class="login-right">
-          <div class="login-form">
-            <h2>Selecciona tu personaje</h2>
-            <p>Elige con quién vas a fingir hoy que trabajas</p>
-            <div id="character-grid" class="character-grid">
-              <!-- Characters will be loaded here -->
-            </div>
-            <button class="login-button" id="login-btn" disabled>Continuar</button>
-          </div>
-        </div>
+    <canvas id="scene"></canvas>
+    <div id="app">
+      <div id="boot">
+        <div class="boot-mark">MODO<br />INCÓGNITO</div>
+        <div class="boot-bar"><span></span></div>
+        <div class="boot-note">Cargando el Piso 10…</div>
       </div>
+      <div id="hint">WASD mover · Espacio usar/fingir · M plano · V sonido · Esc pausa · Q tareas</div>
     </div>
-
-    <!-- CORPORATE DASHBOARD -->
-    <div id="corporate-wrapper" class="corporate-wrapper hidden">
-      <!-- TOP BAR -->
-      <div class="corporate-topbar">
-        <div class="topbar-left">
-          <div class="topbar-logo" style="display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 1.2em;">🕵️</span>
-            Modo Privado
-          </div>
-          <div class="topbar-title" id="topbar-title">Piso 10</div>
-        </div>
-        <div class="topbar-right">
-          <div class="topbar-search">
-            <span style="opacity: 0.5;">🔍</span>
-            <input type="text" placeholder="Buscar..." />
-          </div>
-          <div class="topbar-profile" id="profile-menu">
-            <div class="profile-avatar" id="profile-avatar">JU</div>
-            <div class="profile-name" id="profile-name">Jugador</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- SIDEBAR -->
-      <div class="corporate-sidebar">
-        <!-- Actividades -->
-        <div class="sidebar-section">
-          <div class="sidebar-section-title">Actividades</div>
-          <a class="sidebar-item active" data-menu="game">
-            <span class="sidebar-icon">📋</span>
-            <span>Jornada Laboral</span>
-          </a>
-          <a class="sidebar-item" data-menu="stats">
-            <span class="sidebar-icon">📊</span>
-            <span>Estadísticas</span>
-          </a>
-          <a class="sidebar-item" data-menu="achievements">
-            <span class="sidebar-icon">🏆</span>
-            <span>Logros</span>
-          </a>
-        </div>
-
-        <!-- Herramientas -->
-        <div class="sidebar-section">
-          <div class="sidebar-section-title">Herramientas</div>
-          <a class="sidebar-item" data-menu="settings">
-            <span class="sidebar-icon">⚙️</span>
-            <span>Configuración</span>
-          </a>
-          <a class="sidebar-item" data-menu="help">
-            <span class="sidebar-icon">❓</span>
-            <span>Ayuda</span>
-          </a>
-        </div>
-
-        <!-- Creador -->
-        <div class="sidebar-section" style="flex: 1; display: flex; flex-direction: column; justify-content: flex-end;">
-          <div class="sidebar-section-title">Desarrollo</div>
-          <a class="sidebar-item" href="/creador/mapas/" target="_blank">
-            <span class="sidebar-icon">🗺️</span>
-            <span>Editor de Mapas</span>
-          </a>
-          <a class="sidebar-item" href="/creador/personajes/" target="_blank">
-            <span class="sidebar-icon">🎭</span>
-            <span>Editor de Personajes</span>
-          </a>
-          <a class="sidebar-item" href="/creador/musica/" target="_blank">
-            <span class="sidebar-icon">🎵</span>
-            <span>Editor de Música</span>
-          </a>
-          <a class="sidebar-item" href="/creador/pantallas/" target="_blank">
-            <span class="sidebar-icon">📱</span>
-            <span>Componentes</span>
-          </a>
-        </div>
-      </div>
-
-      <!-- MAIN CONTENT -->
-      <div class="corporate-main">
-        <canvas id="scene"></canvas>
-        <div id="app">
-          <div id="boot">
-            <div class="boot-mark">MODO<br />INCÓGNITO</div>
-            <div class="boot-bar"><span></span></div>
-            <div class="boot-note">Cargando el Piso 10…</div>
-          </div>
-          <div id="hint">WASD mover · Espacio usar/fingir · M plano · V sonido · Esc pausa · Q tareas</div>
-        </div>
-      </div>
-    </div>
-
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
