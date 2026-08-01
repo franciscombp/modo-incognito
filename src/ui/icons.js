@@ -70,6 +70,11 @@ const PATHS = {
   people: '<circle cx="8.5" cy="8" r="2.8"/><circle cx="16" cy="9" r="2.3"/><path d="M3.5 19a5 5 0 0110 0M14 19a4.3 4.3 0 016.5-3.7"/>',
   keyboard: '<rect x="2.5" y="6" width="19" height="12" rx="1.8"/><path d="M6 9.5h.01M9.5 9.5h.01M13 9.5h.01M16.5 9.5h.01M6 13h.01M18 13h.01M9.5 13h5"/>',
   restroom: '<circle cx="7.5" cy="5" r="1.8"/><path d="M7.5 7.5L5.5 14h1.3v6.5h1.4V14h1.3z"/><circle cx="16.5" cy="5" r="1.8"/><path d="M16.5 7.5L14 15h1.6l.3 5.5h1.2l.3-5.5H19z"/>',
+
+  // --- audio ---
+  'volume-x': '<path d="M3 9v6M3 12h4l5-5v16l-5-5H3M20.5 7.5A9 9 0 0120.5 16.5M16 10a6 6 0 010 8"/>',
+  'volume-1': '<path d="M3 9v6M3 12h4l5-5v16l-5-5H3M16 10a6 6 0 010 8"/>',
+  'volume-2': '<path d="M3 9v6M3 12h4l5-5v16l-5-5H3M16 10a6 6 0 010 8M20.5 7.5A9 9 0 0120.5 16.5"/>',
 };
 
 /** Alias, para que el contenido pueda llamarlos como le resulte natural. */
