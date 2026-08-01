@@ -7,6 +7,7 @@ import { characterShot } from "./charshot.js";
 // camera), how-to-play and pause. They all live in one overlay that swaps
 // screens, so only one thing can ever be on top of the game.
 
+const BUILD = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
 const SPRITE_BASE = `${import.meta.env.BASE_URL ?? "/"}sprites/`;
 
 // Cada uno posa a su manera en la tarjeta, para que la pantalla no sean cinco
@@ -172,7 +173,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
         thumb.style.backgroundImage = `url(${shot})`;
       } else if (mode.sheet) {
         const thumb = el("span", "px-char-sprite", card);
-        thumb.style.backgroundImage = `url(${SPRITE_BASE}${mode.sheet}.png)`;
+        thumb.style.backgroundImage = `url(${SPRITE_BASE}${mode.sheet}.png?v=${BUILD})`;
       } else {
         el("span", "px-day-num", card, mode.portrait ?? "🙂");
       }

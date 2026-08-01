@@ -48,11 +48,15 @@ const KINDS = {
       NUM("capacity", "sillas", { step: 1 }),
       SEL("tableShape", "mesa", ["rect", "round"]),
       SEL("labelPriority", "rótulo", [1, 2, 3]),
-      // Solo se usa si kind es "meeting" — qué pared de la sala de vidrio
-      // lleva el hueco de la puerta. Mismo eje que `wing`: norte = +x,
-      // sur = -x; frente = +z (por donde entra la jugadora desde los
-      // ascensores), fondo = -z.
-      SEL("doorSide", "puerta (solo meeting)", ["frente", "fondo", "norte", "sur"]),
+      // Qué pared lleva la puerta, en kind "meeting" (un hueco de verdad) y
+      // en kind "core" (decorado, el bloque es macizo). Mismo eje que `wing`:
+      // norte = +x, sur = -x; frente = +z (por donde entra la jugadora desde
+      // los ascensores), fondo = -z.
+      //
+      // Es lo que más fácil se pone mal: una puerta contra la fachada o
+      // contra el vecino deja la sala inentrable y el plano se ve idéntico.
+      // Lo caza `npm run check:doors`, que además dice qué lado sí funciona.
+      SEL("doorSide", "puerta (meeting/core)", ["frente", "fondo", "norte", "sur"]),
       TXT("color", "color"),
     ],
   },
@@ -369,6 +373,7 @@ function drawObject(kind, obj, index) {
     ctx.fillRect(a.x, a.y, w, h);
     ctx.strokeStyle = selected ? "#ffffff" : obj.color ?? def.color;
     ctx.strokeRect(a.x, a.y, w, h);
+    drawDoorGap(kind, obj, a, w, h);
     if (obj.name && state.view.scale > 9) label(obj.name, a.x + 5, a.y + 14, obj.color ?? def.color);
     return;
   }
@@ -390,6 +395,46 @@ function drawObject(kind, obj, index) {
   ctx.fill();
   const text = obj.label ?? obj.id ?? obj.type ?? "";
   if (text && state.view.scale > 15) label(text, p.x + 9, p.y + 4, def.color);
+}
+
+/**
+ * El hueco de la puerta, dibujado sobre la pared que le toca.
+ *
+ * Sin esto, una sala con la puerta contra la fachada se ve EXACTAMENTE igual
+ * que una bien puesta: el rectángulo es el mismo y `doorSide` es un desplegable
+ * que hay que ir a mirar uno por uno. Pintarlo convierte "no se puede entrar a
+ * esa sala" en algo que se ve de un vistazo.
+ */
+function drawDoorGap(kind, obj, a, w, h) {
+  if (kind !== "areas") return;
+  if (obj.kind !== "meeting" && obj.kind !== "core") return;
+  const side = obj.doorSide ?? "frente";
+
+  // Mismo cálculo que el motor (ver scene/builder.js): el hueco es el 40% de
+  // la pared, con un mínimo, y va centrado.
+  const along = side === "norte" || side === "sur" ? h : w;
+  const gap = Math.max(1.5 * state.view.scale, along * 0.4);
+  const cx = a.x + w / 2;
+  const cy = a.y + h / 2;
+
+  ctx.save();
+  // Un hueco en una sala de vidrio se atraviesa; en un núcleo es solo la hoja
+  // de la puerta pintada en el bloque. Se distinguen con línea llena/punteada.
+  ctx.strokeStyle = "#f2c744";
+  ctx.lineWidth = 3.5 * devicePixelRatio;
+  ctx.setLineDash(obj.kind === "core" ? [4 * devicePixelRatio, 3 * devicePixelRatio] : []);
+  ctx.beginPath();
+  if (side === "frente" || side === "fondo") {
+    const y = side === "frente" ? a.y + h : a.y;
+    ctx.moveTo(cx - gap / 2, y);
+    ctx.lineTo(cx + gap / 2, y);
+  } else {
+    const x = side === "norte" ? a.x + w : a.x;
+    ctx.moveTo(x, cy - gap / 2);
+    ctx.lineTo(x, cy + gap / 2);
+  }
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawBarriers() {

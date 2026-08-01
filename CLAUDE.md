@@ -60,6 +60,13 @@ compila `pixel-office/` en CI y publica `dist/` como artefacto de Pages.
 pushear — si tocaste `pixel-office/src/` o `pixel-office/public/data/`, con
 el commit y push normales basta; el workflow se encarga del resto.
 
+**Cachés:** Vite le pone un hash al JS y al CSS, pero lo de `public/` (los
+JSON de contenido, los pliegos) se sirve con su nombre de siempre y el
+navegador se lo queda. Por eso cada build lleva un sello, `__BUILD_ID__`
+(`vite.config.js`, y `BUILD_ID` = id de la ejecución en el workflow), que se
+cuelga como `?v=` de esas URLs. Si añades una ruta nueva a algo de `public/`,
+cuélgale el sello también o publicarás cambios que nadie verá.
+
 ## Dónde se extiende el juego (no metas esto en el motor)
 
 Dos registros aislados a propósito. Si te piden "añade un efecto" o "añade un
@@ -209,6 +216,19 @@ en una captura.
   orden en que `update()` resuelve fingir/lugar seguro, corre
   `npm run check:safespots`: las dos cosas se pisan (fingir exige estar en un
   sitio seguro, y tu puesto exige fingir) y es fácil dejar un ciclo tonto.
+  Dos lugares seguros **no pueden solaparse**, ni repetir `id`: si se pisan,
+  uno se ocupa o se gasta y el otro te sigue cubriendo desde el mismo metro
+  cuadrado, así que la mecánica de "se gasta" deja de existir sin que nada
+  falle a la vista. Hubo un duplicado encima de la Sala 1 justo así.
+- **`scenes/piso7.json` → `areas[].doorSide`**: qué pared lleva la puerta
+  (`frente` = +z, por defecto; `fondo` = -z; `norte` = +x; `sur` = -x). En una
+  sala de vidrio es un hueco de VERDAD: puesta contra la fachada o contra el
+  bloque del vecino, la sala queda inentrable y el plano se ve idéntico. Es el
+  fallo más fácil de cometer y el más difícil de ver. `npm run check:doors`
+  comprueba que a cada sala se puede entrar y, si no, **dice qué lado sí
+  funciona** (recarga el juego probando los otros tres). También avisa cuando
+  la mesa se come la sala entera y no cabe nadie, que ninguna puerta arregla.
+  El builder pinta el hueco sobre la pared, así que ahí se ve de un vistazo.
 - **`scenes/piso7.json` → `barriers`**: el muro que separa las alas. Su
   `door` es un hueco de verdad, y el navmesh cuenta con él: si lo cierras,
   medio piso deja de ser alcanzable y `npm run check:reachable` lo canta.
