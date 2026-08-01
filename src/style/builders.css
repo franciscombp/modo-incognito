@@ -1,0 +1,543 @@
+/* =====================================================================
+   BUILDERS UI FRAMEWORK · Modo Incógnito
+
+   Componentes comunes para todas las herramientas de creación (builders).
+   Reutiliza tokens del design-system pero crea una interfaz de desarrollo
+   coherente. Mantiene la paleta cozy incluso en herramientas "oscuras".
+
+   Todas los builders importan:
+   1. design-system.css (variables y base)
+   2. builders.css (esta archivo - componentes comunes)
+   3. {builder}.css (estilos específicos del builder)
+   ===================================================================== */
+
+/* ─────────────────────────────────────────────────────────────────
+   AJUSTE DE VARIABLES PARA MODO BUILDER
+   Los builders usan una paleta más oscura pero dentro de la familia cozy
+   ───────────────────────────────────────────────────────────────── */
+
+:root {
+  /* Override de paleta builder (más oscuro pero terracota, no cian) */
+  --builder-bg: #f5ede1;               /* Crema muy suave */
+  --builder-panel: #ede3d5;            /* Crema con más contraste */
+  --builder-panel-dark: #e5d9c9;       /* Crema más oscuro para paneles activos */
+  --builder-text: #3a3028;             /* Marrón oscuro (reutiliza ink) */
+  --builder-text-secondary: #7c6b58;   /* Marrón cálido medio (ink-soft) */
+  --builder-text-tertiary: #9a8d7c;    /* Marrón cálido apagado (dim) */
+  --builder-border: rgba(122, 107, 88, 0.25);  /* Borde marrón semitransparente */
+  --builder-accent: var(--accent-primary);    /* Terracota del design-system */
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   RESET GLOBAL BUILDERS
+   ───────────────────────────────────────────────────────────────── */
+
+body.builder {
+  background-color: var(--builder-bg);
+  color: var(--builder-text);
+  font-family: var(--sans);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   BARRA SUPERIOR (HEADER)
+   Comun a todos los builders
+   ───────────────────────────────────────────────────────────────── */
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(237, 227, 213, 0.98),
+    rgba(229, 217, 201, 0.96)
+  );
+  border-bottom: 1px solid var(--builder-border);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.bar h1 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--builder-accent);
+  flex: 0 1 auto;
+}
+
+.bar h1 span {
+  color: var(--builder-text-tertiary);
+  font-weight: 400;
+}
+
+.bar-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.bar-group.right {
+  margin-left: auto;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   BOTONES Y CONTROLES
+   Unificados: todos usan los mismos estilos base
+   ───────────────────────────────────────────────────────────────── */
+
+button,
+.btn,
+.file {
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--builder-text);
+  background: var(--builder-panel);
+  border: 1px solid var(--builder-border);
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+button:hover,
+.btn:hover,
+.file:hover {
+  background: var(--builder-panel-dark);
+  border-color: var(--builder-accent);
+  color: var(--builder-accent);
+}
+
+button:active,
+.btn:active {
+  transform: translateY(1px);
+}
+
+button:disabled,
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Botón primario */
+button.primary,
+.btn.primary {
+  background: var(--builder-accent);
+  color: white;
+  border-color: var(--builder-accent);
+}
+
+button.primary:hover,
+.btn.primary:hover {
+  background: var(--accent-primary-hover);
+  border-color: var(--accent-primary-hover);
+}
+
+/* Botón secundario */
+button.secondary,
+.btn.secondary {
+  background: transparent;
+  color: var(--builder-text-secondary);
+  border-color: var(--builder-border);
+}
+
+button.secondary:hover,
+.btn.secondary:hover {
+  background: var(--builder-panel);
+  color: var(--builder-text);
+  border-color: var(--builder-accent);
+}
+
+/* Botón de peligro */
+button.danger {
+  border-color: var(--state-error);
+  color: var(--state-error);
+}
+
+button.danger:hover {
+  background: rgba(207, 90, 81, 0.1);
+}
+
+/* Input de archivo */
+input[type="file"] {
+  display: none;
+}
+
+label.file {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   PANELES LATERALES (SIDEBARS)
+   ───────────────────────────────────────────────────────────────── */
+
+.panel {
+  background: var(--builder-panel);
+  border: 1px solid var(--builder-border);
+  overflow-y: auto;
+  padding: 12px;
+  font-size: 13px;
+}
+
+.panel.left {
+  border-right: 1px solid var(--builder-border);
+}
+
+.panel.right {
+  border-left: 1px solid var(--builder-border);
+}
+
+.panel h2 {
+  margin: 12px 0 8px 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--builder-accent);
+}
+
+.panel h3 {
+  margin: 8px 0 4px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--builder-text);
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   TABS (PESTAÑAS)
+   Comun para navegación en paneles
+   ───────────────────────────────────────────────────────────────── */
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--builder-border);
+  margin-bottom: 12px;
+}
+
+.tab {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--builder-text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab:hover {
+  background: rgba(237, 227, 213, 0.5);
+  color: var(--builder-text);
+}
+
+.tab.on {
+  color: var(--builder-accent);
+  border-bottom-color: var(--builder-accent);
+}
+
+.tabpage {
+  display: none;
+}
+
+.tabpage.on {
+  display: block;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   AREA PRINCIPAL (STAGE/CANVAS)
+   ───────────────────────────────────────────────────────────────── */
+
+.stage {
+  position: relative;
+  background: var(--builder-bg);
+  overflow: hidden;
+}
+
+/* Canvas 2D */
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* HUD en canvas */
+.hud {
+  position: absolute;
+  left: 10px;
+  bottom: 10px;
+  font-size: 11px;
+  color: var(--builder-text-tertiary);
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
+}
+
+/* Advertencia superpuesta */
+.warn {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  max-width: 320px;
+  padding: 8px 10px;
+  font-size: 11px;
+  color: var(--state-error);
+  background: rgba(255, 240, 240, 0.95);
+  border: 1px solid var(--state-error);
+  border-radius: 4px;
+}
+
+.warn.hidden {
+  display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   FORMULARIOS Y INPUTS
+   ───────────────────────────────────────────────────────────────── */
+
+input[type="text"],
+input[type="number"],
+input[type="color"],
+input[type="range"],
+textarea,
+select {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--builder-border);
+  border-radius: 3px;
+  background: white;
+  color: var(--builder-text);
+  transition: border-color 0.2s ease;
+}
+
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="color"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--builder-accent);
+  box-shadow: 0 0 0 2px rgba(194, 121, 90, 0.1);
+}
+
+input[type="range"] {
+  cursor: pointer;
+}
+
+.field {
+  margin-bottom: 9px;
+}
+
+.field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--builder-text-secondary);
+  margin-bottom: 3px;
+}
+
+.field.pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+/* Checkboxes */
+.checks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checks label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--builder-text);
+  cursor: pointer;
+}
+
+.checks input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   NOTIFICACIONES (TOAST)
+   ───────────────────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  padding: 10px 16px;
+  background: var(--builder-accent);
+  color: white;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  z-index: 1000;
+  box-shadow: var(--shadow-md);
+  animation: toast-slide 0.3s ease-out;
+}
+
+.toast.hidden {
+  display: none;
+}
+
+@keyframes toast-slide {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   TEXTO DE AYUDA
+   ───────────────────────────────────────────────────────────────── */
+
+.help {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--builder-text-secondary);
+  line-height: 1.6;
+  background: rgba(237, 227, 213, 0.5);
+  border-radius: 3px;
+  border-left: 3px solid var(--builder-accent);
+}
+
+.help code {
+  background: rgba(122, 107, 88, 0.1);
+  color: var(--builder-accent);
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-family: var(--mono);
+}
+
+.help b {
+  color: var(--builder-text);
+  font-weight: 600;
+}
+
+.help dl {
+  margin: 8px 0;
+}
+
+.help dt {
+  color: var(--builder-text);
+  margin-top: 6px;
+  margin-bottom: 2px;
+  font-weight: 600;
+}
+
+.help dd {
+  margin-left: 16px;
+  margin-bottom: 4px;
+  color: var(--builder-text-secondary);
+}
+
+.help dd ul {
+  margin: 2px 0;
+  padding-left: 20px;
+  color: var(--builder-text-secondary);
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--builder-text-tertiary);
+  margin: -2px 0 8px 0;
+  line-height: 1.5;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   UTILIDADES
+   ───────────────────────────────────────────────────────────────── */
+
+.hidden {
+  display: none !important;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  border: 1px solid transparent;
+  border-radius: 2px;
+}
+
+.row:hover {
+  background: var(--builder-panel-dark);
+}
+
+.row.on {
+  border-color: var(--builder-accent);
+  color: var(--builder-accent);
+  background: rgba(194, 121, 90, 0.05);
+}
+
+.row .tag {
+  margin-left: auto;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  opacity: 0.6;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   ESTRUCTURA RESPONSIVE
+   ───────────────────────────────────────────────────────────────── */
+
+main {
+  display: grid;
+  grid-template-columns: 280px 1fr 280px;
+  height: calc(100vh - 49px);
+  gap: 0;
+}
+
+/* En pantallas pequeñas, ocultar paneles laterales */
+@media (max-width: 1024px) {
+  main {
+    grid-template-columns: 1fr;
+  }
+  .panel {
+    display: none;
+  }
+  .panel.left {
+    display: block;
+    position: fixed;
+    left: 0;
+    top: 49px;
+    width: 100%;
+    height: calc(100vh - 49px);
+    z-index: 200;
+    overflow-y: auto;
+  }
+}

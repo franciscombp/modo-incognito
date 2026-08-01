@@ -1,0 +1,328 @@
+/* =====================================================================
+   BUILDER DE MÚSICA · Estilos Específicos
+   ===================================================================== */
+
+/* ─────────────────────────────────────────────────────────────────
+   PROPIEDADES DE LA PISTA
+   ───────────────────────────────────────────────────────────────── */
+
+.properties {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.param-group {
+  display: grid;
+  gap: 8px;
+}
+
+.param-group label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--builder-text);
+}
+
+.param-group input {
+  padding: 6px 8px;
+  border: 1px solid var(--builder-border);
+  border-radius: 3px;
+  background: white;
+  color: var(--builder-text);
+  font-size: 13px;
+}
+
+.param-group input:focus {
+  outline: none;
+  border-color: var(--builder-accent);
+}
+
+.param-group input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   CAPAS (LAYERS)
+   ───────────────────────────────────────────────────────────────── */
+
+.layers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--builder-text);
+}
+
+.layer input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--builder-accent);
+}
+
+.layer label {
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   MIXER (MIX)
+   ───────────────────────────────────────────────────────────────── */
+
+.mix {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mix label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--builder-text);
+}
+
+.mix input[type="range"] {
+  flex: 1;
+  height: 6px;
+  border: none;
+  border-radius: 3px;
+  background: var(--builder-border);
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.mix input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--builder-accent);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(58, 48, 40, 0.2);
+}
+
+.mix input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--builder-accent);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 1px 3px rgba(58, 48, 40, 0.2);
+}
+
+.mix input[type="range"]:disabled {
+  opacity: 0.5;
+}
+
+.mix span {
+  color: var(--builder-accent);
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
+  font-size: 11px;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   REFERENCIAS DE NOTAS
+   ───────────────────────────────────────────────────────────────── */
+
+.note-ref {
+  font-size: 11px;
+  color: var(--builder-text-secondary);
+  background: rgba(194, 121, 90, 0.05);
+  padding: 10px;
+  border-radius: 3px;
+  border-left: 3px solid var(--builder-accent);
+  line-height: 1.5;
+}
+
+.note-ref p {
+  margin: 4px 0;
+}
+
+.note-ref strong {
+  color: var(--builder-accent);
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   SECUENCIADOR (SEQUENCER)
+   ───────────────────────────────────────────────────────────────── */
+
+.sequencer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  flex: 1;
+}
+
+.layer-track {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.layer-name {
+  font-weight: 600;
+  color: var(--builder-accent);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.step-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(36px, 1fr));
+  gap: 4px;
+  padding: 8px;
+  background: var(--builder-panel-dark);
+  border-radius: 3px;
+  min-height: 44px;
+  border: 1px solid var(--builder-border);
+}
+
+.step {
+  min-height: 36px;
+  padding: 2px 4px;
+  border: 1px solid var(--builder-border);
+  border-radius: 2px;
+  background: white;
+  font-size: 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 1px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  color: var(--builder-text);
+  font-weight: 500;
+  word-break: break-all;
+  position: relative;
+}
+
+.step:hover {
+  background: rgba(194, 121, 90, 0.1);
+  border-color: var(--builder-accent);
+}
+
+.step.null {
+  background: var(--builder-panel);
+  color: var(--builder-text-tertiary);
+  font-style: italic;
+}
+
+.step.chord {
+  background: var(--state-warning);
+  color: white;
+  font-weight: 600;
+}
+
+.step.playing {
+  border-color: var(--builder-accent);
+  box-shadow: 0 0 0 2px var(--builder-accent), 0 0 6px rgba(194, 121, 90, 0.4);
+}
+
+.step-label {
+  flex: 1;
+  min-height: 14px;
+}
+
+.step-arrows {
+  display: flex;
+  justify-content: space-between;
+  gap: 2px;
+}
+
+.step-arrow {
+  flex: 1;
+  padding: 0;
+  font-size: 8px;
+  line-height: 1;
+  min-height: 12px;
+  background: rgba(58, 48, 40, 0.1);
+  color: var(--builder-text-secondary);
+  border: none;
+  border-radius: 1px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.step-arrow:hover {
+  background: rgba(58, 48, 40, 0.2);
+  color: var(--builder-accent);
+}
+
+.step input {
+  background: transparent;
+  border: none;
+  color: inherit;
+  width: 100%;
+  text-align: center;
+  font-size: 10px;
+  padding: 1px;
+  font-family: var(--mono);
+}
+
+.step input:focus {
+  outline: 1px solid var(--builder-accent);
+  outline-offset: -1px;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   CONTROLES Y INFORMACIÓN
+   ───────────────────────────────────────────────────────────────── */
+
+.controls {
+  display: flex;
+  gap: 8px;
+}
+
+.controls button {
+  flex: 1;
+}
+
+.info {
+  font-size: 12px;
+  color: var(--builder-text-secondary);
+  line-height: 1.6;
+}
+
+.info strong {
+  color: var(--builder-accent);
+  font-weight: 600;
+}
+
+.playing-indicator {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--builder-accent);
+  animation: pulse-live 1s ease-in-out infinite;
+}
+
+@keyframes pulse-live {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
