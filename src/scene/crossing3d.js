@@ -255,7 +255,7 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   const key = new THREE.DirectionalLight(0xfff0d4, 1.15);
   key.position.set(10 * S, 30 * S, 6 * S);
   scene.add(key);
-  // Relleno desde el lado de la cámara: la fachada del banco mira hacia -Z y
+  // Relleno desde el lado de la cámara: la fachada de la institución mira hacia -Z y
   // sin esto se veía como un rectángulo negro al fondo de la calle.
   const fill = new THREE.DirectionalLight(0xf0e6ff, 0.75);
   fill.position.set(-4 * S, 12 * S, -20 * S);
@@ -336,7 +336,7 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
     }
   });
 
-  // ---- El edificio del banco, al fondo: es lo que da sentido a caminar
+  // ---- El edificio de la institución, al fondo: es lo que da sentido a caminar
   // hacia allá. Con la cámara detrás, es lo único que llena el horizonte.
   const facade = new THREE.Mesh(
     new THREE.BoxGeometry(ROAD_WIDTH * 1.6, 12 * S, 4 * S),
@@ -368,11 +368,11 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   door.position.set(0, 0.95 * S, GOAL_ROW * LANE_DEPTH + 1.19 * S);
   roadGroup.add(door);
 
-  // ---- Fondo de ciudad, para que no se vea cielo alrededor del banco ----
-  // El edificio del banco por sí solo, por ancho que sea, se ve al fondo como
+  // ---- Fondo de ciudad, para que no se vea cielo alrededor de la institución ----
+  // El edificio de la institución por sí solo, por ancho que sea, se ve al fondo como
   // una caja flotando en cielo abierto por los lados: a esa distancia
   // subtiende pocos grados de cámara. Una franja baja y MUY ancha detrás
-  // cierra el horizonte con un perfil de azotea sin competir con el banco.
+  // cierra el horizonte con un perfil de azotea sin competir con la institución.
   const skyline = new THREE.Mesh(
     new THREE.BoxGeometry(ROAD_WIDTH * 6, 9 * S, 3 * S),
     new THREE.MeshLambertMaterial({ color: 0x3a4256 })
@@ -419,7 +419,7 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   // ---- Peatones: la avenida estaba desierta salvo por los coches, y eso la
   // hacía leerse como un tablero en vez de como una calle. Son las mismas
   // variantes de gente que pueblan el piso, caminando por la acera, el
-  // parterre y la puerta del banco. No colisionan con nada: son ambiente.
+  // parterre y la puerta de la institución. No colisionan con nada: son ambiente.
   const PEDESTRIAN_ROWS = [0, 5, GOAL_ROW];
   const pedestrians = (sheets.crowd ?? [])
     .filter(Boolean)
