@@ -547,10 +547,9 @@ export class Character3D {
       this._walkAction.setEffectiveWeight(0);
     }
 
-    // Aplicar la pose REST a los huesos importados para establecer una postura
-    // natural como base. Esto reemplaza la pose T del modelo con la pose REST
-    // procedural, que es la que mantiene al personaje de pie de forma natural.
-    this._applyRestPose(bones);
+    // El T-pose del archivo es SAGRADO: todas las rotaciones se aplican de forma
+    // relativa a él. NO aplicar la pose REST de forma absoluta, que daña el esqueleto.
+    // El restQuat ya fue guardado líneas arriba (468), eso es suficiente.
     this._hipRest = bones.get("Hips").position.y;
     this._applyPose();
     this.setTint(this._tint);
@@ -791,28 +790,6 @@ export class Character3D {
     this._applyPose();
   }
 
-  /** Aplica la pose REST a los huesos importados de forma ABSOLUTA (no relativa),
-   *  estableciendo una postura natural como su nuevo reposo. */
-  _applyRestPose(bones) {
-    // Limpiar el restQuat para que setBoneRotation escriba directamente,
-    // no de forma relativa al T-pose guardado del archivo.
-    for (const bone of bones.values()) {
-      bone.userData.restQuat = null;
-    }
-
-    // Aplicar la pose REST directamente, sin relativizar a la T-pose.
-    for (const [name, angles] of Object.entries(REST)) {
-      const bone = bones.get(BONE_OF[name]);
-      if (!bone || name === "lift" || name === "hands") continue;
-      setBoneRotation(bone, angles[0], angles[1], angles[2]);
-    }
-
-    // Guardar la nueva postura como el reposo, no la del archivo.
-    for (const bone of bones.values()) {
-      bone.userData.restQuat = bone.quaternion.clone();
-    }
-  }
-
   _updateTurn(dt) {
     let delta = this._targetYaw - this._yaw;
     while (delta > Math.PI) delta -= Math.PI * 2;
@@ -885,8 +862,13 @@ export class Character3D {
     const set = (key, extraX = 0) => {
       const bone = byName.get(BONE_OF[key]);
       if (!bone) return;
-      const [x, y, z] = angles(key);
-      setBoneRotation(bone, x * blend + extraX, y * blend, z * blend);
+      const rest = REST[key];
+      const target = angles(key);
+      // Interpolar entre REST (blend=0) y target pose (blend=1)
+      const x = rest[0] + (target[0] - rest[0]) * blend + extraX;
+      const y = rest[1] + (target[1] - rest[1]) * blend;
+      const z = rest[2] + (target[2] - rest[2]) * blend;
+      setBoneRotation(bone, x, y, z);
     };
 
     set("torso");
