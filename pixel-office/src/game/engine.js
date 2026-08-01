@@ -5,7 +5,7 @@ import { setMood, playStinger, updateMoodFromSnapshot } from "./soundtrack.js";
 import { createDialogue } from "./dialogue.js";
 import { createSave } from "./save.js";
 import { applyTheme } from "./themes.js";
-import { createMenus, rankFor } from "../ui/menus.js";
+import { createMenus } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
@@ -596,8 +596,9 @@ export function createEngine({
     inLevel = false;
     playStinger(result.win ? "victory" : "defeat");
     save.setHadWarningYesterday(result.warnings > 0);
-    if (result.win) save.completeDay(day.id, { seconds: Math.round(result.elapsed) });
-    else save.recordScore(day.id, { timeLeft: result.timeLeft });
+    const spare = Math.max(0, Math.round(result.timeLeft));
+    if (result.win) save.completeDay(day.id, { seconds: Math.round(result.elapsed), spare });
+    else save.recordSpare(day.id, spare);
 
     await dialogue.play(withSprites((result.win ? day.outroWin : day.outroLose) ?? []), ctx);
 
@@ -625,7 +626,7 @@ export function createEngine({
         ? day.winTitle ?? (isLast ? "Semana completada" : `${day.title}: superado`)
         : "Te ascendieron a cliente",
       timeLeft: result.timeLeft,
-      levelDuration: result.elapsed > 0 ? (result.elapsed + result.timeLeft) : day.rules?.duration,
+      timeGained: result.timeGained,
       body: result.win
         ? `${done}/${result.objectives.length} actividades · ${result.eggsFound} secretos hoy`
         : result.warnings >= (day.rules?.maxWarnings ?? 3)

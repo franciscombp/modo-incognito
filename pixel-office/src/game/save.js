@@ -9,7 +9,10 @@ const EMPTY = {
   eggs: [],
   flags: {},
   bestTimes: {},
-  bestScores: {},
+  // Lo mejor de un día ya no son puntos: es el tiempo que te SOBRÓ al
+  // terminarlo. Los saves antiguos traen un `bestScores` en puntos que ya no
+  // lee nadie; `read()` los fusiona sobre EMPTY, así que estorbar no estorba.
+  bestSpare: {},
   characterId: null,
   hadWarningYesterday: false,
 };
@@ -60,22 +63,24 @@ export function createSave() {
       state.hadWarningYesterday = !!value;
       write(state);
     },
-    completeDay(dayId, { seconds, score } = {}) {
+    completeDay(dayId, { seconds, spare } = {}) {
       if (!state.completedDays.includes(dayId)) state.completedDays.push(dayId);
       if (seconds != null) {
         const prev = state.bestTimes[dayId];
         if (prev == null || seconds < prev) state.bestTimes[dayId] = seconds;
       }
-      if (score != null) {
-        const prev = state.bestScores[dayId];
-        if (prev == null || score > prev) state.bestScores[dayId] = score;
+      if (spare != null) {
+        const prev = state.bestSpare[dayId];
+        if (prev == null || spare > prev) state.bestSpare[dayId] = spare;
       }
       write(state);
     },
-    recordScore(dayId, score) {
-      const prev = state.bestScores[dayId];
-      if (prev == null || score > prev) {
-        state.bestScores[dayId] = score;
+    /** Cuánto reloj te sobró, aunque no completaras el día. */
+    recordSpare(dayId, spare) {
+      if (spare == null) return;
+      const prev = state.bestSpare[dayId];
+      if (prev == null || spare > prev) {
+        state.bestSpare[dayId] = spare;
         write(state);
       }
     },
@@ -99,7 +104,7 @@ export function createSave() {
       return state.flags[name];
     },
     reset() {
-      state = { ...EMPTY, completedDays: [], eggs: [], flags: {}, bestTimes: {}, bestScores: {} };
+      state = { ...EMPTY, completedDays: [], eggs: [], flags: {}, bestTimes: {}, bestSpare: {} };
       write(state);
     },
   };

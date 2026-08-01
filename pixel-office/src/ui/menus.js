@@ -37,17 +37,16 @@ function button(parent, label, { primary = false, icon = "", onClick, back = fal
   return btn;
 }
 
-const RANKS = [
-  { min: 1, label: "S", blurb: "Fantasma corporativo" },
-  { min: 0.8, label: "A", blurb: "Prácticamente invisible" },
-  { min: 0.6, label: "B", blurb: "Sospechosamente eficiente" },
-  { min: 0.35, label: "C", blurb: "Te vieron un par de veces" },
-  { min: 0, label: "D", blurb: "Necesitas practicar" },
-];
-
-export function rankFor(score, target) {
-  const ratio = target > 0 ? score / target : 0;
-  return RANKS.find((r) => ratio >= r.min) ?? RANKS[RANKS.length - 1];
+/**
+ * Ya no hay puntuación ni rangos: la única moneda es el reloj. Lo que se
+ * enseña de un día terminado es cuánta jornada te sobró — cuanto más, mejor
+ * te escondiste.
+ */
+export function formatSpare(seconds) {
+  const s = Math.max(0, Math.round(seconds));
+  if (s < 60) return `+${s}s de sobra`;
+  const m = Math.floor(s / 60);
+  return `+${m}:${String(s % 60).padStart(2, "0")} de sobra`;
 }
 
 /**
@@ -122,11 +121,8 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
       el("span", "px-day-num", card, String(lvl.number).padStart(2, "0"));
       el("span", "px-day-name", card, lvl.title);
       el("span", "px-day-sub", card, unlocked ? lvl.subtitle ?? "" : "Bloqueado");
-      const best = save.state.bestScores?.[lvl.id];
-      if (best != null) {
-        const r = rankFor(best, lvl.rules?.targetScore ?? 1);
-        el("span", "px-day-best", card, `${best} pts · ${r.label}`);
-      }
+      const best = save.state.bestSpare?.[lvl.id];
+      if (best != null) el("span", "px-day-best", card, formatSpare(best));
       card.addEventListener("click", () => {
         if (!unlocked) return;
         buzz(10);

@@ -83,7 +83,7 @@ const KINDS = {
       area: "",
       riskRate: 20,
       time: 4,
-      points: 150,
+      reward: 25,
       pose: "coffee",
     }),
     fields: [
@@ -95,7 +95,7 @@ const KINDS = {
       TXT("area", "zona"),
       NUM("riskRate", "riesgo/s"),
       NUM("time", "segundos"),
-      NUM("points", "puntos", { step: 10 }),
+      NUM("reward", "reloj que da (s)", { step: 1 }),
     ],
   },
   safeSpots: {
