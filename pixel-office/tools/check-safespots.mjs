@@ -42,6 +42,24 @@ const out = await page.evaluate(async () => {
   const desk = spots.find((s) => s.kind === "desk");
   const res = { hasMeeting: !!meeting, hasDesk: !!desk };
 
+  // Dos lugares seguros SOLAPADOS se anulan entre sí sin que se note: uno se
+  // ocupa o se gasta y el otro te sigue cubriendo desde el mismo metro
+  // cuadrado, así que la sala nunca deja de servir. Estuvo así con un
+  // duplicado encima de la Sala 1, y desde fuera parecía que la mecánica de
+  // "se gasta" no funcionaba.
+  res.overlaps = [];
+  res.duplicateIds = [];
+  const seen = new Set();
+  spots.forEach((a, i) => {
+    if (seen.has(a.id)) res.duplicateIds.push(a.id);
+    seen.add(a.id);
+    spots.slice(i + 1).forEach((b) => {
+      if (Math.hypot(a.x - b.x, a.z - b.z) < a.radius + b.radius) {
+        res.overlaps.push(`${a.id} ∩ ${b.id}`);
+      }
+    });
+  });
+
   /** Coloca a la jugadora, mantiene (o no) F, y devuelve qué pasa. */
   async function probe({ at, pretend, ms = 700 }) {
     player.keys.clear();
@@ -90,9 +108,19 @@ const out = await page.evaluate(async () => {
   // mediría dos cosas a la vez.
   game.safeSpotState[mi].nextBusy = Infinity;
   player.keys.clear();
+  // Se la ancla en el sitio EN CADA VUELTA, no solo al empezar. El cupo solo
+  // baja mientras estás dentro, y en medio minuto cualquier empujón (un
+  // secuaz, la colisión con un mueble) la sacaba del radio: la sala dejaba de
+  // gastarse a media cuenta y la comprobación fallaba una de cada tres veces
+  // sin que hubiera nada roto.
+  for (let i = 0; i < 90 && game.safeSpotCharge(mi) > 0; i++) {
+    player.position.x = meeting.x;
+    player.position.z = meeting.z;
+    await sleep(500);
+  }
   player.position.x = meeting.x;
   player.position.z = meeting.z;
-  for (let i = 0; i < 90 && game.safeSpotCharge(mi) > 0; i++) await sleep(500);
+  await sleep(200);
   res.meetingAfterBudget = { inSafeSpot: game.inSafeSpot, charge: game.safeSpotCharge(mi) };
 
   return res;
@@ -108,6 +136,15 @@ function assert(label, ok) {
 
 assert("el plano define alguna sala de reuniones como lugar seguro", out.hasMeeting);
 assert("el plano define tu puesto como lugar seguro", out.hasDesk);
+
+assert(
+  `ningún lugar seguro se solapa con otro${out.overlaps?.length ? ` (${out.overlaps.join(", ")})` : ""}`,
+  out.overlaps?.length === 0
+);
+assert(
+  `ningún id de lugar seguro está repetido${out.duplicateIds?.length ? ` (${out.duplicateIds.join(", ")})` : ""}`,
+  out.duplicateIds?.length === 0
+);
 
 assert("fuera de un lugar seguro, mantener F no finge nada", out.corridor?.pretending === false);
 assert("fuera de un lugar seguro no estás a cubierto", out.corridor?.inSafeSpot === false);

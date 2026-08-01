@@ -15,7 +15,8 @@ const NEXT_KEYS = new Set(["arrowdown", "s", "tab"]);
 const PREV_KEYS = new Set(["arrowup", "w"]);
 
 const BASE = import.meta.env.BASE_URL ?? "/";
-const spriteUrl = (name) => `${BASE}sprites/${name}.png`;
+const BUILD = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
+const spriteUrl = (name) => `${BASE}sprites/${name}.png?v=${BUILD}`;
 // Cada hoja es una rejilla de 4x4 (128x176 px, marcos de 32x44): fila 0 es la
 // cara sur y columna 0 es el fotograma de reposo — el retrato usa justo esa
 // esquina, ampliada x4 sin interpolar (ver .vn-portrait-sprite en style.css).
