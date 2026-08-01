@@ -40,13 +40,20 @@ function init() {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   scene = new THREE.Scene();
-  scene.add(new THREE.AmbientLight(0xfff4e6, 1.5));
-  const key = new THREE.DirectionalLight(0xfff0d4, 1.45);
+  // Luz de "render de producto", como las maquetas isométricas de referencia:
+  // menos ambiente plano, una hemisférica que separa arriba de abajo, key
+  // cálida y un canto frío por detrás que despega el muñeco del fondo claro.
+  scene.add(new THREE.AmbientLight(0xfff4e6, 1.05));
+  scene.add(new THREE.HemisphereLight(0xffffff, 0xd8cec2, 0.7));
+  const key = new THREE.DirectionalLight(0xfff0d4, 1.35);
   key.position.set(-2, 4, 3.5);
   scene.add(key);
-  const fill = new THREE.DirectionalLight(0xf0e6ff, 0.7);
+  const fill = new THREE.DirectionalLight(0xf0e6ff, 0.55);
   fill.position.set(2.5, 1.5, -2);
   scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xeaf6ff, 0.9);
+  rim.position.set(1.6, 2.6, -3);
+  scene.add(rim);
 
   // Cuerpo entero, de la coronilla a los zapatos, con un dedo de aire.
   camera = new THREE.PerspectiveCamera(28, W / H, 0.1, 30);

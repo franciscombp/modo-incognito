@@ -10,8 +10,10 @@
     "y en el siguiente build aparece aquí solo. Ver public/models/README.md."
   ],
   "bodies": {
+    "enriquetta": "enriquetta.glb",
     "gabo": "gabo.glb",
-    "giuli": "giuli.glb"
+    "giuli": "giuli.glb",
+    "kiara": "kiara.glb"
   },
   "faces": {}
 }

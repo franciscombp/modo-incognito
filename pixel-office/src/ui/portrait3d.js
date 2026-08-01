@@ -73,12 +73,15 @@ export function createPortrait3D(host) {
     // Luz cálida y frontal, la misma receta que el piso: la clave desde arriba
     // a la izquierda marca el mentón (que es lo que da el carácter en este
     // estilo) y el relleno evita que el otro lado se vaya a negro.
-    scene.add(new THREE.AmbientLight(0xfff4e6, 1.5));
-    const key = new THREE.DirectionalLight(0xfff0d4, 1.5);
+    scene.add(new THREE.AmbientLight(0xfff4e6, 1.1));
+    scene.add(new THREE.HemisphereLight(0xffffff, 0xd8cec2, 0.65));
+    const key = new THREE.DirectionalLight(0xfff0d4, 1.4);
     key.position.set(-2.2, 4, 3.4);
     scene.add(key);
-    const rim = new THREE.DirectionalLight(0xf0e6ff, 0.7);
-    rim.position.set(2.6, 1.4, -2);
+    // Canto frío por detrás, algo más presente: sobre las tarjetas claras del
+    // skin de plataforma es lo que despega el busto del fondo.
+    const rim = new THREE.DirectionalLight(0xeaf6ff, 0.95);
+    rim.position.set(2.6, 1.8, -2.4);
     scene.add(rim);
 
     camera = new THREE.PerspectiveCamera(26, 1, 0.05, 20);
