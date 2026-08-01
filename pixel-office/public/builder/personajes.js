@@ -1,13 +1,15 @@
 import * as THREE from "three";
-import {
-  Character3D,
-  POSES,
-  HAIR_STYLES,
-  TOP_STYLES,
-  BOTTOM_STYLES,
-  ACCESSORIES,
-  DEFAULT_RECIPE,
-} from "../pixel-office/src/entities/character3d.js";
+
+// Obtener Character3D desde el bundle del juego (GitHub Pages) o import directo (desarrollo)
+const getModule = async () => {
+  if (window.__char3d?.Character3D) return window.__char3d;
+  return import("../pixel-office/src/entities/character3d.js").catch(() => {
+    throw new Error("No se pudo cargar Character3D ni desde window.__char3d ni desde import directo");
+  });
+};
+
+const mod = await getModule();
+const { Character3D, POSES, HAIR_STYLES, TOP_STYLES, BOTTOM_STYLES, ACCESSORIES, DEFAULT_RECIPE } = mod;
 
 // Builder de PERSONAJES de Modo Incógnito.
 //

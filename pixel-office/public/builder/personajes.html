@@ -4,22 +4,22 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Personajes · Modo Incógnito</title>
-    <link rel="icon" href="../pixel-office/public/favicon.png" />
+    <link rel="icon" href="../favicon.png" />
     <link rel="stylesheet" href="builder.css" />
     <link rel="stylesheet" href="personajes.css" />
 
     <!--
-      El builder monta los muñecos con el MISMO módulo que el juego
-      (pixel-office/src/entities/character3d.js), no con una copia. Es la única
-      forma de que lo que ves aquí sea de verdad lo que sale al jugar: si
-      alguien cambia las proporciones o añade un peinado, aparece aquí solo.
-      El mapa de importación resuelve el "three" que pide ese módulo contra el
-      que ya está instalado en pixel-office/node_modules.
+      El builder carga three.js desde un CDN. En desarrollo local, el archivo
+      personajes.js en la raíz del repo puede importar desde node_modules, pero
+      en GitHub Pages usa el CDN.
     -->
     <script type="importmap">
       {
         "imports": {
-          "three": "../pixel-office/node_modules/three/build/three.module.js"
+          "three": "https://cdn.jsdelivr.net/npm/three@r128/build/three.module.js",
+          "three/examples/jsm/utils/BufferGeometryUtils.js": "https://cdn.jsdelivr.net/npm/three@r128/examples/jsm/utils/BufferGeometryUtils.js",
+          "three/examples/jsm/loaders/GLTFLoader.js": "https://cdn.jsdelivr.net/npm/three@r128/examples/jsm/loaders/GLTFLoader.js",
+          "three/examples/jsm/utils/SkeletonUtils.js": "https://cdn.jsdelivr.net/npm/three@r128/examples/jsm/utils/SkeletonUtils.js"
         }
       }
     </script>
@@ -87,6 +87,30 @@
     </main>
 
     <div id="aviso" class="toast"></div>
-    <script type="module" src="personajes.js"></script>
+
+    <!-- Cargar el bundle del juego para exponer Character3D y otros módulos -->
+    <script async src="../assets/index-CaSlUbUs.js"></script>
+
+    <!-- El editor necesita esperar a que Character3D esté disponible -->
+    <script type="module">
+      // Esperar a que el bundle del juego cargue y exponga Character3D
+      async function waitForChar3D() {
+        let attempts = 0;
+        while (!window.__char3d && attempts < 50) {
+          await new Promise(r => setTimeout(r, 100));
+          attempts++;
+        }
+        if (!window.__char3d) {
+          document.body.innerHTML = '<h1>Error: No se pudo cargar Character3D. Recarga la página.</h1>';
+          return;
+        }
+        // Ahora cargar el editor
+        import('./personajes.js').catch(e => {
+          console.error('Error cargando personajes.js:', e);
+          document.body.innerHTML = '<h1>Error: ' + e.message + '</h1>';
+        });
+      }
+      waitForChar3D();
+    </script>
   </body>
 </html>

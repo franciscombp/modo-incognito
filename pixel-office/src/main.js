@@ -15,7 +15,7 @@ import { loadGameData } from "./data/loader.js";
 import { Player } from "./entities/player.js";
 import { NPC } from "./entities/npc.js";
 import { Boss } from "./entities/boss.js";
-import { Character3D } from "./entities/character3d.js";
+import { Character3D, POSES, HAIR_STYLES, TOP_STYLES, BOTTOM_STYLES, ACCESSORIES, DEFAULT_RECIPE } from "./entities/character3d.js";
 import * as baseModel from "./entities/baseModel.js";
 import * as face from "./entities/face.js";
 import { createEngine } from "./game/engine.js";
@@ -594,7 +594,7 @@ async function boot() {
   // Para las herramientas de tools/ que montan personajes fuera del juego
   // (retratos del reparto, comprobación de poses) sin rehacer el motor.
   window.__three = THREE;
-  window.__char3d = { Character3D };
+  window.__char3d = { Character3D, POSES, HAIR_STYLES, TOP_STYLES, BOTTOM_STYLES, ACCESSORIES, DEFAULT_RECIPE };
   window.__base = baseModel;
   window.__face = face;
   // Solo para las comprobaciones de tools/: poder pasar de coordenadas de
