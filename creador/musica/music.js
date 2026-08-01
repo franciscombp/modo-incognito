@@ -510,7 +510,7 @@ document.getElementById("import-theme").addEventListener("change", (e) => {
 
 document.getElementById("play-theme").addEventListener("click", () => {
   if (!currentTheme) {
-    toast("❌ Selecciona un tema primero");
+    toast("Selecciona un tema primero");
     return;
   }
   startLoop();
