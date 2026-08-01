@@ -67,6 +67,14 @@ export function characterShot(look, pose = null) {
   if (cache.has(cacheKey)) return cache.get(cacheKey);
 
   const character = new Character3D(look, { height: HEIGHT });
+  // Un cuerpo esculpido puede no haber llegado todavía, y esta foto es de una
+  // sola vuelta. Sin esto se fotografiaba el vacío Y SE CACHEABA: la tarjeta
+  // se quedaba en blanco para siempre, aunque el modelo llegase un segundo
+  // después. Devolver null deja que la tarjeta caiga a su pliego mientras.
+  if (look.baseModel && !character._built) {
+    character.dispose();
+    return null;
+  }
   character.setHeading(0.4, 1);
   if (pose) character.setPose(pose);
   // La pose y el balanceo de espera entran progresivamente: sin dejar correr

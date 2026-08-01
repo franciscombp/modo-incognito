@@ -6,6 +6,7 @@
 // listing it in manifest.json — no engine file has to change.
 
 import { WORLD_SCALE as S } from "../scene/config.js";
+import { loadBaseModel, modelUrlFor } from "../entities/baseModel.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 // Sello del build (ver vite.config.js). El contenido vive en `public/` y se
@@ -162,6 +163,31 @@ export async function loadGameData() {
     looks: prepareLooks(looksRaw),
     codeEggs: manifest.codeEggs ?? [],
   };
+}
+
+/**
+ * Descarga los cuerpos esculpidos que pide el reparto.
+ *
+ * Va aparte del resto de la carga y NO bloquea el arranque: un .glb pesa lo
+ * que pesa y el juego tiene que poder empezar mientras llega. Lo que sí gana
+ * es que, cuando el jugador llega a la pantalla de selección, los modelos ya
+ * están en memoria y los retratos se pueden montar de una vez — que es lo que
+ * antes dejaba la tarjeta en blanco.
+ */
+export function preloadBaseModels(looks) {
+  const files = new Set();
+  for (const recipe of Object.values(looks?.characters ?? {})) {
+    if (recipe?.baseModel) files.add(recipe.baseModel);
+  }
+  return Promise.all(
+    [...files].map((f) =>
+      loadBaseModel(modelUrlFor(f)).catch((e) => {
+        // Que falte un modelo no puede tumbar el juego: ese personaje se
+        // queda sin cuerpo importado y se ve el fallo en consola.
+        console.error(`No se pudo precargar ${f}:`, e);
+      })
+    )
+  );
 }
 
 /**

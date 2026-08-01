@@ -83,16 +83,42 @@ const modelCache = new Map();
  * Carga el modelo UNA vez. Todos los personajes salen de clonarlo, que es lo
  * único viable con veinticinco en pantalla.
  */
-export function loadBaseModel(url = "/public/models/base.glb") {
+export function loadBaseModel(url) {
   if (!modelCache.has(url)) {
     const loading = new GLTFLoader().loadAsync(url).then((gltf) => {
       gltf.scene.updateMatrixWorld(true);
       renameBones(gltf.scene);
+      ready.set(url, gltf);
       return gltf;
     });
     modelCache.set(url, loading);
   }
   return modelCache.get(url);
+}
+
+/** Los que YA están en memoria, para poder montarlos sin esperar. */
+const ready = new Map();
+
+/**
+ * Dónde vive un modelo. `public/` se sirve en la RAÍZ (no en `/public/`), y
+ * en Pages el sitio entero cuelga de un subdirectorio: montar esta ruta a
+ * mano en cada sitio es cómo se cuela un 404.
+ */
+export function modelUrlFor(file) {
+  const base = import.meta.env?.BASE_URL ?? "/";
+  return `${base}models/${file}`;
+}
+
+/**
+ * El modelo si ya llegó, o null.
+ *
+ * Existe por los RETRATOS: los menús montan un personaje y le sacan una foto
+ * en la misma vuelta, y con una espera de por medio la foto salía en blanco —
+ * y encima se cacheaba en blanco. Con esto, un modelo ya cargado se monta sin
+ * ceder el turno y la foto sale con muñeco.
+ */
+export function peekBaseModel(url) {
+  return ready.get(url) ?? null;
 }
 
 /**
@@ -121,6 +147,9 @@ function renameBones(root) {
       obj.name = ours;
       missing.delete(ours);
     }
+    // Un modelo exportado con un rig convencional YA se llama como nosotros;
+    // no hay nada que traducir y no es que le falte el hueso.
+    if (missing.has(obj.name)) missing.delete(obj.name);
   });
   // Un hueso que no aparece deja poses a medias sin decir nada: la pierna no
   // se dobla y no hay error en ninguna parte. Mejor que lo cante.

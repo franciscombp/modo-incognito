@@ -414,6 +414,14 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   return {
     show,
     close,
+    /**
+     * Vuelve a dibujar las tarjetas del reparto. Lo llama el arranque cuando
+     * terminan de llegar los cuerpos esculpidos: hasta entonces esas tarjetas
+     * enseñan el pliego, y así se pasan al muñeco 3D en cuanto se puede.
+     */
+    refreshCharacters() {
+      if (currentScreen === "characters") renderCharacters();
+    },
     openTitle(progress) {
       renderDays();
       renderCharBadge();
