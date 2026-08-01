@@ -14,6 +14,7 @@
    ===================================================================== */
 
 @import "./style/design-system.css";
+@import "./style/design-system-ui.css";
 
 html,
 body {

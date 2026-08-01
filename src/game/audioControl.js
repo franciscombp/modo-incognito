@@ -7,9 +7,14 @@
 
 import { getSettings, setSettings, subscribeSettings } from "./settings.js";
 
-let isMuted = true;
+let isMuted = true;  // SIEMPRE comienza muteado
 let volume = 0.7; // Volumen por defecto cuando no está muteado
 let unmuteCallback = null;
+
+// Inicializa el audio como muteado desde el primer frame
+if (typeof window !== 'undefined') {
+  setSettings({ sound: false, music: false });
+}
 
 /**
  * Obtiene el estado actual de mute
