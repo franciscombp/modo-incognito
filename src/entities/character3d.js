@@ -581,23 +581,23 @@ export class Character3D {
     // en vuelo se colgaba de `object` DESPUÉS de la nueva y quedaban dos
     // cuerpos superpuestos, con `_built` apuntando solo a uno.
     const token = (this._buildToken = (this._buildToken ?? 0) + 1);
-    if (r.baseModel) {
-      // Si ya está en memoria se monta AHORA, sin ceder el turno: los menús
-      // montan un personaje y le sacan la foto en la misma vuelta, y con una
-      // espera de por medio la foto salía en blanco.
-      const cached = peekBaseModel(modelUrlFor(r.baseModel));
-      if (cached) {
-        this._assembleGLB(cached, r);
-        return;
-      }
-      this._buildFromGLB(r, token).catch((e) => {
-        if (token === this._buildToken) console.error(`No se pudo cargar ${r.baseModel}:`, e);
-      });
+
+    // Usar modelo específico si existe, sino usar kiara como base
+    const modelToLoad = r.baseModel ?? "kiara";
+
+    // Si ya está en memoria se monta AHORA, sin ceder el turno: los menús
+    // montan un personaje y le sacan la foto en la misma vuelta, y con una
+    // espera de por medio la foto salía en blanco.
+    const cached = peekBaseModel(modelUrlFor(modelToLoad));
+    if (cached) {
+      this._assembleGLB(cached, r, modelToLoad);
       return;
     }
 
-    // Sino, construye proceduralmente como siempre.
-    this._buildProcedural(r);
+    // Si no está cacheado, cargarlo desde la red
+    this._buildFromGLB(modelToLoad, r, token).catch((e) => {
+      if (token === this._buildToken) console.error(`No se pudo cargar ${modelToLoad}:`, e);
+    });
   }
 
   _buildProcedural(r) {
@@ -929,15 +929,15 @@ export class Character3D {
    * hacerlo dejaba dos caras superpuestas — y a cambio este personaje no
    * gesticula: `setExpression` no tiene nada que redibujar.
    */
-  async _buildFromGLB(r, token) {
-    const gltf = await loadBaseModel(modelUrlFor(r.baseModel));
+  async _buildFromGLB(modelName, r, token) {
+    const gltf = await loadBaseModel(modelUrlFor(modelName));
     // Mientras se descargaba pueden haberte cambiado de personaje.
     if (token !== undefined && token !== this._buildToken) return;
-    this._assembleGLB(gltf, r);
+    this._assembleGLB(gltf, r, modelName);
   }
 
   /** El montaje en sí, sin nada que esperar. Ver `_buildFromGLB`. */
-  _assembleGLB(gltf, r) {
+  _assembleGLB(gltf, r, modelName) {
     const H = this.height;
     const { root, bones, model } = instantiateBase(gltf, { height: H });
 
@@ -947,7 +947,7 @@ export class Character3D {
     model.traverse((o) => {
       if (!mesh && o.isSkinnedMesh) mesh = o;
     });
-    if (!mesh) throw new Error(`El modelo ${r.baseModel} no trae ningún SkinnedMesh`);
+    if (!mesh) throw new Error(`El modelo ${modelName} no trae ningún SkinnedMesh`);
 
     // Rig convencional pero no idéntico al nuestro: las poses hablan de
     // "Chest" y "Neck", y un export típico encadena Spine → Spine01 →
