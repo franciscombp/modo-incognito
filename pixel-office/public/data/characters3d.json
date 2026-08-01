@@ -60,6 +60,7 @@
   "characters": {
     "gabo": {
       "$note": "El jefe. Gafas de sol dentro de la oficina, que es todo lo que hay que saber de él.",
+      "baseModel": "gabo.glb",
       "skin": "#e0a860",
       "hair": {
         "color": "#302828",
@@ -86,6 +87,7 @@
       }
     },
     "giuli": {
+      "baseModel": "giuli.glb",
       "skin": "#e8a060",
       "hair": {
         "color": "#3a2c20",

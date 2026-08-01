@@ -3,6 +3,7 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { screenToGround, facingFromGround } from "../scene/iso.js";
 import { buildSkeleton, skinGeometry, rigidGeometry } from "./skinning.js";
 import { faceTexture, projectFaceUVs } from "./face.js";
+import { loadBaseModel, instantiateBase } from "./baseModel.js";
 
 /**
  * PERSONAJES 3D COZY, CON ESQUELETO DE VERDAD.
@@ -480,6 +481,19 @@ export class Character3D {
     const r = mergeRecipe(recipe);
     this.recipe = r;
 
+    // Si la receta especifica un modelo GLB (como "giuli.glb"), cárgalo (fire-and-forget).
+    if (r.baseModel) {
+      this._buildFromGLB(r).catch((e) => {
+        console.error(`Error cargando modelo ${r.baseModel}:`, e);
+      });
+      return;
+    }
+
+    // Sino, construye proceduralmente como siempre.
+    this._buildProcedural(r);
+  }
+
+  _buildProcedural(r) {
     const H = this.height;
     const width = r.build.width ?? 1;
     const { root, bones, byName } = buildSkeleton(H, width);
@@ -793,6 +807,74 @@ export class Character3D {
 
     this._built = { mesh, material, skeleton, bones, byName, root, shadow, headR, headMesh, faceMat };
     this._hipRest = byName.get("Hips").position.y;
+    this._applyPose();
+    this.setTint(this._tint);
+  }
+
+  async _buildFromGLB(r) {
+    const H = this.height;
+    const modelUrl = `/public/models/${r.baseModel}`;
+    const gltf = await loadBaseModel(modelUrl);
+    const inst = instantiateBase(gltf, { height: H });
+    const { root, bones, meshes } = inst;
+
+    // El modelo importado reemplaza el cuerpo procedural.
+    // TODO: soportar customización de colores/pelo/accesorios sobre el modelo base.
+    // Por ahora, la cara procedural todavía seSobreescribe.
+    const mesh = root.children[0]; // el modelo clonado
+    if (mesh.isSkinnedMesh) {
+      mesh.frustumCulled = false;
+    }
+    this.object.add(root);
+
+    // Cabeza con textura (igual que procedural).
+    const headR = 0.22; // aproximado, ajustar según modelo
+    const headMesh = new THREE.Mesh(
+      projectFaceUVs(headGeometry(new THREE.Vector3(0, 0, 0), headR)),
+      new THREE.MeshLambertMaterial({ map: faceTexture(r, "neutral") })
+    );
+    const headBone = bones.get("Head");
+    if (headBone) {
+      headMesh.position.y = 0.1; // ajustar según posición del modelo
+      headBone.add(headMesh);
+    }
+
+    // Sombra.
+    const shadow = new THREE.Mesh(
+      new THREE.CircleGeometry(headR * 1.75, 24),
+      new THREE.MeshBasicMaterial({
+        map: getShadowTexture(),
+        transparent: true,
+        depthWrite: false,
+        toneMapped: false,
+      })
+    );
+    shadow.rotation.x = -Math.PI / 2;
+    shadow.position.y = 0.012 * H;
+    shadow.renderOrder = -1;
+    this.object.add(shadow);
+
+    // Props (taza, teléfono, plato).
+    const rightHand = bones.get("RightHand");
+    const leftHand = bones.get("LeftHand");
+    this._props = {
+      cup: rightHand ? makeCup(rightHand, headR, "#f4efe6") : null,
+      phone: rightHand ? makePhone(rightHand, headR, "#22252e") : null,
+      plate: leftHand ? makePlate(leftHand, headR) : null,
+    };
+
+    this._built = {
+      mesh,
+      skeleton: mesh.skeleton ?? null,
+      bones,
+      byName: bones,
+      root,
+      shadow,
+      headR,
+      headMesh,
+      faceMat: headMesh.material,
+    };
+    this._hipRest = bones.get("Hips")?.position.y ?? 0;
     this._applyPose();
     this.setTint(this._tint);
   }
