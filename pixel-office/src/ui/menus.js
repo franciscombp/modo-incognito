@@ -1,12 +1,19 @@
 import { SETTINGS_SCHEMA, getSettings, setSettings, subscribeSettings, buzz } from "../game/settings.js";
 import { sfxMove, sfxSelect, sfxBack, sfxOpen } from "../game/sfx.js";
 import { createCameraPanel } from "./cameraPanel.js";
+import { characterShot } from "./charshot.js";
 
 // Every full-screen menu the game has: title, day select, settings (game +
 // camera), how-to-play and pause. They all live in one overlay that swaps
 // screens, so only one thing can ever be on top of the game.
 
+const BUILD = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
 const SPRITE_BASE = `${import.meta.env.BASE_URL ?? "/"}sprites/`;
+
+// Cada uno posa a su manera en la tarjeta, para que la pantalla no sean cinco
+// muñecos idénticos en posición de firmes. Es solo presentación: la pose no
+// tiene nada que ver con cómo se juega ese modo.
+const CARD_POSE = { fran: "shrug", giu: null, manu: "phone", kiara: "coffee", gabo: "work" };
 
 function el(tag, className, parent, text) {
   const node = document.createElement(tag);
@@ -49,7 +56,7 @@ export function rankFor(score, target) {
  * @param {object} opts.save     progress store (see game/save.js)
  * @param {object} opts.actions  { play(index), resume(), restart(), toTitle() }
  */
-export function createMenus(root, { levels, save, actions, modes = {}, title = "Modo Incógnito", subtitle = "" }) {
+export function createMenus(root, { levels, save, actions, modes = {}, looks = null, title = "Modo Incógnito", subtitle = "" }) {
   const layer = el("div", "px-menu hidden", root);
   const scrim = el("div", "px-menu-scrim", layer);
   const stage = el("div", "px-menu-stage", layer);
@@ -157,9 +164,16 @@ export function createMenus(root, { levels, save, actions, modes = {}, title = "
       );
       card.type = "button";
       card.disabled = locked;
-      if (mode.sheet) {
+      // El muñeco 3D de verdad, el mismo que vas a mover por el piso. Los
+      // pliegos siguen de reserva: si el navegador no da WebGL, la pantalla
+      // de selección no se puede quedar sin enseñar a quién eliges.
+      const shot = looks ? characterShot(looks.get(id) ?? looks.get(mode.sheet), CARD_POSE[id]) : null;
+      if (shot) {
+        const thumb = el("span", "px-char-shot", card);
+        thumb.style.backgroundImage = `url(${shot})`;
+      } else if (mode.sheet) {
         const thumb = el("span", "px-char-sprite", card);
-        thumb.style.backgroundImage = `url(${SPRITE_BASE}${mode.sheet}.png)`;
+        thumb.style.backgroundImage = `url(${SPRITE_BASE}${mode.sheet}.png?v=${BUILD})`;
       } else {
         el("span", "px-day-num", card, mode.portrait ?? "🙂");
       }

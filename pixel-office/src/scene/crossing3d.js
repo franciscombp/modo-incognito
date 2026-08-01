@@ -46,11 +46,11 @@ const GOAL_ROW = ROWS.length - 1;
 // cielo claro. Colores más saturados que un gris neutro plano — esta escena
 // es la primera que ve cualquiera que abra el juego, no puede leerse apagada.
 const ROAD_COLORS = {
-  sidewalk: 0xd8cfc0,
-  goal: 0xd8cfc0,
-  car: 0x4d5568,
-  bike: 0x33473a,
-  median: 0x2f8f3e,
+  sidewalk: 0xece2d2,
+  goal: 0xece2d2,
+  car: 0xa2988c,
+  bike: 0x93a382,
+  median: 0x9dbf88,
 };
 
 // Carga de texturas sprite
@@ -68,9 +68,6 @@ Promise.all([
   autosTexture = a;
   bicisTexture = b;
   arbolesTexture = ab;
-  if (autosTexture) autosTexture.magFilter = THREE.NearestFilter;
-  if (bicisTexture) bicisTexture.magFilter = THREE.NearestFilter;
-  if (arbolesTexture) arbolesTexture.magFilter = THREE.NearestFilter;
 });
 
 // Los tres pliegos (autos.png, bicis.png, arboles.png) son cuadrículas de
@@ -107,89 +104,114 @@ function colToX(col) {
   return -(col - (COLS - 1) / 2) * (ROAD_WIDTH / COLS);
 }
 
-// ---- Vehículos: Sprites 2D para autos y bicis ----
-// Los sprites cargados de autos.png, bicis.png son planos texturizados
-// que mantienen altura fija mientras se mueven.
+// ---- Vehículos y árboles, en 3D ----
+// Eran planos con una textura recortada de un pliego. Un plano con dibujo
+// visto desde una cámara que se mueve delata que es un cartón: no tiene
+// grosor, no recibe la luz de la escena y no proyecta sombra. Ahora son
+// cuerpos de verdad, montados con primitivas como el resto del juego.
 
-/**
- * Crea un sprite de vehículo (auto o bici) con textura sprite.
- * Los sprites son planos con texturas que se ven desde la cámara frontal.
- */
-function vehicleSprite(kind, dir) {
-  const isAuto = kind === "car";
-  const texture = isAuto ? autosTexture : bicisTexture;
+const CAR_COLORS = ["#e0785f", "#e8b45c", "#7fa9c9", "#8fb08a", "#c98bb0", "#e6e0d4"];
+const BIKE_COLORS = ["#7fbf8f", "#5fb8c9", "#e8b45c"];
 
-  // Dimensiones fijas por tipo de vehículo, medidas sobre el arte real (no
-  // inventadas): los autos dibujados miden ~1.9:1 de ancho/alto y las bicis
-  // ~0.78:1 — con proporciones distintas a las de la celda se veían
-  // aplastados o estirados. Con la calle a 13*S de ancho seguían leyéndose
-  // como iconos diminutos, así que se escalan bastante más: un auto real
-  // ocupa buena parte de su carril, no una miniatura sobre asfalto vacío.
-  const height = isAuto ? 1.75 * S : 2.55 * S;
-  const width = isAuto ? 3.3 * S : 2.0 * S;
+function flat(color) {
+  return new THREE.MeshLambertMaterial({ color: new THREE.Color(color) });
+}
 
-  // Fallback: si no cargó la textura, usar geometría simple de color
-  if (!texture) {
-    const geometry = new THREE.PlaneGeometry(width, height);
-    const material = new THREE.MeshLambertMaterial({
-      color: isAuto ? 0x4a90e2 : 0x2ecc71,
-      transparent: true,
-      alphaTest: 0.5,
-    });
-    const mesh = new THREE.Mesh(geometry, material);
-    if (dir < 0) mesh.scale.x = -1;
-    return mesh;
-  }
-
-  // Con textura: recorta UNA celda al azar de la rejilla de variantes (ver
-  // gridCellUV) en vez de aplastar el pliego entero de 16 coches en un plano.
-  const grid = isAuto ? AUTOS_GRID : BICIS_GRID;
-  const cell = randomCell(grid, isAuto ? grid.cols : 1); // bicis: solo col. 0
-  const geometry = new THREE.PlaneGeometry(width, height);
-  const material = new THREE.MeshLambertMaterial({
-    map: gridCellUV(texture, grid, cell.col, cell.row),
-    transparent: true,
-    alphaTest: 0.2,
-    side: THREE.DoubleSide,
-  });
-
-  const mesh = new THREE.Mesh(geometry, material);
-  // Los coches del pliego miran hacia +X (pantalla-izquierda, ver colToX: la
-  // cámara mira a +Z así que su derecha de pantalla es -X mundo). Un carril
-  // dir>0 avanza hacia +X (pantalla-izquierda) y no necesita voltearse; solo
-  // dir<0 (avanza hacia pantalla-derecha) necesita el espejo para no ir de
-  // reversa.
-  if (dir < 0) mesh.scale.x = -1;
-
+function box(w, h, d, color, x = 0, y = 0, z = 0) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), flat(color));
+  mesh.position.set(x, y, z);
   return mesh;
 }
 
 /**
- * Crea un sprite de árbol o arbusto para la mediana, recortando una celda al
- * azar de la rejilla de variantes de arboles.png.
+ * Un coche: carrocería, cabina, ruedas y faros.
+ *
+ * Mira a lo largo de X porque los carriles corren en X. Va bajo y ancho, con
+ * la cabina retranqueada — es la silueta que hace que se lea como un coche de
+ * juguete y no como una caja con ruedas.
  */
-function treeSprite() {
-  // Dimensiones fijas para árboles
-  const height = 1.5 * S;
-  const width = 0.9 * S;
+function vehicleSprite(kind, dir) {
+  const group = new THREE.Group();
+  if (kind !== "car") return buildBike(group, dir);
 
-  if (!arbolesTexture) {
-    // Fallback: cono simple
-    const geometry = new THREE.ConeGeometry(0.5 * S, 1.5 * S, 8);
-    const material = new THREE.MeshLambertMaterial({ color: 0x2d5016 });
-    return new THREE.Mesh(geometry, material);
+  const color = CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)];
+  const L = 3.1 * S;
+  const W = 1.35 * S;
+  const H = 0.62 * S;
+
+  const body = box(L, H, W, color, 0, H * 0.5 + 0.16 * S, 0);
+  body.geometry.translate(0, 0, 0);
+  group.add(body);
+
+  // Cabina más corta y algo hacia atrás, con las ventanas oscuras.
+  group.add(box(L * 0.52, H * 0.72, W * 0.86, color, -L * 0.06, H * 1.2 + 0.16 * S, 0));
+  group.add(box(L * 0.44, H * 0.42, W * 0.9, "#3c4550", -L * 0.06, H * 1.3 + 0.16 * S, 0));
+
+  // Ruedas: cilindros tumbados sobre el eje Z, que es el eje del coche.
+  const wheelGeo = new THREE.CylinderGeometry(0.26 * S, 0.26 * S, 0.16 * S, 12);
+  for (const sx of [-1, 1]) {
+    for (const sz of [-1, 1]) {
+      const wheel = new THREE.Mesh(wheelGeo, flat("#3a3630"));
+      wheel.rotation.x = Math.PI / 2;
+      wheel.position.set(sx * L * 0.32, 0.26 * S, sz * W * 0.52);
+      group.add(wheel);
+    }
   }
 
-  const cell = randomCell(ARBOLES_GRID);
-  const geometry = new THREE.PlaneGeometry(width, height);
-  const material = new THREE.MeshLambertMaterial({
-    map: gridCellUV(arbolesTexture, ARBOLES_GRID, cell.col, cell.row),
-    transparent: true,
-    alphaTest: 0.2,
-    side: THREE.DoubleSide,
-  });
+  // Faros al frente, según hacia dónde circula el carril.
+  for (const sz of [-1, 1]) {
+    group.add(box(0.1 * S, 0.14 * S, 0.22 * S, "#fff3d0", dir * L * 0.49, H * 0.6 + 0.16 * S, sz * W * 0.3));
+  }
+  return group;
+}
 
-  return new THREE.Mesh(geometry, material);
+/** Una bici con su ciclista, que a esta escala es un bulto con casco. */
+function buildBike(group, dir) {
+  const color = BIKE_COLORS[Math.floor(Math.random() * BIKE_COLORS.length)];
+  const wheelGeo = new THREE.TorusGeometry(0.34 * S, 0.06 * S, 6, 14);
+  for (const sx of [-1, 1]) {
+    const wheel = new THREE.Mesh(wheelGeo, flat("#3a3630"));
+    wheel.rotation.y = Math.PI / 2;
+    wheel.position.set(sx * 0.52 * S, 0.36 * S, 0);
+    group.add(wheel);
+  }
+  group.add(box(1.0 * S, 0.09 * S, 0.09 * S, color, 0, 0.62 * S, 0));
+  group.add(box(0.09 * S, 0.34 * S, 0.09 * S, color, dir * 0.42 * S, 0.78 * S, 0));
+  // Ciclista
+  group.add(box(0.42 * S, 0.5 * S, 0.34 * S, "#5f7fa8", -dir * 0.1 * S, 1.05 * S, 0));
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2 * S, 12, 9), flat("#e8b98f"));
+  head.position.set(-dir * 0.05 * S, 1.42 * S, 0);
+  group.add(head);
+  const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.22 * S, 12, 8), flat(color));
+  helmet.scale.y = 0.6;
+  helmet.position.set(-dir * 0.05 * S, 1.5 * S, 0);
+  group.add(helmet);
+  return group;
+}
+
+/** Un árbol: tronco y dos o tres copas, como en la referencia del camión. */
+function treeSprite() {
+  const group = new THREE.Group();
+  const trunk = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1 * S, 0.14 * S, 1.0 * S, 8),
+    flat("#a8794f")
+  );
+  trunk.position.y = 0.5 * S;
+  group.add(trunk);
+
+  const greens = ["#7fa86b", "#8fb87a", "#6f9a5e"];
+  const blobs = 2 + Math.floor(Math.random() * 2);
+  for (let i = 0; i < blobs; i++) {
+    const r = (0.44 - i * 0.07 + Math.random() * 0.08) * S;
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 9), flat(greens[i % greens.length]));
+    leaf.position.set(
+      (Math.random() - 0.5) * 0.4 * S,
+      (1.05 + i * 0.34) * S,
+      (Math.random() - 0.5) * 0.3 * S
+    );
+    group.add(leaf);
+  }
+  return group;
 }
 
 function el(tag, className, parent) {
@@ -224,18 +246,18 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
 
   // Son las 8:45 de la mañana, no medianoche: cielo claro y luz de sol, no el
   // azul casi negro de antes.
-  const SKY = 0x9fd4ec;
+  const SKY = 0xe9dff0;
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(SKY);
   scene.fog = new THREE.Fog(SKY, 34 * S, 70 * S);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 1.9));
-  const key = new THREE.DirectionalLight(0xfff2d6, 1.3);
+  scene.add(new THREE.AmbientLight(0xfff4e6, 1.5));
+  const key = new THREE.DirectionalLight(0xfff0d4, 1.15);
   key.position.set(10 * S, 30 * S, 6 * S);
   scene.add(key);
   // Relleno desde el lado de la cámara: la fachada del banco mira hacia -Z y
   // sin esto se veía como un rectángulo negro al fondo de la calle.
-  const fill = new THREE.DirectionalLight(0xbcd4ff, 0.9);
+  const fill = new THREE.DirectionalLight(0xf0e6ff, 0.75);
   fill.position.set(-4 * S, 12 * S, -20 * S);
   scene.add(fill);
 
@@ -318,7 +340,7 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   // hacia allá. Con la cámara detrás, es lo único que llena el horizonte.
   const facade = new THREE.Mesh(
     new THREE.BoxGeometry(ROAD_WIDTH * 1.6, 12 * S, 4 * S),
-    new THREE.MeshLambertMaterial({ color: 0x2a3347 })
+    new THREE.MeshLambertMaterial({ color: 0xd9cbb6 })
   );
   facade.position.set(0, 6 * S, GOAL_ROW * LANE_DEPTH + 3.2 * S);
   roadGroup.add(facade);
@@ -326,9 +348,9 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   // Ventanas encendidas, en rejilla: el piso 10 ya está trabajando sin ti.
   const windowGeo = new THREE.PlaneGeometry(0.42 * S, 0.3 * S);
   const windowMat = new THREE.MeshBasicMaterial({
-    color: 0xf2c744,
-    toneMapped: false,
-    side: THREE.DoubleSide,
+    // Sobre fachada clara, una ventana amarilla brillante se lee como un
+    // agujero de neón. En una mañana nublada las ventanas son cristal, no luz.
+    color: 0x9db4c4,
   });
   for (let r = 0; r < 8; r++) {
     for (let c = -3; c <= 3; c++) {
@@ -373,7 +395,7 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
     const bz = b.z * LANE_DEPTH * (GOAL_ROW / 8);
     const building = new THREE.Mesh(
       new THREE.BoxGeometry(b.d * S, b.h * S, b.d * S),
-      new THREE.MeshLambertMaterial({ color: 0x232a3a })
+      new THREE.MeshLambertMaterial({ color: 0xcabca6 })
     );
     building.position.set(bx, (b.h / 2) * S, bz);
     roadGroup.add(building);

@@ -8,9 +8,13 @@
 import { WORLD_SCALE as S } from "../scene/config.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
+// Sello del build (ver vite.config.js). El contenido vive en `public/` y se
+// sirve con su nombre de siempre: sin esto, publicar un cambio de plano no
+// basta para que la jugadora lo vea.
+const V = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
 
 async function getJSON(path) {
-  const res = await fetch(`${BASE}data/${path}`, { cache: "no-cache" });
+  const res = await fetch(`${BASE}data/${path}?v=${V}`, { cache: "no-cache" });
   if (!res.ok) throw new Error(`No se pudo cargar data/${path} (${res.status})`);
   try {
     return await res.json();

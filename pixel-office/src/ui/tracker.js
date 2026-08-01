@@ -22,6 +22,36 @@ const TOP_SAFE_MARGIN = 18;
 // ilegible justo cuando más importa (el jefe fuera de cámara).
 const SIDE_SAFE_MARGIN = 12;
 
+// Y por abajo viven las dos tarjetas de seguimiento. La flecha de borde se les
+// metía encima — en apaisado y en móvil se solapaban de lleno — porque `sy`
+// solo estaba topada por arriba. Se mide igual que la barra superior: del DOM,
+// cada frame, porque las tarjetas cambian de alto con el texto.
+const BOTTOM_SAFE_MARGIN = 10;
+// Lo que ocupa la banda de abajo y no se puede tapar: las dos tarjetas y la
+// franja de controles (que solo está los primeros minutos, de ahí medirla en
+// vez de reservarle sitio fijo).
+const BOTTOM_BLOCKERS = ".track-layer.visible .track-card, #hint";
+
+/**
+ * Dónde han quedado las flechas de este frame.
+ *
+ * Los dos rastreadores (tarea y jefe) se dibujan sin saber el uno del otro, y
+ * cuando los dos objetivos caen fuera de cámara por el mismo lado las dos
+ * flechas aterrizan en el mismo píxel y se leen como una sola. Aquí se apuntan
+ * las ya colocadas para que la siguiente se aparte.
+ */
+const placedMarkers = [];
+let placedFrame = -1;
+
+function overlaps(a, b) {
+  return (
+    a.left < b.left + b.width &&
+    a.left + a.width > b.left &&
+    a.top < b.top + b.height &&
+    a.top + a.height > b.top
+  );
+}
+
 export function createTracker(root, camera, { id, side = "right", accent = "cyan" }) {
   const layer = document.createElement("div");
   layer.className = `track-layer track-${side} track-${accent}`;
@@ -122,6 +152,36 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
         const halfMarker = marker.getBoundingClientRect().width / 2 || 18;
         sx = Math.min(sx, utils.left - SIDE_SAFE_MARGIN - halfMarker);
       }
+      // Las tarjetas de abajo mandan sobre la flecha, igual que la barra de
+      // arriba: si la flecha cae sobre una, sube justo por encima de su borde.
+      const size = marker.getBoundingClientRect();
+      const halfMarker = size.width / 2 || 18;
+      const markerH = size.height || 44;
+      for (const other of document.querySelectorAll(BOTTOM_BLOCKERS)) {
+        const r = other.getBoundingClientRect();
+        // `#hint` se apaga con opacidad, no con display: sin esto la flecha
+        // seguiría esquivando una franja que ya no está en pantalla.
+        if (!r.height || Number(getComputedStyle(other).opacity) < 0.05) continue;
+        const hitsX = sx + halfMarker > r.left && sx - halfMarker < r.right;
+        if (hitsX && sy + markerH / 2 > r.top) sy = r.top - BOTTOM_SAFE_MARGIN - markerH / 2;
+      }
+
+      // Y la otra flecha manda sobre esta, por orden de llegada: la segunda se
+      // sube lo justo para no taparse con la primera.
+      const frame = Math.round(performance.now() / 8);
+      if (frame !== placedFrame) {
+        placedFrame = frame;
+        placedMarkers.length = 0;
+      }
+      let box = { left: sx - halfMarker, top: sy - markerH / 2, width: halfMarker * 2, height: markerH };
+      for (const taken of placedMarkers) {
+        if (!overlaps(box, taken)) continue;
+        sy = taken.top - BOTTOM_SAFE_MARGIN - markerH / 2;
+        box = { ...box, top: sy - markerH / 2 };
+      }
+      sy = Math.max(sy, topSafe);
+      placedMarkers.push({ ...box, top: sy - markerH / 2 });
+
       angle = Math.atan2(nx, ny) * (180 / Math.PI);
     }
 

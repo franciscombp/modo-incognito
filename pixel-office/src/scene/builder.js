@@ -442,10 +442,30 @@ function addSeatedTable(area, world, registry, opts = {}) {
 }
 
 /**
+ * Las cuatro paredes de un recinto, en el mismo vocabulario que `wing` y los
+ * rótulos de ala del plano: "norte"/+x, "sur"/-x, "frente"/+z (por donde
+ * entra la jugadora desde los ascensores) y "fondo"/-z.
+ */
+function wallsOf(area) {
+  return {
+    fondo: { horizontal: true, x: 0, z: -area.d / 2, len: area.w },
+    frente: { horizontal: true, x: 0, z: area.d / 2, len: area.w },
+    sur: { horizontal: false, x: -area.w / 2, z: 0, len: area.d },
+    norte: { horizontal: false, x: area.w / 2, z: 0, len: area.d },
+  };
+}
+
+/** Hacia dónde mira cada pared, como vector unitario del plano. */
+export const DOOR_NORMALS = {
+  frente: { x: 0, z: 1 },
+  fondo: { x: 0, z: -1 },
+  norte: { x: 1, z: 0 },
+  sur: { x: -1, z: 0 },
+};
+
+/**
  * `area.doorSide` elige qué pared de la sala de vidrio lleva el hueco de la
- * puerta, con el mismo vocabulario que `wing` y los rótulos de ala del
- * plano: "norte"/+x, "sur"/-x, "frente"/+z (por defecto, el comportamiento
- * de siempre: el jugador entra por los ascensores hacia +z), "fondo"/-z.
+ * puerta. Por defecto "frente", que es el comportamiento de siempre.
  */
 function addGlassWalls(area, world, panes) {
   const height = GLASS_WALL_H;
@@ -461,12 +481,7 @@ function addGlassWalls(area, world, panes) {
 
   // Cada pared: si es la que lleva la puerta, se parte en dos tramos con un
   // hueco centrado; si no, va entera.
-  const walls = {
-    fondo: { horizontal: true, x: 0, z: -area.d / 2, len: area.w },
-    frente: { horizontal: true, x: 0, z: area.d / 2, len: area.w },
-    sur: { horizontal: false, x: -area.w / 2, z: 0, len: area.d },
-    norte: { horizontal: false, x: area.w / 2, z: 0, len: area.d },
-  };
+  const walls = wallsOf(area);
 
   for (const [side, wall] of Object.entries(walls)) {
     if (side !== doorSide) {
@@ -484,14 +499,30 @@ function addGlassWalls(area, world, panes) {
   }
 }
 
-/** Restrooms / stairs / lifts: closed volumes you walk around. */
+/**
+ * Restrooms / stairs / lifts: closed volumes you walk around.
+ *
+ * El bloque es macizo — no se entra —, así que su puerta es decorado. Pero
+ * decorado que se ve: un baño con la puerta contra la pared del vecino se lee
+ * como un error del plano. `doorSide` funciona igual que en las salas de
+ * vidrio, y por eso se calcula con la misma tabla de paredes.
+ */
 function addCoreBlock(area, world, parts) {
   const body = new THREE.BoxGeometry(area.w, CORE_H, area.d);
   body.translate(area.x, CORE_H / 2, area.z);
   parts.body.push(body);
 
-  const door = new THREE.BoxGeometry(0.9 * S, 1.9 * S, 0.08 * S);
-  door.translate(area.x, 0.95 * S, area.z + area.d / 2 + 0.05 * S);
+  const side = area.doorSide ?? "frente";
+  const wall = wallsOf(area)[side] ?? wallsOf(area).frente;
+  const n = DOOR_NORMALS[side] ?? DOOR_NORMALS.frente;
+  const leaf = 0.9 * S;
+  const thin = 0.08 * S;
+  const door = new THREE.BoxGeometry(wall.horizontal ? leaf : thin, 1.9 * S, wall.horizontal ? thin : leaf);
+  door.translate(
+    area.x + wall.x + n.x * 0.05 * S,
+    0.95 * S,
+    area.z + wall.z + n.z * 0.05 * S
+  );
   parts.door.push(door);
 
   if (world) world.addBox(area.x, area.z, area.w, area.d, { sight: true });
