@@ -27,6 +27,5 @@ juego.
 
 ## Arte del equipo
 
-Los pliegos de `pixel-office/public/sprites/` los dibujó la Tribu Canales y
-son de casa. De ahí salieron también los colores de cada personaje, con
-`npm run palette`.
+Diseño, programación y dirección creativa del equipo original.
+Los colores de los personajes se derivaron de referencias artísticas iniciales.
