@@ -161,6 +161,27 @@
   --z-overlay: 100;
   --z-modal: 1000;
   --z-tooltip: 10000;
+
+  /* ─────────────────────────────────────────────────────────────────
+     GLASS MORPHISM & ANIMATIONS (inspired by MAL Design)
+     ───────────────────────────────────────────────────────────────── */
+
+  /* Glass */
+  --glass-light: rgba(255, 255, 255, 0.86);
+  --glass-med: rgba(255, 255, 255, 0.72);
+  --glass-blur-sm: blur(8px);
+  --glass-blur-md: blur(12px);
+  --glass-blur-lg: blur(14px);
+
+  /* Animations */
+  --anim-entrance: 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --anim-exit: 0.3s ease-out;
+  --anim-hover: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  --anim-pulse: 2s ease-in-out infinite;
+
+  /* Gradients */
+  --grad-radial: radial-gradient(circle at 50% 40%, hsl(var(--bg-000)), hsl(var(--bg-100)));
+  --grad-line: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
 }
 
 /* Dark Mode Support */
@@ -408,4 +429,182 @@ h4 {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   GLASS MORPHISM COMPONENTS
+   ═════════════════════════════════════════════════════════════════════ */
+
+.glass {
+  background: var(--glass-light);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  backdrop-filter: var(--glass-blur-md);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.glass-card {
+  background: var(--glass-light);
+  -webkit-backdrop-filter: var(--glass-blur-md);
+  backdrop-filter: var(--glass-blur-md);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: 0 40px 90px rgba(10, 10, 8, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.glass-card::after {
+  content: "";
+  position: absolute;
+  left: 16%;
+  right: 16%;
+  top: -1px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+  opacity: 0.5;
+  border-radius: 50%;
+}
+
+/* Chips/Tags - Glass style */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.4);
+  -webkit-backdrop-filter: var(--glass-blur-sm);
+  backdrop-filter: var(--glass-blur-sm);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: hsl(var(--text-000));
+  transition: var(--transition-fast);
+}
+
+.chip:hover {
+  background: rgba(255, 255, 255, 0.5);
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
+/* Badges - Compact status indicators */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--accent-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.badge.secondary {
+  background: hsl(var(--text-200));
+}
+
+.badge.success {
+  background: hsl(var(--state-success));
+}
+
+.badge.warning {
+  background: hsl(var(--state-warning));
+}
+
+.badge.error {
+  background: hsl(var(--state-error));
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   ANIMATION KEYFRAMES
+   ═════════════════════════════════════════════════════════════════════ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+/* Utility animations */
+.animate-fade-in {
+  animation: fadeIn var(--anim-entrance);
+}
+
+.animate-fade-out {
+  animation: fadeOut var(--anim-exit);
+}
+
+.animate-slide-in-right {
+  animation: slideInRight var(--anim-entrance);
+}
+
+.animate-slide-in-left {
+  animation: slideInLeft var(--anim-entrance);
+}
+
+.animate-pulse {
+  animation: pulse var(--anim-pulse);
 }
