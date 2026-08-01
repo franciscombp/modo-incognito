@@ -95,9 +95,20 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
 El reparto **no son pliegos de dibujo**: son muñecos low-poly que
 `src/entities/character3d.js` monta con primitivas de Three.js a partir de una
 **receta** en `public/data/characters3d.json` (piel, pelo + estilo, prenda,
-pantalón, zapatos, accesorios, complexión). No hay ningún `.glb` ni PNG de
-personaje detrás. Por eso añadir a alguien al reparto son ~10 líneas de JSON
-y **nunca** hace falta tocar código.
+pantalón, zapatos, accesorios, complexión). Por eso añadir a alguien al
+reparto son ~10 líneas de JSON y **nunca** hace falta tocar código.
+
+**Dos caminos, misma receta.** Si la receta trae `baseModel`, el muñeco NO se
+monta con primitivas: se carga ese `.glb` de `public/models/` y se instancia
+clonándolo (`_buildFromGLB`). Es lo que usan hoy Giuli y Gabo, esculpidos
+fuera. Sin `baseModel`, sigue el camino procedural de siempre
+(`_buildProcedural`) — que es el de todo el resto del reparto. Los dos acaban
+con el MISMO rig y las MISMAS poses, así que nada de lo que hay por encima
+(poses, props, tinte) necesita saber por cuál vino un personaje.
+
+Un `.glb` nuevo tiene que traer el rig con nombres convencionales (`Hips`,
+`Spine`, `LeftArm`…): `baseModel.js` los reetiqueta al cargar, y un hueso que
+no aparezca deja poses a medias avisando solo por consola.
 
 - **Para editarlos**: `builder/personajes.html` — vista previa 3D en vivo,
   selectores por pieza y visor de poses. Importa el módulo REAL del juego con
@@ -212,6 +223,13 @@ en una captura.
 
 ## Invariantes que no debes romper
 
+- **No hay puntos: la única moneda es el RELOJ.** Todo lo que antes puntuaba
+  ahora alarga la jornada, y todo el reloj que se regala pasa por
+  `Game._grantTime()` — que es quien mantiene `timeGained` (lo que enseña el
+  HUD) en sincronía con `timeLeft`. Si sumas a `timeLeft` por tu cuenta, el
+  HUD se queda corto y nadie se entera. Ojo con los dos campos de una
+  actividad, que se confunden solos: **`time` es lo que TARDA** en hacerse y
+  **`reward` es el reloj que DA**.
 - **`scenes/piso7.json` → `areas`**: los rectángulos de zona no deben
   solaparse. Si añades o mueves una zona, revisa `x/z/w/d` contra las
   vecinas antes de dar por bueno el cambio.
