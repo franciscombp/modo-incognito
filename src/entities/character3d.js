@@ -106,12 +106,12 @@ const _poseEuler = new THREE.Euler();
 const _poseQuat = new THREE.Quaternion();
 function setBoneRotation(bone, x, y, z) {
   const rest = bone.userData?.restQuat;
-  if (!rest) {
-    bone.rotation.set(x, y, z);
-    return;
-  }
   _poseEuler.set(x, y, z);
   _poseQuat.setFromEuler(_poseEuler);
+  if (!rest) {
+    bone.quaternion.copy(_poseQuat);
+    return;
+  }
   bone.quaternion.copy(rest).multiply(_poseQuat);
 }
 
