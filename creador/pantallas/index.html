@@ -7,12 +7,11 @@
     <link rel="icon" href="../../favicon.png" />
     <link rel="stylesheet" href="../../src/style/design-system.css" />
     <link rel="stylesheet" href="../../src/style/builders.css" />
-    <link rel="stylesheet" href="pantallas.css" />
   </head>
   <body>
     <div class="app">
       <header class="app-header">
-        <h1>🎨 Pantallas · Modo Incógnito</h1>
+        <h1><span class="icon-inline" data-icon="palette"></span> Pantallas · Modo Incógnito</h1>
         <p class="subtitle">Storybook de componentes y constructor de UI</p>
       </header>
 
@@ -31,8 +30,8 @@
           </nav>
 
           <div class="sidebar-actions">
-            <button class="btn secondary" id="export-btn">📥 Exportar CSS</button>
-            <button class="btn secondary" id="reset-btn">↺ Resetear</button>
+            <button class="btn secondary" id="export-btn" data-icon="download">Exportar CSS</button>
+            <button class="btn secondary" id="reset-btn" data-icon="reset">Resetear</button>
           </div>
         </aside>
 
@@ -48,8 +47,8 @@
             <textarea id="css-editor" class="css-editor" placeholder="/* Edita CSS aquí para ver cambios en vivo */"></textarea>
           </div>
           <div class="editor-actions">
-            <button class="btn" id="apply-btn">✓ Aplicar cambios</button>
-            <button class="btn secondary" id="copy-btn">📋 Copiar al portapapeles</button>
+            <button class="btn" id="apply-btn" data-icon="check">Aplicar cambios</button>
+            <button class="btn secondary" id="copy-btn" data-icon="copy">Copiar al portapapeles</button>
           </div>
           <div id="status-message" class="status-message"></div>
         </aside>
@@ -57,5 +56,6 @@
     </div>
 
     <script type="module" src="pantallas.js"></script>
+    <script type="module" src="../../src/ui/load-phosphor-builder-icons.js"></script>
   </body>
 </html>
