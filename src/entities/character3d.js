@@ -1154,11 +1154,19 @@ export class Character3D {
   /** Aplica la pose REST a los huesos importados para establecer una postura
    *  natural como su reposo, reemplazando la pose T del modelo original. */
   _applyRestPose(bones) {
+    // Limpiar el restQuat para que setBoneRotation escriba directamente,
+    // no de forma relativa al T-pose guardado del archivo.
+    for (const bone of bones.values()) {
+      bone.userData.restQuat = null;
+    }
+
+    // Aplicar la pose REST directamente, sin relativizar a la T-pose.
     for (const [name, angles] of Object.entries(REST)) {
       const bone = bones.get(BONE_OF[name]);
       if (!bone || name === "lift" || name === "hands") continue;
       setBoneRotation(bone, angles[0], angles[1], angles[2]);
     }
+
     // Guardar la nueva postura como el reposo, no la del archivo.
     for (const bone of bones.values()) {
       bone.userData.restQuat = bone.quaternion.clone();
