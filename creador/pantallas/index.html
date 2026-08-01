@@ -1,13 +1,11 @@
 <!DOCTYPE html>
-<html lang="es" data-theme="light">
-
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modo Incógnito — Storybook & Design System</title>
+    <title>Modo Incógnito — Component Library</title>
     <link rel="icon" href="../../favicon.png" />
     <link rel="stylesheet" href="../../src/style/design-system.css">
-    <link rel="stylesheet" href="../../src/style.css">
     <style>
         * {
             box-sizing: border-box;
@@ -316,21 +314,11 @@
 </head>
 
 <body>
-    <aside class="sb-sidebar">
-        <div class="sb-sidebar-header">
-            <span>MODO INCÓGNITO</span>
-        </div>
-
-        <button class="btn sb-theme-toggle" id="theme-toggle" style="width: 100%; font-size: 13px; height: 40px; justify-content: flex-start; gap: 12px;">
-            <span>☀ Tema</span>
-        </button>
-
-        <nav id="sidebar-nav"></nav>
-    </aside>
-
-    <main class="sb-content" id="main-content"></main>
-
-    <script type="module" src="./pantallas.js"></script>
+    <div id="root"></div>
+    <script type="module">
+        import { initStorybook } from './viewer.js';
+        const root = document.getElementById('root');
+        initStorybook(root);
+    </script>
 </body>
-
 </html>
