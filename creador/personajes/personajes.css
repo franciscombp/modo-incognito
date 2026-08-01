@@ -1,283 +1,78 @@
 /* =====================================================================
    BUILDER DE PERSONAJES · Estilos Específicos
-
-   Visor 3D y formulario de edición de recetas de personajes.
-   Hereda componentes comunes de builders.css
+   Solo lo que es único para el character builder
    ===================================================================== */
 
-/* ─────────────────────────────────────────────────────────────────
-   ESTRUCTURA DE GRID PERSONALIZADA
-   ───────────────────────────────────────────────────────────────── */
-
-main {
-  grid-template-columns: 240px 1fr 300px;
-  height: calc(100% - 53px);
+/* Cast list items */
+#lista li {
+  @apply flex gap-1;
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   TÍTULOS DE SECCIÓN
-   Statement-like, con mucho aire
-   ───────────────────────────────────────────────────────────────── */
-
-.panel h2 {
-  font-size: 16px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.12em !important;
-  margin: 0 0 16px 0 !important;
-  padding-bottom: 12px !important;
-  border-bottom: 2px solid var(--builder-accent) !important;
-  color: var(--builder-accent) !important;
+#lista button {
+  @apply flex-1 rounded-cozy border border-border bg-input px-3 py-2 text-left text-xs font-semibold text-foreground transition-all duration-200 cursor-pointer hover:border-accent hover:bg-accent/10;
 }
 
-.panel h2:first-of-type {
-  margin-top: 0 !important;
+#lista li.on > button:first-child {
+  @apply border-accent bg-accent/20 text-accent;
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   REPARTO (CAST LIST)
-   Protagonista visual después del título
-   ───────────────────────────────────────────────────────────────── */
-
-.cast-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+#lista button.mini {
+  @apply flex-0 px-1.5 py-1 text-xs text-muted-foreground bg-muted;
 }
 
-.cast-list li {
-  display: flex;
-  gap: 4px;
+/* Canvas area */
+#vista {
+  @apply bg-card/50;
 }
 
-.cast-list button {
-  flex: 1;
-  text-align: left;
-  padding: 10px 12px;
-  border: 1px solid var(--builder-border);
-  border-radius: 4px;
-  background: white;
-  color: var(--builder-text);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.cast-list button:hover {
-  background: rgba(194, 121, 90, 0.05);
-  border-color: var(--builder-accent);
-}
-
-.cast-list li.on > button:first-child {
-  border-color: var(--builder-accent);
-  color: var(--builder-accent);
-  background: rgba(194, 121, 90, 0.1);
-}
-
-.cast-list button.mini {
-  flex: 0 0 auto !important;
-  padding: 4px 7px !important;
-  color: var(--builder-text-tertiary) !important;
-  font-size: 11px;
-  background: var(--builder-panel);
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   VISOR 3D (CANVAS)
-   ───────────────────────────────────────────────────────────────── */
-
-.stage {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  background: var(--builder-bg);
-}
-
-.stage canvas {
-  flex: 1;
-  width: 100%;
-  min-height: 0;
-  display: block;
-  cursor: grab;
-  touch-action: none;
-}
-
-.stage canvas:active {
-  cursor: grabbing;
-}
-
-.stage-bar {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  padding: 16px 20px;
-  border-top: 1px solid var(--builder-border);
-  background: linear-gradient(90deg, var(--builder-panel) 0%, rgba(237, 227, 213, 0.5) 100%);
-  flex-wrap: wrap;
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.stage-bar label {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--builder-text);
-  cursor: pointer;
-}
-
-.stage-bar input[type="checkbox"] {
-  cursor: pointer;
-}
-
-.stage-bar .hint {
-  margin-left: auto;
-  color: var(--builder-text-tertiary);
-  font-size: 11px;
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   FORMULARIO DE RECETA
-   Limpio y bien espaciado
-   ───────────────────────────────────────────────────────────────── */
-
-.panel.right h2 {
-  font-size: 16px !important;
-  font-weight: 700 !important;
-  margin: 0 0 20px 0 !important;
-  padding-bottom: 12px !important;
-  border-bottom: 2px solid var(--builder-accent) !important;
-  color: var(--builder-accent) !important;
-}
-
+/* Form campos dinámicos */
 .campo {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
-  font-size: 12px;
+  @apply flex items-center justify-between gap-3 text-xs;
 }
 
 .campo > span {
-  color: var(--builder-text-secondary);
-  font-weight: 700;
-  font-size: 12px;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  flex: 0 0 auto;
+  @apply flex-0 font-bold uppercase tracking-wider text-muted-foreground;
 }
 
 .campo input[type="text"],
 .campo select {
-  width: 132px;
-  padding: 4px 6px;
-  border: 1px solid var(--builder-border);
-  border-radius: 3px;
-  background: white;
-  color: var(--builder-text);
-  font: inherit;
-  font-size: 12px;
-  transition: border-color 0.2s ease;
-}
-
-.campo input[type="text"]:focus,
-.campo select:focus {
-  outline: none;
-  border-color: var(--builder-accent);
+  @apply w-32 rounded-cozy border border-border bg-input px-2 py-1 text-xs text-foreground transition-all focus:border-accent focus:ring-2 focus:ring-accent;
 }
 
 .campo input[type="range"] {
-  width: 132px;
-  height: 6px;
-  accent-color: var(--builder-accent);
-  cursor: pointer;
+  @apply w-32 cursor-pointer accent-accent;
 }
 
 .campo input[type="color"] {
-  width: 44px;
-  height: 26px;
-  padding: 2px;
-  border: 1px solid var(--builder-border);
-  border-radius: 3px;
-  background: white;
-  cursor: pointer;
+  @apply h-6 w-11 cursor-pointer rounded-cozy border border-border bg-input p-0.5;
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   FILA DE COLORES
-   ───────────────────────────────────────────────────────────────── */
-
-.color-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 7px;
-}
-
-.color-row > span {
-  color: var(--builder-text-secondary);
-  font-size: 12px;
-  font-weight: 500;
-}
-
-/* ─────────────────────────────────────────────────────────────────
-   CHIPS (BADGES DE COLORES)
-   ───────────────────────────────────────────────────────────────── */
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  justify-content: flex-end;
-  max-width: 160px;
-}
-
+/* Color chips */
 .chip {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 7px;
-  border: 1px solid var(--builder-border);
-  border-radius: 999px;
-  background: rgba(194, 121, 90, 0.1);
-  color: var(--builder-accent);
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.chip:hover {
-  background: rgba(194, 121, 90, 0.15);
-  border-color: var(--builder-accent);
+  @apply inline-flex items-center gap-1 rounded-full border border-border bg-accent/10 px-2 py-1 text-xs font-medium text-accent transition-all duration-150 cursor-pointer hover:bg-accent/20 hover:border-accent;
 }
 
 .chip input[type="checkbox"] {
-  accent-color: var(--builder-accent);
-  margin: 0;
-  cursor: pointer;
+  @apply cursor-pointer accent-accent;
 }
 
-/* ─────────────────────────────────────────────────────────────────
-   RESPONSIVE
-   ───────────────────────────────────────────────────────────────── */
+.chips {
+  @apply flex flex-wrap gap-1 justify-end max-w-40;
+}
 
-@media (max-width: 900px) {
-  main {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 320px auto;
-    overflow-y: auto;
-  }
+.color-row {
+  @apply flex items-center gap-1.5 mb-1;
+}
 
-  .panel.left,
-  .panel.right {
-    border: 0;
-    border-bottom: 1px solid var(--builder-border);
-  }
+.color-row > span {
+  @apply text-xs text-muted-foreground font-medium;
+}
+
+/* Help text */
+.help {
+  @apply text-xs text-muted-foreground leading-relaxed mb-2;
+}
+
+.help code {
+  @apply bg-muted/50 px-1 rounded font-mono text-xs;
 }
