@@ -159,7 +159,7 @@ function applyCustomCSS() {
   styleTag.textContent = css;
   currentCss = css;
 
-  showStatus("✓ CSS aplicado", "success");
+  showStatus("CSS aplicado", "success");
 }
 
 function showStatus(message, type = "info") {
@@ -177,7 +177,7 @@ function showStatus(message, type = "info") {
 function copyToClipboard() {
   const css = cssEditor.value;
   navigator.clipboard.writeText(css).then(() => {
-    showStatus("✓ Copiado al portapapeles", "success");
+    showStatus("Copiado al portapapeles", "success");
   });
 }
 
@@ -188,7 +188,7 @@ function resetCSS() {
   const styleTag = document.getElementById("custom-css");
   if (styleTag) styleTag.remove();
 
-  showStatus("✓ CSS reseteado", "success");
+  showStatus("CSS reseteado", "success");
 }
 
 function exportCSS() {
@@ -207,7 +207,7 @@ function exportCSS() {
   a.click();
   URL.revokeObjectURL(url);
 
-  showStatus("✓ CSS descargado", "success");
+  showStatus("CSS descargado", "success");
 }
 
 function handleNavClick(e) {

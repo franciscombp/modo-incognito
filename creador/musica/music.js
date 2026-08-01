@@ -462,7 +462,7 @@ function exportJSON() {
   a.click();
   URL.revokeObjectURL(url);
 
-  toast(`✓ Tema "${currentThemeName}" exportado`);
+  toast(`Tema "${currentThemeName}" exportado`);
 }
 
 function importJSON(file) {
@@ -473,7 +473,7 @@ function importJSON(file) {
       const { name, ...rest } = data;
 
       if (!rest.bpm || !rest.bass) {
-        toast("❌ JSON inválido");
+        toast("JSON inválido");
         return;
       }
 
@@ -483,9 +483,9 @@ function importJSON(file) {
 
       updateUI();
       stopPlayback();
-      toast(`✓ Tema "${name}" importado`);
+      toast(`Tema "${name}" importado`);
     } catch (err) {
-      toast(`❌ Error: ${err.message}`);
+      toast(`Error: ${err.message}`);
     }
   };
   reader.readAsText(file);
@@ -510,7 +510,7 @@ document.getElementById("import-theme").addEventListener("change", (e) => {
 
 document.getElementById("play-theme").addEventListener("click", () => {
   if (!currentTheme) {
-    toast("❌ Selecciona un tema primero");
+    toast("Selecciona un tema primero");
     return;
   }
   startLoop();

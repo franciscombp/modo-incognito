@@ -62,7 +62,7 @@ body {
   place-content: center;
   justify-items: center;
   gap: 18px;
-  background: radial-gradient(circle at 50% 40%, #f3e9d8, #e2d3ba 70%);
+  background: radial-gradient(circle at 50% 40%, hsl(var(--bg-000)), hsl(var(--bg-050)));
   color: var(--ink);
 }
 
@@ -105,7 +105,7 @@ body {
 }
 
 .boot-error {
-  color: #ff8b8b;
+  color: var(--red);
   font-size: 15px;
   line-height: 1.6;
   text-align: center;
