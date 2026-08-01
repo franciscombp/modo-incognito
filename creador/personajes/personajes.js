@@ -22,7 +22,7 @@ import {
 // receta, así que "añadir un personaje" son diez líneas de JSON y no modelar
 // nada. Este editor es el sitio donde se escriben esas diez líneas viéndolas.
 
-const DATA = "../data/";
+const DATA = "/data/";
 const HEIGHT = 1.6;
 
 // ---------------------------------------------------------------- estado
