@@ -106,6 +106,15 @@ export function createEngine({
   let bossSpeedBonus = 1;
   let menuPaused = false;
   let inLevel = false;
+  // El scrim de los menús es sólido antes de que exista una jornada que
+  // enseñar detrás (título, elegir personaje) y translúcido una vez que sí
+  // la hay (pausa, y cualquier pantalla a la que se llegue desde pausa,
+  // como ajustes) — de ahí esta clase en vez de mirar solo qué pantalla
+  // está activa.
+  function setInLevel(value) {
+    inLevel = value;
+    document.body.classList.toggle("inc-game-active", value);
+  }
   let teamsTimer = null;
   let lastTeamsMessage = null;
 
@@ -236,7 +245,7 @@ export function createEngine({
   });
 
   function openTitle() {
-    inLevel = false;
+    setInLevel(false);
     menuPaused = false;
     game?.setPaused(true);
     hud.setVisible(false);
@@ -494,7 +503,7 @@ export function createEngine({
    * puertas descubren tiene que ser ya el día que empieza.
    */
   function prepareFloor(day) {
-    inLevel = true;
+    setInLevel(true);
     bossSpeedBonus = 1;
     applyTheme(day.theme, { renderer, scene, ...lights });
     hud.setDay(day);
@@ -697,7 +706,7 @@ export function createEngine({
   }
 
   async function finishDay(day, result) {
-    inLevel = false;
+    setInLevel(false);
     playStinger(result.win ? "victory" : "defeat");
     save.setHadWarningYesterday(result.warnings > 0);
     const spare = Math.max(0, Math.round(result.timeLeft));
