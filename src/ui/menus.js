@@ -122,6 +122,16 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   button(titleMenu, "Cómo se juega", { icon: "help", onClick: () => show("help") });
   const charBadge = el("div", "inc-menu-title-char", titleScreen);
   const titleFoot = el("div", "inc-menu-title-foot", titleScreen);
+  // Marca de tiempo para conocer la versión que se está probando
+  const buildId = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
+  const buildTime = new Date(parseInt(buildId) || Date.now()).toLocaleString("es-ES", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  titleFoot.innerHTML = `<span>v${buildId} · ${buildTime}</span>`;
 
   // ---------------- Day select ----------------
   const daysScreen = makeScreen("days");
