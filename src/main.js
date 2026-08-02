@@ -642,17 +642,20 @@ async function boot() {
 
   // Modo Incógnito: pause music when window loses focus
   // (someone else might see the screen, keep it quiet)
-  let hadFocus = true;
-  window.addEventListener("focus", () => {
-    hadFocus = true;
-    // Resume music if needed
+  window.addEventListener("blur", () => {
+    // Pause music - stealth mode: silently mute without affecting user's volume preference
+    const wasMuted = isMutedState();
+    if (!wasMuted) {
+      setMuted(true);
+      window.__audioMutedByFocus = true; // Flag to restore when focus returns
+    }
   });
 
-  window.addEventListener("blur", () => {
-    hadFocus = false;
-    // Pause music - stealth mode
-    if (soundtrackState?.synth) {
-      soundtrackState.synth.muted = true;
+  window.addEventListener("focus", () => {
+    // Restore audio if we muted it due to blur
+    if (window.__audioMutedByFocus) {
+      unmute(getVolume());
+      window.__audioMutedByFocus = false;
     }
   });
 
