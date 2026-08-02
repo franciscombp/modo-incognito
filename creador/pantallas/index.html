@@ -385,7 +385,7 @@
   </main>
 
   <script type="module">
-    import { prepareLooks } from "../../src/data/loader.js";
+    import { loadGameData } from "../../src/data/loader.js";
     import { createMenus } from "../../src/ui/menus.js";
     import { createHud } from "../../src/game/hud.js";
     import { createDialogue } from "../../src/game/dialogue.js";
@@ -435,42 +435,14 @@
     });
 
     // ---------------- Real game data, for the real components below ----------------
-    // Ruta relativa CONSCIENTE DE LA PROFUNDIDAD, no absoluta: en GitHub
-    // Pages el sitio entero cuelga de un subdirectorio (ver el comentario de
-    // `modelUrlFor` en entities/baseModel.js), así que "/data/…" a secas
-    // sería un 404 en producción aunque funcione en local. Esta página vive
-    // dos carpetas por debajo de la raíz (creador/pantallas/), igual que su
-    // propio `../../src/style/design-system.css` de arriba — de ahí el mismo
-    // "../../". loader.js no sirve aquí porque él da por hecho que SIEMPRE
-    // se llama desde la página raíz (usa `import.meta.env.BASE_URL` a
-    // secas), así que solo se reutiliza prepareLooks() (pura, sin fetch)
-    // sobre JSON bajado a mano con la ruta correcta.
-    const DATA = "../../data/";
-    async function getJSON(path) {
-      const res = await fetch(`${DATA}${path}`);
-      if (!res.ok) throw new Error(`No se pudo cargar data/${path} (${res.status})`);
-      return res.json();
-    }
-    const data = await (async () => {
-      try {
-        const manifest = await getJSON("manifest.json");
-        const [looksRaw, modelsRaw, modesRaw, levelList] = await Promise.all([
-          getJSON(manifest.characters3d ?? "characters3d.json").catch(() => ({ characters: {} })),
-          getJSON("models.json").catch(() => ({ bodies: {}, faces: {} })),
-          getJSON(manifest.modes ?? "modes.json").catch(() => ({ characters: {} })),
-          Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
-        ]);
-        return {
-          manifest,
-          levels: levelList.map((lvl, i) => ({ ...lvl, number: lvl.number ?? i + 1 })),
-          modes: modesRaw.characters ?? {},
-          looks: prepareLooks(looksRaw, modelsRaw),
-        };
-      } catch (err) {
-        console.error("No se pudo cargar public/data/:", err);
-        return null;
-      }
-    })();
+    // loadGameData() ya resuelve sus rutas con siteRoot() (src/data/siteRoot.js),
+    // así que funciona igual desde aquí (dos carpetas por debajo de la raíz)
+    // que desde index.html — antes tenía que duplicarse a mano porque
+    // loader.js daba por hecho que SIEMPRE corría desde la página raíz.
+    const data = await loadGameData().catch((err) => {
+      console.error("No se pudo cargar public/data/:", err);
+      return null;
+    });
 
     if (data) {
       // Fake save/actions: enough for menus.js to render every screen
