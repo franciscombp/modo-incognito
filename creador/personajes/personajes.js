@@ -11,6 +11,7 @@ import {
   ACCESSORIES,
   DEFAULT_RECIPE,
 } from "../../src/entities/character3d.js";
+import { siteRoot } from "../../src/data/siteRoot.js";
 
 // Builder de PERSONAJES de Modo Incógnito.
 //
@@ -22,7 +23,9 @@ import {
 // receta, así que "añadir un personaje" son diez líneas de JSON y no modelar
 // nada. Este editor es el sitio donde se escriben esas diez líneas viéndolas.
 
-const DATA = "/data/";
+// Ruta ABSOLUTA a secas rompía en GitHub Pages, donde el sitio entero
+// cuelga de un subdirectorio (ver src/data/siteRoot.js).
+const DATA = `${siteRoot()}data/`;
 const HEIGHT = 1.6;
 
 // ---------------------------------------------------------------- estado

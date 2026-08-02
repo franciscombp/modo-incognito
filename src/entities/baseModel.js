@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { siteRoot } from "../data/siteRoot.js";
 
 /**
  * CUERPO BASE IMPORTADO.
@@ -111,10 +112,19 @@ const ready = new Map();
  * Dónde vive un modelo. `public/` se sirve en la RAÍZ (no en `/public/`), y
  * en Pages el sitio entero cuelga de un subdirectorio: montar esta ruta a
  * mano en cada sitio es cómo se cuela un 404.
+ *
+ * `import.meta.env.BASE_URL` es la cadena literal `"./"` (ver `base` en
+ * vite.config.js) y el navegador la resuelve relativa a la PÁGINA actual —
+ * funciona desde `index.html`, pero desde un builder anidado dos carpetas
+ * más abajo (`creador/personajes/`) apunta dos carpetas de más y nunca
+ * encuentra el modelo. `siteRoot()` (ver `../data/siteRoot.js`) calcula el
+ * prefijo correcto mirando la propia URL de la página, así que da con la
+ * ruta buena en cualquier profundidad — y sirve igual en `npm run dev`
+ * (módulos sueltos) que en el build (todo empaquetado), a diferencia de
+ * resolver contra `import.meta.url`, que cambia de sitio entre los dos.
  */
 export function modelUrlFor(file) {
-  const base = import.meta.env?.BASE_URL ?? "/";
-  return `${base}models/${file}`;
+  return `${siteRoot()}models/${file}`;
 }
 
 const faceCache = new Map();
