@@ -237,6 +237,8 @@ async function boot() {
     visionHalfAngleDeg: chars.boss.visionHalfAngleDeg,
     config: data.bossConfig?.boss,
   });
+  boss.cast = "jefe"; // Identificador para diálogos/encuentros
+  boss.displayName = "Gabo";
   boss.sprite.setRig(rigOf(chars.boss));
   scene.add(boss.object3D);
   scene.add(boss.cone);

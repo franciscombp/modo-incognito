@@ -451,10 +451,6 @@ export function createEngine({
     camera.setFraming(1);
 
     await dialogue.play(withSprites(day.intro ?? []), ctx);
-    // Desbloquea las actividades. Normalmente se desbloqueaban al hablar con
-    // Gabo por primera vez, pero eso dejaba el juego injugable si no sabías que
-    // tenías que hablar con el jefe. Por ahora, se desbloquean al empezar el día.
-    if (game) game.metGabo = true;
     if (!menuPaused) game.setPaused(false);
   }
 
