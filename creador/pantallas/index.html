@@ -1,16 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Modo Incógnito — Componentes</title>
-  <link rel="stylesheet" href="../../src/style/design-system.css">
+  <link rel="stylesheet" href="../../src/style/design-system.css" />
   <style>
+    /* Solo el andamiaje del propio storybook (sidebar, grid de fichas). Los
+       componentes que se enseñan dentro nunca llevan CSS de aquí: todos
+       vienen del mismo design-system.css que usa el juego, así que un
+       cambio ahí se ve aquí sin tocar esta página. */
     body {
       display: grid;
-      grid-template-columns: 280px 1fr;
+      grid-template-columns: 260px 1fr;
       height: 100vh;
       margin: 0;
+      overflow: hidden;
+      background: hsl(var(--bg-050));
     }
 
     aside {
@@ -39,7 +45,7 @@
     aside a {
       display: block;
       padding: 8px 12px;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       border-radius: 6px;
       color: hsl(var(--text-000));
       text-decoration: none;
@@ -51,6 +57,12 @@
     aside a:hover {
       background: hsl(var(--accent-main) / 0.1);
       color: hsl(var(--accent-main));
+    }
+
+    aside a.active {
+      background: hsl(var(--accent-main) / 0.12);
+      color: hsl(var(--accent-main));
+      font-weight: 600;
     }
 
     main {
@@ -69,25 +81,47 @@
     h1 {
       margin-top: 0;
       color: hsl(var(--text-000));
-      font-size: 32px;
-      margin-bottom: 8px;
+      font-size: 28px;
+      margin-bottom: 6px;
+      font-family: var(--font-sans);
     }
 
     .desc {
       color: hsl(var(--text-100));
-      margin-bottom: 32px;
+      margin-bottom: 28px;
       font-size: 14px;
+      max-width: 640px;
     }
 
     .grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-      gap: 24px;
-      margin-bottom: 40px;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+
+    .stage {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid hsl(var(--border-100));
+      border-radius: var(--radius-lg);
+      background: hsl(var(--bg-000));
+    }
+
+    .stage.tall {
+      height: 720px;
+    }
+
+    .stage.mid {
+      height: 320px;
+    }
+
+    .stage.floor {
+      background: linear-gradient(180deg, hsl(28 45% 78%), hsl(28 30% 70%));
     }
 
     .component-box {
-      padding: 24px;
+      padding: 20px;
       border: 1px solid hsl(var(--border-100));
       border-radius: var(--radius-lg);
       background: white;
@@ -99,14 +133,14 @@
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: hsl(var(--text-faint));
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
 
-    .component-title {
+    .component-note {
       font-size: 12px;
-      font-weight: 600;
-      color: hsl(var(--text-000));
-      margin-bottom: 12px;
+      color: hsl(var(--text-faint));
+      margin: -20px 0 24px 0;
+      font-style: italic;
     }
   </style>
 </head>
@@ -114,200 +148,443 @@
   <aside>
     <h2>Componentes</h2>
 
-    <h3>Atoms</h3>
-    <a onclick="show('buttons')">Buttons</a>
-    <a onclick="show('badges')">Badges</a>
-    <a onclick="show('inputs')">Inputs</a>
+    <h3>Átomos</h3>
+    <a data-target="buttons">Botones</a>
+    <a data-target="chips">Chips / badges</a>
+    <a data-target="inputs">Ajustes (inputs)</a>
+    <a data-target="icons">Iconos</a>
 
-    <h3>Molecules</h3>
-    <a onclick="show('panels')">Panels</a>
-    <a onclick="show('cards')">Cards</a>
-    <a onclick="show('tabs')">Tabs</a>
+    <h3>Menús</h3>
+    <a data-target="menu-title">Pantalla título</a>
+    <a data-target="menu-days">Elegir día</a>
+    <a data-target="menu-chars">Elegir personaje</a>
 
-    <h3>Organisms</h3>
-    <a onclick="show('dialogs')">Dialogs</a>
-    <a onclick="show('audio')">Audio Control</a>
+    <h3>En partida</h3>
+    <a data-target="hud">HUD (viva)</a>
+    <a data-target="tracker">Rastreadores</a>
+    <a data-target="dialogue">Diálogo (vivo)</a>
+    <a data-target="narrator">Narrador · Teams</a>
+
+    <h3>Otros</h3>
+    <a data-target="audio">Control de audio (vivo)</a>
+    <a data-target="lobby">Ascensor</a>
   </aside>
 
   <main>
     <!-- BUTTONS -->
     <section id="buttons" class="section active">
-      <h1>Buttons</h1>
-      <p class="desc">Botones en diferentes variantes</p>
+      <h1>Botones</h1>
+      <p class="desc">.px-btn — usado en todos los menús del juego (títulos, pausa, ajustes).</p>
       <div class="grid">
         <div class="component-box">
           <div class="component-label">Primary</div>
-          <button class="btn" style="width: 100%;">Aceptar</button>
+          <button class="px-btn px-btn-primary" style="width: 100%;">Continuar</button>
         </div>
         <div class="component-box">
-          <div class="component-label">Secondary</div>
-          <button class="btn secondary" style="width: 100%;">Cancelar</button>
+          <div class="component-label">Default</div>
+          <button class="px-btn" style="width: 100%;">Ajustes</button>
         </div>
         <div class="component-box">
-          <div class="component-label">Ghost</div>
-          <button class="btn ghost" style="width: 100%;">Ayuda</button>
-        </div>
-        <div class="component-box">
-          <div class="component-label">Danger</div>
-          <button class="btn danger" style="width: 100%;">Eliminar</button>
-        </div>
-        <div class="component-box">
-          <div class="component-label">Small</div>
-          <button class="btn sm" style="width: 100%;">Pequeño</button>
-        </div>
-        <div class="component-box">
-          <div class="component-label">Large</div>
-          <button class="btn lg" style="width: 100%;">Grande</button>
+          <div class="component-label">Disabled</div>
+          <button class="px-btn" style="width: 100%;" disabled>Bloqueado</button>
         </div>
       </div>
     </section>
 
-    <!-- BADGES -->
-    <section id="badges" class="section">
-      <h1>Badges</h1>
-      <p class="desc">Indicadores de estado</p>
+    <!-- CHIPS / BADGES -->
+    <section id="chips" class="section">
+      <h1>Chips y badges</h1>
+      <p class="desc">.px-chip (selección de ajuste), .px-plat-chip (barra de plataforma), .hud-day-chip (HUD).</p>
       <div class="grid">
         <div class="component-box">
-          <div class="component-label">Primary</div>
-          <span class="badge primary">Active</span>
+          <div class="component-label">px-chip</div>
+          <div class="px-choice">
+            <button class="px-chip">BAJO</button>
+            <button class="px-chip on">MEDIO</button>
+            <button class="px-chip">ALTO</button>
+          </div>
         </div>
         <div class="component-box">
-          <div class="component-label">Success</div>
-          <span class="badge success">Success</span>
+          <div class="component-label">px-switch</div>
+          <button class="px-switch on">SÍ</button>
         </div>
         <div class="component-box">
-          <div class="component-label">Warning</div>
-          <span class="badge warning">Warning</span>
+          <div class="component-label">px-plat-chip</div>
+          <span class="px-plat-chip"><i class="px-dot"></i>Sistemas operativos</span>
         </div>
         <div class="component-box">
-          <div class="component-label">Danger</div>
-          <span class="badge danger">Error</span>
-        </div>
-        <div class="component-box">
-          <div class="component-label">Secondary</div>
-          <span class="badge secondary">Neutral</span>
+          <div class="component-label">hud-day-chip</div>
+          <div class="hud-day-chip">Día 1 · Lunes · Inducción</div>
         </div>
       </div>
     </section>
 
     <!-- INPUTS -->
     <section id="inputs" class="section">
-      <h1>Inputs</h1>
-      <p class="desc">Campos de entrada</p>
-      <div class="grid">
-        <div class="component-box">
-          <div class="component-label">Text Input</div>
-          <input type="text" placeholder="Escribe algo...">
-        </div>
-        <div class="component-box">
-          <div class="component-label">Number Input</div>
-          <input type="number" placeholder="123">
-        </div>
-        <div class="component-box">
-          <div class="component-label">Select</div>
-          <select>
-            <option>Opción 1</option>
-            <option>Opción 2</option>
-            <option>Opción 3</option>
-          </select>
+      <h1>Ajustes</h1>
+      <p class="desc">.px-opt — fila de ajuste tal como sale en la pantalla de Ajustes (menus.js), generada desde SETTINGS_SCHEMA.</p>
+      <div class="component-box" style="max-width: 420px;">
+        <label class="px-opt">
+          <div class="px-opt-head">
+            <span class="px-opt-label">Tamaño de píxel</span>
+            <span class="px-opt-value">3</span>
+          </div>
+          <input type="range" class="cam-slider" min="1" max="6" value="3" />
+        </label>
+        <label class="px-opt">
+          <div class="px-opt-head">
+            <span class="px-opt-label">Calidad</span>
+          </div>
+          <div class="px-choice">
+            <button class="px-chip">BAJO</button>
+            <button class="px-chip on">AUTO</button>
+            <button class="px-chip">ALTO</button>
+          </div>
+        </label>
+        <label class="px-opt">
+          <div class="px-opt-head">
+            <span class="px-opt-label">Rótulos de zona</span>
+          </div>
+          <button class="px-switch on">SÍ</button>
+          <span class="px-opt-hint">Muestra el nombre de cada mesa, no solo de las salas.</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- ICONS -->
+    <section id="icons" class="section">
+      <h1>Iconos</h1>
+      <p class="desc">src/ui/icons.js — SVG de trazo, nunca emoji (ver CLAUDE.md). Se piden por nombre: <code>icon("coffee")</code>.</p>
+      <div id="icon-grid" class="grid" style="grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));"></div>
+    </section>
+
+    <!-- MENU: TITLE -->
+    <section id="menu-title" class="section">
+      <h1>Pantalla título</h1>
+      <p class="desc">Componente real (src/ui/menus.js), montado con los niveles y modos de public/data/.</p>
+      <div id="stage-menu-title" class="stage tall"></div>
+    </section>
+
+    <!-- MENU: DAYS -->
+    <section id="menu-days" class="section">
+      <h1>Elegir día</h1>
+      <p class="desc">Misma instancia de menús, pantalla "días".</p>
+      <div id="stage-menu-days" class="stage tall"></div>
+    </section>
+
+    <!-- MENU: CHARACTERS -->
+    <section id="menu-chars" class="section">
+      <h1>Elegir personaje</h1>
+      <p class="desc">Misma instancia, pantalla "personajes" — tarjetas con el retrato 3D real de cada uno.</p>
+      <div id="stage-menu-chars" class="stage tall"></div>
+    </section>
+
+    <!-- HUD -->
+    <section id="hud" class="section">
+      <h1>HUD de partida</h1>
+      <p class="desc">Componente real (src/game/hud.js) alimentado con datos de ejemplo — objetivos, sospecha, reloj, combo.</p>
+      <div id="stage-hud" class="stage mid floor"></div>
+      <div class="component-box" style="margin-top: 20px; max-width: 420px;">
+        <div class="component-label">Probar estados</div>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="px-btn" id="hud-btn-normal">Normal</button>
+          <button class="px-btn" id="hud-btn-danger">Sospecha alta</button>
+          <button class="px-btn" id="hud-btn-chase">Persecución</button>
         </div>
       </div>
     </section>
 
-    <!-- PANELS -->
-    <section id="panels" class="section">
-      <h1>Panels</h1>
-      <p class="desc">Contenedores base</p>
-      <div class="grid">
-        <div class="component-box">
-          <div class="component-label">Default Panel</div>
-          <div class="panel">
-            <h3>Contenido</h3>
-            <p>Panel estándar del sistema</p>
+    <!-- TRACKER -->
+    <section id="tracker" class="section">
+      <h1>Rastreadores</h1>
+      <p class="desc">.track-card / .track-marker (src/ui/tracker.js) — guían a la tarea activa y al jefe. Aquí en su posición estática de referencia (en juego el marcador sigue al objetivo en 3D).</p>
+      <div class="stage mid floor" style="position:relative;">
+        <div class="track-layer track-right track-cyan visible" style="position:absolute; inset:0;">
+          <div class="track-card" style="position:absolute; right:14px; bottom:16px;">
+            <span class="track-top">TAREA</span>
+            <span class="track-icon"></span>
+            <span class="track-body">
+              <span class="track-label">Tomar café</span>
+              <span class="track-meta">17 m</span>
+            </span>
+            <span class="track-bar"><i style="width:60%"></i></span>
           </div>
         </div>
-        <div class="component-box">
-          <div class="component-label">Glass Panel</div>
-          <div class="panel glass">
-            <h3>Con vidrio</h3>
-            <p>Efecto de vidrio esmerilado</p>
-          </div>
-        </div>
-        <div class="component-box">
-          <div class="component-label">Dark Panel</div>
-          <div class="panel dark">
-            <h3>Oscuro</h3>
-            <p>Variante oscura del panel</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- CARDS -->
-    <section id="cards" class="section">
-      <h1>Cards</h1>
-      <p class="desc">Tarjetas con estilos</p>
-      <div class="grid">
-        <div class="component-box">
-          <div class="component-label">Card Glass</div>
-          <div class="glass-card">
-            <h4>Tarjeta moderna</h4>
-            <p>Con efecto de vidrio</p>
+        <div class="track-layer track-left track-red visible" style="position:absolute; inset:0;">
+          <div class="track-card hot" style="position:absolute; left:14px; bottom:16px;">
+            <span class="track-top">JEFE</span>
+            <span class="track-icon"></span>
+            <span class="track-body">
+              <span class="track-label">De ronda</span>
+              <span class="track-meta">24 m</span>
+            </span>
+            <span class="track-bar"><i style="width:30%"></i></span>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- TABS -->
-    <section id="tabs" class="section">
-      <h1>Tabs</h1>
-      <p class="desc">Navegación con pestañas</p>
-      <div class="component-box">
-        <div style="border-bottom: 2px solid hsl(var(--border-100)); margin-bottom: 16px;">
-          <button class="btn ghost" style="border-bottom: 2px solid hsl(var(--accent-main)); width: auto; background: transparent;">Tab 1</button>
-          <button class="btn ghost" style="width: auto; background: transparent;">Tab 2</button>
-          <button class="btn ghost" style="width: auto; background: transparent;">Tab 3</button>
-        </div>
-        <p>Contenido de Tab 1</p>
+    <!-- DIALOGUE -->
+    <section id="dialogue" class="section">
+      <h1>Diálogo</h1>
+      <p class="desc">Componente real (src/game/dialogue.js) con el retrato 3D del hablante — pulsa el botón para reproducir una escena de ejemplo.</p>
+      <div id="stage-dialogue" class="stage tall floor" style="position:relative;"></div>
+      <div class="component-box" style="margin-top: 20px; max-width: 420px;">
+        <button class="px-btn px-btn-primary" id="dialogue-play" style="width:100%;">Reproducir escena de ejemplo</button>
       </div>
     </section>
 
-    <!-- DIALOGS -->
-    <section id="dialogs" class="section">
-      <h1>Dialogs</h1>
-      <p class="desc">Diálogos modales</p>
-      <div class="component-box">
-        <div class="component-label">Dialog Preview</div>
-        <div style="border: 2px solid hsl(var(--border-100)); border-radius: var(--radius-lg); padding: var(--space-2xl); background: hsl(var(--bg-000)); max-width: 400px;">
-          <h2 style="margin-top: 0;">¿Confirmación?</h2>
-          <p>¿Estás seguro de esta acción?</p>
-          <div style="display: flex; gap: var(--space-md); margin-top: var(--space-xl);">
-            <button class="btn secondary" style="flex: 1;">Cancelar</button>
-            <button class="btn" style="flex: 1;">Aceptar</button>
+    <!-- NARRATOR -->
+    <section id="narrator" class="section">
+      <h1>Narrador · mensaje tipo Teams</h1>
+      <p class="desc">.vn-narrator (Steven el Daddy) y .teams-toast (avisos de Gabo) — dos formatos de mensaje que no usan la caja de diálogo principal.</p>
+      <div class="component-box" style="max-width: 500px; margin-bottom: 20px;">
+        <div class="component-label">vn-narrator</div>
+        <div class="vn-narrator" style="position:static; left:auto; transform:none; width:100%; margin:0; animation:none;">
+          <div class="vn-narrator-title"><span class="vn-narrator-icon"></span>Steven el Daddy</div>
+          <div class="vn-narrator-text">Si te bloqueas o necesitas recordar qué hacer, dame un mensaje.</div>
+        </div>
+      </div>
+      <div class="component-box" style="max-width: 340px; background: hsl(var(--bg-100));">
+        <div class="component-label">teams-toast</div>
+        <div class="teams-toast" style="position:static; top:auto; right:auto; width:100%; margin:0; background:linear-gradient(180deg, rgba(20,28,48,0.97), rgba(8,10,18,0.98));">
+          <div class="teams-toast-header">
+            <span class="teams-toast-icon"></span>
+            <span class="teams-toast-app">Teams</span>
           </div>
+          <div class="teams-toast-from">Gabo (Barbie Malibú)</div>
+          <div class="teams-toast-text">¿Ya viste el correo de la reunión de las 3?</div>
         </div>
       </div>
     </section>
 
-    <!-- AUDIO CONTROL -->
+    <!-- AUDIO -->
     <section id="audio" class="section">
-      <h1>Audio Control</h1>
-      <p class="desc">Control de audio y volumen</p>
-      <div class="component-box">
-        <div class="component-label">Audio Control Widget</div>
-        <div style="display: flex; align-items: center; gap: var(--space-sm); padding: var(--space-sm) var(--space-md); background: var(--glass); border: 1px solid var(--line); border-radius: var(--radius-md); backdrop-filter: blur(8px); width: fit-content;">
-          <button class="btn ghost" style="width: 32px; height: 32px; padding: 0;">🔊</button>
-          <input type="range" min="0" max="100" value="70" style="width: 120px;">
+      <h1>Control de audio</h1>
+      <p class="desc">Componente real (src/ui/audioControl.js) — mute + volumen, empieza silenciado por defecto.</p>
+      <div id="stage-audio" class="component-box" style="width:fit-content;"></div>
+    </section>
+
+    <!-- LOBBY -->
+    <section id="lobby" class="section">
+      <h1>Ascensor (prólogo)</h1>
+      <p class="desc">.lobby-scene (src/ui/lobby.js) — pantalla con la que abre el día 1.</p>
+      <div class="stage tall" style="background:#1a1815;">
+        <div class="lobby-scene" style="position:static; height:100%;">
+          <div class="lobby-door lobby-door-left"><div class="lobby-door-seam"></div><div class="lobby-door-handle"></div></div>
+          <div class="lobby-door lobby-door-right"><div class="lobby-door-seam"></div><div class="lobby-door-handle"></div></div>
+          <div class="lobby-sign"><div class="lobby-sign-floor">10</div><div class="lobby-sign-name">Piso 10</div></div>
+          <div class="lobby-deco">
+            <span class="lobby-plant"></span>
+            <span class="lobby-waiting"></span>
+            <span class="lobby-waiting lobby-waiting-2"></span>
+          </div>
         </div>
       </div>
     </section>
   </main>
 
-  <script>
+  <script type="module">
+    import { prepareLooks } from "../../src/data/loader.js";
+    import { createMenus } from "../../src/ui/menus.js";
+    import { createHud } from "../../src/game/hud.js";
+    import { createDialogue } from "../../src/game/dialogue.js";
+    import { createAudioControl } from "../../src/ui/audioControl.js";
+    import { icon as svgIcon, ICON_NAMES } from "../../src/ui/icons.js";
+
+    // ---------------- Sidebar navigation ----------------
     function show(id) {
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
+      document.querySelectorAll(".section").forEach((s) => s.classList.remove("active"));
+      document.querySelectorAll("aside a").forEach((a) => a.classList.remove("active"));
+      document.getElementById(id)?.classList.add("active");
+      document.querySelector(`aside a[data-target="${id}"]`)?.classList.add("active");
     }
+    document.querySelectorAll("aside a").forEach((a) => {
+      a.addEventListener("click", () => show(a.dataset.target));
+    });
+    show("buttons");
+
+    // Varias instancias de menus.js viven en esta página a la vez (título,
+    // días, personajes), y cada una marca `body.menu-open` al abrirse — una
+    // regla global del juego usa esa clase para ocultar el HUD y demás
+    // capas MIENTRAS hay un menú de verdad tapando la pantalla. Aquí las
+    // tres están abiertas EN PERMANENCIA como piezas de catálogo, así que la
+    // clase se queda pegada y esconde el resto de fichas (fue justo lo que
+    // dejó la ficha de HUD en blanco). El storybook no tiene ese menú único
+    // de pantalla completa, así que se neutraliza sin más.
+    new MutationObserver(() => {
+      // Guardado: quitar una clase que ya no está sigue disparando una
+      // mutación en algunos motores, y con eso el observer se llama a sí
+      // mismo sin parar — 100% de CPU y la pestaña deja de responder.
+      if (document.body.classList.contains("menu-open")) {
+        document.body.classList.remove("menu-open");
+      }
+    }).observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
+
+    // ---------------- Icons ----------------
+    const iconGrid = document.getElementById("icon-grid");
+    (ICON_NAMES ?? []).forEach((name) => {
+      const box = document.createElement("div");
+      box.className = "component-box";
+      box.style.textAlign = "center";
+      box.innerHTML = `<div style="color:hsl(var(--accent-main));">${svgIcon(name, { size: 28 })}</div><div style="margin-top:8px;font-size:11px;color:hsl(var(--text-faint));">${name}</div>`;
+      iconGrid.appendChild(box);
+    });
+
+    // ---------------- Real game data, for the real components below ----------------
+    // Ruta relativa CONSCIENTE DE LA PROFUNDIDAD, no absoluta: en GitHub
+    // Pages el sitio entero cuelga de un subdirectorio (ver el comentario de
+    // `modelUrlFor` en entities/baseModel.js), así que "/data/…" a secas
+    // sería un 404 en producción aunque funcione en local. Esta página vive
+    // dos carpetas por debajo de la raíz (creador/pantallas/), igual que su
+    // propio `../../src/style/design-system.css` de arriba — de ahí el mismo
+    // "../../". loader.js no sirve aquí porque él da por hecho que SIEMPRE
+    // se llama desde la página raíz (usa `import.meta.env.BASE_URL` a
+    // secas), así que solo se reutiliza prepareLooks() (pura, sin fetch)
+    // sobre JSON bajado a mano con la ruta correcta.
+    const DATA = "../../data/";
+    async function getJSON(path) {
+      const res = await fetch(`${DATA}${path}`);
+      if (!res.ok) throw new Error(`No se pudo cargar data/${path} (${res.status})`);
+      return res.json();
+    }
+    const data = await (async () => {
+      try {
+        const manifest = await getJSON("manifest.json");
+        const [looksRaw, modelsRaw, modesRaw, levelList] = await Promise.all([
+          getJSON(manifest.characters3d ?? "characters3d.json").catch(() => ({ characters: {} })),
+          getJSON("models.json").catch(() => ({ bodies: {}, faces: {} })),
+          getJSON(manifest.modes ?? "modes.json").catch(() => ({ characters: {} })),
+          Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
+        ]);
+        return {
+          manifest,
+          levels: levelList.map((lvl, i) => ({ ...lvl, number: lvl.number ?? i + 1 })),
+          modes: modesRaw.characters ?? {},
+          looks: prepareLooks(looksRaw, modelsRaw),
+        };
+      } catch (err) {
+        console.error("No se pudo cargar public/data/:", err);
+        return null;
+      }
+    })();
+
+    if (data) {
+      // Fake save/actions: enough for menus.js to render every screen
+      // without needing an actual running game.
+      const save = {
+        dayIndex: 0,
+        characterId: "giu",
+        state: { bestSpare: {} },
+        hasCompleted: () => false,
+        setDayIndex: () => {},
+      };
+      const actions = {
+        play: () => console.info("[storybook] actions.play()"),
+        selectCharacter: (id) => { save.characterId = id; },
+        resume: () => {},
+        restart: () => {},
+        toTitle: () => {},
+      };
+
+      const menuStageTitle = document.getElementById("stage-menu-title");
+      const menus = createMenus(menuStageTitle, {
+        levels: data.levels,
+        save,
+        actions,
+        modes: data.modes,
+        looks: data.looks,
+        title: data.manifest.title,
+        subtitle: data.manifest.subtitle,
+      });
+      menus.openTitle({ hasProgress: true, summary: "0/1 días superados · 0/9 secretos" });
+
+      // The other two menu stages reuse the SAME component (menus.js draws
+      // one screen at a time inside one .px-menu layer) — cloning its DOM
+      // per screen would drift from the real thing, so instead each stage
+      // gets its own instance, all pointed at the same real data.
+      const menuStageDays = document.getElementById("stage-menu-days");
+      const menusDays = createMenus(menuStageDays, { levels: data.levels, save, actions, modes: data.modes, looks: data.looks, title: data.manifest.title, subtitle: data.manifest.subtitle });
+      menusDays.openDays();
+
+      const menuStageChars = document.getElementById("stage-menu-chars");
+      const menusChars = createMenus(menuStageChars, { levels: data.levels, save: { ...save, characterId: null }, actions, modes: data.modes, looks: data.looks, title: data.manifest.title, subtitle: data.manifest.subtitle });
+      menusChars.openTitle({ hasProgress: false, summary: "" });
+
+      // ---------------- HUD, fed with sample state ----------------
+      const hudStage = document.getElementById("stage-hud");
+      const hud = createHud(hudStage);
+      const baseState = {
+        currentAction: null,
+        suspicion: 30,
+        suspicionMax: 100,
+        maxWarnings: 3,
+        warnings: 1,
+        objectives: [
+          { label: "Tomar café", type: "coffee", icon: "coffee", done: true, progress: 1 },
+          { label: "Ver película", type: "movie", icon: "movie", done: false, progress: 0.4 },
+          { label: "Comer a escondidas", type: "snack", icon: "snack", done: false, progress: 0 },
+        ],
+        maxHeat: 3,
+        heat: 1,
+        timeGained: 45,
+        combo: 1.5,
+        comboLeft: 8,
+        comboWindow: 12,
+        perk: false,
+        perkLeft: 0,
+        perkDuration: 1,
+        currentTime: "9:02 a.m.",
+        timeLeft: 210,
+        levelDuration: 240,
+        message: null,
+        isHiding: false,
+        isPretending: false,
+        bossState: "PATROL",
+        gameOver: false,
+        redAlert: false,
+      };
+      hud.setDay?.({ number: 1, title: "Lunes · Inducción" });
+      hud.render(baseState);
+      document.getElementById("hud-btn-normal").addEventListener("click", () => hud.render(baseState));
+      document.getElementById("hud-btn-danger").addEventListener("click", () =>
+        hud.render({ ...baseState, suspicion: 92, warnings: 2 })
+      );
+      document.getElementById("hud-btn-chase").addEventListener("click", () =>
+        hud.render({ ...baseState, suspicion: 98, warnings: 2, redAlert: true, bossState: "CHASE" })
+      );
+
+      // ---------------- Dialogue, real 3D portrait ----------------
+      const dialogueStage = document.getElementById("stage-dialogue");
+      const dialogue = createDialogue(dialogueStage, { looks: data.looks });
+      document.getElementById("dialogue-play").addEventListener("click", () => {
+        dialogue.play([
+          { speaker: "Gabo", mood: "tense", text: "¡Bienvenida a la Célula Gris! Yo soy Gabo. Trabajo aquí. Bueno, «trabajo»." },
+          {
+            prompt: "¿Cuál es tu primer objetivo?",
+            options: [
+              { label: "Café primero.", reply: "Necesito un café antes de cualquier otra cosa." },
+              { label: "Película. Relax total.", reply: "Es lo que hace cualquiera normal el primer día." },
+            ],
+          },
+        ]);
+      });
+    } else {
+      document.querySelectorAll("#stage-menu-title, #stage-menu-days, #stage-menu-chars, #stage-hud, #stage-dialogue").forEach((el) => {
+        el.innerHTML = '<p style="padding:20px;color:hsl(var(--state-error));">No se pudo cargar public/data/ — revisa la consola.</p>';
+      });
+    }
+
+    // ---------------- Audio control, standalone ----------------
+    // .audio-control es position:fixed a propósito (vive pegado a la
+    // esquina de la pantalla mientras se juega) — para verlo DENTRO de su
+    // ficha aquí se neutraliza esa regla solo en esta copia de muestra.
+    const audioWidget = createAudioControl();
+    audioWidget.style.position = "static";
+    document.getElementById("stage-audio").appendChild(audioWidget);
   </script>
 </body>
 </html>
