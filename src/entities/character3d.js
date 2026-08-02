@@ -403,7 +403,7 @@ export class Character3D {
     const token = (this._buildToken = (this._buildToken ?? 0) + 1);
 
     // Usar modelo específico si existe, sino usar kiara como base
-    const modelToLoad = r.baseModel ?? "kiara";
+    const modelToLoad = r.baseModel ?? "kiara.glb";
 
     // Si ya está en memoria se monta AHORA, sin ceder el turno: los menús
     // montan un personaje y le sacan la foto en la misma vuelta, y con una
