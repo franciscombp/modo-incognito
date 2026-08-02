@@ -6268,9 +6268,18 @@ input[type="range"]:focus-visible {
   display: none;
 }
 
+/* Sólido por defecto: el título y la selección de personaje son ANTES de
+   que exista una partida que enseñar detrás — no hay nada del juego que
+   valga la pena dejar entrever, y un scrim translúcido ahí solo se ve
+   como un fondo sucio. La pausa es la única excepción (ver más abajo):
+   ahí sí hay una jornada en curso justo detrás. */
 .inc-menu-scrim {
   position: absolute;
   inset: 0;
+  background: linear-gradient(165deg, #2c2620 0%, #1c1712 100%);
+}
+
+body.inc-game-active .inc-menu-scrim {
   background: radial-gradient(circle at 50% 35%, rgba(90, 70, 50, 0.42), rgba(52, 40, 30, 0.72));
 }
 
