@@ -80,12 +80,16 @@ scene.add(key);
 
 async function boot() {
   // ---- Content: everything the game is made of comes from public/data ----
+  console.log("[boot] iniciando...");
   const data = await loadGameData();
+  console.log("[boot] data cargada:", Object.keys(data));
 
   // Los cuerpos esculpidos van por su cuenta: pesan, y el juego tiene que
   // poder arrancar mientras llegan. Ver `preloadBaseModels`.
+  console.log("[boot] preload base models...");
   const baseModelsReady = preloadBaseModels(data.looks);
   const firstLevel = data.levels[0];
+  console.log("[boot] scene setup...");
   setActiveScene(data.scenes.get(firstLevel.scene));
 
   const world = createCollisionWorld();
