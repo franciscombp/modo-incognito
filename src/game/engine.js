@@ -58,6 +58,7 @@ export function createEngine({
   minigames = createMinigameRegistry(),
   pixels = null,
   onCharacter = null,
+  baseModelsReady = Promise.resolve(),
 }) {
   const hud = createHud(app);
   const guides = createGuides(app, camera.camera);
@@ -434,6 +435,9 @@ export function createEngine({
     // enseñaba el piso TAL COMO QUEDÓ del intento anterior — con la jugadora
     // ya plantada en el 10 antes de haber llegado. Ahora se abren sobre el
     // día que empieza.
+    // Esperar a que los modelos 3D estén listos antes de crear el piso, así
+    // los personajes aparecen visibles y no huecos.
+    await baseModelsReady;
     const onDuty = prepareFloor(day);
     // Y la elección del ascensor se aplica aquí, no antes: `applyPrologue`
     // arranca con `if (!game) return`, así que mientras se llamaba antes de
@@ -447,6 +451,10 @@ export function createEngine({
     camera.setFraming(1);
 
     await dialogue.play(withSprites(day.intro ?? []), ctx);
+    // Desbloquea las actividades. Normalmente se desbloqueaban al hablar con
+    // Gabo por primera vez, pero eso dejaba el juego injugable si no sabías que
+    // tenías que hablar con el jefe. Por ahora, se desbloquean al empezar el día.
+    if (game) game.metGabo = true;
     if (!menuPaused) game.setPaused(false);
   }
 
