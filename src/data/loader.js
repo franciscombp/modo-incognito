@@ -103,9 +103,19 @@ function prepareCharacters(raw) {
  * Loads everything the game needs to start. Scenes and levels are fetched in
  * parallel; a broken file fails loudly with the filename in the message so a
  * typo in content never shows up as a blank screen.
+ *
+ * Optional onProgress callback receives updates: { phase, progress, message }
+ * - phase: "manifest" | "core" | "looks" | "complete"
+ * - progress: 0-100
+ * - message: human-readable status
  */
-export async function loadGameData() {
+export async function loadGameData(onProgress) {
+  const report = (phase, progress, message) => {
+    if (onProgress) onProgress({ phase, progress, message });
+  };
+
   const manifest = await getJSON("manifest.json");
+  report("manifest", 10, "Cargando datos del juego");
 
   const [
     charactersRaw,
@@ -135,6 +145,8 @@ export async function loadGameData() {
     Promise.all((manifest.sprites ?? []).map((id) => getJSON(`sprites/${id}.json`))),
   ]);
 
+  report("core", 50, "Datos del juego listos");
+
   const scenes = new Map(sceneList.map((raw) => [raw.id, prepareScene(raw)]));
   if (!scenes.size) throw new Error("manifest.json no declara ninguna escena");
 
@@ -152,6 +164,9 @@ export async function loadGameData() {
     }
   }
 
+  const looks = prepareLooks(looksRaw, modelsRaw);
+  report("looks", 90, "Personajes listos");
+
   return {
     manifest,
     dialogues: {
@@ -165,7 +180,7 @@ export async function loadGameData() {
     scenes,
     levels,
     rigs: new Map(rigList.map((r) => [r.id, r])),
-    looks: prepareLooks(looksRaw, modelsRaw),
+    looks,
     codeEggs: manifest.codeEggs ?? [],
   };
 }
@@ -179,18 +194,55 @@ export async function loadGameData() {
  * están en memoria y los retratos se pueden montar de una vez — que es lo que
  * antes dejaba la tarjeta en blanco.
  */
-export function preloadBaseModels(looks) {
+export function preloadBaseModels(looks, onProgress) {
   const files = new Set();
   for (const recipe of Object.values(looks?.characters ?? {})) {
     if (recipe?.baseModel) files.add(recipe.baseModel);
   }
+  const fileArray = [...files];
   return Promise.all(
-    [...files].map((f) =>
-      loadBaseModel(modelUrlFor(f)).catch((e) => {
-        // Que falte un modelo no puede tumbar el juego: ese personaje se
-        // queda sin cuerpo importado y se ve el fallo en consola.
-        console.error(`No se pudo precargar ${f}:`, e);
-      })
+    fileArray.map((f, i) =>
+      loadBaseModel(modelUrlFor(f))
+        .then(() => {
+          if (onProgress) {
+            const progress = Math.round(((i + 1) / fileArray.length) * 100);
+            onProgress({ phase: "models", progress, message: `Cargando modelos 3D...` });
+          }
+        })
+        .catch((e) => {
+          console.error(`No se pudo precargar ${f}:`, e);
+        })
+    )
+  );
+}
+
+/**
+ * Preload only specific character looks (e.g., the selected one).
+ * Used for lazy loading to reduce initial load time.
+ */
+export function preloadCharacterLooks(characterIds, looks, onProgress) {
+  const files = new Set();
+  for (const id of characterIds) {
+    const recipe = looks?.characters?.[id];
+    if (recipe?.baseModel) files.add(recipe.baseModel);
+  }
+  const fileArray = [...files];
+  if (fileArray.length === 0) {
+    if (onProgress) onProgress({ phase: "selected-models", progress: 100, message: "Personaje listo" });
+    return Promise.resolve();
+  }
+  return Promise.all(
+    fileArray.map((f, i) =>
+      loadBaseModel(modelUrlFor(f))
+        .then(() => {
+          if (onProgress) {
+            const progress = Math.round(((i + 1) / fileArray.length) * 100);
+            onProgress({ phase: "selected-models", progress, message: "Cargando personaje..." });
+          }
+        })
+        .catch((e) => {
+          console.error(`No se pudo precargar ${f}:`, e);
+        })
     )
   );
 }

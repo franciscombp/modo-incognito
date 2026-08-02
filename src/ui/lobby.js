@@ -25,9 +25,9 @@ export function createLobby(root) {
 
   const sign = el("div", "inc-lobby-sign", layer);
   const signFloor = el("div", "inc-lobby-sign-floor", sign);
-  signFloor.textContent = "10";
+  signFloor.textContent = "PB";
   const signName = el("div", "inc-lobby-sign-name", sign);
-  signName.textContent = "PISO 10";
+  signName.textContent = "CARGANDO";
 
   const deco = el("div", "inc-lobby-deco", layer);
   el("span", "inc-lobby-plant", deco).innerHTML = svgIcon("plant", { size: 42 });
@@ -35,12 +35,27 @@ export function createLobby(root) {
   el("span", "inc-lobby-waiting inc-lobby-waiting-2", deco).innerHTML = svgIcon("person", { size: 34 });
 
   let opening = false;
+  let currentFloor = 0;
 
   function show() {
     opening = false;
+    currentFloor = 0;
+    signFloor.textContent = "PB";
+    signName.textContent = "CARGANDO";
     layer.classList.remove("inc-hidden", "inc-lobby-open");
     doorLeft.style.transform = "";
     doorRight.style.transform = "";
+  }
+
+  /** Update elevator progress: 0-100. Animates floor number (PB→10) based on progress. */
+  function updateProgress(progress) {
+    // Map progress (0-100) to floor (0-10)
+    const targetFloor = Math.round((progress / 100) * 10);
+    if (targetFloor > currentFloor && targetFloor <= 10) {
+      currentFloor = targetFloor;
+      signFloor.textContent = currentFloor === 0 ? "PB" : currentFloor.toString();
+    }
+    signName.textContent = progress >= 100 ? "LISTO" : "CARGANDO";
   }
 
   /** Abre las puertas con una animación y resuelve cuando termina. */
@@ -75,5 +90,5 @@ export function createLobby(root) {
     doorRight.style.transform = "";
   }
 
-  return { show, hide, reset };
+  return { show, hide, reset, updateProgress };
 }
