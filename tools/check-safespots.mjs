@@ -65,7 +65,7 @@ const out = await page.evaluate(async () => {
     player.keys.clear();
     player.position.x = at.x;
     player.position.z = at.z;
-    if (pretend) player.keys.add("f");
+    if (pretend) player.keys.add(" "); // la tecla de fingir es espacio, no "f"
     game.suspicion = 50;
     await sleep(ms);
     return {
@@ -89,10 +89,10 @@ const out = await page.evaluate(async () => {
   player.keys.clear();
   game.suspicion = 0.95 * game.suspicionConfig.max;
   await sleep(400);
-  res.dangerHigh = document.querySelector(".hud-danger")?.classList.contains("on");
+  res.dangerHigh = document.querySelector(".inc-hud-danger")?.classList.contains("on");
   game.suspicion = 0.2 * game.suspicionConfig.max;
   await sleep(400);
-  res.dangerLow = document.querySelector(".hud-danger")?.classList.contains("on");
+  res.dangerLow = document.querySelector(".inc-hud-danger")?.classList.contains("on");
 
   const mi = spots.indexOf(meeting);
 
@@ -108,19 +108,26 @@ const out = await page.evaluate(async () => {
   // mediría dos cosas a la vez.
   game.safeSpotState[mi].nextBusy = Infinity;
   player.keys.clear();
+  // Se avanza con game.update(dt) directo, no con sleep() + el bucle de
+  // render real: en Chromium headless el framerate real puede ir muy por
+  // debajo de 60 fps, y el dt de cada frame se recorta a 0.05s (ver
+  // main.js), así que el reloj del juego avanza mucho más lento que el
+  // reloj de pared — un sleep(500) no garantiza 0.5s de juego. Empujando el
+  // dt a mano el gasto es determinista y no depende de cuántos frames de
+  // verdad pintó el navegador.
   // Se la ancla en el sitio EN CADA VUELTA, no solo al empezar. El cupo solo
   // baja mientras estás dentro, y en medio minuto cualquier empujón (un
   // secuaz, la colisión con un mueble) la sacaba del radio: la sala dejaba de
   // gastarse a media cuenta y la comprobación fallaba una de cada tres veces
   // sin que hubiera nada roto.
-  for (let i = 0; i < 90 && game.safeSpotCharge(mi) > 0; i++) {
+  for (let i = 0; i < 1200 && game.safeSpotCharge(mi) > 0; i++) {
     player.position.x = meeting.x;
     player.position.z = meeting.z;
-    await sleep(500);
+    game.update(1 / 30);
   }
   player.position.x = meeting.x;
   player.position.z = meeting.z;
-  await sleep(200);
+  game.update(1 / 30);
   res.meetingAfterBudget = { inSafeSpot: game.inSafeSpot, charge: game.safeSpotCharge(mi) };
 
   return res;
