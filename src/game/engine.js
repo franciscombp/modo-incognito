@@ -10,7 +10,6 @@ import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
 import { createMinigameRegistry } from "./minigames.js";
-import { preloadCharacterLooks } from "../data/loader.js";
 import {
   spawn,
   patrolRoute,
@@ -414,15 +413,6 @@ export function createEngine({
     prologueChoice = null;
     if (day.prologue && !skipPrologue) {
       lobby.show();
-      // Precargar el personaje seleccionado durante el ascensor
-      const charId = save.characterId ?? "fran";
-      const lookupId = modes[charId]?.sheet ?? charId;
-      await preloadCharacterLooks([lookupId], looks, (progress) => {
-        if (progress.phase === "selected-models") {
-          lobby.updateProgress(Math.min(progress.progress, 100));
-        }
-      });
-
       const nodes = [...(day.prologue.intro ?? [])];
       if (save.hadWarningYesterday) {
         // Una amonestación se nota al día siguiente: nunca te toca el
@@ -451,10 +441,7 @@ export function createEngine({
     // escaleras o colarse daban todos lo mismo.
     applyPrologue(day);
 
-    if (day.prologue && !skipPrologue) {
-      lobby.updateProgress(100);
-      await lobby.hide();
-    }
+    if (day.prologue && !skipPrologue) await lobby.hide();
     hud.setVisible(true);
 
     camera.setFraming(1);
