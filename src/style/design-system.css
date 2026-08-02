@@ -1060,7 +1060,7 @@ h1, h2, h3, h4, h5, h6 {
   width: 90%;
   text-align: center;
   box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
-  z-index: 14;
+  z-index: 20;
   animation: inc-pop-enter var(--anim-entrance);
 }
 
