@@ -10,6 +10,7 @@ import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
 import { createMinigameRegistry } from "./minigames.js";
+import { preloadCharacterLooks } from "../data/loader.js";
 import {
   spawn,
   patrolRoute,
@@ -410,9 +411,21 @@ export function createEngine({
     // que el lobby esté completamente oculto, así evitamos que el piso aparezca
     // y se superponga durante los diálogos del ascensor.
 
+    // Mostrar ascensor y cargar el personaje seleccionado
+    if (!skipPrologue) {
+      lobby.show();
+      // Precargar el personaje seleccionado durante el ascensor
+      const charId = save.characterId ?? "fran";
+      const lookupId = modes[charId]?.sheet ?? charId;
+      await preloadCharacterLooks([lookupId], looks, (progress) => {
+        if (progress.phase === "selected-models") {
+          lobby.updateProgress(Math.min(progress.progress, 100));
+        }
+      });
+    }
+
     prologueChoice = null;
     if (day.prologue && !skipPrologue) {
-      lobby.show();
       const nodes = [...(day.prologue.intro ?? [])];
       if (save.hadWarningYesterday) {
         // Una amonestación se nota al día siguiente: nunca te toca el
@@ -441,7 +454,11 @@ export function createEngine({
     // escaleras o colarse daban todos lo mismo.
     applyPrologue(day);
 
-    if (day.prologue && !skipPrologue) await lobby.hide();
+    // Llevar el progreso del ascensor a 100 antes de abrir
+    if (!skipPrologue) {
+      lobby.updateProgress(100);
+      await lobby.hide();
+    }
     hud.setVisible(true);
 
     camera.setFraming(1);
