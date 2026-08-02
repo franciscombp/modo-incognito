@@ -18,14 +18,21 @@ const url = process.argv[2] ?? "http://localhost:4173/";
 await p.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 25000 });
 await p.evaluate(() => { window.__game.engine.startDay(0, { skipMinigame: true }); });
+// startDay espera a que los modelos base 3D terminen de cargar antes de
+// montar el piso y arrancar el diálogo de intro (ver preloadBaseModels en
+// main.js): comprobar dialogue.isOpen antes de eso siempre da "false" (el
+// diálogo ni ha empezado), así que el bucle de abajo se creía "ya
+// despejado" sin haber cerrado nada — y el diálogo largo del día 1 seguía
+// abierto cuando se tomaba la muestra "calm".
+await p.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 20000 });
 // Hay que cerrar los dialogos: mientras haya uno abierto el motor no
 // actualiza el animo de la musica.
 for (let r = 0; r < 3; r++) {
   for (let i = 0; i < 40; i++) {
     const open = await p.evaluate(() => window.__game.engine.dialogue.isOpen);
     if (!open) break;
-    const o = await p.evaluate(() => !document.querySelector(".vn-options")?.classList.contains("hidden"));
-    if (o) await p.evaluate(() => document.querySelector(".vn-option")?.click());
+    const o = await p.evaluate(() => !document.querySelector(".inc-dialogue-options")?.classList.contains("hidden"));
+    if (o) await p.evaluate(() => document.querySelector(".inc-dialogue-option")?.click());
     else await p.keyboard.press("Space");
     await p.waitForTimeout(100);
   }

@@ -616,7 +616,10 @@ h1, h2, h3, h4, h5, h6 {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 16;
+  /* Por encima de .inc-lobby-scene (30): si pierdes el día en el cruce, el
+     vestíbulo con las puertas cerradas se queda detrás, y la tarjeta de
+     resultado tiene que seguir siendo la que recibe los clics. */
+  z-index: 31;
   animation: inc-fade-in var(--anim-entrance);
 }
 
