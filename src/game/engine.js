@@ -9,6 +9,7 @@ import { createMenus } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
+import { createEggReveal } from "../ui/eggReveal.js";
 import { createMinigameRegistry } from "./minigames.js";
 import {
   spawn,
@@ -59,6 +60,7 @@ export function createEngine({
   pixels = null,
   onCharacter = null,
   baseModelsReady = Promise.resolve(),
+  getModelsProgress = () => 100,
 }) {
   const hud = createHud(app);
   const guides = createGuides(app, camera.camera);
@@ -67,6 +69,7 @@ export function createEngine({
   });
   const dialogue = createDialogue(app, { looks });
   const lobby = createLobby(app);
+  const eggReveal = createEggReveal(app);
   const save = createSave();
   let crossingActive = false;
 
@@ -296,19 +299,11 @@ export function createEngine({
   async function triggerEgg(egg) {
     if (!save.findEgg(egg.id)) return;
     if (egg.perk) PERKS[egg.perk]?.();
-    await withPause(() =>
-      dialogue.play(
-        withSprites([
-          ...(egg.scene ?? []),
-          {
-            speaker: "Secreto encontrado",
-            portrait: null,
-            text: `Llevas ${save.state.eggs.length} de ${eggIds.length}. +250 puntos.`,
-          },
-        ]),
-        ctx
-      )
-    );
+    // El bono de reloj ya lo enseña el popup flotante de game._grantTime();
+    // esta tarjeta es solo la celebración del hallazgo, no una repetición
+    // del número. Si el secreto trae su propia escena, se juega primero.
+    if (egg.scene?.length) await withPause(() => dialogue.play(withSprites(egg.scene), ctx));
+    eggReveal.show(save.state.eggs.length, eggIds.length);
   }
 
   /** Freeze the level while a story beat plays, then hand control back. */
@@ -351,6 +346,37 @@ export function createEngine({
     boss.position.z = patrolRoute[pick].z;
     boss.routeIndex = pick;
     boss.resetToPatrol();
+  }
+
+  // Cuánto dura, como mínimo, la subida del ascensor una vez elegido cómo
+  // llegar. Los modelos 3D pueden estar cargados de sobra para entonces (si
+  // la jugadora se entretuvo en el menú), y sin un mínimo el marcador
+  // saltaría de PB a 10 de golpe — la idea es que la subida SE VEA, no solo
+  // que exista.
+  const ELEVATOR_MIN_RIDE_MS = 1800;
+
+  /**
+   * Anima el cartel de piso del ascensor entre 0 y 100 combinando dos
+   * fuentes: el progreso REAL de los modelos 3D (getModelsProgress) y un
+   * mínimo por tiempo (ELEVATOR_MIN_RIDE_MS), y no resuelve hasta que las
+   * dos llegan al 100% — así ni se congela esperando datos que ya llegaron
+   * hace rato, ni salta de golpe si los modelos tardan menos que el paseo.
+   */
+  function rideElevator() {
+    return new Promise((resolve) => {
+      const start = performance.now();
+      function tick() {
+        const timeFrac = Math.min(1, (performance.now() - start) / ELEVATOR_MIN_RIDE_MS);
+        const shown = Math.min(getModelsProgress(), timeFrac * 100);
+        lobby.updateProgress(shown);
+        if (shown >= 100) {
+          resolve();
+          return;
+        }
+        requestAnimationFrame(tick);
+      }
+      tick();
+    });
   }
 
   /**
@@ -426,6 +452,10 @@ export function createEngine({
       }
       if (day.prologue.choice) nodes.push(day.prologue.choice);
       await dialogue.play(withSprites(nodes), ctx);
+      // El cartel se queda en PB mientras dura la elección de cómo llegar;
+      // solo empieza a subir una vez que la jugadora ya decidió. A partir de
+      // aquí es donde se ve avanzar el ascensor.
+      await rideElevator();
     }
 
     // EL PISO SE PREPARA CON LAS PUERTAS AÚN CERRADAS.
@@ -436,7 +466,10 @@ export function createEngine({
     // ya plantada en el 10 antes de haber llegado. Ahora se abren sobre el
     // día que empieza.
     // Esperar a que los modelos 3D estén listos antes de crear el piso, así
-    // los personajes aparecen visibles y no huecos.
+    // los personajes aparecen visibles y no huecos. rideElevator() ya
+    // esperó a que llegaran al 100%, así que en el camino normal esto
+    // resuelve al instante; se deja como red de seguridad para cuando no
+    // hay prólogo (rideElevator no corrió).
     await baseModelsReady;
     const onDuty = prepareFloor(day);
     // Y la elección del ascensor se aplica aquí, no antes: `applyPrologue`
@@ -622,10 +655,13 @@ export function createEngine({
       const idx = Math.floor(Math.random() * encounter.softWarnings.length);
       scene = encounter.softWarnings[idx];
     } else {
-      // Formal amonestación scene
+      // Formal amonestación scene. scenes[0] es la bienvenida — la que ya
+      // vio en el primer encuentro voluntario (talkTo) al conocerlo — así
+      // que una amonestación nunca la repite; rota por el resto.
+      const warnScenes = encounter.scenes.length > 1 ? encounter.scenes.slice(1) : encounter.scenes;
       const seen = save.getFlag("talk:jefe_warn") ?? 0;
       save.setFlag("talk:jefe_warn", seen + 1);
-      scene = encounter.scenes[seen % encounter.scenes.length];
+      scene = warnScenes[seen % warnScenes.length];
     }
 
     faceEachOther(boss);
