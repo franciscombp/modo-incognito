@@ -6669,7 +6669,7 @@ input[type="range"]:focus-visible {
 .inc-lobby-scene {
   position: absolute;
   inset: 0;
-  z-index: 30;
+  z-index: 15;
   display: grid;
   place-items: center;
   background: var(--bg-000);
