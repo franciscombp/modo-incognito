@@ -412,6 +412,10 @@ export function createEngine({
     // y se superponga durante los diálogos del ascensor.
 
     // Mostrar ascensor y cargar el personaje seleccionado
+    // PRÓXIMA OPTIMIZACIÓN: refactorizar boot() para cargar solo datos core
+    // (JSON, sin modelos GLB), así la pantalla de menú aparece al instante.
+    // Luego, aquí cargar solo el personaje seleccionado (50-60% del tiempo).
+    // Finalmente, cargar los demás personajes en background mientras se juega.
     if (!skipPrologue) {
       lobby.show();
       // Precargar el personaje seleccionado durante el ascensor
