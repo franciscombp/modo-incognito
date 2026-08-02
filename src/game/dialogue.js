@@ -17,7 +17,7 @@ const PREV_KEYS = new Set(["arrowup", "w"]);
 
 // Cada hoja es una rejilla de 4x4 (128x176 px, marcos de 32x44): fila 0 es la
 // cara sur y columna 0 es el fotograma de reposo — el retrato usa justo esa
-// esquina, ampliada x4 sin interpolar (ver .vn-portrait-sprite en style.css).
+// esquina, ampliada x4 sin interpolar (ver .vn-portrait-sprite en design-system.css).
 
 export function createDialogue(root, { looks = null } = {}) {
   const layer = document.createElement("div");
