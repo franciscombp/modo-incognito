@@ -8,6 +8,7 @@
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { loadBaseModel, modelUrlFor } from "../entities/baseModel.js";
 import { siteRoot } from "./siteRoot.js";
+import { applyCharacterModels } from "./characterRecipes.js";
 
 const BASE = siteRoot();
 // Sello del build (ver vite.config.js). El contenido vive en `public/` y se
@@ -264,13 +265,7 @@ export function prepareLooks(raw, models = { bodies: {}, faces: {} }) {
   // usa ese cuerpo — no hace falta declararlo en characters3d.json, que es lo
   // que hace que meter un personaje sea dejar el archivo y nada más. Un
   // `baseModel` escrito a mano sigue valiendo, para apuntar a otro nombre.
-  for (const [id, recipe] of Object.entries(characters)) {
-    if (recipe.baseModel) continue;
-    const file = models.bodies?.[id];
-    if (file) recipe.baseModel = file;
-    const face = models.faces?.[id];
-    if (face) recipe.faces = face;
-  }
+  applyCharacterModels(characters, models);
 
   const get = (name) => {
     if (!name) return characters.generic ?? null;

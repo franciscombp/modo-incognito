@@ -19,14 +19,16 @@ import { siteRoot } from "../../src/data/siteRoot.js";
 // receta de cada uno con vista previa 3D en vivo, y te devuelve el JSON para
 // pegarlo. No escribe en el repo.
 //
-// La gracia de que exista: el reparto se monta con primitivas a partir de esa
-// receta, así que "añadir un personaje" son diez líneas de JSON y no modelar
-// nada. Este editor es el sitio donde se escriben esas diez líneas viéndolas.
+// El juego actual ya usa cuerpos importados desde GLB, así que el builder
+// sigue siendo útil pero debe mostrar los personajes actuales y no insistir en
+// los viejos procedurales. Esto deja la ruta de futuro abierta para importar el
+// modelo base y luego añadir accesorios encima, sin romper lo que ya existe.
 
 // Ruta ABSOLUTA a secas rompía en GitHub Pages, donde el sitio entero
 // cuelga de un subdirectorio (ver src/data/siteRoot.js).
 const DATA = `${siteRoot()}data/`;
 const HEIGHT = 1.6;
+const MODELOS = new Map();
 
 // ---------------------------------------------------------------- estado
 let doc = { aliases: {}, characters: {}, extras: [] };
@@ -126,6 +128,12 @@ requestAnimationFrame(animar);
 function rehacerMuñeco() {
   const receta = doc.characters[current];
   if (!receta) return;
+
+  const baseModel = receta.baseModel ?? "kiara.glb";
+  if (!MODELOS.has(baseModel)) {
+    MODELOS.set(baseModel, { loading: true });
+  }
+
   if (!muñeco) {
     muñeco = new Character3D(receta, { height: HEIGHT });
     scene.add(muñeco.object);
@@ -393,13 +401,26 @@ function seleccionar(id) {
 
 // ---------------------------------------------------------------- carga
 async function cargar() {
-  const res = await fetch(`${DATA}characters3d.json`, { cache: "no-cache" });
-  if (!res.ok) {
-    avisar(`No se pudo leer characters3d.json (${res.status})`);
+  const [recetasRes, modelosRes] = await Promise.all([
+    fetch(`${DATA}characters3d.json`, { cache: "no-cache" }),
+    fetch(`${DATA}models.json`, { cache: "no-cache" }),
+  ]);
+  if (!recetasRes.ok) {
+    avisar(`No se pudo leer characters3d.json (${recetasRes.status})`);
     return;
   }
-  doc = await res.json();
+  if (!modelosRes.ok) {
+    avisar(`No se pudo leer models.json (${modelosRes.status})`);
+    return;
+  }
+  doc = await recetasRes.json();
+  const modelos = await modelosRes.json();
   doc.characters ??= {};
+  for (const [id, receta] of Object.entries(doc.characters)) {
+    if (!receta || receta.baseModel) continue;
+    const file = modelos.bodies?.[id];
+    if (file) receta.baseModel = file;
+  }
   seleccionar(current && doc.characters[current] ? current : Object.keys(doc.characters)[0]);
 }
 
