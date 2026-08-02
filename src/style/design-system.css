@@ -31,7 +31,23 @@
 }
 
 
-:root {
+/* ═════════════════════════════════════════════════════════════════════
+   TEMAS
+   ═════════════════════════════════════════════════════════════════════
+   `data-theme` en <html> elige el set de tokens — todo lo de abajo (todos
+   los componentes) lee SIEMPRE las mismas variables (--bg-000, --ink,
+   --accent-main…), así que un tema nuevo es solo redefinir sus valores
+   aquí, sin tocar ni un componente. `src/game/theme.js` pone y recuerda el
+   atributo; sin JS (o con un valor que no exista todavía) se cae al tema
+   por defecto de abajo, "cozy" — la estética actual de papel crema.
+
+   "pixel" es el hueco para recuperar la estética pixel-art de las primeras
+   versiones (ver el historial de git antes de 6e9a4b5, cuando aún no
+   existía este design system) COMO TEMA, no como librería aparte: mismos
+   componentes y misma estructura, otra paleta y otra tipografía. Vacío a
+   propósito por ahora — llenarlo es la próxima tanda de este trabajo. */
+:root,
+:root[data-theme="cozy"] {
   /* ─────────────────────────────────────────────────────────────────
      DESIGN TOKENS - Modern Scale
      ───────────────────────────────────────────────────────────────── */
@@ -193,6 +209,12 @@
   --grad-radial: radial-gradient(circle at 50% 40%, hsl(var(--bg-000)), hsl(var(--bg-100)));
   --grad-line: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
 }
+
+/* :root[data-theme="pixel"] { ... } — próxima tanda: redefinir aquí las
+   mismas variables de arriba con la paleta y tipografía pixel-art. Hasta
+   entonces `setTheme("pixel")` no cambia nada visualmente: sin overrides,
+   cae de vuelta al tema "cozy" de arriba, que es justo el comportamiento
+   seguro que se quiere mientras no está lleno. */
 
 /* Dark Mode Support */
 @media (prefers-color-scheme: dark) {
@@ -3886,9 +3908,19 @@ body.crossing-open #hint {
 
    Si un componente se ve "viejo", su override falta AQUÍ — no edites
    los bloques históricos de arriba, que documentan de dónde viene cada
-   decisión. */
+   decisión.
 
-:root {
+   Mismo selector con `[data-theme="cozy"]` que el bloque de tokens de
+   arriba, A PROPÓSITO: un selector `[data-theme]` pesa más que uno
+   `:root` a secas, así que sin este emparejamiento este bloque (que va
+   DESPUÉS en el archivo y por eso debería ganar) perdía contra el de
+   arriba pese al orden — el acento volvía a terracota en vez de quedarse
+   verde. Este skin ES la identidad visual de "cozy"; si "pixel" quiere
+   otro skin de plataforma, sería su propio bloque con su propio
+   `[data-theme="pixel"]`. */
+
+:root,
+:root[data-theme="cozy"] {
   /* Neutros cálidos sobre los que flota todo. */
   --ink: #2e2922;
   --ink-rgb: 46, 41, 34;
