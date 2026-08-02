@@ -22,9 +22,11 @@ export const SURFACES = {
   woodFloor: "#d9b48f", // la alfombra de la entrada
   carpetPurple: "#e2d7c6", // base de las moquetas de zona (el color va por vértice)
 
-  // Paredes y volúmenes
-  wallPanel: "#e0d3bf",
-  panelLight: "#e8dccb",
+  // Paredes y volúmenes: gris corporativo, no el beige cálido del resto del
+  // decorado — las paredes son oficina de verdad, el mobiliario se queda
+  // cozy.
+  wallPanel: "#c6c4bf",
+  panelLight: "#d2d0ca",
 
   // Mobiliario
   deskTop: "#f2e7d5",
