@@ -304,6 +304,7 @@ async function boot() {
     onPopup: (p) => popups.spawn(p),
     minigames,
     pixels,
+    baseModelsReady,
   });
 
   // El primer applyCharacterSprite() corrió antes de que existiera el motor
