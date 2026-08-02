@@ -24,21 +24,21 @@
     "manu": {
       "name": "Manu de la suerte",
       "color": "#a8e05f",
-      "sheet": "npc-camina",
+      "sheet": "manu",
       "blurb": "Amigo tuyo. Siempre le toca el parqueadero cubierto y nunca le auditan nada. Fue idea suya lo de \"llevar un registro\" de la resistencia — nadie sabe hasta dónde llegó esa idea.",
       "friend": true
     },
     "cesar": {
       "name": "César",
       "color": "#ff6b81",
-      "sheet": "npc-camina",
+      "sheet": "cesar",
       "blurb": "Amigo tuyo, el más malcriadito de la tribu. Se queja en tiempo real — y hay quien dice que de tanto quejarse un día simplemente decidió construir algo en vez de seguir aguantando.",
       "friend": true
     },
     "enriquetta": {
       "name": "Enriquetta",
       "color": "#ff9ad5",
-      "sheet": "npc-camina",
+      "sheet": "enriquetta",
       "blurb": "Amiga tuya. Chapter del amor: vive por y para el chisme romántico de la tribu.",
       "friend": true
     },
@@ -51,14 +51,14 @@
     "chispita": {
       "name": "Chispita",
       "color": "#f2c744",
-      "sheet": "npc-camina",
+      "sheet": "chispita",
       "friend": false,
       "blurb": "Secuaz del jefe. Corre por todo el piso y avisa en cuanto te ve."
     },
     "washo": {
       "name": "Washo",
       "color": "#45e0d0",
-      "sheet": "npc-camina",
+      "sheet": "washo",
       "friend": false,
       "blurb": "Secuaz del jefe. Apenas se mueve, pero te ve desde el otro extremo del ala."
     },
@@ -79,7 +79,7 @@
     "fran_npc": {
       "name": "Fran",
       "color": "#a8e05f",
-      "sheet": "npc-camina",
+      "sheet": "fran",
       "friend": true,
       "blurb": "Dora la criticona. Hablar con él te calma, aunque a veces te toca esperar turno para los objetivos. Anda con un portátil que nunca suelta y con cara de estar compilando algo."
     },
@@ -91,7 +91,7 @@
     "parce": {
       "name": "El Parce",
       "color": "#e0a03c",
-      "sheet": "npc-camina",
+      "sheet": "parce",
       "friend": true,
       "blurb": "Amigo tuyo, ala norte. Siempre anda con una petaca de aguardiente escondida en el cajón del escritorio."
     }
