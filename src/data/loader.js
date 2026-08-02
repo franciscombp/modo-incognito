@@ -7,8 +7,9 @@
 
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { loadBaseModel, modelUrlFor } from "../entities/baseModel.js";
+import { siteRoot } from "./siteRoot.js";
 
-const BASE = import.meta.env.BASE_URL ?? "/";
+const BASE = siteRoot();
 // Sello del build (ver vite.config.js). El contenido vive en `public/` y se
 // sirve con su nombre de siempre: sin esto, publicar un cambio de plano no
 // basta para que la jugadora lo vea.
