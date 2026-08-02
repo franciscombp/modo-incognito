@@ -4982,21 +4982,21 @@ body.crossing-open #hint {
    "llegado" de verdad. Las puertas se abren con una transición al terminar
    el prólogo, revelando el piso 3D detrás. */
 
-.lobby-scene {
+.inc-lobby-scene {
   position: absolute;
   inset: 0;
-  z-index: 35;
+  z-index: 15;
   overflow: hidden;
   pointer-events: none;
   background: var(--scan),
     linear-gradient(180deg, #4a4a4a 0%, #383838 55%, #2a2a2a 100%);
 }
 
-.lobby-scene.hidden {
+.inc-lobby-scene.hidden {
   display: none;
 }
 
-.lobby-door {
+.inc-lobby-door {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -5006,25 +5006,25 @@ body.crossing-open #hint {
   transition: transform 1.1s cubic-bezier(0.7, 0, 0.3, 1);
 }
 
-.lobby-door-left {
+.inc-lobby-door-left {
   left: 15%;
   transform-origin: left;
 }
 
-.lobby-door-right {
+.inc-lobby-door-right {
   right: 15%;
   transform-origin: right;
 }
 
-.lobby-scene.open .lobby-door-left {
+.inc-lobby-scene.open .inc-lobby-door-left {
   transform: translateX(-105%);
 }
 
-.lobby-scene.open .lobby-door-right {
+.inc-lobby-scene.open .inc-lobby-door-right {
   transform: translateX(105%);
 }
 
-.lobby-door-seam {
+.inc-lobby-door-seam {
   position: absolute;
   top: 0;
   bottom: 0;
@@ -5032,15 +5032,15 @@ body.crossing-open #hint {
   background: rgba(var(--ink-rgb), 0.55);
 }
 
-.lobby-door-left .lobby-door-seam {
+.inc-lobby-door-left .inc-lobby-door-seam {
   right: 0;
 }
 
-.lobby-door-right .lobby-door-seam {
+.inc-lobby-door-right .inc-lobby-door-seam {
   left: 0;
 }
 
-.lobby-door-handle {
+.inc-lobby-door-handle {
   position: absolute;
   top: 50%;
   width: 8px;
@@ -5051,15 +5051,15 @@ body.crossing-open #hint {
   box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), inset 0 -1px 2px rgba(0, 0, 0, 0.6), 0 4px 8px rgba(0, 0, 0, 0.4);
 }
 
-.lobby-door-left .lobby-door-handle {
+.inc-lobby-door-left .inc-lobby-door-handle {
   right: 14px;
 }
 
-.lobby-door-right .lobby-door-handle {
+.inc-lobby-door-right .inc-lobby-door-handle {
   left: 14px;
 }
 
-.lobby-sign {
+.inc-lobby-sign {
   position: absolute;
   top: max(28px, var(--safe-t));
   left: 50%;
@@ -5075,7 +5075,7 @@ body.crossing-open #hint {
   box-shadow: inset 0 1px 3px rgba(255, 255, 255, 0.2), 0 8px 16px rgba(0, 0, 0, 0.5);
 }
 
-.lobby-sign-floor {
+.inc-lobby-sign-floor {
   font-family: var(--mono);
   font-size: 34px;
   font-weight: 900;
@@ -5084,7 +5084,7 @@ body.crossing-open #hint {
   animation: px-blink 2.4s steps(1) infinite;
 }
 
-.lobby-sign-name {
+.inc-lobby-sign-name {
   font-family: var(--mono);
   font-size: 11px;
   font-weight: 800;
@@ -5092,13 +5092,13 @@ body.crossing-open #hint {
   color: #c0c0c0;
 }
 
-.lobby-deco {
+.inc-lobby-deco {
   position: absolute;
   inset: 0;
   z-index: 1;
 }
 
-.lobby-plant {
+.inc-lobby-plant {
   position: absolute;
   left: 3%;
   bottom: 6%;
@@ -5106,7 +5106,7 @@ body.crossing-open #hint {
   filter: drop-shadow(0 10px 12px rgba(var(--ink-rgb), 0.5));
 }
 
-.lobby-waiting {
+.inc-lobby-waiting {
   position: absolute;
   right: 5%;
   bottom: 7%;
@@ -5114,23 +5114,23 @@ body.crossing-open #hint {
   filter: drop-shadow(0 8px 10px rgba(var(--ink-rgb), 0.5)) grayscale(0.2);
 }
 
-.lobby-waiting-2 {
+.inc-lobby-waiting-2 {
   right: 13%;
   bottom: 6.5%;
   opacity: 0.85;
 }
 
 @media (max-width: 900px) {
-  .lobby-door {
+  .inc-lobby-door {
     width: 40%;
   }
-  .lobby-door-left {
+  .inc-lobby-door-left {
     left: 8%;
   }
-  .lobby-door-right {
+  .inc-lobby-door-right {
     right: 8%;
   }
-  .lobby-sign-floor {
+  .inc-lobby-sign-floor {
     font-size: 26px;
   }
 }
