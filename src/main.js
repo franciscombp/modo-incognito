@@ -26,7 +26,6 @@ import { createPopups } from "./ui/popups.js";
 import { createAudioControl } from "./ui/audioControl.js";
 import { isMutedState, setMuted, getVolume, unmute } from "./game/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
-import { initCorporateUI } from "./ui/corporateUI.js";
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 // Ver vite.config.js: sella los archivos de `public/`, que no llevan hash.
@@ -77,20 +76,6 @@ async function boot() {
   // ---- Content: everything the game is made of comes from public/data ----
   const data = await loadGameData();
 
-  // Initialize corporate UI with character selection
-  const corporateUI = initCorporateUI();
-  await corporateUI.loadCharacters(data);
-
-  // Wait for character selection (when dashboard becomes visible)
-  await new Promise(resolve => {
-    const checkInterval = setInterval(() => {
-      if (!document.getElementById("login-screen").style.display || document.getElementById("login-screen").style.display === "none") {
-        clearInterval(checkInterval);
-        // Give it a moment for the transition
-        setTimeout(resolve, 500);
-      }
-    }, 100);
-  });
   // Los cuerpos esculpidos van por su cuenta: pesan, y el juego tiene que
   // poder arrancar mientras llegan. Ver `preloadBaseModels`.
   const baseModelsReady = preloadBaseModels(data.looks);
