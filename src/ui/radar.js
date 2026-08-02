@@ -24,15 +24,15 @@ const COLORS = {
 
 export function createRadar(root) {
   const wrap = document.createElement("div");
-  wrap.className = "radar";
+  wrap.className = "inc-radar";
   wrap.innerHTML = `
-    <div class="radar-head"><span>RADAR</span><span class="radar-dist"></span></div>
-    <canvas class="radar-canvas"></canvas>
+    <div class="inc-radar-head"><span>RADAR</span><span class="inc-radar-dist"></span></div>
+    <canvas class="inc-radar-canvas"></canvas>
   `;
   root.appendChild(wrap);
 
-  const canvas = wrap.querySelector(".radar-canvas");
-  const distEl = wrap.querySelector(".radar-dist");
+  const canvas = wrap.querySelector(".inc-radar-canvas");
+  const distEl = wrap.querySelector(".inc-radar-dist");
   const ctx = canvas.getContext("2d");
 
   // Floor bounds in world space, so the plan can be mapped into the canvas.
@@ -87,10 +87,10 @@ export function createRadar(root) {
 
   function update(state, dt = 0) {
     if (!state) {
-      wrap.classList.remove("visible");
+      wrap.classList.remove("inc-radar-visible");
       return;
     }
-    wrap.classList.add("visible");
+    wrap.classList.add("inc-radar-visible");
     if (!w && !resize()) return;
     t += dt;
 
@@ -149,7 +149,7 @@ export function createRadar(root) {
     if (state.bossDistance != null) {
       const metres = Math.round(state.bossDistance / (state.worldScale ?? 1));
       distEl.textContent = `${metres} m`;
-      distEl.classList.toggle("near", metres < 10);
+      distEl.classList.toggle("inc-radar-dist-near", metres < 10);
     }
   }
 
