@@ -54,7 +54,7 @@ function writeCollapse(state) {
 }
 
 export function createHud(root) {
-  const hud = el("div", "hud-root", root);
+  const hud = el("div", "inc-layer inc-layer--hud", root);
   const stored = readCollapse();
   // En móvil, si nunca se ha tocado el ajuste, arranca colapsado: la
   // pantalla es chica y tres paneles abiertos a la vez se comen media
@@ -70,7 +70,7 @@ export function createHud(root) {
 
   /** Botón "▾/▸" en la fila de título de un panel: colapsa `targetEl`. */
   function addCollapseToggle(titleRow, targetEl, key) {
-    const btn = el("button", "hud-collapse-btn", titleRow);
+    const btn = el("button", "inc-panel__collapse-btn", titleRow);
     btn.type = "button";
     const apply = () => {
       const collapsed = !!collapseState[key];
@@ -92,51 +92,51 @@ export function createHud(root) {
   // the left, pressure in the middle, resources on the right. The "where am
   // I / what do I press" readouts live on the world itself (worldPrompt) and
   // in the bottom card (compass), not up here.
-  const topBar = el("div", "hud-topbar", hud);
+  const topBar = el("div", "inc-hud-topbar", hud);
 
-  const objectivesPanel = el("div", "hud-panel hud-objectives", topBar);
-  const objTitleRow = el("div", "hud-panel-title", objectivesPanel);
-  objTitleRow.innerHTML = `${svgIcon("diamond", { size: 14 })} OBJETIVOS <span class="hud-objectives-count"></span>`;
-  const objectivesCount = objTitleRow.querySelector(".hud-objectives-count");
-  const objectivesList = el("div", "hud-objectives-list", objectivesPanel);
+  const objectivesPanel = el("div", "inc-panel inc-hud-objectives", topBar);
+  const objTitleRow = el("div", "inc-panel__header", objectivesPanel);
+  objTitleRow.innerHTML = `${svgIcon("diamond", { size: 14 })} OBJETIVOS <span class="inc-hud-objectives-count"></span>`;
+  const objectivesCount = objTitleRow.querySelector(".inc-hud-objectives-count");
+  const objectivesList = el("div", "inc-hud-objectives-list", objectivesPanel);
   addCollapseToggle(objTitleRow, objectivesPanel, "objectives");
 
-  const centerCol = el("div", "hud-center", topBar);
-  const dayRow = el("div", "hud-day-row", centerCol);
-  const dayChip = el("div", "hud-day-chip", dayRow);
-  const heatStars = el("div", "heat-stars", dayRow);
+  const centerCol = el("div", "inc-hud-center", topBar);
+  const dayRow = el("div", "inc-hud-day-row", centerCol);
+  const dayChip = el("div", "inc-hud-day-chip", dayRow);
+  const heatStars = el("div", "inc-heat-stars", dayRow);
   let heatStarEls = [];
-  const suspicionWrap = el("div", "hud-panel hud-suspicion", centerCol);
-  const susTitleRow = el("div", "hud-panel-title", suspicionWrap);
+  const suspicionWrap = el("div", "inc-panel inc-hud-suspicion", centerCol);
+  const susTitleRow = el("div", "inc-panel__header", suspicionWrap);
   susTitleRow.innerHTML = `${svgIcon("eye", { size: 14 })} SOSPECHA`;
-  const suspicionTrack = el("div", "hud-suspicion-track", suspicionWrap);
-  const suspicionFill = el("div", "hud-suspicion-fill", suspicionTrack);
-  const suspicionGlint = el("div", "hud-suspicion-glint", suspicionFill);
-  const warningsRow = el("div", "hud-warnings", suspicionWrap);
+  const suspicionTrack = el("div", "inc-hud-suspicion-track", suspicionWrap);
+  const suspicionFill = el("div", "inc-hud-suspicion-fill", suspicionTrack);
+  const suspicionGlint = el("div", "inc-hud-suspicion-glint", suspicionFill);
+  const warningsRow = el("div", "inc-hud-warnings", suspicionWrap);
   let warningPips = [];
   addCollapseToggle(susTitleRow, centerCol, "pressure");
-  const statusBadge = el("div", "hud-status-badge", centerCol);
-  const toast = el("div", "hud-toast", centerCol);
+  const statusBadge = el("div", "inc-hud-status-badge", centerCol);
+  const toast = el("div", "inc-hud-toast", centerCol);
 
-  const rightCol = el("div", "hud-right", topBar);
-  const timerPanel = el("div", "hud-panel hud-timer", rightCol);
-  const timerTitleRow = el("div", "hud-panel-title", timerPanel);
+  const rightCol = el("div", "inc-hud-right", topBar);
+  const timerPanel = el("div", "inc-panel inc-hud-timer", rightCol);
+  const timerTitleRow = el("div", "inc-panel__header", timerPanel);
   timerTitleRow.innerHTML = `${svgIcon("clock", { size: 14 })} JORNADA`;
-  const clockValue = el("div", "hud-clock-value", timerPanel);
-  const timerValue = el("div", "hud-timer-value", timerPanel);
-  const timerTrack = el("div", "hud-timer-track", timerPanel);
-  const timerFill = el("div", "hud-timer-fill", timerTrack);
+  const clockValue = el("div", "inc-hud-clock-value", timerPanel);
+  const timerValue = el("div", "inc-hud-timer-value", timerPanel);
+  const timerTrack = el("div", "inc-hud-timer-track", timerPanel);
+  const timerFill = el("div", "inc-hud-timer-fill", timerTrack);
   addCollapseToggle(timerTitleRow, rightCol, "resources");
 
-  const scorePanel = el("div", "hud-panel hud-scorepanel", rightCol);
-  const scoreTitleRow = el("div", "hud-panel-title", scorePanel);
+  const scorePanel = el("div", "inc-panel inc-hud-scorepanel", rightCol);
+  const scoreTitleRow = el("div", "inc-panel__header", scorePanel);
   scoreTitleRow.innerHTML = `${svgIcon("clock", { size: 14 })} TIEMPO EXTRA`;
-  const scoreRow = el("div", "hud-score", scorePanel);
-  const scoreValue = el("span", "hud-score-value", scoreRow);
-  const comboChip = el("span", "hud-combo", scoreRow);
-  const comboBar = el("span", "hud-combo-bar", comboChip);
-  const comboText = el("span", "hud-combo-text", comboChip);
-  const perkChip = el("div", "hud-perk", scorePanel);
+  const scoreRow = el("div", "inc-hud-score", scorePanel);
+  const scoreValue = el("span", "inc-hud-score-value", scoreRow);
+  const comboChip = el("span", "inc-hud-combo", scoreRow);
+  const comboBar = el("span", "inc-hud-combo-bar", comboChip);
+  const comboText = el("span", "inc-hud-combo-text", comboChip);
+  const perkChip = el("div", "inc-hud-perk", scorePanel);
 
   // ---- Escena de acción: ilustración grande de lo que estás haciendo ----
   // Al estilo RPG clásico: un panel visible mientras dura la actividad (o
@@ -147,17 +147,17 @@ export function createHud(root) {
   // rojo por los bordes y late. No es decoración — es el único aviso de que
   // el siguiente encontronazo es la amonestación, y de que toca salir
   // pitando a una sala o a tu puesto.
-  const danger = el("div", "hud-danger", hud);
+  const danger = el("div", "inc-hud-danger", hud);
 
   // La cámara hace zoom sobre la propia jugadora (ver setActionZoom en
   // camera.js) y su sprite en el mundo ya anima la pose de la acción — este
   // panel del HUD ya no duplica esa ilustración, solo marca el objetivo y su
   // progreso para no tapar a la jugadora justo cuando la cámara se acerca a
   // ella.
-  const actionScene = el("div", "action-scene hidden", hud);
-  const actionTrack = el("div", "action-progress-track", actionScene);
-  const actionFill = el("div", "action-progress-fill", actionTrack);
-  const actionLabel = el("div", "action-label", actionScene);
+  const actionScene = el("div", "inc-action-scene inc-hidden", hud);
+  const actionTrack = el("div", "inc-action-progress-track", actionScene);
+  const actionFill = el("div", "inc-action-progress-fill", actionTrack);
+  const actionLabel = el("div", "inc-action-label", actionScene);
 
   // El "rig" de la jugadora ya no lo necesita este panel (la pose la anima
   // el sprite del mundo), pero engine.js sigue llamando a setActionRig al
@@ -167,12 +167,12 @@ export function createHud(root) {
 
   function setAction(action) {
     if (!action) {
-      actionScene.classList.add("hidden");
+      actionScene.classList.add("inc-hidden");
       return;
     }
-    actionScene.classList.remove("hidden");
+    actionScene.classList.remove("inc-hidden");
     actionLabel.innerHTML = action.done ? `${action.label} ${svgIcon("check", { size: 15 })}` : action.label ?? "";
-    actionTrack.classList.toggle("hidden", action.progress == null);
+    actionTrack.classList.toggle("inc-hidden", action.progress == null);
     if (action.progress != null) {
       actionFill.style.width = `${Math.round(Math.min(1, Math.max(0, action.progress)) * 100)}%`;
     }
@@ -183,16 +183,16 @@ export function createHud(root) {
   // cámara hace zoom hacia él (ver introduceMinions() en engine.js) — así
   // cada uno se presenta como una amenaza propia en vez de aparecer sin
   // más en mitad de la partida.
-  const introCard = el("div", "intro-card hidden", hud);
-  const introIcon = el("div", "intro-card-icon", introCard);
-  const introName = el("div", "intro-card-name", introCard);
-  const introBlurb = el("div", "intro-card-blurb", introCard);
+  const introCard = el("div", "inc-intro-card inc-hidden", hud);
+  const introIcon = el("div", "inc-intro-card-icon", introCard);
+  const introName = el("div", "inc-intro-card-name", introCard);
+  const introBlurb = el("div", "inc-intro-card-blurb", introCard);
 
   function showIntroCard({ icon, name, blurb }) {
     introIcon.innerHTML = svgIcon(icon && hasIcon(icon) ? icon : "eye", { size: 34 });
     introName.textContent = name ?? "";
     introBlurb.textContent = blurb ?? "";
-    introCard.classList.remove("hidden");
+    introCard.classList.remove("inc-hidden");
     // Reinicia la animación de entrada aunque el cartel ya estuviera visible
     // (un secuaz seguido de otro no debe leerse como el mismo cartel).
     introCard.classList.remove("pop");
@@ -201,7 +201,7 @@ export function createHud(root) {
   }
 
   function hideIntroCard() {
-    introCard.classList.add("hidden");
+    introCard.classList.add("inc-hidden");
   }
 
   // ---- Mensaje de Teams de Gabo ----
@@ -209,37 +209,37 @@ export function createHud(root) {
   // en el mapa — es un mensaje, no algo que dependa de estar cerca — y se
   // retira sola. Le da personalidad a Gabo fuera de los encuentros cara a
   // cara (ver GABO_TEAMS_INTERVAL en game.js).
-  const teamsToast = el("div", "teams-toast hidden", hud);
-  const teamsHeader = el("div", "teams-toast-header", teamsToast);
-  el("span", "teams-toast-icon", teamsHeader).innerHTML = svgIcon("chat", { size: 15 });
-  el("span", "teams-toast-app", teamsHeader, "Teams");
-  const teamsFrom = el("div", "teams-toast-from", teamsToast);
-  const teamsText = el("div", "teams-toast-text", teamsToast);
+  const teamsToast = el("div", "inc-teams-toast inc-hidden", hud);
+  const teamsHeader = el("div", "inc-teams-toast-header", teamsToast);
+  el("span", "inc-teams-toast-icon", teamsHeader).innerHTML = svgIcon("chat", { size: 15 });
+  el("span", "inc-teams-toast-app", teamsHeader, "Teams");
+  const teamsFrom = el("div", "inc-teams-toast-from", teamsToast);
+  const teamsText = el("div", "inc-teams-toast-text", teamsToast);
   let teamsTimer = null;
 
   function showTeamsMessage(text, from = "Gabo (Barbie Malibú)") {
     teamsFrom.textContent = from;
     teamsText.textContent = text;
-    teamsToast.classList.remove("hidden");
-    teamsToast.classList.remove("pop");
+    teamsToast.classList.remove("inc-hidden");
+    teamsToast.classList.remove("inc-pop");
     void teamsToast.offsetWidth;
-    teamsToast.classList.add("pop");
+    teamsToast.classList.add("inc-pop");
     clearTimeout(teamsTimer);
-    teamsTimer = setTimeout(() => teamsToast.classList.add("hidden"), 6000);
+    teamsTimer = setTimeout(() => teamsToast.classList.add("inc-hidden"), 6000);
   }
 
   // ---- End-of-day card ----
-  // Vive fuera de hud-root a propósito: hud-root fija su propio contexto de
-  // apilamiento (z-index bajo, para quedar detrás del vestíbulo/diálogo), y
-  // el resultado de fin de día debe poder mostrarse incluso cuando ese
-  // vestíbulo está de fondo (ver crossingFailed() en engine.js).
-  const overlay = el("div", "hud-overlay hidden", root);
-  const overlayCard = el("div", "hud-overlay-card", overlay);
-  const overlayIcon = el("div", "hud-overlay-icon", overlayCard);
-  const overlayTitle = el("div", "hud-overlay-title", overlayCard);
-  const overlayScore = el("div", "hud-overlay-score", overlayCard);
-  const overlayBody = el("div", "hud-overlay-body", overlayCard);
-  const overlayActions = el("div", "hud-overlay-actions", overlayCard);
+  // Vive en inc-layer--overlay a propósito: overlay fija su propio contexto de
+  // apilamiento (z-index alto, para flotar sobre todo), y
+  // el resultado de fin de día debe poder mostrarse incluso cuando otro
+  // contenido está de fondo (ver crossingFailed() en engine.js).
+  const overlay = el("div", "inc-modal inc-hidden", root);
+  const overlayCard = el("div", "inc-modal__content", overlay);
+  const overlayIcon = el("div", "inc-overlay-icon", overlayCard);
+  const overlayTitle = el("div", "inc-overlay-title", overlayCard);
+  const overlayScore = el("div", "inc-overlay-score", overlayCard);
+  const overlayBody = el("div", "inc-overlay-body", overlayCard);
+  const overlayActions = el("div", "inc-overlay-actions", overlayCard);
 
   let maxWarningsRendered = -1;
 
@@ -249,7 +249,7 @@ export function createHud(root) {
 
   /** Toggles the whole in-game HUD, e.g. while a menu is up. */
   function setVisible(visible) {
-    hud.classList.toggle("hidden", !visible);
+    hud.classList.toggle("inc-hidden", !visible);
   }
 
   /** Shown between days; `actions` are [{ label, primary, onClick }]. */
@@ -263,19 +263,19 @@ export function createHud(root) {
     // escaqueándote, y lo que te sobraba cuando acabó. Ni puntos ni rango.
     overlayScore.innerHTML = "";
     if (timeGained != null || timeLeft != null) {
-      const box = el("div", "hud-result-score", overlayScore);
+      const box = el("div", "inc-overlay-score-box", overlayScore);
       if (timeGained != null) {
-        el("span", "hud-result-points", box, `+${Math.round(timeGained)}s ganados`);
+        el("span", "inc-overlay-points", box, `+${Math.round(timeGained)}s ganados`);
       }
       if (timeLeft != null) {
-        el("span", "hud-result-target", box, `${Math.max(0, Math.round(timeLeft))}s de sobra`);
+        el("span", "inc-overlay-target", box, `${Math.max(0, Math.round(timeLeft))}s de sobra`);
       }
     }
 
     overlayBody.textContent = body;
     overlayActions.innerHTML = "";
     actions.forEach((action) => {
-      const btn = el("button", `hud-overlay-btn${action.primary ? " primary" : ""}`, overlayActions);
+      const btn = el("button", `inc-btn ${action.primary ? "inc-btn--primary" : "inc-btn--secondary"}`, overlayActions);
       btn.type = "button";
       btn.textContent = action.label;
       btn.addEventListener("click", () => {
@@ -283,24 +283,24 @@ export function createHud(root) {
         action.onClick();
       });
     });
-    overlay.classList.remove("hidden");
+    overlay.classList.remove("inc-hidden");
     // The touch joystick covers most of the lower screen; without this the
     // result card is unreachable on a phone because every tap lands on the
     // stick zone instead of the buttons.
-    document.body.classList.add("overlay-open");
+    document.body.classList.add("inc-overlay-open");
     const primaryBtn = overlayActions.querySelector(".primary") ?? overlayActions.firstElementChild;
     primaryBtn?.focus();
   }
 
   function hideResult() {
-    overlay.classList.add("hidden");
-    document.body.classList.remove("overlay-open");
+    overlay.classList.add("inc-hidden");
+    document.body.classList.remove("inc-overlay-open");
   }
 
   // ---- Teclado en la tarjeta de fin de día: mismas teclas que en los menús
   // (flechas/WASD mueven el foco, E también confirma junto a espacio/enter).
   window.addEventListener("keydown", (e) => {
-    if (overlay.classList.contains("hidden")) return;
+    if (overlay.classList.contains("inc-hidden")) return;
     const key = e.key.toLowerCase();
     const items = [...overlayActions.querySelectorAll("button")];
     if (!items.length) return;

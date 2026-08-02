@@ -14,31 +14,31 @@ function el(tag, className, parent) {
 }
 
 export function createLobby(root) {
-  const layer = el("div", "lobby-scene hidden", root);
+  const layer = el("div", "inc-lobby-scene inc-hidden", root);
 
-  const doorLeft = el("div", "lobby-door lobby-door-left", layer);
-  const doorRight = el("div", "lobby-door lobby-door-right", layer);
+  const doorLeft = el("div", "inc-lobby-door inc-lobby-door-left", layer);
+  const doorRight = el("div", "inc-lobby-door inc-lobby-door-right", layer);
   [doorLeft, doorRight].forEach((door) => {
-    el("div", "lobby-door-seam", door);
-    el("div", "lobby-door-handle", door);
+    el("div", "inc-lobby-door-seam", door);
+    el("div", "inc-lobby-door-handle", door);
   });
 
-  const sign = el("div", "lobby-sign", layer);
-  const signFloor = el("div", "lobby-sign-floor", sign);
+  const sign = el("div", "inc-lobby-sign", layer);
+  const signFloor = el("div", "inc-lobby-sign-floor", sign);
   signFloor.textContent = "10";
-  const signName = el("div", "lobby-sign-name", sign);
+  const signName = el("div", "inc-lobby-sign-name", sign);
   signName.textContent = "PISO 10";
 
-  const deco = el("div", "lobby-deco", layer);
-  el("span", "lobby-plant", deco).innerHTML = svgIcon("plant", { size: 42 });
-  el("span", "lobby-waiting", deco).innerHTML = svgIcon("person", { size: 38 });
-  el("span", "lobby-waiting lobby-waiting-2", deco).innerHTML = svgIcon("person", { size: 34 });
+  const deco = el("div", "inc-lobby-deco", layer);
+  el("span", "inc-lobby-plant", deco).innerHTML = svgIcon("plant", { size: 42 });
+  el("span", "inc-lobby-waiting", deco).innerHTML = svgIcon("person", { size: 38 });
+  el("span", "inc-lobby-waiting inc-lobby-waiting-2", deco).innerHTML = svgIcon("person", { size: 34 });
 
   let opening = false;
 
   function show() {
     opening = false;
-    layer.classList.remove("hidden", "open");
+    layer.classList.remove("inc-hidden", "inc-lobby-open");
     doorLeft.style.transform = "";
     doorRight.style.transform = "";
   }
@@ -48,10 +48,10 @@ export function createLobby(root) {
     if (opening) return Promise.resolve();
     opening = true;
     return new Promise((resolve) => {
-      layer.classList.add("open");
+      layer.classList.add("inc-lobby-open");
       const done = () => {
         doorLeft.removeEventListener("transitionend", done);
-        layer.classList.add("hidden");
+        layer.classList.add("inc-hidden");
         resolve();
       };
       doorLeft.addEventListener("transitionend", done, { once: true });
@@ -69,8 +69,8 @@ export function createLobby(root) {
    */
   function reset() {
     opening = false;
-    layer.classList.remove("open");
-    layer.classList.add("hidden");
+    layer.classList.remove("inc-lobby-open");
+    layer.classList.add("inc-hidden");
     doorLeft.style.transform = "";
     doorRight.style.transform = "";
   }
