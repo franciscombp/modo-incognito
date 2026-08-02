@@ -681,8 +681,11 @@ export function createEngine({
     if (live && !dialogue.isOpen) {
       updateMoodFromSnapshot(live);
       updateGabo(dt, live);
-      // Cambiar iluminación dinámicamente según la hora del día
       updateDynamicTheme(live);
+    }
+    // Update boss/minion visibility based on story progress
+    if (game) {
+      updateCharacterVisibility(game);
     }
   }
 
@@ -693,6 +696,18 @@ export function createEngine({
       lastTheme = currentTheme;
       applyTheme(currentTheme, { renderer, scene, ...lights });
     }
+  }
+
+  // Hide boss/minion vision cones until player meets them
+  function updateCharacterVisibility(g) {
+    boss.cone.visible = g.metGabo;
+    g.minions.forEach((m) => {
+      if (m.id === "crispo") {
+        m.cone.visible = g.metGabo;
+      } else {
+        m.cone.visible = true;
+      }
+    });
   }
 
   /** Gabo's Teams messages: fire on a timer, independent of his position. */

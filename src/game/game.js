@@ -367,8 +367,15 @@ export class Game {
     this._liveNpcsBuf.length = 0;
     for (const n of this.npcs) if (n.active !== false) this._liveNpcsBuf.push(n);
     const liveNpcs = this._liveNpcsBuf;
+    // Boss is inactive (won't pursue) until player meets them
+    this.boss._playerMetBoss = this.metGabo;
     this.boss.update(dt, this.player, liveNpcs);
-    this.minions.forEach((m) => m.update(dt, this.player, liveNpcs));
+    this.minions.forEach((m) => {
+      if (m.id === "crispo") {
+        m._playerMetMinion = this.metGabo;
+      }
+      m.update(dt, this.player, liveNpcs);
+    });
     this._updateMinionCatch();
     this._updateMinionApproach();
     this._updateEggs(dt);
