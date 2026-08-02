@@ -1,4 +1,5 @@
 import { SETTINGS_SCHEMA, getSettings, setSettings, subscribeSettings, buzz } from "../game/settings.js";
+import { THEMES, getTheme, setTheme } from "../game/theme.js";
 import { sfxMove, sfxSelect, sfxBack, sfxOpen } from "../game/sfx.js";
 import { createCameraPanel } from "./cameraPanel.js";
 import { characterShot } from "./charshot.js";
@@ -244,6 +245,30 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
       t.pane.classList.toggle("hidden", t.id !== id);
     });
   }
+
+  // Tema visual: aparte del esquema (no es un ajuste de juego, es qué
+  // aspecto tiene TODO — juego y builders), mismo patrón px-opt/px-choice.
+  const themeRow = el("label", "px-opt", gamePane);
+  const themeHead = el("div", "px-opt-head", themeRow);
+  el("span", "px-opt-label", themeHead, "Tema visual");
+  const themeChoice = el("div", "px-choice", themeRow);
+  const THEME_LABELS = { cozy: "COZY", pixel: "PIXEL" };
+  const themeChips = THEMES.map((t) => {
+    const chip = el("button", "px-chip", themeChoice, THEME_LABELS[t] ?? t.toUpperCase());
+    chip.type = "button";
+    chip.dataset.value = t;
+    chip.addEventListener("click", () => {
+      sfxSelect();
+      setTheme(t);
+    });
+    return chip;
+  });
+  el("span", "px-opt-hint", themeRow, "PIXEL está preparado pero aún sin estrenar — de momento se ve igual que COZY.");
+  function refreshThemeChips() {
+    const active = getTheme();
+    themeChips.forEach((c) => c.classList.toggle("on", c.dataset.value === active));
+  }
+  refreshThemeChips();
 
   // Game options, generated from the schema so adding one is a one-liner.
   const controls = new Map();
