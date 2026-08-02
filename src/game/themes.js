@@ -115,20 +115,17 @@ export function applyTheme(name, { renderer, scene, ambient, hemi, key }) {
 
 /**
  * Calcula la hora actual del día basada en el tiempo restante.
- * El día comienza a las 7am (240s) y termina a las 9pm (0s).
+ * El día comienza a las 7am (240s) y termina a las 7pm (0s).
+ * La transición a oscuridad debe ser rápida en las últimas horas.
  */
 export function getThemeByTime(timeLeft, maxTime = 240) {
-  const progress = 1 - timeLeft / maxTime; // 0 al inicio, 1 al final
-  const hour = 7 + progress * 14; // 7am a 9pm
-
-  if (hour < 8) return "earlyMorning"; // 7am-8am
-  if (hour < 10) return "morning"; // 8am-10am
-  if (hour < 12) return "morning"; // 10am-12pm
-  if (hour < 1) return "morning"; // 12pm-1pm
-  if (hour < 3) return "midday"; // 1pm-3pm
-  if (hour < 5) return "afternoon"; // 3pm-5pm
-  if (hour < 6) return "latAfternoon"; // 5pm-6pm
-  if (hour < 7) return "dusk"; // 6pm-7pm
-  if (hour < 8) return "duskDark"; // 7pm-8pm
-  return "twilight"; // 8pm-9pm
+  // 240s = 7am, 0s = 7pm (12 horas comprimidas en 240 segundos)
+  if (timeLeft > 160) return "earlyMorning"; // 7am-8:40am (240-160s)
+  if (timeLeft > 100) return "morning"; // 8:40am-11:40am (160-100s)
+  if (timeLeft > 50) return "midday"; // 11:40am-4:10pm (100-50s)
+  if (timeLeft > 30) return "afternoon"; // 4:10pm-5:10pm (50-30s)
+  if (timeLeft > 15) return "latAfternoon"; // 5:10pm-6:00pm (30-15s)
+  if (timeLeft > 5) return "dusk"; // 6:00pm-6:45pm (15-5s)
+  if (timeLeft > 1) return "duskDark"; // 6:45pm-6:58pm (5-1s)
+  return "twilight"; // 6:58pm-7pm (1-0s)
 }
