@@ -21,43 +21,43 @@ const PREV_KEYS = new Set(["arrowup", "w"]);
 
 export function createDialogue(root, { looks = null } = {}) {
   const layer = document.createElement("div");
-  layer.className = "vn-layer hidden";
+  layer.className = "inc-layer inc-layer--overlay inc-dialogue inc-hidden";
   // Full-bleed cinematic box: letterbox bars, an oversized portrait that
   // breaks out of the frame and a name tab sitting on the top edge, so the
   // conversation feels part of the scene instead of a tooltip floating over it.
   layer.innerHTML = `
-    <div class="vn-scrim"></div>
-    <div class="vn-bar vn-bar-top"></div>
-    <div class="vn-dock">
-      <div class="vn-portrait">
+    <div class="inc-dialogue-scrim"></div>
+    <div class="inc-dialogue-bar"></div>
+    <div class="inc-dialogue-dock">
+      <div class="inc-dialogue-portrait">
       </div>
-      <div class="vn-box" role="dialog" aria-live="polite">
-        <div class="vn-speaker"><span class="vn-speaker-text"></span></div>
-        <div class="vn-text"></div>
-        <div class="vn-options"></div>
-        <div class="vn-hint">▼</div>
+      <div class="inc-dialogue-box" role="dialog" aria-live="polite">
+        <div class="inc-dialogue-speaker"><span class="inc-dialogue-speaker-text"></span></div>
+        <div class="inc-dialogue-text"></div>
+        <div class="inc-dialogue-options"></div>
+        <div class="inc-dialogue-hint">▼</div>
       </div>
     </div>
   `;
   root.appendChild(layer);
 
-  const box = layer.querySelector(".vn-box");
-  const portrait = layer.querySelector(".vn-portrait");
-  const speakerEl = layer.querySelector(".vn-speaker");
-  const speakerText = layer.querySelector(".vn-speaker-text");
-  const textEl = layer.querySelector(".vn-text");
-  const optionsEl = layer.querySelector(".vn-options");
-  const hintEl = layer.querySelector(".vn-hint");
+  const box = layer.querySelector(".inc-dialogue-box");
+  const portrait = layer.querySelector(".inc-dialogue-portrait");
+  const speakerEl = layer.querySelector(".inc-dialogue-speaker");
+  const speakerText = layer.querySelector(".inc-dialogue-speaker-text");
+  const textEl = layer.querySelector(".inc-dialogue-text");
+  const optionsEl = layer.querySelector(".inc-dialogue-options");
+  const hintEl = layer.querySelector(".inc-dialogue-hint");
 
   // Steven el Daddy narrator element
   const narratorEl = document.createElement("div");
-  narratorEl.className = "vn-narrator hidden";
+  narratorEl.className = "inc-dialogue-narrator inc-hidden";
   narratorEl.innerHTML = `
-    <div class="vn-narrator-title"><span class="vn-narrator-icon">${svgIcon("phone", { size: 15 })}</span>Steven el Daddy</div>
-    <div class="vn-narrator-text"></div>
+    <div class="inc-dialogue-narrator-title"><span class="inc-dialogue-narrator-icon">${svgIcon("phone", { size: 15 })}</span>Steven el Daddy</div>
+    <div class="inc-dialogue-narrator-text"></div>
   `;
   layer.appendChild(narratorEl);
-  const narratorText = narratorEl.querySelector(".vn-narrator-text");
+  const narratorText = narratorEl.querySelector(".inc-dialogue-narrator-text");
 
   // El retrato es el MISMO muñeco 3D que anda por el piso, encuadrado de
   // busto. El pliego de píxeles se queda de reserva por si no hay WebGL o el
@@ -100,8 +100,8 @@ export function createDialogue(root, { looks = null } = {}) {
     const look = node.look ?? lookFor(node);
     if (look && portrait3d.show(look, portraitMood)) {
       portrait3d.start();
-      portrait.classList.remove("vn-portrait-off");
-      portrait.classList.add("has-3d");
+      portrait.classList.remove("inc-dialogue-portrait-off");
+      portrait.classList.add("inc-dialogue-portrait-3d");
       return;
     }
 
@@ -110,8 +110,8 @@ export function createDialogue(root, { looks = null } = {}) {
     // `lookFor` nunca devuelve vacío — el que no tiene receta propia usa la
     // genérica. Si aquí no hay muñeco es que no hay WebGL, y entonces la
     // caja de diálogo se queda sin retrato en vez de enseñar otra cosa.
-    portrait.classList.remove("has-3d");
-    portrait.classList.add("vn-portrait-off");
+    portrait.classList.remove("inc-dialogue-portrait-3d");
+    portrait.classList.add("inc-dialogue-portrait-off");
   }
 
   /**
@@ -124,14 +124,14 @@ export function createDialogue(root, { looks = null } = {}) {
    */
   function showNarrator(text) {
     narratorText.textContent = text;
-    narratorEl.classList.remove("hidden");
-    layer.classList.add("vn-narrating");
+    narratorEl.classList.remove("inc-hidden");
+    layer.classList.add("inc-dialogue-narrating");
   }
 
   /** Ocultar narrador. */
   function hideNarrator() {
-    narratorEl.classList.add("hidden");
-    layer.classList.remove("vn-narrating");
+    narratorEl.classList.add("inc-hidden");
+    layer.classList.remove("inc-dialogue-narrating");
   }
 
   let optionButtons = [];
@@ -247,7 +247,7 @@ export function createDialogue(root, { looks = null } = {}) {
   window.addEventListener("keydown", onKey);
   layer.addEventListener("pointerdown", (e) => {
     // Clicks on an option button must not double as "advance".
-    if (e.target.closest(".vn-option")) return;
+    if (e.target.closest(".inc-dialogue-option")) return;
     advance();
   });
 
@@ -276,7 +276,7 @@ export function createDialogue(root, { looks = null } = {}) {
     setPortrait(node);
     portrait.dataset.mood = node.mood ?? "neutral";
     box.dataset.mood = node.mood ?? "neutral";
-    if (node.color) layer.style.setProperty("--vn-accent", node.color);
+    if (node.color) layer.style.setProperty("--inc-dialogue-accent", node.color);
     await type(resolve(node.text, ctx));
     await waitForAdvance();
   }
@@ -294,7 +294,7 @@ export function createDialogue(root, { looks = null } = {}) {
       optionsEl.classList.remove("hidden");
       node.options.forEach((opt) => {
         const btn = document.createElement("button");
-        btn.className = "vn-option";
+        btn.className = "inc-dialogue-option inc-btn inc-btn--ghost";
         btn.type = "button";
         btn.textContent = opt.label;
         btn.addEventListener("click", async (e) => {
@@ -325,7 +325,7 @@ export function createDialogue(root, { looks = null } = {}) {
         });
         optionsEl.appendChild(btn);
       });
-      optionButtons = [...optionsEl.querySelectorAll(".vn-option")];
+      optionButtons = [...optionsEl.querySelectorAll(".inc-dialogue-option")];
       focusOption(0, { silent: true });
     });
   }
@@ -346,14 +346,14 @@ export function createDialogue(root, { looks = null } = {}) {
   async function play(nodes, ctx = {}) {
     if (!nodes || !nodes.length) return;
     active = true;
-    layer.classList.remove("hidden");
-    document.body.classList.add("vn-open");
+    layer.classList.remove("inc-hidden");
+    document.body.classList.add("inc-dialogue-open");
     try {
       await playNodes(nodes, ctx);
     } finally {
       active = false;
-      layer.classList.add("hidden");
-      document.body.classList.remove("vn-open");
+      layer.classList.add("inc-hidden");
+      document.body.classList.remove("inc-dialogue-open");
       // Con el diálogo cerrado el retrato no gasta un fotograma: el bucle del
       // piso ya tiene bastante con lo suyo.
       portrait3d.stop();

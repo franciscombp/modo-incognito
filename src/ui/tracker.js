@@ -31,7 +31,7 @@ const BOTTOM_SAFE_MARGIN = 10;
 // Lo que ocupa la banda de abajo y no se puede tapar: las dos tarjetas y la
 // franja de controles (que solo está los primeros minutos, de ahí medirla en
 // vez de reservarle sitio fijo).
-const BOTTOM_BLOCKERS = ".track-layer.visible .track-card, #hint";
+const BOTTOM_BLOCKERS = ".inc-tracker-layer.inc-tracker-visible .inc-tracker-card, #hint";
 
 /**
  * Dónde han quedado las flechas de este frame.
@@ -55,34 +55,34 @@ function overlaps(a, b) {
 
 export function createTracker(root, camera, { id, side = "right", accent = "cyan" }) {
   const layer = document.createElement("div");
-  layer.className = `track-layer track-${side} track-${accent}`;
+  layer.className = `inc-tracker-layer inc-tracker-${side} inc-tracker-${accent}`;
   layer.dataset.tracker = id;
   layer.innerHTML = `
-    <div class="track-card">
-      <span class="track-top"></span>
-      <span class="track-icon"></span>
-      <span class="track-body">
-        <span class="track-label"></span>
-        <span class="track-meta"></span>
+    <div class="inc-tracker-card">
+      <span class="inc-tracker-top"></span>
+      <span class="inc-tracker-icon"></span>
+      <span class="inc-tracker-body">
+        <span class="inc-tracker-label"></span>
+        <span class="inc-tracker-meta"></span>
       </span>
-      <span class="track-bar"><i></i></span>
+      <span class="inc-tracker-bar"><i></i></span>
     </div>
-    <div class="track-marker">
-      <span class="track-arrow">▲</span>
-      <span class="track-dist"></span>
+    <div class="inc-tracker-marker">
+      <span class="inc-tracker-arrow">▲</span>
+      <span class="inc-tracker-dist"></span>
     </div>
   `;
   root.appendChild(layer);
 
-  const card = layer.querySelector(".track-card");
-  const topEl = layer.querySelector(".track-top");
-  const iconEl = layer.querySelector(".track-icon");
-  const labelEl = layer.querySelector(".track-label");
-  const metaEl = layer.querySelector(".track-meta");
-  const barFill = layer.querySelector(".track-bar i");
-  const marker = layer.querySelector(".track-marker");
-  const arrow = layer.querySelector(".track-arrow");
-  const distEl = layer.querySelector(".track-dist");
+  const card = layer.querySelector(".inc-tracker-card");
+  const topEl = layer.querySelector(".inc-tracker-top");
+  const iconEl = layer.querySelector(".inc-tracker-icon");
+  const labelEl = layer.querySelector(".inc-tracker-label");
+  const metaEl = layer.querySelector(".inc-tracker-meta");
+  const barFill = layer.querySelector(".inc-tracker-bar i");
+  const marker = layer.querySelector(".inc-tracker-marker");
+  const arrow = layer.querySelector(".inc-tracker-arrow");
+  const distEl = layer.querySelector(".inc-tracker-dist");
 
   const v = new THREE.Vector3();
   // Buscado perezosamente: hud.js crea `.hud-topbar` en el mismo tick que
@@ -95,10 +95,10 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
    */
   function update(target) {
     if (!target) {
-      layer.classList.remove("visible");
+      layer.classList.remove("inc-tracker-visible");
       return;
     }
-    layer.classList.add("visible");
+    layer.classList.add("inc-tracker-visible");
 
     topEl.textContent = target.top ?? "";
     iconEl.innerHTML = svgIcon(hasIcon(target.icon) ? target.icon : "diamond", { size: 16 });
@@ -107,8 +107,8 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
 
     const urgency = THREE.MathUtils.clamp(target.urgency ?? 0, 0, 1);
     barFill.style.width = `${Math.round(urgency * 100)}%`;
-    card.classList.toggle("hot", urgency > 0.62);
-    card.classList.toggle("warm", urgency > 0.32 && urgency <= 0.62);
+    card.classList.toggle("inc-tracker-card-hot", urgency > 0.62);
+    card.classList.toggle("inc-tracker-card-warm", urgency > 0.32 && urgency <= 0.62);
 
     const w = layer.clientWidth;
     const h = layer.clientHeight;
@@ -135,7 +135,7 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
       const halfH = h / 2 - EDGE;
       const scale = Math.min(halfW / Math.abs(nx || 1e-3), halfH / Math.abs(ny || 1e-3));
       sx = w / 2 + nx * scale;
-      if (!topbarEl) topbarEl = document.querySelector(".hud-topbar");
+      if (!topbarEl) topbarEl = document.querySelector(".inc-hud-topbar");
       const barHeight = topbarEl?.getBoundingClientRect().height || TOP_SAFE_FALLBACK;
       // En pantallas bajas (tablet/móvil apaisado) la franja no puede comerse
       // media pantalla igual, así que cede proporcionalmente ahí.
@@ -204,8 +204,8 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
     // pantalla ya se ve solo (su halo, su sprite) y la chapa acaba flotando
     // encima del HUD — cosa que pasa constantemente desde que Gabo va pegado
     // a la jugadora. Fuera de pantalla, aparece.
-    marker.classList.toggle("hidden", onScreen);
-    marker.classList.toggle("edge", !onScreen);
+    marker.classList.toggle("inc-hidden", onScreen);
+    marker.classList.toggle("inc-tracker-marker-edge", !onScreen);
     marker.style.transform = `translate(-50%, -50%) translate(${sx}px, ${sy}px)`;
     arrow.style.transform = `rotate(${angle}deg)`;
     distEl.textContent = onScreen ? "" : target.short ?? "";
