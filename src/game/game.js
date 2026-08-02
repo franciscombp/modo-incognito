@@ -426,7 +426,11 @@ export class Game {
 
     // ---- Suspicion ----
     const susCfg = this.suspicionConfig;
-    if (this.rules.explore) {
+    if (this.gate && !this.metGabo) {
+      // Antes de conocer al guardián de la puerta del día no hay nada que
+      // reprochar todavía: ni tareas que hacer mal, ni vigilancia activa.
+      this.suspicion = 0;
+    } else if (this.rules.explore) {
       // Kiara ya renunció: nada de esto le afecta.
       this.suspicion = 0;
     } else if (this.inSafeSpot) {
