@@ -4,7 +4,7 @@ import { buzz } from "./settings.js";
 import { setMood, playStinger, updateMoodFromSnapshot } from "./soundtrack.js";
 import { createDialogue } from "./dialogue.js";
 import { createSave } from "./save.js";
-import { applyTheme } from "./themes.js";
+import { applyTheme, getThemeByTime } from "./themes.js";
 import { createMenus } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
@@ -689,6 +689,17 @@ export function createEngine({
     if (live && !dialogue.isOpen) {
       updateMoodFromSnapshot(live);
       updateGabo(dt, live);
+      // Cambiar iluminación dinámicamente según la hora del día
+      updateDynamicTheme(live);
+    }
+  }
+
+  let lastTheme = null;
+  function updateDynamicTheme(live) {
+    const currentTheme = getThemeByTime(live.timeLeft, live.rules.duration);
+    if (currentTheme !== lastTheme) {
+      lastTheme = currentTheme;
+      applyTheme(currentTheme, { renderer, scene, ...lights });
     }
   }
 

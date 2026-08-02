@@ -12,29 +12,86 @@ import { skyTexture } from "../scene/cozy.js";
 // vez de cortarse a cuchillo contra la nada.
 
 export const themes = {
+  earlyMorning: {
+    // 7am - luz cálida suave
+    sky: ["#f5d4b0", "#fde9d0"],
+    fog: "#fde9d0",
+    ambient: { color: 0xffd9a8, intensity: 0.9 },
+    hemi: { sky: 0xffe6c0, ground: 0xc8a680, intensity: 0.8 },
+    key: { color: 0xffc894, intensity: 0.95 },
+    exposure: 1.0,
+  },
   morning: {
-    sky: ["#e4dbef", "#f7eee2"], // lavanda a crema, media mañana
+    // 9am-1pm - luz cálida plena
+    sky: ["#e4dbef", "#f7eee2"],
     fog: "#f4eadd",
     ambient: { color: 0xfff6ea, intensity: 1.15 },
     hemi: { sky: 0xf0e6ff, ground: 0xd8c4a8, intensity: 0.95 },
     key: { color: 0xfff0d4, intensity: 1.1 },
     exposure: 1.05,
   },
-  overcast: {
-    sky: ["#dfe0ea", "#eee9e2"],
-    fog: "#e9e6e0",
-    ambient: { color: 0xf2f2f6, intensity: 1.2 },
-    hemi: { sky: 0xe4e6f0, ground: 0xcdc6bc, intensity: 1.0 },
-    key: { color: 0xf0eeea, intensity: 0.8 },
-    exposure: 1.0,
+  midday: {
+    // 1pm - luz blanca neutral
+    sky: ["#e0e8f0", "#f5eeea"],
+    fog: "#f0e8e0",
+    ambient: { color: 0xffffff, intensity: 1.2 },
+    hemi: { sky: 0xe8f0f8, ground: 0xd0c8bc, intensity: 1.0 },
+    key: { color: 0xf5f0e8, intensity: 1.1 },
+    exposure: 1.05,
+  },
+  afternoon: {
+    // 3pm - luz cálida comenzando a bajar
+    sky: ["#e8d4c0", "#fde8d4"],
+    fog: "#f5e0d0",
+    ambient: { color: 0xfff0d4, intensity: 1.1 },
+    hemi: { sky: 0xffd9a8, ground: 0xd8a878, intensity: 0.95 },
+    key: { color: 0xffc894, intensity: 1.15 },
+    exposure: 1.08,
+  },
+  latAfternoon: {
+    // 5pm - comenzando el atardecer
+    sky: ["#d9b8a0", "#ffcb9a"],
+    fog: "#ffc9a0",
+    ambient: { color: 0xffc89f, intensity: 1.05 },
+    hemi: { sky: 0xffb888, ground: 0xd89868, intensity: 0.9 },
+    key: { color: 0xff9966, intensity: 1.2 },
+    exposure: 1.1,
   },
   dusk: {
+    // 6pm - atardecer
     sky: ["#d9c2e0", "#ffdcc0"],
     fog: "#f0d8c4",
     ambient: { color: 0xffe6cf, intensity: 1.0 },
     hemi: { sky: 0xffd9b0, ground: 0xc9a184, intensity: 0.85 },
     key: { color: 0xffc894, intensity: 1.15 },
     exposure: 1.1,
+  },
+  duskDark: {
+    // 7pm - atardecer oscuro
+    sky: ["#8b5a6a", "#c47a68"],
+    fog: "#b8705a",
+    ambient: { color: 0xcc8855, intensity: 0.7 },
+    hemi: { sky: 0xb87858, ground: 0x5a4a40, intensity: 0.6 },
+    key: { color: 0xff9966, intensity: 1.0 },
+    exposure: 0.95,
+  },
+  twilight: {
+    // 8pm-9pm - crepúsculo, casi noche, luces artificiales
+    sky: ["#3a2a4a", "#5a3a5a"],
+    fog: "#4a3a4a",
+    ambient: { color: 0x5a4a6a, intensity: 0.5 },
+    hemi: { sky: 0x4a3a5a, ground: 0x2a2a30, intensity: 0.4 },
+    key: { color: 0x8877cc, intensity: 0.8 },
+    exposure: 0.85,
+  },
+  overcast: {
+    // fallback
+    sky: ["#dfe0ea", "#eee9e2"],
+    fog: "#e9e6e0",
+    ambient: { color: 0xf2f2f6, intensity: 1.2 },
+    hemi: { sky: 0xe4e6f0, ground: 0xcdc6bc, intensity: 1.0 },
+    key: { color: 0xf0eeea, intensity: 0.8 },
+    exposure: 1.0,
   },
 };
 
@@ -54,4 +111,24 @@ export function applyTheme(name, { renderer, scene, ambient, hemi, key }) {
   key.intensity = theme.key.intensity;
   renderer.toneMappingExposure = theme.exposure;
   return theme;
+}
+
+/**
+ * Calcula la hora actual del día basada en el tiempo restante.
+ * El día comienza a las 7am (240s) y termina a las 9pm (0s).
+ */
+export function getThemeByTime(timeLeft, maxTime = 240) {
+  const progress = 1 - timeLeft / maxTime; // 0 al inicio, 1 al final
+  const hour = 7 + progress * 14; // 7am a 9pm
+
+  if (hour < 8) return "earlyMorning"; // 7am-8am
+  if (hour < 10) return "morning"; // 8am-10am
+  if (hour < 12) return "morning"; // 10am-12pm
+  if (hour < 1) return "morning"; // 12pm-1pm
+  if (hour < 3) return "midday"; // 1pm-3pm
+  if (hour < 5) return "afternoon"; // 3pm-5pm
+  if (hour < 6) return "latAfternoon"; // 5pm-6pm
+  if (hour < 7) return "dusk"; // 6pm-7pm
+  if (hour < 8) return "duskDark"; // 7pm-8pm
+  return "twilight"; // 8pm-9pm
 }
