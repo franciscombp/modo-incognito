@@ -790,6 +790,8 @@ export class Boss {
     this.playerVisible = true;
     this.lastSeenPlayerPos = { x: player.position.x, z: player.position.z };
     // "Fingir que trabajas" is exactly the defence against being seen slacking.
-    if (player.isDoingActivity && !player.isPretending) this.redAlert = true;
+    // Boss only cares if the player has met them (otherwise they're dormant)
+    const canAlert = this.role === "minion" ? this._playerMetMinion !== false : this._playerMetBoss !== false;
+    if (player.isDoingActivity && !player.isPretending && canAlert) this.redAlert = true;
   }
 }
