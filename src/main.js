@@ -26,6 +26,12 @@ import { createPopups } from "./ui/popups.js";
 import { createAudioControl } from "./ui/audioControl.js";
 import { isMutedState, setMuted, getVolume, unmute } from "./game/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
+import { initTheme } from "./game/theme.js";
+
+// Cuanto antes: pone `data-theme` en <html> antes del primer paint, para
+// que el arranque no empiece con el tema por defecto y salte al guardado
+// medio segundo después.
+initTheme();
 
 const BASE = import.meta.env.BASE_URL ?? "/";
 // Ver vite.config.js: sella los archivos de `public/`, que no llevan hash.
