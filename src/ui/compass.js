@@ -16,40 +16,40 @@ const EDGE = 46; // px kept clear of the screen border
 
 export function createCompass(root, camera) {
   const layer = document.createElement("div");
-  layer.className = "compass-layer";
+  layer.className = "inc-compass-layer";
   layer.innerHTML = `
-    <div class="compass-card">
-      <span class="compass-here"></span>
-      <span class="compass-icon"></span>
-      <span class="compass-body">
-        <span class="compass-label"></span>
-        <span class="compass-meta"></span>
+    <div class="inc-compass-card">
+      <span class="inc-compass-here"></span>
+      <span class="inc-compass-icon"></span>
+      <span class="inc-compass-body">
+        <span class="inc-compass-label"></span>
+        <span class="inc-compass-meta"></span>
       </span>
-      <span class="compass-risk"><i></i></span>
+      <span class="inc-compass-risk"><i></i></span>
     </div>
-    <div class="compass-marker"><span class="compass-arrow">▲</span><span class="compass-dist"></span></div>
+    <div class="inc-compass-marker"><span class="inc-compass-arrow">▲</span><span class="inc-compass-dist"></span></div>
   `;
   root.appendChild(layer);
 
-  const card = layer.querySelector(".compass-card");
-  const hereEl = layer.querySelector(".compass-here");
-  const iconEl = layer.querySelector(".compass-icon");
-  const labelEl = layer.querySelector(".compass-label");
-  const metaEl = layer.querySelector(".compass-meta");
-  const riskFill = layer.querySelector(".compass-risk i");
-  const marker = layer.querySelector(".compass-marker");
-  const arrow = layer.querySelector(".compass-arrow");
-  const distEl = layer.querySelector(".compass-dist");
+  const card = layer.querySelector(".inc-compass-card");
+  const hereEl = layer.querySelector(".inc-compass-here");
+  const iconEl = layer.querySelector(".inc-compass-icon");
+  const labelEl = layer.querySelector(".inc-compass-label");
+  const metaEl = layer.querySelector(".inc-compass-meta");
+  const riskFill = layer.querySelector(".inc-compass-risk i");
+  const marker = layer.querySelector(".inc-compass-marker");
+  const arrow = layer.querySelector(".inc-compass-arrow");
+  const distEl = layer.querySelector(".inc-compass-dist");
 
   const v = new THREE.Vector3();
 
   function update(state) {
     const target = state?.focusStation;
     if (!target || state.gameOver) {
-      layer.classList.remove("visible");
+      layer.classList.remove("inc-compass-visible");
       return;
     }
-    layer.classList.add("visible");
+    layer.classList.add("inc-compass-visible");
 
     const px = state.playerPos.x;
     const pz = state.playerPos.z;
@@ -76,8 +76,8 @@ export function createCompass(root, camera) {
     const bossToTarget = Math.hypot(state.bossPos.x - target.x, state.bossPos.z - target.z) / S;
     const risk = THREE.MathUtils.clamp(1 - bossToTarget / 16, 0, 1);
     riskFill.style.width = `${Math.round(risk * 100)}%`;
-    card.classList.toggle("hot", risk > 0.62 || state.redAlert);
-    card.classList.toggle("warm", risk > 0.32 && risk <= 0.62);
+    card.classList.toggle("inc-compass-card-hot", risk > 0.62 || state.redAlert);
+    card.classList.toggle("inc-compass-card-warm", risk > 0.32 && risk <= 0.62);
 
     const w = layer.clientWidth;
     const h = layer.clientHeight;
@@ -108,7 +108,7 @@ export function createCompass(root, camera) {
       angle = Math.atan2(nx, ny) * (180 / Math.PI);
     }
 
-    marker.classList.toggle("edge", !onScreen);
+    marker.classList.toggle("inc-compass-marker-edge", !onScreen);
     marker.style.transform = `translate(-50%, -50%) translate(${sx}px, ${sy}px)`;
     arrow.style.transform = `rotate(${angle}deg)`;
     distEl.textContent = onScreen ? "" : `${Math.round(distance)} m`;

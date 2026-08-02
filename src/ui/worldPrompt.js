@@ -11,31 +11,31 @@ import { icon as svgIcon, hasIcon } from "./icons.js";
 
 export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
   const node = document.createElement("div");
-  node.className = "wprompt";
+  node.className = "inc-world-prompt";
   node.innerHTML = `
-    <div class="wprompt-card">
-      <span class="wprompt-key"></span>
-      <span class="wprompt-body">
-        <span class="wprompt-label"></span>
-        <span class="wprompt-hint"></span>
+    <div class="inc-world-prompt-card">
+      <span class="inc-world-prompt-key"></span>
+      <span class="inc-world-prompt-body">
+        <span class="inc-world-prompt-label"></span>
+        <span class="inc-world-prompt-hint"></span>
       </span>
-      <span class="wprompt-fill"></span>
+      <span class="inc-world-prompt-fill"></span>
     </div>
-    <span class="wprompt-stem"></span>
+    <span class="inc-world-prompt-stem"></span>
   `;
   root.appendChild(node);
 
-  const card = node.querySelector(".wprompt-card");
-  const keyEl = node.querySelector(".wprompt-key");
-  const labelEl = node.querySelector(".wprompt-label");
-  const hintEl = node.querySelector(".wprompt-hint");
-  const fillEl = node.querySelector(".wprompt-fill");
+  const card = node.querySelector(".inc-world-prompt-card");
+  const keyEl = node.querySelector(".inc-world-prompt-key");
+  const labelEl = node.querySelector(".inc-world-prompt-label");
+  const hintEl = node.querySelector(".inc-world-prompt-hint");
+  const fillEl = node.querySelector(".inc-world-prompt-fill");
 
   const v = new THREE.Vector3();
   const keyName = isTouch ? "USAR" : "E";
 
   function hide() {
-    node.classList.remove("visible");
+    node.classList.remove("inc-world-prompt-visible");
   }
 
   function update(state) {
@@ -96,7 +96,7 @@ export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
     hintEl.textContent = target.hint;
     fillEl.style.width = `${Math.round(THREE.MathUtils.clamp(target.progress, 0, 1) * 100)}%`;
     card.dataset.kind = target.kind;
-    node.classList.add("visible");
+    node.classList.add("inc-world-prompt-visible");
   }
 
   return { update, hide };
