@@ -20,7 +20,15 @@
     "bossTether": [
       5,
       9
-    ]
+    ],
+    "gate": {
+      "guard": "jefe",
+      "task": {
+        "id": "meet-gabo",
+        "label": "Buscar a Gabo",
+        "icon": "person"
+      }
+    }
   },
   "minions": [
     {

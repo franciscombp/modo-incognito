@@ -17,7 +17,11 @@ p.on("console", (m) => { if (m.type() === "error" && !m.text().includes("favicon
 await p.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 25000 });
 await p.evaluate(() => { window.__game.engine.startDay(0, { skipMinigame: true }); });
-await p.waitForTimeout(1500);
+// startDay espera a que los modelos 3D base terminen de cargar antes de
+// montar el piso (ver preloadBaseModels en main.js), así que un tiempo fijo
+// corto se quedaba corto en frío; se espera a que engine.game exista de verdad.
+await p.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 20000 });
+await p.waitForTimeout(300);
 
 const out = await p.evaluate(() => {
   const g = window.__game.engine.game;

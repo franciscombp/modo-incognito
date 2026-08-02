@@ -180,7 +180,26 @@ export class Game {
     this.inSafeSpot = false;
     this.currentSafeSpot = null; // el lugar seguro utilizable en el que estás
     this._huntTimer = 0;
-    this.metGabo = false; // ha conocido a Gabo (el jefe) — desbloquea actividades
+    // La "puerta" del día: mientras no esté superada, ni las tareas ni la
+    // vigilancia del jefe/secuaces están activas — solo existe la tarea de
+    // conocerlo. Es un bloque del `rules` del día (`gate.guard` + `gate.task`),
+    // así que un día sin `gate` arranca desbloqueado del todo (el
+    // comportamiento de siempre). Ver dia-1.json para el único caso real hoy.
+    this.gate = rules.gate ?? null;
+    this.metGabo = !this.gate; // ha conocido al guardián de la puerta (el jefe)
+    this._gateObjectives = this.gate
+      ? [
+          {
+            id: this.gate.task?.id ?? "gate",
+            label: this.gate.task?.label ?? "Buscar al jefe",
+            icon: this.gate.task?.icon ?? "person",
+            type: "meet",
+            done: false,
+            progress: 0,
+            time: 1,
+          },
+        ]
+      : null;
 
     const wanted = this.rules.objectives;
     this.objectives = activityStations
@@ -279,23 +298,34 @@ export class Game {
     // que estás. Fuera de ahí, estás fuera de tu puesto.
     this.inWorkspace = !!this.currentSafeSpot;
 
-    this.nearStation =
-      this.objectives.find(
-        (s) => !s.done && Math.hypot(s.x - pos.x, s.z - pos.z) < INTERACT_RADIUS
-      ) ?? null;
+    // Con la puerta sin superar no hay estación que valga: las tareas reales
+    // ni existen todavía para la jugadora (ver `_snapshot`, que en su lugar
+    // enseña la tarea de conocer al jefe).
+    this.nearStation = this.metGabo
+      ? this.objectives.find(
+          (s) => !s.done && Math.hypot(s.x - pos.x, s.z - pos.z) < INTERACT_RADIUS
+        ) ?? null
+      : null;
 
     // The compass always points at the closest thing still to do, so you are
     // never left wondering where the next task is. Un `for` sencillo en vez
     // de filter+reduce+Object.assign: eso corría cada frame y de paso
     // mutaba los objetivos con un campo `_d` que nadie leía después.
     this.focusStation = null;
-    let focusDist = Infinity;
-    for (const s of this.objectives) {
-      if (s.done) continue;
-      const d = Math.hypot(s.x - pos.x, s.z - pos.z);
-      if (d < focusDist) {
-        focusDist = d;
-        this.focusStation = s;
+    if (!this.metGabo && this.gate) {
+      // Antes de conocerlo, la flecha apunta al propio jefe: es la única
+      // "tarea" que existe.
+      const t = this._gateObjectives[0];
+      this.focusStation = { x: this.boss.position.x, z: this.boss.position.z, label: t.label, icon: t.icon };
+    } else {
+      let focusDist = Infinity;
+      for (const s of this.objectives) {
+        if (s.done) continue;
+        const d = Math.hypot(s.x - pos.x, s.z - pos.z);
+        if (d < focusDist) {
+          focusDist = d;
+          this.focusStation = s;
+        }
       }
     }
 
@@ -328,6 +358,19 @@ export class Game {
       if (left > 0) this.talkCooldowns.set(id, Math.max(0, left - dt));
     });
     // A los amigos les hablas tú; los secuaces te abordan solos (más abajo).
+    // Mientras la puerta del día siga sin superar, el guardián (el jefe) es
+    // la ÚNICA excepción: se le puede abordar como a un amigo, porque
+    // "encontrarlo" es literalmente la tarea. Una vez conocido, vuelve a su
+    // trato normal (solo habla si te amonesta).
+    const guardApproachable =
+      this.gate &&
+      !this.metGabo &&
+      this.boss.cast === this.gate.guard &&
+      !this.boss.isHunting &&
+      (this.talkCooldowns.get(this.boss.id ?? this.boss.cast) ?? 0) <= 0 &&
+      Math.hypot(this.boss.position.x - pos.x, this.boss.position.z - pos.z) < INTERACT_RADIUS * 1.3
+        ? this.boss
+        : null;
     this.nearNpc =
       this.npcs.find(
         (n) =>
@@ -335,7 +378,7 @@ export class Game {
           n.cast &&
           (this.talkCooldowns.get(n.id) ?? 0) <= 0 &&
           Math.hypot(n.position.x - pos.x, n.position.z - pos.z) < INTERACT_RADIUS * 1.3
-      ) ?? null;
+      ) ?? guardApproachable;
 
     if (holdingSpace && !this._prevInteractKey && this.nearNpc && !this.nearStation) {
       this.canvas?.focus?.();
@@ -954,7 +997,9 @@ export class Game {
       levelDuration: this.rules.duration,
       currentHour: this.getCurrentHour(),
       currentTime: this.formatTime(),
-      objectives: this.objectives,
+      // Mientras la puerta del día no esté superada, el HUD no enseña tareas
+      // que todavía no se pueden hacer: solo la de encontrar al guardián.
+      objectives: this.metGabo ? this.objectives : this._gateObjectives,
       nearStation: this.nearStation,
       nearDistraction: this.nearDistraction,
       nearNpc: this.nearNpc,

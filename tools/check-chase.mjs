@@ -34,6 +34,10 @@ const log = await page.evaluate(async () => {
   const game = engine.game;
   game.setPaused(false);
   document.querySelector(".vn-layer")?.classList.add("hidden");
+  // This test is about the boss AI once the day is in progress, not about
+  // the day-1 gate (find Gabo before he starts actually watching you) — so
+  // clear it directly instead of walking up to him first.
+  game.metGabo = true;
   // This test is about the boss, not the sidekicks: an on-duty minion could
   // walk up and start an unsolicited chat, which pauses the level and would
   // otherwise stall every assertion below on a dialogue nobody answers.
@@ -63,7 +67,7 @@ const log = await page.evaluate(async () => {
   station.z = z;
   station.done = false;
   station.progress = 0;
-  player.keys.add("e");
+  player.keys.add(" "); // la tecla de acción es espacio, no "e"
 
   await sleep(350);
   out.seesPlayer = boss.playerVisible;
@@ -85,7 +89,7 @@ const log = await page.evaluate(async () => {
   await sleep(200);
   out.redAlertWhilePretending = boss.redAlert;
   player.keys.delete("f");
-  player.keys.delete("e");
+  player.keys.delete(" ");
 
   // Perderla de vista ya NO termina la persecución: desde que la mete en el
   // halo va comprometido (boss.lockedOn) y solo un lugar seguro lo corta —
