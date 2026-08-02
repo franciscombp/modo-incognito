@@ -72,7 +72,7 @@ código**.
 | Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/game/soundtrack.js) |
 | Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/manifest.json) |
 | Colocar zonas, tareas, lugares seguros… con el ratón | [`motor/builder/`](https://github.com/franciscombp/modo-incognito/tree/main/motor/builder) — ver «El builder» más abajo |
-| Estilos visuales (HUD, menús, diálogo, colores) | [`src/style.css`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/style.css) |
+| Estilos visuales (HUD, menús, diálogo, colores) | [`src/style/design-system.css`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/style/design-system.css) |
 | **Cómo es cada personaje en 3D** (piel, pelo, ropa, complexión) | [`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/motor/public/data/characters3d.json) — se edita con [`personajes.html`](https://github.com/franciscombp/modo-incognito/tree/main/motor/builder) |
 | Cómo se monta un muñeco 3D y sus poses (código) | [`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/entities/character3d.js) |
 | El esqueleto: dónde está cada articulación y cómo se reparten los pesos (código) | [`src/entities/skinning.js`](https://github.com/franciscombp/modo-incognito/blob/main/motor/src/entities/skinning.js) |
