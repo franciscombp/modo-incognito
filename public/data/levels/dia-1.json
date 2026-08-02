@@ -71,80 +71,35 @@
     },
     {
       "speaker": "Tú",
-      "text": "Yo soy una de esos diseñadores. Hoy es mi primer día. Por lo visto, alguien decidió que eso merecía vigilancia personal."
+      "text": "Yo soy una de esos diseñadores. Hoy es mi primer día."
     },
     {
-      "speaker": "Gabo",
-      "mood": "tense",
-      "text": "¡Bienvenida a la Célula Gris! Yo soy Gabo. Trabajo aquí. Bueno, «trabajo»."
+      "speaker": "Steven el Daddy",
+      "narrator": true,
+      "text": "Hey. Yo soy Steven el Daddy. Tu primo, ¿te acuerdas? El que te ayudó a entrar acá. Estoy en el call center, pero te voy a seguir de cerca."
     },
     {
       "speaker": "Tú",
-      "text": "¿Y tú eres... mi supervisor?"
-    },
-    {
-      "speaker": "Gabo",
-      "text": "Algo así. Yo acompaño. Desde aquí, desde allá, desde donde sea que estés. Es el trabajo."
+      "text": "Steven. Claro, mi primo. El que hace milagros."
     },
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
-      "text": "Tranquila, ese es Gabo. Parece que está en todos lados, pero es solo que se aburre. Yo soy Steven el Daddy, tu contacto de emergencia. Cualquier cosa, me avisas."
+      "text": "Bueno, primero que nada: busca a Gabo. Es el jefe de diseño aquí. Va a ser quien te presente formalmente y te cuente cómo funcionan las cosas. Cuando lo encuentres, cuéntale que es tu primer día."
     },
     {
       "speaker": "Tú",
-      "text": "¿Contacto de emergencia por qué? ¿Qué podría salir mal?"
-    },
-    {
-      "speaker": "Crispo",
-      "text": "..."
-    },
-    {
-      "speaker": "Gabo",
-      "text": "Esa es Crispo. No habla mucho, pero ve todo. Bueno, no ve, pero escucha. O algo así. El punto es: estate pendiente."
+      "text": "¿Y después?"
     },
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
-      "text": "Hoy tu misión: un café, una película y algo de comer. Tres cosas simples. Ninguna es tu trabajo real, pero todas te dan reloj."
+      "text": "Hoy tu misión es simple: un café, una película y algo de comer. Ninguna de eso es tu trabajo real, pero todas te dan reloj. Una vez que Gabo te presente, puedes empezar con las actividades."
     },
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
-      "text": "Usa ESPACIO para hacer las actividades. Cuando Gabo esté cerca (cosa que ocurrirá), presiona ESPACIO en una zona segura para fingir que trabajas. No es difícil."
-    },
-    {
-      "prompt": "¿Cuál es tu primer objetivo?",
-      "options": [
-        {
-          "label": "Café primero. Claridad mental.",
-          "reply": "Necesito un café antes de cualquier otra cosa.",
-          "flag": "coherente"
-        },
-        {
-          "label": "Comer. Las películas van mejor con snacks.",
-          "reply": "Primero como algo. Luego pienso.",
-          "flag": "pragmatica"
-        },
-        {
-          "label": "Película. Relax total.",
-          "reply": "Una película. Es lo que hace cualquiera normal el primer día.",
-          "flag": "ironica"
-        }
-      ]
-    },
-    {
-      "speaker": "Gabo",
-      "text": "Buena elección. Yo estaré por aquí. Observando. Apoyando. Lo normal."
-    },
-    {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "Si te bloqueas o necesitas recordar qué hacer, dame un mensaje. Eso es para lo que estoy aquí. Adelante."
-    },
-    {
-      "speaker": "Tú",
-      "text": "Día uno. Tengo un amigo que vigila desde el call center y un jefe que vigila desde todas partes. Vamo a hacerlo bien."
+      "text": "Usa ESPACIO para hacer las actividades o para fingir que trabajas en una zona segura. Si te bloqueas, me escribes. Adelante."
     }
   ],
   "outroWin": [

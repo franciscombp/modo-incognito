@@ -446,7 +446,6 @@ export function createEngine({
 
     camera.setFraming(1);
 
-    await introduceMinions(onDuty);
     await dialogue.play(withSprites(day.intro ?? []), ctx);
     if (!menuPaused) game.setPaused(false);
   }
@@ -490,24 +489,6 @@ export function createEngine({
     // durante la presentación de los secuaces.
     game.setPaused(true);
     return onDuty;
-  }
-
-  /**
-   * Un breve zoom de cámara a cada secuaz de turno, con su nombre y su forma
-   * de vigilar, antes de que empiece el día — así se presentan como
-   * amenazas propias en vez de aparecer de la nada en mitad de la partida.
-   */
-  async function introduceMinions(onDuty) {
-    if (!onDuty.length) return;
-    camera.setFraming(0.55);
-    for (const m of onDuty) {
-      camera.setFocus(m.position);
-      hud.showIntroCard({ icon: "eye", name: m.name, blurb: dialogues.cast[m.cast]?.blurb });
-      await wait(1250);
-    }
-    hud.hideIntroCard();
-    camera.setFocus(null);
-    camera.setFraming(1);
   }
 
   function wait(ms) {
@@ -557,10 +538,21 @@ export function createEngine({
 
   /** A colleague you walked up to (or a sidekick who caught you) talking. */
   async function talkTo(npc, opts) {
+    // Minions won't talk until the player has met Gabo and he's introduced them
+    if (game && !game.metGabo && ["crispo", "chispita", "washo"].includes(npc.cast)) {
+      return;
+    }
+
     const encounter = dialogues.encounters[npc.cast];
     if (!encounter?.scenes?.length) return;
     const seen = save.getFlag(`talk:${npc.cast}`) ?? 0;
     save.setFlag(`talk:${npc.cast}`, seen + 1);
+
+    // First encounter with the boss unlocks activities for the day
+    if (npc.cast === "jefe" && seen === 0 && game) {
+      game.metGabo = true;
+    }
+
     const scene = encounter.scenes[seen % encounter.scenes.length];
     const persona = dialogues.cast[npc.cast];
     await withPause(() =>

@@ -98,39 +98,55 @@
   },
   "encounters": {
     "jefe": {
-      "$comment": "Se dispara cuando el jefe te atrapa de verdad (amonestación), no al hablarle. Ver _warn()/handleWarn().",
+      "$comment": "Primer encuentro y conversaciones normales. Las amonestaciones usan handleWarn() con talk:jefe_warn.",
       "scenes": [
         [
           {
             "speaker": "Gabo",
-            "mood": "angry",
-            "text": "¡Te vi! No sé qué estabas haciendo, pero lo que sea que fuera, ya no lo hagas."
-          },
-          {
-            "speaker": "Gabo",
-            "text": "Quedas advertida. Voy a mirar para otro lado un momento, a ver si aprendes."
+            "mood": "tense",
+            "text": "¡Bienvenida a la Célula Gris! Yo soy Gabo, trabajo aquí en diseño. Bueno, «trabajo»."
           },
           {
             "speaker": "Tú",
-            "text": "Fue sin querer queriendo."
+            "text": "Steven me dijo que te buscara. Que eres quien me presenta formalmente."
+          },
+          {
+            "speaker": "Gabo",
+            "text": "Ese es Steven. Mi compa de siempre. Bueno, perfecto. Aquí anda Crispo vigilando todo — no habla mucho, pero ve TODO. O al menos eso cree."
+          },
+          {
+            "speaker": "Gabo",
+            "text": "También tengo a Chispita corriendo por todos lados, trayéndome chismes. Y Washo, que está en una esquina pero ve el piso completo sin parpadear. Son mis ojos."
+          },
+          {
+            "speaker": "Gabo",
+            "text": "El punto es: trabajo aquí. Ustedes trabajan aquí. Si estás donde deberías estar, haciendo lo que deberías estar haciendo, yo estoy feliz. Si no... bueno, nos vemos."
+          },
+          {
+            "speaker": "Tú",
+            "text": "Queda claro."
+          },
+          {
+            "speaker": "Gabo",
+            "text": "Excelente. Ahora sí, que comience el día. Ve y haz lo que tengas que hacer."
           }
         ],
         [
           {
             "speaker": "Gabo",
-            "mood": "angry",
-            "text": "Segunda vez. Empiezo a pensar que esto no es casualidad."
-          },
-          {
-            "speaker": "Tú",
-            "text": "Definitivamente no lo es."
+            "text": "Te ves concentrada. Eso está bien. Sigue así."
           }
         ],
         [
           {
             "speaker": "Gabo",
-            "mood": "angry",
-            "text": "A este paso te voy a tener que ascender a cliente. Y créeme, ese ascenso no lo quieres."
+            "text": "¿Sabías que Crispo lleva todo en un cuaderno? Las horas, los minutos, quién estuvo dónde. Es un dato muy importante."
+          }
+        ],
+        [
+          {
+            "speaker": "Gabo",
+            "text": "Chispita me dijo que te vio buscando algo. Espero que no sea mi camaradería, porque eso sí me cuesta."
           }
         ]
       ],
