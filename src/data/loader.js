@@ -202,7 +202,7 @@ export function preloadBaseModels(looks) {
  * traía el plano), así que aquí se aplanan los alias y se devuelve un `get()`
  * que responde a todos ellos y nunca deja a nadie sin cara.
  */
-function prepareLooks(raw, models = { bodies: {}, faces: {} }) {
+export function prepareLooks(raw, models = { bodies: {}, faces: {} }) {
   const characters = raw.characters ?? {};
   const aliases = raw.aliases ?? {};
   const extras = raw.extras ?? [];
