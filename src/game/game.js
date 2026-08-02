@@ -180,6 +180,7 @@ export class Game {
     this.inSafeSpot = false;
     this.currentSafeSpot = null; // el lugar seguro utilizable en el que estás
     this._huntTimer = 0;
+    this.metGabo = false; // ha conocido a Gabo (el jefe) — desbloquea actividades
 
     const wanted = this.rules.objectives;
     this.objectives = activityStations
@@ -298,7 +299,7 @@ export class Game {
       }
     }
 
-    if (this.nearStation && holdingSpace && !this.player.isPretending) {
+    if (this.nearStation && holdingSpace && !this.player.isPretending && this.metGabo) {
       this.canvas?.focus?.();
       this.player.isDoingActivity = true;
       // La pose sale del JSON de la actividad (`pose`, ver scenes/*.json); si
@@ -366,8 +367,15 @@ export class Game {
     this._liveNpcsBuf.length = 0;
     for (const n of this.npcs) if (n.active !== false) this._liveNpcsBuf.push(n);
     const liveNpcs = this._liveNpcsBuf;
+    // Boss is inactive (won't pursue) until player meets them
+    this.boss._playerMetBoss = this.metGabo;
     this.boss.update(dt, this.player, liveNpcs);
-    this.minions.forEach((m) => m.update(dt, this.player, liveNpcs));
+    this.minions.forEach((m) => {
+      if (m.id === "crispo") {
+        m._playerMetMinion = this.metGabo;
+      }
+      m.update(dt, this.player, liveNpcs);
+    });
     this._updateMinionCatch();
     this._updateMinionApproach();
     this._updateEggs(dt);
