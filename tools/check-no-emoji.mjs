@@ -87,7 +87,14 @@ if (dataHits.length) {
 
 // --- 3. Y que los iconos que pide el contenido existan de verdad ---
 const iconsSrc = readFileSync(join(ROOT, "src", "ui", "icons.js"), "utf8");
-const known = new Set([...iconsSrc.matchAll(/^ {2}(\w+): '/gm)].map((m) => m[1]));
+// Nombres conocidos = las claves del objeto `RAW` (los SVG de Phosphor
+// importados arriba): tanto en propiedad abreviada (`coffee,`) como
+// explícita (`window: windowIcon,` / `"volume-x": volumeX,`).
+const rawBlock = iconsSrc.match(/const RAW = \{([\s\S]*?)\n\};/)?.[1] ?? "";
+const known = new Set();
+for (const m of rawBlock.matchAll(/^\s*(?:"([\w-]+)"|(\w+))(?:\s*:\s*\w+)?,/gm)) {
+  known.add(m[1] ?? m[2]);
+}
 for (const m of iconsSrc.matchAll(/(\w+): "(\w+)"/g)) known.add(m[1]); // alias
 const missing = new Set();
 function scanNames(node) {

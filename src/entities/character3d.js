@@ -375,6 +375,11 @@ export class Character3D {
     this._stillFor = 0;
     this._idlePose = null;
     this._idleLeft = 0;
+    // Respiración: un vaivén continuo y suave para cuando no hay pose ni
+    // caminata, para que quieto no sea sinónimo de estático. Corre siempre
+    // (nunca se resetea), con un desfase propio por muñeco para que un grupo
+    // parado no respire al unísono como clones.
+    this._breatheT = Math.random() * Math.PI * 2;
 
     this.setRig(rig);
     this.setRecipe(recipe);
@@ -762,6 +767,7 @@ export class Character3D {
 
   update(dt) {
     if (!this._built) return;
+    this._breatheT += dt;
     this._updateIdle(dt);
     this._updateTurn(dt);
 
@@ -859,6 +865,17 @@ export class Character3D {
     const knee = Math.max(0, -Math.sin(this._walkPhase)) * 0.5 * walking;
     const bob = Math.abs(Math.sin(this._walkPhase)) * 0.022 * H * walking;
 
+    // Respiración: solo cuando no hay pose activa ni caminata, y con una
+    // rampa suave (no un interruptor) para que arrancar a andar no la corte
+    // en seco. Amplitud pequeña a propósito — "delicada", no una animación
+    // que compita con las poses de verdad.
+    const wantBreathe = !this._moving && blend < 0.05 ? 1 : 0;
+    this._breatheAmt = (this._breatheAmt ?? 0) + (wantBreathe - (this._breatheAmt ?? 0)) * 0.06;
+    const breathe = this._breatheAmt;
+    const chestWave = Math.sin(this._breatheT * 0.55) * 0.028 * breathe;
+    const headWave = Math.sin(this._breatheT * 0.4 + 1.1) * 0.02 * breathe;
+    const armWave = Math.sin(this._breatheT * 0.55 + 0.4) * 0.035 * breathe;
+
     const set = (key, extraX = 0) => {
       const bone = byName.get(BONE_OF[key]);
       if (!bone) return;
@@ -872,16 +889,16 @@ export class Character3D {
     };
 
     set("torso");
-    set("chest");
-    set("head");
+    set("chest", chestWave);
+    set("head", headWave);
     set("legL", swing);
     set("legR", -swing);
     // La rodilla que va atrás se dobla: sin esto la pierna barre el suelo y la
     // caminata se lee como la de un compás.
     set("kneeL", -knee);
     set("kneeR", -Math.max(0, Math.sin(this._walkPhase)) * 0.5 * walking);
-    set("armL", -swing * 0.55);
-    set("armR", swing * 0.55);
+    set("armL", -swing * 0.55 + armWave);
+    set("armR", swing * 0.55 - armWave);
     set("elbowL");
     set("elbowR");
     set("footL");
