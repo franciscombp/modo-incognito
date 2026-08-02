@@ -32,7 +32,7 @@ export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
   const fillEl = node.querySelector(".inc-world-prompt-fill");
 
   const v = new THREE.Vector3();
-  const keyName = isTouch ? "USAR" : "E";
+  const keyName = isTouch ? "USAR" : "ESPACIO";
 
   function hide() {
     node.classList.remove("inc-world-prompt-visible");
@@ -43,7 +43,7 @@ export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
 
     // While the big action scene is on screen (doing a task, or its
     // just-completed flash) it already shows the label and progress, so the
-    // floating "MANTÉN E" card would just duplicate it on top of the object.
+    // floating "MANTÉN ESPACIO" card would just duplicate it on top of the object.
     if (state.currentAction) return hide();
 
     // Priority: what you are actually holding beats what is merely nearby.
@@ -54,7 +54,7 @@ export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
         z: state.nearStation.z,
         icon: state.nearStation.icon ?? "•",
         label: state.nearStation.label,
-        hint: isTouch ? "MANTÉN USAR" : "MANTÉN E",
+        hint: isTouch ? "MANTÉN USAR" : "MANTÉN ESPACIO",
         progress: state.nearStation.progress / state.nearStation.time,
         kind: "task",
       };
