@@ -39,6 +39,7 @@
   },
   "license": "ISC",
   "dependencies": {
+    "@phosphor-icons/core": "^2.1.1",
     "phosphor-icons": "^1.4.2",
     "three": "^0.185.1",
     "tone": "^15.1.22"
