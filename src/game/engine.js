@@ -542,7 +542,8 @@ export function createEngine({
 
   /** A colleague you walked up to (or a sidekick who caught you) talking. */
   async function talkTo(npc, opts) {
-    // Minions won't talk until the player has met Gabo and he's introduced them
+    // Minions won't talk until the day's gate is cleared and Gabo has
+    // introduced them.
     if (game && !game.metGabo && ["crispo", "chispita", "washo"].includes(npc.cast)) {
       return;
     }
@@ -552,9 +553,13 @@ export function createEngine({
     const seen = save.getFlag(`talk:${npc.cast}`) ?? 0;
     save.setFlag(`talk:${npc.cast}`, seen + 1);
 
-    // First encounter with the boss unlocks activities for the day
-    if (npc.cast === "jefe" && seen === 0 && game) {
+    // Conocer al guardián de la puerta del día (ver rules.gate en el JSON del
+    // día) desbloquea las tareas y activa la vigilancia del jefe y sus
+    // secuaces. Un día sin `gate` ya empieza desbloqueado (game.metGabo lo
+    // arranca en true), así que esto no hace nada en esos días.
+    if (game?.gate && !game.metGabo && npc.cast === game.gate.guard) {
       game.metGabo = true;
+      game.toast?.("Actividades desbloqueadas");
     }
 
     const scene = encounter.scenes[seen % encounter.scenes.length];

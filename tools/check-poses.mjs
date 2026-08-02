@@ -36,6 +36,9 @@ const result = await page.evaluate(async () => {
   const player = window.__game.player;
   game.setPaused(false);
   document.querySelector(".vn-layer")?.classList.add("hidden");
+  // Este test es sobre las poses de actividad, no sobre la puerta del día 1
+  // (encontrar a Gabo primero) — se salta directo a tareas desbloqueadas.
+  game.metGabo = true;
 
   const out = { hasPoses: player.sprite.hasPoses, activities: [] };
 
@@ -43,7 +46,7 @@ const result = await page.evaluate(async () => {
     player.keys.clear();
     player.position.x = station.x;
     player.position.z = station.z;
-    player.keys.add("e");
+    player.keys.add(" "); // la tecla de acción es espacio, no "e"
     await sleep(500);
 
     // La huella del rig ES la postura del momento. Se muestrea durante un
