@@ -691,7 +691,7 @@ export function createEngine({
 
   let lastTheme = null;
   function updateDynamicTheme(live) {
-    const currentTheme = getThemeByTime(live.timeLeft, live.rules.duration);
+    const currentTheme = getThemeByTime(live.timeLeft, live.levelDuration);
     if (currentTheme !== lastTheme) {
       lastTheme = currentTheme;
       applyTheme(currentTheme, { renderer, scene, ...lights });
