@@ -100,7 +100,9 @@ function build() {
   }).connect(stingerGain);
 
   subscribeSettings((s) => {
-    masterGain.gain.rampTo(s.music ? 1 : 0, 0.2);
+    // Si music está desactivado (mute), volumen a 0. Si está activado, usar musicVolume (0-1)
+    const targetVolume = s.music ? (s.musicVolume ?? 1) : 0;
+    masterGain.gain.rampTo(targetVolume, 0.2);
   });
 }
 
