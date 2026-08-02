@@ -411,12 +411,8 @@ export function createEngine({
     // que el lobby esté completamente oculto, así evitamos que el piso aparezca
     // y se superponga durante los diálogos del ascensor.
 
-    // Mostrar ascensor y cargar el personaje seleccionado
-    // PRÓXIMA OPTIMIZACIÓN: refactorizar boot() para cargar solo datos core
-    // (JSON, sin modelos GLB), así la pantalla de menú aparece al instante.
-    // Luego, aquí cargar solo el personaje seleccionado (50-60% del tiempo).
-    // Finalmente, cargar los demás personajes en background mientras se juega.
-    if (!skipPrologue) {
+    prologueChoice = null;
+    if (day.prologue && !skipPrologue) {
       lobby.show();
       // Precargar el personaje seleccionado durante el ascensor
       const charId = save.characterId ?? "fran";
@@ -426,10 +422,7 @@ export function createEngine({
           lobby.updateProgress(Math.min(progress.progress, 100));
         }
       });
-    }
 
-    prologueChoice = null;
-    if (day.prologue && !skipPrologue) {
       const nodes = [...(day.prologue.intro ?? [])];
       if (save.hadWarningYesterday) {
         // Una amonestación se nota al día siguiente: nunca te toca el
@@ -458,8 +451,7 @@ export function createEngine({
     // escaleras o colarse daban todos lo mismo.
     applyPrologue(day);
 
-    // Llevar el progreso del ascensor a 100 antes de abrir
-    if (!skipPrologue) {
+    if (day.prologue && !skipPrologue) {
       lobby.updateProgress(100);
       await lobby.hide();
     }
