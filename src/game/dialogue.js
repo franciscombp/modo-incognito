@@ -229,6 +229,13 @@ export function createDialogue(root, { looks = null } = {}) {
       }
       if (ADVANCE_KEYS.has(key)) {
         e.preventDefault();
+        // Espacio es también la tecla de las actividades: si te interrumpen
+        // (el jefe te aborda) a media pulsación, el navegador sigue
+        // repitiendo el keydown mientras el dedo no se levanta, y eso
+        // pasaba las opciones sin que nadie las leyera. `repeat` marca
+        // justo esas repeticiones automáticas — se ignoran hasta que la
+        // tecla se suelta y se vuelve a pulsar de verdad.
+        if (e.repeat) return;
         optionButtons[optionIndex]?.click();
         return;
       }
@@ -241,6 +248,10 @@ export function createDialogue(root, { looks = null } = {}) {
     }
     if (ADVANCE_KEYS.has(key)) {
       e.preventDefault();
+      // Ver la nota de arriba: una tecla ya sostenida al abrirse el diálogo
+      // (por ejemplo, espacio de una actividad interrumpida) no debe avanzar
+      // nada hasta que se suelte y se vuelva a pulsar.
+      if (e.repeat) return;
       advance();
     }
   };

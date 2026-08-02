@@ -31,6 +31,10 @@ const out = await page.evaluate(async () => {
   game.setPaused(false);
   document.querySelector(".vn-layer")?.classList.add("hidden");
   game.minions.forEach((m) => m.setActive(false));
+  // Este test es sobre lugares seguros, no sobre la puerta del día 1 — sin
+  // esto la sospecha se queda fija en 0 (ver rules.gate) y el aviso rojo
+  // nunca se dispara pase lo que se le fuerce a mano.
+  game.metGabo = true;
   // El jefe fuera de escena: aquí se mide la mecánica del sitio, no su IA.
   game.boss.setTether(null);
   game.boss._updateVision = () => {

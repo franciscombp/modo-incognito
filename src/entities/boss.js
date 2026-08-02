@@ -157,6 +157,10 @@ export class Boss {
     // frame: antes el cono saltaba de golpe a la nueva dirección y se leía
     // como un parpadeo, sobre todo al girar hacia la jugadora de cerca.
     this.desiredFacing = { x: 0, z: -1 };
+    // Si el paso de este frame movió el cuerpo de verdad (ver _moveToward) —
+    // separado de "hacia dónde quiere ir", que sigue actualizándose aunque
+    // esté quieto girando hacia allá.
+    this._actuallyMoving = false;
     // Persecución comprometida: en cuanto te mete en el halo no te suelta
     // hasta alcanzarte. Solo un lugar seguro (game.js) lo cancela.
     this.lockedOn = false;
@@ -425,7 +429,7 @@ export class Boss {
     // El cuerpo gira con la misma dirección continua que el cono, así que el
     // jefe ya no puede mirar a un lado y alumbrar al contrario.
     this.sprite.setHeading(this.facingDir.x, this.facingDir.z);
-    this.sprite.setMoving(!!dir);
+    this.sprite.setMoving(this._actuallyMoving);
     this.sprite.setPosition(this.position.x, this.position.z);
     this.sprite.update(dt);
 
@@ -715,6 +719,7 @@ export class Boss {
   }
 
   _moveToward(dt, target) {
+    this._actuallyMoving = false;
     if (!target) return null;
     const dx = target.x - this.position.x;
     const dz = target.z - this.position.z;
@@ -723,7 +728,16 @@ export class Boss {
 
     const nx = dx / dist;
     const nz = dz / dist;
-    const step = this._speed() * dt;
+
+    // No camina de lado ni de espaldas: si el objetivo le queda a la
+    // espalda, primero gira sobre sí mismo (a velocidad limitada, ver
+    // _turnToward) y solo acelera hacia delante según `facingDir` se va
+    // alineando con hacia dónde tiene que ir. `desiredFacing` se sigue
+    // fijando a `nx,nz` más abajo pase lo que pase, así que el giro avanza
+    // aunque el cuerpo se quede quieto este frame.
+    const align = this.facingDir.x * nx + this.facingDir.z * nz;
+    const step = this._speed() * dt * Math.max(0, align);
+    if (step < 1e-5) return { x: nx, z: nz };
 
     const before = { x: this.position.x, z: this.position.z };
     this.position.x += nx * step;
@@ -747,7 +761,7 @@ export class Boss {
 
     const rdx = this.position.x - before.x;
     const rdz = this.position.z - before.z;
-    if (Math.hypot(rdx, rdz) < 1e-4) return null;
+    this._actuallyMoving = Math.hypot(rdx, rdz) >= 1e-4;
     return { x: nx, z: nz };
   }
 

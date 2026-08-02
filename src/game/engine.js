@@ -540,6 +540,28 @@ export function createEngine({
     return onDuty;
   }
 
+  /**
+   * Al arrancar una conversación, jugadora y NPC/jefe se giran de frente:
+   * hablar mirando a un lado o de espaldas se veía raro. El movimiento está
+   * en pausa mientras dura el diálogo (ver withPause), así que esto se
+   * mantiene solo con fijarlo una vez — nada más lo vuelve a tocar hasta que
+   * termine. `facingDir` (jefe/secuaces) se actualiza además del sprite: si
+   * solo se gira el muñeco, el primer frame tras cerrar el diálogo el jefe
+   * vuelve a llamar a sprite.setHeading() con su `facingDir` viejo y se ve un
+   * salto instantáneo antes de que retome el giro suave hacia donde toque.
+   */
+  function faceEachOther(npc) {
+    const dx = npc.position.x - player.position.x;
+    const dz = npc.position.z - player.position.z;
+    const len = Math.hypot(dx, dz);
+    if (len < 0.001) return;
+    const toNpc = { x: dx / len, z: dz / len };
+    const toPlayer = { x: -toNpc.x, z: -toNpc.z };
+    player.sprite.setHeading(toNpc.x, toNpc.z);
+    npc.sprite.setHeading(toPlayer.x, toPlayer.z);
+    if (npc.facingDir) npc.facingDir = toPlayer;
+  }
+
   /** A colleague you walked up to (or a sidekick who caught you) talking. */
   async function talkTo(npc, opts) {
     // Minions won't talk until the day's gate is cleared and Gabo has
@@ -562,6 +584,7 @@ export function createEngine({
       game.toast?.("Actividades desbloqueadas");
     }
 
+    faceEachOther(npc);
     const scene = encounter.scenes[seen % encounter.scenes.length];
     const persona = dialogues.cast[npc.cast];
     await withPause(() =>
@@ -605,6 +628,7 @@ export function createEngine({
       scene = encounter.scenes[seen % encounter.scenes.length];
     }
 
+    faceEachOther(boss);
     await withPause(() =>
       dialogue.play(
         withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
