@@ -27,33 +27,9 @@ import { siteRoot } from "../data/siteRoot.js";
  * MAPEO FLEXIBLE DE HUESOS.
  *
  * Mapeos para diferentes rigs. El motor detecta el rig al cargar y aplica
- * el mapeo correcto automáticamente. Los mapeos heredados se quedan para
- * compatibilidad hacia atrás, pero el defecto es ahora el rig estándar
+ * el mapeo correcto automáticamente, con el rig estándar como defecto
  * (Mixamo/Rigify: Hips, Spine, Chest, etc.).
  */
-
-// Rig heredado de base.gltf (para compatibilidad)
-const BONE_MAP_BASE_LEGACY = {
-  hips_40: "Hips",
-  spine_33: "Spine",
-  chest_32: "Chest",
-  neck_16: "Neck",
-  head_15: "Head",
-  "shoulder L_14": "LeftShoulder",
-  "upper_arm L_13": "LeftArm",
-  "lower_arm L_12": "LeftForeArm",
-  "wrist L_11": "LeftHand",
-  "shoulder R_31": "RightShoulder",
-  "upper_arm R_30": "RightArm",
-  "lower_arm R_29": "RightForeArm",
-  "wrist R_28": "RightHand",
-  "upper_Leg L_36": "LeftUpLeg",
-  "lower_leg L_35": "LeftLeg",
-  "lower_leg L.001_34": "LeftFoot",
-  "upper_Leg R_39": "RightUpLeg",
-  "lower_leg R_38": "RightLeg",
-  "lower_leg R.001_37": "RightFoot",
-};
 
 // Mapeo estándar (Mixamo, Rigify, rigs convencionales)
 // Estos ya tienen los nombres correctos, pero los alias ayudan con variantes
@@ -183,11 +159,6 @@ function detectRigAndGetMapping(root) {
   root.traverse((obj) => {
     if (obj.isBone) boneNames.add(sanitize(obj.name));
   });
-
-  // Si tiene los huesos legacy de base.gltf
-  if (boneNames.has("hips_40")) {
-    return new Map(Object.entries(BONE_MAP_BASE_LEGACY).map(([k, v]) => [sanitize(k), v]));
-  }
 
   // Si ya tiene nombres estándar (Hips, Spine, etc.), solo aplicar alias
   // Crear mapeo de alias para variantes
