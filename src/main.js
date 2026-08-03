@@ -155,10 +155,6 @@ async function boot() {
     player.sprite.setRig(rig);
     crossing3D.setPlayerLook(look, rig);
     hideOwnDouble(id);
-    // El panel grande de acción dibuja la misma pose animada que el sprite.
-    hudRef?.setActionRig(
-      rig?.actions ? { sheet: rig.actions.sheet, poses: rig.actions.poses } : null
-    );
   }
 
   // Cruzar la avenida es una escena 3D aparte, con cámara propia (por detrás

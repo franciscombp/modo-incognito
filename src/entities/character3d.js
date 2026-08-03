@@ -41,9 +41,11 @@ export const POSES = {
   sitWork: 9,
 };
 
+// Lo que queda de un "rig" (public/data/sprites/<id>.json): el ritmo del paso
+// procedural y la animación de espera. Todo lo demás que había aquí —filas y
+// celdas de un pliego de sprites— murió con el sistema de pliegos.
 export const DEFAULT_RIG = {
-  walk: { fps: 8, rows: ROW_BY_FACING },
-  actions: { fps: 3, poses: POSES },
+  walkFps: 8,
   idle: null,
 };
 
@@ -608,8 +610,7 @@ export class Character3D {
 
   setRig(rig) {
     this.rig = {
-      walk: { ...DEFAULT_RIG.walk, ...(rig?.walk ?? {}) },
-      actions: { ...DEFAULT_RIG.actions, ...(rig?.actions ?? {}) },
+      walkFps: rig?.walkFps ?? DEFAULT_RIG.walkFps,
       idle: rig?.idle ?? null,
     };
     this._stillFor = 0;
@@ -800,7 +801,7 @@ export class Character3D {
     this._blend += (wantBlend - this._blend) * Math.min(1, dt * 9);
 
     if (this._pose) this._poseT += dt * (this._pose.speed ?? 1.5);
-    if (this._moving && this._blend < 0.5) this._walkPhase += dt * (this.rig.walk.fps || 8) * 0.78;
+    if (this._moving && this._blend < 0.5) this._walkPhase += dt * (this.rig.walkFps || 8) * 0.78;
 
     // Quién manda sobre los huesos. El clip del archivo y nuestras poses
     // escriben LOS MISMOS huesos, así que no pueden correr a la vez: el último

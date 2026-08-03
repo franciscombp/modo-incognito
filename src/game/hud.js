@@ -159,12 +159,6 @@ export function createHud(root) {
   const actionFill = el("div", "inc-action-progress-fill", actionTrack);
   const actionLabel = el("div", "inc-action-label", actionScene);
 
-  // El "rig" de la jugadora ya no lo necesita este panel (la pose la anima
-  // el sprite del mundo), pero engine.js sigue llamando a setActionRig al
-  // cargar personaje — se mantiene como no-op para no tener que tocar esa
-  // costura.
-  function setActionRig() {}
-
   function setAction(action) {
     if (!action) {
       actionScene.classList.add("inc-hidden");
@@ -470,7 +464,6 @@ export function createHud(root) {
     },
     setDay,
     setVisible,
-    setActionRig,
     showResult,
     hideResult,
     showIntroCard,
