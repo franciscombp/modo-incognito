@@ -103,8 +103,15 @@ export function createSave() {
     getFlag(name) {
       return state.flags[name];
     },
+    /**
+     * "Reiniciar progreso" de verdad: días completados, secretos, mejores
+     * tiempos, con quién ya hablaste y cuántas amonestaciones llevas — todo
+     * lo que hace que un día 1 nuevo no se sienta nuevo. El personaje
+     * elegido se conserva a propósito: es una preferencia, no progreso, y
+     * pedirlo de nuevo cada vez que reinicias es fricción sin motivo.
+     */
     reset() {
-      state = { ...EMPTY, completedDays: [], eggs: [], flags: {}, bestTimes: {}, bestSpare: {} };
+      state = { ...EMPTY, characterId: state.characterId, completedDays: [], eggs: [], flags: {}, bestTimes: {}, bestSpare: {} };
       write(state);
     },
   };

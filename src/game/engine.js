@@ -452,11 +452,13 @@ export function createEngine({
       const nodes = [...(day.prologue.intro ?? [])];
       if (save.hadWarningYesterday) {
         // Una amonestación se nota al día siguiente: nunca te toca el
-        // ascensor vacío.
+        // ascensor vacío. "Recepción" ya no existe como personaje (era
+        // confuso, se quitó del reparto); el comentario ahora es de Steven,
+        // que es quien narra el resto del día.
         nodes.unshift({
-          speaker: "Recepción",
-          sheet: "reception",
-          text: "El ascensor viene lleno otra vez. Después de lo de ayer, ya ni te guardan hueco.",
+          speaker: "Steven el Daddy",
+          narrator: true,
+          text: "Oye, el ascensor viene lleno otra vez. Después de lo de ayer, ya ni te guardan hueco.",
         });
       }
       if (day.prologue.choice) nodes.push(day.prologue.choice);
