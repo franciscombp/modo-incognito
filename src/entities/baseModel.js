@@ -59,7 +59,8 @@ export function loadBaseModel(url) {
   if (!modelCache.has(url)) {
     const loading = new GLTFLoader().loadAsync(url).then((gltf) => {
       gltf.scene.updateMatrixWorld(true);
-      renameBones(gltf.scene);
+      const renames = renameBones(gltf.scene);
+      retargetTracks(gltf.animations, renames);
       stripScaleTracks(gltf.animations);
       ready.set(url, gltf);
       return gltf;
@@ -220,6 +221,10 @@ function renameBones(root) {
   ]);
   const missing = new Set(required);
 
+  // Qué se renombró (nombre ORIGINAL → nuevo): los clips traen sus pistas
+  // con los nombres originales y hay que reetiquetarlas igual (ver
+  // `retargetTracks` en loadBaseModel).
+  const renames = new Map();
   root.traverse((obj) => {
     if (!obj.isBone) return;
     const sanitized = sanitize(obj.name);
@@ -227,6 +232,7 @@ function renameBones(root) {
 
     if (newName) {
       if (newName !== "") {
+        renames.set(obj.name, newName);
         obj.name = newName;
         missing.delete(newName);
       }
@@ -242,6 +248,25 @@ function renameBones(root) {
     console.warn(
       `baseModel: no se encontraron estos huesos en el modelo: ${[...missing].join(", ")}`
     );
+  }
+  return renames;
+}
+
+/**
+ * Reetiqueta las pistas de los clips con los nombres NUEVOS de los huesos.
+ * Sin esto, el mixer buscaba "Spine02.quaternion" en un rig donde ese hueso
+ * ya se llama "Chest": un aviso de consola por pista y por instancia
+ * (cientos), y ese hueso quieto durante la caminata.
+ */
+function retargetTracks(animations = [], renames) {
+  if (!renames?.size) return;
+  for (const clip of animations) {
+    for (const t of clip.tracks) {
+      const dot = t.name.lastIndexOf(".");
+      if (dot < 0) continue;
+      const renamed = renames.get(t.name.slice(0, dot));
+      if (renamed) t.name = renamed + t.name.slice(dot);
+    }
   }
 }
 

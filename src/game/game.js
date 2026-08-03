@@ -335,6 +335,14 @@ export class Game {
       // La pose sale del JSON de la actividad (`pose`, ver scenes/*.json); si
       // el personaje no tiene hoja de acciones, sprite.js la ignora.
       this.player.pose = this.nearStation.pose ?? null;
+      // DE CARA a lo que usas: el punto de la estación es la barra, la mesa
+      // o la pantalla en sí, así que mirar hacia él es mirar el mueble — la
+      // pose (y la cámara, que orbita a verte de frente) dejan de leerse de
+      // espaldas. Si estás parada exactamente encima no hay dirección que
+      // valga y se respeta la que traías.
+      const fdx = this.nearStation.x - pos.x;
+      const fdz = this.nearStation.z - pos.z;
+      if (Math.hypot(fdx, fdz) > 0.06) this.player.sprite.setHeading(fdx, fdz);
       this.nearStation.progress = Math.min(this.nearStation.time, this.nearStation.progress + dt);
       if (this.nearStation.progress >= this.nearStation.time && !this.nearStation.done) {
         this.nearStation.done = true;
@@ -344,6 +352,13 @@ export class Game {
       this.player.isDoingActivity = false;
       // Fingir que trabajas es, literalmente, la pose de estar en el portátil.
       this.player.pose = this.player.isPretending ? "work" : null;
+      // Y fingiendo en un lugar seguro, de cara al centro del sitio (la mesa
+      // de la sala o tu propio escritorio), no hacia donde llegaste andando.
+      if (this.player.isPretending && this.currentSafeSpot) {
+        const sdx = this.currentSafeSpot.x - pos.x;
+        const sdz = this.currentSafeSpot.z - pos.z;
+        if (Math.hypot(sdx, sdz) > 0.06) this.player.sprite.setHeading(sdx, sdz);
+      }
     }
 
     this.distractionState.forEach((d) => {
