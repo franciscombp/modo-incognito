@@ -38,6 +38,24 @@ este mismo juego — idea original de César y Manu, programado de verdad por
 Fran con Claude Code de copiloto. No reveles el chiste fuera de esos dos
 momentos.
 
+**EL CORAZÓN DEL JUEGO, y lo primero que no se puede romper:** evitar
+trabajar mientras el jefe y sus secuaces te molestan. Todo lo demás —la
+interfaz, la luz, los modelos— está al servicio de eso. Antes de dar por
+buena cualquier mejora visual, comprueba que el bucle sigue divirtiendo:
+que Gabo te vea y venga a por ti, que Crispo te aborde, que fingir y
+esconderse valgan la pena, que el reloj apriete. Si una refactorización
+deja eso peor, la refactorización está mal aunque se vea mejor.
+
+**Diálogo, dos reglas nuevas:** Steven el Daddy es AMIGO de la jugadora
+(no primo — ese texto ya se corrigió; no lo reintroduzcas). Y los diálogos
+NO se agotan: cuando un personaje se queda sin escenas escritas, se
+despide en personaje en vez de repetir la primera palabra por palabra
+("me encanta el chisme, pero Gabo me encargó una cosa"). Ese pozo de
+salidas es dato: `encounters.<id>.exhausted` en `dialogues.json` gana, si
+no `dialogues.exhausted`, y si tampoco hay, un trío por defecto en
+`engine.js`. Un interrogatorio (te atraparon) SÍ rota para siempre: es
+castigo, no charla, y quedarse mudo sería peor.
+
 Es sátira de oficina con crítica real, no comedia inofensiva: arquetipos de
 oficina (el quejoso, el intocable, el jefe inseguro) cruzados con guiños a
 gente real, pensados para que el equipo se reconozca — sobre todo en lo
@@ -278,9 +296,40 @@ que fingen trabajar. Todo ese skin vive en UNA capa de overrides al final de
 (`--cyan` ya no es cian: es el verde de acento; `--violet` es el primario) y
 pisa los componentes por cascada. Los bloques históricos de arriba NO se
 editan — documentan de dónde viene cada decisión; si algo se ve del skin
-viejo, su override falta en esa capa. La barra de aplicación del menú
-(`px-plat-bar`, en `menus.js`) es decorativa a propósito: pointer-events
-none, nunca roba clics.
+viejo, su override falta en esa capa.
+
+### El HUD es una barra de menú de macOS (`src/ui/menubar.js`)
+
+**Lo que se ve mientras juegas tiene que ser el PISO, no la interfaz.** El
+HUD ya no son tres tarjetones flotando sobre el escenario: es una barra fina
+y permanente arriba del todo, al estilo de la de macOS, que está en pantalla
+SIEMPRE (menús, ascensor y partida). Los tarjetones viejos
+(`.inc-hud-objectives`, `.inc-hud-suspicion`, `.inc-hud-timer`,
+`.inc-hud-scorepanel`) siguen existiendo porque de ellos sale el snapshot,
+pero están ocultos por CSS — no los resucites sin motivo.
+
+- **Izquierda:** la marca, que además es el botón de pausa (como el menú
+  Apple).
+- **Derecha:** un "menulet" por cosa que vigilar — tareas (n/total), presión
+  (% de sospecha), reloj de la jornada y sonido. Cada uno enseña UNA línea de
+  resumen y guarda el detalle en un panel que se abre al pulsarlo (o con su
+  atajo: `Q` tareas, `V` sonido). El color del menulet ya avisa sin abrir
+  nada.
+- **Notificaciones:** las alertas caen bajo la barra y se van solas (Gabo te
+  vio, sube el nivel de búsqueda, cae una amonestación, terminas una tarea,
+  queda media hora). Nunca roban el foco. Si hay un panel abierto, se apartan
+  hacia abajo LO QUE MIDA ese panel — se mide, no se reserva una banda fija,
+  porque cada panel tiene su alto.
+
+La barra lee el MISMO snapshot por frame que el HUD (`hud.attachMenuBar`),
+así que no hay dos verdades que se puedan desincronizar. Y toda su piel sale
+de tokens `--bar-*` con su bloque para tema oscuro: re-tematizarla es una
+edición, no una batida por las reglas.
+
+**El scrim de los menús es SÓLIDO antes de que haya partida** (título, elegir
+personaje) y translúcido en pausa, donde sí hay una jornada detrás que vale
+la pena entrever. Lo decide la clase `inc-game-active` del `<body>`, no qué
+pantalla esté abierta, para que ajustes-desde-pausa herede lo correcto.
 
 Si tocas el HUD o el CSS, corre `npm run check:layout` antes de darlo por
 bueno: comprueba en seis tamaños de pantalla que nada se solape, se recorte
@@ -396,6 +445,34 @@ en una captura.
 - **Un secuaz te aborda solo cuando te TOCA** (`minionTouches` en `game.js`),
   no cuando te ve. Es un radio de contacto, no de interacción; subirlo
   reintroduce el "Crispo me habla desde el otro lado del pasillo".
+- **El estado del sonido tiene UNA fuente y avisa a quien lo pinte**
+  (`src/game/audioControl.js`). Se cambia desde tres sitios —el menulet de la
+  barra, la tecla `V` y el mute automático al perder el foco de la ventana— y
+  todos tienen que verse entre sí: `subscribeAudio()` es lo que mantiene el
+  icono honesto. Dos trampas ya pagadas: una función que solo PINTA el estado
+  no puede además cambiarlo (el redibujado del slider llamaba a `setMuted` y
+  deshacía cualquier mute que no viniera de un dedo), y `V` no puede
+  bloquearse "porque hay un menú abierto" — el título es justo donde arranca
+  la música y donde más se busca silenciarla.
+- **La luz del día se FUNDE, no salta** (`createThemeBlender` en
+  `game/themes.js`), como el fondo dinámico de un Mac. Cada frame está entre
+  dos temas y las luces/niebla/exposición se interpolan; el cielo, que es una
+  textura de canvas y no se puede regenerar 60 veces por segundo, avanza en
+  12 pasos por par de temas. `getThemeByTime` sigue existiendo para saber en
+  qué tramo estás, pero ya nadie aplica un tema de golpe a mitad de partida.
+- **Lo que cuelga de un hueso hay que DESESCALARLO** (ver `_loadPoseContext`
+  en character3d.js). Un `.glb` viene modelado ~110 veces más grande y se
+  encoge entero al montarlo, así que una taza medida en metros acaba midiendo
+  1,7 mm colgada de la mano: ahí está, pero no se ve. Se cancela la escala
+  del hueso y se pasa el offset a espacio local. El mobiliario tiene el fallo
+  espejo: cuelga del grupo del personaje, así que su posición YA es relativa
+  — sumarle además la posición de mundo mandaba la silla al otro lado del
+  piso, persiguiendo a su dueño.
+- **Los NPC de fondo tienen vida propia** (`src/entities/npc.js`): trabajan
+  sentados en su puesto, se levantan cada tanto, dan un paseo corto por el
+  navmesh y vuelven. Los relojes van desfasados a propósito — con el mismo
+  reloj, el piso entero se levanta a la vez y parece un simulacro de
+  incendio.
 - Audio: los efectos (`src/game/sfx.js`) son sintetizados con WebAudio, sin
   archivos. La música también es 100% procedural (`src/game/soundtrack.js` +
   `soundtrackThemes.js`, con Tone.js) — no hay ningún mp3 grabado. Hubo uno
