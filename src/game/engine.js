@@ -4,7 +4,7 @@ import { buzz } from "./settings.js";
 import { setMood, playStinger, updateMoodFromSnapshot } from "./soundtrack.js";
 import { createDialogue } from "./dialogue.js";
 import { createSave } from "./save.js";
-import { applyTheme, getThemeByTime } from "./themes.js";
+import { applyTheme, createThemeBlender } from "./themes.js";
 import { createMenus } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
@@ -629,8 +629,29 @@ export function createEngine({
     }
 
     faceEachOther(npc);
-    const scene = encounter.scenes[seen % encounter.scenes.length];
     const persona = dialogues.cast[npc.cast];
+    // Las escenas escritas NO se reciclan en bucle: agotadas, el personaje
+    // corta con una despedida en personaje (dialogues.exhausted, o una
+    // genérica) — "me encanta el chisme, pero Gabo me encargó algo". Volver
+    // a la primera escena hacía que la cuarta charla repitiera la primera
+    // palabra por palabra, que rompe la ilusión más que cualquier bug.
+    // Un interrogatorio (te atraparon) sí rota sus escenas para siempre: es
+    // castigo, no charla, y quedarse mudo sería peor.
+    let scene;
+    if (seen < encounter.scenes.length || opts?.caught) {
+      scene = encounter.scenes[seen % encounter.scenes.length];
+    } else {
+      const pool = encounter.exhausted ??
+        dialogues.exhausted ?? [
+          [{ text: "Me encanta el chisme, de verdad, pero Gabo me encargó una cosa y me está mirando. Luego hablamos." }],
+          [{ text: "Ahora no puedo, tengo una entrega. Bueno, \"tengo una entrega\". Ya sabes cómo es esto." }],
+          [{ text: "Shhh. Ahí viene alguien. Hazte la ocupada y luego seguimos." }],
+        ];
+      scene = pool[(seen - encounter.scenes.length) % pool.length].map((n) => ({
+        speaker: persona?.name ?? npc.displayName,
+        ...n,
+      }));
+    }
     await withPause(() =>
       dialogue.play(
         withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
@@ -769,13 +790,13 @@ export function createEngine({
     }
   }
 
-  let lastTheme = null;
+  // La luz del día ya no salta por tramos: se funde de forma continua entre
+  // los temas de la jornada, como el fondo dinámico de un Mac. Ver
+  // createThemeBlender en themes.js.
+  let themeBlender = null;
   function updateDynamicTheme(live) {
-    const currentTheme = getThemeByTime(live.timeLeft, live.levelDuration);
-    if (currentTheme !== lastTheme) {
-      lastTheme = currentTheme;
-      applyTheme(currentTheme, { renderer, scene, ...lights });
-    }
+    themeBlender ??= createThemeBlender({ renderer, scene, ...lights });
+    themeBlender.update(live.timeLeft, live.levelDuration);
   }
 
   // Hide boss/minion vision cones until player meets them

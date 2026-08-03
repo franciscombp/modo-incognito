@@ -129,3 +129,82 @@ export function getThemeByTime(timeLeft, maxTime = 240) {
   if (timeLeft > 1) return "duskDark"; // 6:45pm-6:58pm (5-1s)
   return "twilight"; // 6:58pm-7pm (1-0s)
 }
+
+// El orden real del día, para saber entre qué dos temas está cada instante.
+// Los cortes son los mismos de getThemeByTime; aquí además se interpola.
+const DAY_STOPS = [
+  { at: 240, name: "earlyMorning" },
+  { at: 160, name: "morning" },
+  { at: 100, name: "midday" },
+  { at: 50, name: "afternoon" },
+  { at: 30, name: "latAfternoon" },
+  { at: 15, name: "dusk" },
+  { at: 5, name: "duskDark" },
+  { at: 1, name: "twilight" },
+];
+
+/**
+ * La luz del día como fundido CONTINUO, no como saltos: igual que el fondo
+ * de escritorio dinámico de un Mac, cada frame está en algún punto ENTRE dos
+ * temas y las luces se interpolan entre ambos. El cielo (una textura de
+ * canvas) no se puede regenerar 60 veces por segundo, así que solo se
+ * redibuja cuando el fundido avanza un paso perceptible — las luces y la
+ * niebla, que son baratas, sí van a frame.
+ */
+const _c1 = new THREE.Color();
+const _c2 = new THREE.Color();
+function lerpColorInto(target, colorA, colorB, t) {
+  _c1.set(colorA);
+  _c2.set(colorB);
+  target.copy(_c1).lerp(_c2, t);
+}
+
+export function createThemeBlender({ renderer, scene, ambient, hemi, key }) {
+  let skyKey = null;
+  return {
+    /** timeLeft/maxTime en las mismas unidades que getThemeByTime. */
+    update(timeLeft, maxTime = 240) {
+      // Escalar el reloj real del día a la línea de 240s de los cortes.
+      const t240 = (timeLeft / (maxTime || 240)) * 240;
+      let from = DAY_STOPS[0];
+      let to = DAY_STOPS[0];
+      for (let i = 0; i < DAY_STOPS.length; i++) {
+        if (t240 <= DAY_STOPS[i].at) {
+          from = DAY_STOPS[i];
+          to = DAY_STOPS[Math.min(i + 1, DAY_STOPS.length - 1)];
+        }
+      }
+      const span = from.at - to.at || 1;
+      const mix = THREE.MathUtils.clamp((from.at - t240) / span, 0, 1);
+      const a = themes[from.name];
+      const b = themes[to.name];
+
+      lerpColorInto(ambient.color, a.ambient.color, b.ambient.color, mix);
+      ambient.intensity = THREE.MathUtils.lerp(a.ambient.intensity, b.ambient.intensity, mix);
+      lerpColorInto(hemi.color, a.hemi.sky, b.hemi.sky, mix);
+      lerpColorInto(hemi.groundColor, a.hemi.ground, b.hemi.ground, mix);
+      hemi.intensity = THREE.MathUtils.lerp(a.hemi.intensity, b.hemi.intensity, mix);
+      lerpColorInto(key.color, a.key.color, b.key.color, mix);
+      key.intensity = THREE.MathUtils.lerp(a.key.intensity, b.key.intensity, mix);
+      renderer.toneMappingExposure = THREE.MathUtils.lerp(a.exposure, b.exposure, mix);
+
+      if (scene.fog) {
+        lerpColorInto(scene.fog.color, a.fog, b.fog, mix);
+      } else {
+        scene.fog = new THREE.Fog(new THREE.Color(a.fog), 60, 190);
+      }
+
+      // El cielo, por pasos: 12 niveles de fundido entre cada par de temas
+      // bastan para que el cambio no se note como salto.
+      const step = Math.round(mix * 12);
+      const wantKey = `${from.name}>${to.name}:${step}`;
+      if (wantKey !== skyKey) {
+        skyKey = wantKey;
+        lerpColorInto(_c1, a.sky[0], b.sky[0], step / 12);
+        lerpColorInto(_c2, a.sky[1], b.sky[1], step / 12);
+        scene.background?.dispose?.();
+        scene.background = skyTexture(`#${_c1.getHexString()}`, `#${_c2.getHexString()}`);
+      }
+    },
+  };
+}
