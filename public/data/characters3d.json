@@ -59,27 +59,28 @@
   },
   "characters": {
     "gabo": {
-      "$note": "El jefe. Gafas de sol dentro de la oficina, que es todo lo que hay que saber de él.",
-      "height": 1.55
-    },
-    "giuli": {
-      "height": 1.48
-    },
-    "fran": {
-      "$note": "Melena larga y gafas redondas. La mecha azul sale de la referencia nueva — hoy vive en el .glb, no aquí.",
+      "$note": "Jefe (escala estándar 1.00). Silueta moderadamente ancha, mandíbula suave cuadrada, pelo negro corto hacia arriba y atrás, barba corta, GAFAS DE SOL rectangulares dentro de la oficina. Camisa celeste con mangas recogidas, pantalón carbón, zapatos negros de suela clara. Villano TEATRAL: brazos cruzados, mirada de reojo — cómico y autoritario, jamás malvado de verdad.",
       "height": 1.5
     },
+    "giuli": {
+      "height": 1.32,
+      "$note": "Compañera de estatura media (escala 0.88, la misma que Steven). Compacta y delgada, ojos grandes marrón oscuro, sin gafas. Melena casi negra lacia con raya lateral hasta bajo los hombros. Jumpsuit negro carbón de manga larga con cinturón, botas negras de plataforma, argollas doradas y scrunchie rojo en la muñeca."
+    },
+    "fran": {
+      "$note": "El más bajito del reparto (escala 0.84). Presentación masculina, rostro estrecho, gafas grandes redondas transparentes de marco claro, bob casi negro con raya al centro hasta la mandíbula. Cárdigan gris abierto sobre camiseta oscura, pantalón carbón, zapatos casi negros de suela clara. NUNCA con pelo rizado ni suéter cerrado.",
+      "height": 1.26
+    },
     "manu": {
-      "$note": "Grande y algo gordito, con suerte de su lado.",
-      "height": 1.58
+      "$note": "Escala 1.00 — EXACTAMENTE la misma altura que Enriqueta y César. Compacto y moderadamente ancho, piel cálida morena, pelo negro corto con 4-6 mechones grandes levantados arriba, sin barba ni gafas. Sudadera roja lisa con «COSA 1» en blanco (sin bolsillo, cordones ni cremallera), pantalón azul marino recto, zapatillas blancas.",
+      "height": 1.5
     },
     "crispo": {
-      "$note": "El afro es su silueta: se le reconoce a tres mesas de distancia.",
-      "height": 1.42
+      "$note": "La OTRA jefa (escala 1.00). Compacta y delgada, piel clara, halo de rizos cobrizos GRANDES (grupos redondeados, no cientos de rizos). Gafas de sol redondas de marco dorado, argollas doradas. Camiseta mostaza de manga corta sobre manga larga carbón, pantalón oscuro, zapatos claros. Libreta rectangular sencilla en mano; pose de sospecha reflexiva con la mano en el mentón, siempre en tono lúdico.",
+      "height": 1.5
     },
     "chispita": {
       "$note": "Corre por todo el piso. Amarillo, como su cono de visión. Sin .glb propio todavía: usa el de Kiara.",
-      "height": 1.4,
+      "height": 1.35,
       "paint": {
         "skin": "#d9a06a",
         "hair": "#4a2f1c",
@@ -100,17 +101,20 @@
       }
     },
     "cesar": {
-      "height": 1.52
+      "height": 1.5,
+      "$note": "Escala 1.00 — EXACTAMENTE la misma altura que Manu y Enriqueta. Moderadamente delgado, piel clara, pelo castaño claro con volumen arriba y atrás, barba corta del mismo tono. Su rasgo distintivo: nariz grande proyectada en cuña redondeada — reconocible y amigable, no caricatura. Gafas de sol rectangulares, camiseta azul carbón con un símbolo naranja pequeño, pantalón negro, zapatos oscuros."
     },
     "enriquetta": {
-      "height": 1.46
+      "height": 1.5,
+      "$note": "Escala 1.00 — EXACTAMENTE la misma altura que Manu y César. Compacta, rostro redondeado, gafas grandes de marco translúcido suavemente rectangular. Pelo casi negro recogido en grandes volúmenes con 3-5 mechones AZULES anchos visibles de frente. Sudadera roja igual a la de Manu pero con «COSA 2», pantalón azul marino, zapatillas blancas. Misma construcción simplificada que Manu."
     },
     "parce": {
-      "height": 1.5
+      "height": 1.537,
+      "$note": "El más alto, pero SOLO ligeramente (escala 1.025 — no debe sobresalir desproporcionado). Moderadamente delgado, barba oscura completa, gafas rectangulares transparentes, melena castaña muy oscura hasta la cintura en secciones grandes simplificadas. Camiseta de fútbol FICTICIA en bloques azul oscuro/blanco cálido/dorado apagado (sin equipos ni marcas reales), jean negro liso, zapatillas negras de suela clara."
     },
     "kiara": {
       "$note": "Ya renunció. Se le nota en la ropa (y su cuerpo es el que prestan chispita, washo y todo el relleno sin modelo propio).",
-      "height": 1.45,
+      "height": 1.41,
       "paint": {
         "skin": "#d2a173",
         "hair": "#2d2018",
@@ -121,7 +125,7 @@
     },
     "generic": {
       "$note": "El compañero de fondo por defecto, para quien no traiga receta. Sin .glb propio todavía: usa el de Kiara.",
-      "height": 1.42,
+      "height": 1.395,
       "paint": {
         "skin": "#e0ac82",
         "hair": "#3a2c26",
@@ -129,11 +133,22 @@
         "bottom": "#3d4358",
         "shoes": "#e8e2d8"
       }
+    },
+    "steven": {
+      "$note": "Steven el Daddy, el amigo del call center (escala 0.88 — MISMA altura que Giuli; se diferencia por torso y hombros más anchos, no por altura). Piel cálida morena, rostro amplio, pelo negro corto hacia atrás, sin barba. Gafas rectangulares oscuras y smartwatch sencillo. Camisa blanca cálida con mangas recogidas, pantalón azul carbón, zapatos oscuros de suela clara. Sin .glb propio todavía: usa el cuerpo base pintado.",
+      "height": 1.32,
+      "paint": {
+        "skin": "#c98d5c",
+        "hair": "#1e1a18",
+        "top": "#f4f0e8",
+        "bottom": "#2e3a52",
+        "shoes": "#33333a"
+      }
     }
   },
   "extras": [
     {
-      "height": 1.44,
+      "height": 1.38,
       "paint": {
         "skin": "#f2d3b0",
         "hair": "#8a5a2c",
@@ -143,7 +158,7 @@
       }
     },
     {
-      "height": 1.5,
+      "height": 1.455,
       "paint": {
         "skin": "#8d5a38",
         "hair": "#1e1a18",
@@ -153,7 +168,7 @@
       }
     },
     {
-      "height": 1.4,
+      "height": 1.35,
       "paint": {
         "skin": "#e7bd93",
         "hair": "#4a4a52",
@@ -163,7 +178,7 @@
       }
     },
     {
-      "height": 1.46,
+      "height": 1.41,
       "paint": {
         "skin": "#c98f66",
         "hair": "#2b1f1a",
@@ -173,7 +188,7 @@
       }
     },
     {
-      "height": 1.52,
+      "height": 1.485,
       "paint": {
         "skin": "#f0cfa8",
         "hair": "#c99a4a",
@@ -183,7 +198,7 @@
       }
     },
     {
-      "height": 1.4,
+      "height": 1.35,
       "paint": {
         "skin": "#a06a45",
         "hair": "#20191a",
