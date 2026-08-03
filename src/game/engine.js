@@ -378,6 +378,12 @@ export function createEngine({
   // saltaría de PB a 10 de golpe — la idea es que la subida SE VEA, no solo
   // que exista.
   const ELEVATOR_MIN_RIDE_MS = 1800;
+  // Techo de espera en el ascensor: con red lenta los .glb pueden tardar
+  // una eternidad, y quedarse mirando "SUBIENDO" no es un juego. Pasado
+  // esto se abre igual: cada personaje ya se monta asíncrono y aparece
+  // solo en cuanto llega su cuerpo — mejor un piso a medio vestir que un
+  // ascensor eterno.
+  const ELEVATOR_MAX_WAIT_MS = 30000;
 
   /**
    * Anima el cartel de piso del ascensor entre 0 y 100 combinando dos
@@ -390,8 +396,12 @@ export function createEngine({
     return new Promise((resolve) => {
       const start = performance.now();
       function tick() {
-        const timeFrac = Math.min(1, (performance.now() - start) / ELEVATOR_MIN_RIDE_MS);
-        const shown = Math.min(getModelsProgress(), timeFrac * 100);
+        const elapsed = performance.now() - start;
+        const timeFrac = Math.min(1, elapsed / ELEVATOR_MIN_RIDE_MS);
+        // Pasado el techo, el progreso real deja de mandar: se fuerza el 100
+        // y se abre con lo que haya llegado.
+        const models = elapsed > ELEVATOR_MAX_WAIT_MS ? 100 : getModelsProgress();
+        const shown = Math.min(models, timeFrac * 100);
         lobby.updateProgress(shown);
         if (shown >= 100) {
           resolve();
@@ -498,8 +508,10 @@ export function createEngine({
     // los personajes aparecen visibles y no huecos. rideElevator() ya
     // esperó a que llegaran al 100%, así que en el camino normal esto
     // resuelve al instante; se deja como red de seguridad para cuando no
-    // hay prólogo (rideElevator no corrió).
-    await baseModelsReady;
+    // hay prólogo (rideElevator no corrió). CON TECHO: si en 30s no han
+    // llegado, el día empieza igual — cada personaje se monta asíncrono y
+    // aparece en cuanto llega su cuerpo.
+    await Promise.race([baseModelsReady, wait(30000)]);
     const onDuty = prepareFloor(day);
     // Y la elección del ascensor se aplica aquí, no antes: `applyPrologue`
     // arranca con `if (!game) return`, así que mientras se llamaba antes de
