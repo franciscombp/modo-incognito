@@ -452,6 +452,22 @@ export class Character3D {
     });
     if (!mesh) throw new Error(`El modelo ${modelName} no trae ningún SkinnedMesh`);
 
+    // Cada exportador deja su propio metalness/roughness en el material —
+    // varios cuerpos importados traen metalness:1 con un roughness bajo, que
+    // sin un mapa de entorno que reflejar se ve como una bola de metal gris
+    // en vez de piel o tela. El color y la textura del artista se quedan
+    // igual; solo se pisa cómo reacciona a la luz.
+    model.traverse((o) => {
+      if (!o.isMesh && !o.isSkinnedMesh) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) {
+        if (m && "metalness" in m) {
+          m.metalness = 0;
+          m.roughness = 0.85;
+        }
+      }
+    });
+
     // Rig convencional pero no idéntico al nuestro: las poses hablan de
     // "Chest" y "Neck", y un export típico encadena Spine → Spine01 →
     // Spine02 → neck. Sin estos dos alias el torso y el cuello se quedan
