@@ -84,7 +84,11 @@ const log = await page.evaluate(async () => {
   const d1 = Math.hypot(boss.position.x - player.position.x, boss.position.z - player.position.z);
   out.closedDistance = +(d0 - d1).toFixed(2);
 
-  // Pretending to work must break the red alert even in plain sight.
+  // Fingir A CAMPO ABIERTO ya no rompe nada: desde que te mete en el halo
+  // la persecución va comprometida y SOLO un lugar seguro la corta (regla de
+  // check-pursuit.mjs; check-modes.mjs cubre el lado de fingir). Aquí se
+  // comprueba lo contrario de antes: que la alerta roja SIGUE puesta aunque
+  // pulses F en medio del pasillo.
   player.keys.add("f");
   await sleep(200);
   out.redAlertWhilePretending = boss.redAlert;
@@ -131,7 +135,7 @@ const checks = [
   ["boss switches to CHASE", log.stateAfterSpotted === "CHASE"],
   ["boss closes the distance", log.closedDistance > 0.3],
   ["suspicion rises while seen", log.suspicionRose],
-  ["pretending to work clears the red alert", log.redAlertWhilePretending === false],
+  ["fingir a campo abierto NO rompe la alerta (solo el lugar seguro)", log.redAlertWhilePretending === true],
   ["losing sight no longer ends a committed chase", log.stateWhenHidden === "CHASE" && log.lockedWhenHidden],
   ["distraction is accepted", log.distractAccepted === true],
   ["distraction switches to INVESTIGATE", log.stateAfterDistract === "INVESTIGATE"],
