@@ -103,10 +103,21 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     icon: "play",
     onClick: () => actions.play(save.dayIndex),
   });
-  button(titleMenu, "Nueva semana", {
+  button(titleMenu, "Reiniciar progreso", {
     icon: "star",
     onClick: () => {
-      save.setDayIndex(0);
+      // Antes esto solo saltaba al día 0 sin tocar el resto del save: los
+      // flags de diálogo (con quién ya hablaste, cuántas amonestaciones
+      // llevas) seguían puestos, así que "empezar de nuevo" en realidad
+      // seguía a medio camino de la partida anterior — Gabo, por ejemplo,
+      // saltaba directo a una de sus líneas de seguimiento en vez de
+      // presentarse. Es irreversible (borra días completados, secretos y
+      // mejores tiempos), así que primero se confirma.
+      const ok = window.confirm(
+        "Esto borra TODO tu progreso (días completados, secretos, mejores tiempos) y empieza desde cero. ¿Seguro?"
+      );
+      if (!ok) return;
+      save.reset();
       actions.play(0);
     },
   });
