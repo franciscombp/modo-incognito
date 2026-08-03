@@ -66,7 +66,12 @@ export class Player {
     if (magnitude > 0.001) {
       const { dx, dz } = screenToGround(right, up);
       const len = Math.hypot(dx, dz) || 1;
-      const speedMul = (this.isPretending ? 0.45 : 1) * this.speedMul;
+      // Shift = correr. El sprite no necesita que se lo digan: mide su propio
+      // desplazamiento y cambia solo al ciclo de correr del .glb (ver
+      // character3d.js). Correr NO es gratis: llamas más la atención — eso ya
+      // lo cubre que te muevas más rápido por delante de más conos.
+      const sprint = this.keys.has("shift") && !this.isPretending ? 1.55 : 1;
+      const speedMul = (this.isPretending ? 0.45 : 1) * this.speedMul * sprint;
       const step = this.speed * speedMul * magnitude * dt;
       this.position.x += (dx / len) * step;
       this.position.z += (dz / len) * step;
