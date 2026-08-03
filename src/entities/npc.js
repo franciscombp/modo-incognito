@@ -44,6 +44,11 @@ export class NPC {
     return this.sprite.object;
   }
 
+  /** Un empujón: medio segundo de tambaleo. Lo dispara game._updateBumps. */
+  stumble() {
+    this._stumbleLeft = 0.55;
+  }
+
   /** Un punto alcanzable a un par de mesas de distancia, o null. */
   _pickStrollTarget() {
     if (!this.navmesh) return null;
@@ -82,6 +87,14 @@ export class NPC {
 
   update(dt, t) {
     this._timer -= dt;
+    // Tambaleo del choque: un bamboleo corto que se apaga solo. Se escribe
+    // sobre la rotación Z del grupo (la Y es del rumbo), así no pisa nada.
+    if (this._stumbleLeft > 0) {
+      this._stumbleLeft -= dt;
+      const k = Math.max(0, this._stumbleLeft / 0.55);
+      this.sprite.object.rotation.z = Math.sin(this._stumbleLeft * 24) * 0.16 * k;
+      if (this._stumbleLeft <= 0) this.sprite.object.rotation.z = 0;
+    }
     switch (this._state) {
       case "settle": {
         // En su puesto: sentado trabajando (o de pie si su def lo pide), con

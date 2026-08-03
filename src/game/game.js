@@ -422,6 +422,7 @@ export class Game {
     this._updateMinionCatch();
     this._updateMinionApproach();
     this._updateEggs(dt);
+    this._updateBumps(dt);
     this._updateSpeedMul();
 
     // ---- Suspicion ----
@@ -691,6 +692,53 @@ export class Game {
       // rato con un empujón aleatorio (ver _updateStuck en boss.js).
       m.resetToPatrol();
       return;
+    }
+  }
+
+  /**
+   * CHOQUES ENTRE PERSONAJES, al estilo Overcooked: los cuerpos ocupan sitio.
+   * Si te metes en un compañero (o en el jefe), los dos se empujan, salta un
+   * "¡!" sobre cada uno y el arrollado se tambalea un instante. Es puro
+   * feedback — no sube sospecha por sí mismo — pero hace físico un piso que
+   * antes se atravesaba como niebla.
+   */
+  _updateBumps(dt) {
+    this._bumpCooldowns ??= new Map();
+    for (const [k, left] of this._bumpCooldowns) {
+      if (left > 0) this._bumpCooldowns.set(k, left - dt);
+    }
+    const p = this.player;
+    const others = [];
+    for (const n of this.npcs) if (n.active !== false) others.push(n);
+    for (const m of this.minions) if (m.active !== false) others.push(m);
+    others.push(this.boss);
+
+    for (const o of others) {
+      const dx = o.position.x - p.position.x;
+      const dz = o.position.z - p.position.z;
+      const dist = Math.hypot(dx, dz);
+      const minDist = (o.radius ?? 0.3) + p.radius;
+      if (dist >= minDist || dist < 1e-4) continue;
+
+      // Separación: la mitad del solape cada uno. Al NPC se le mueve la casa
+      // NO — solo la posición actual; su ciclo de paseo ya sabe volver.
+      const push = (minDist - dist) / 2;
+      const nx = dx / dist;
+      const nz = dz / dist;
+      p.position.x -= nx * push;
+      p.position.z -= nz * push;
+      o.position.x += nx * push;
+      o.position.z += nz * push;
+      o.sprite?.setPosition(o.position.x, o.position.z);
+
+      const key = o.id ?? o.cast ?? "boss";
+      if ((this._bumpCooldowns.get(key) ?? 0) > 0) continue;
+      this._bumpCooldowns.set(key, 1.4);
+      // "¡!" sobre los dos, tambaleo para el arrollado, un toque de vibración.
+      this.onPopup?.({ text: "!", x: o.position.x, z: o.position.z, kind: "bump" });
+      this.onPopup?.({ text: "!", x: p.position.x, z: p.position.z, kind: "bump" });
+      o.stumble?.();
+      buzz(12);
     }
   }
 

@@ -276,6 +276,11 @@ export class Boss {
     return this.sprite.object;
   }
 
+  /** Un empujón de la jugadora: bamboleo corto. Ver game._updateBumps. */
+  stumble() {
+    this._stumbleLeft = 0.55;
+  }
+
   get isHunting() {
     return this.state === CHASE || this.state === SEARCH;
   }
@@ -431,6 +436,12 @@ export class Boss {
     this.sprite.setHeading(this.facingDir.x, this.facingDir.z);
     this.sprite.setMoving(this._actuallyMoving);
     this.sprite.setPosition(this.position.x, this.position.z);
+    if (this._stumbleLeft > 0) {
+      this._stumbleLeft -= dt;
+      const k = Math.max(0, this._stumbleLeft / 0.55);
+      this.sprite.object.rotation.z = Math.sin(this._stumbleLeft * 24) * 0.14 * k;
+      if (this._stumbleLeft <= 0) this.sprite.object.rotation.z = 0;
+    }
     this.sprite.update(dt);
 
     this.cone.position.set(this.position.x, 0.16, this.position.z);
