@@ -5300,6 +5300,8 @@ body.crossing-open #hint {
   /* El primario HSL heredado (botones .inc-btn--primary, resaltes): era un
      rojo vino de otra época; ahora es el mismo índigo del skin. */
   --accent-main: 239 50% 54%;
+  --red-rgb: 217, 85, 112;
+  --amber-rgb: 219, 156, 67;
 }
 
 /* Las esquinas cortadas eran del skin arcade. Un dashboard es redondo, y
@@ -5498,7 +5500,7 @@ body.crossing-open #hint {
 }
 
 .px-btn:hover {
-  background: #fff;
+  background: var(--glass);
   border-color: rgba(51, 160, 111, 0.4);
   transform: translateY(-1px);
   box-shadow: 0 8px 20px rgba(46, 41, 34, 0.1);
@@ -5522,13 +5524,14 @@ body.crossing-open #hint {
 
 .px-btn-primary {
   color: #fff;
-  background: linear-gradient(180deg, #37a473, var(--violet-dim));
+  background: linear-gradient(180deg, var(--violet), var(--violet-dim));
   border-color: rgba(255, 255, 255, 0.25);
   box-shadow: 0 6px 16px rgba(51, 160, 111, 0.35);
 }
 
 .px-btn-primary:hover {
-  background: linear-gradient(180deg, #3cb27d, #27835e);
+  background: linear-gradient(180deg, var(--violet), var(--violet-dim));
+  filter: brightness(1.08);
   border-color: rgba(255, 255, 255, 0.35);
   box-shadow: 0 10px 24px rgba(51, 160, 111, 0.42);
 }
@@ -5561,7 +5564,7 @@ input[type="range"]:focus-visible {
 }
 
 .px-day:hover:not(:disabled) {
-  background: #fff;
+  background: var(--glass);
   border-color: rgba(51, 160, 111, 0.45);
   transform: translateY(-2px);
   box-shadow: 0 14px 30px rgba(46, 41, 34, 0.12);
@@ -5751,11 +5754,11 @@ input[type="range"]:focus-visible {
 }
 
 .hud-suspicion-fill {
-  background: linear-gradient(90deg, #57b779, #dfa63f 70%, #d95c50);
+  background: linear-gradient(90deg, var(--lime), var(--amber) 70%, var(--red));
 }
 
 .hud-timer-fill {
-  background: linear-gradient(90deg, #37a473, #57b779);
+  background: linear-gradient(90deg, var(--cyan), var(--lime));
 }
 
 .hud-timer-value,
@@ -5892,7 +5895,7 @@ input[type="range"]:focus-visible {
 
 .hud-overlay-btn.primary {
   color: #fff;
-  background: linear-gradient(180deg, #37a473, var(--violet-dim));
+  background: linear-gradient(180deg, var(--violet), var(--violet-dim));
   border-color: transparent;
   box-shadow: 0 6px 16px rgba(51, 160, 111, 0.35);
 }
@@ -5906,7 +5909,7 @@ input[type="range"]:focus-visible {
 
 .action-progress-fill {
   border-radius: 999px;
-  background: linear-gradient(90deg, #37a473, #57b779);
+  background: linear-gradient(90deg, var(--cyan), var(--lime));
 }
 
 .action-label {
@@ -6025,7 +6028,7 @@ input[type="range"]:focus-visible {
 
 .boot-bar span {
   border-radius: 999px;
-  background: linear-gradient(90deg, #37a473, #57b779);
+  background: linear-gradient(90deg, var(--cyan), var(--lime));
 }
 
 .boot-note {
@@ -6162,6 +6165,8 @@ input[type="range"]:focus-visible {
     --shadow-float: 0 8px 20px rgba(0, 0, 0, 0.35), 0 30px 70px rgba(0, 0, 0, 0.5);
     --accent-soft: rgba(77, 178, 214, 0.2);
     --accent-main: 239 62% 68%;
+    --red-rgb: 224, 112, 138;
+    --amber-rgb: 224, 171, 88;
   }
 
   /* Fondos oscuros */
@@ -8085,6 +8090,8 @@ body.inc-game-active .inc-menu-scrim {
     --shadow-float: 0 8px 20px rgba(0, 0, 0, 0.35), 0 30px 70px rgba(0, 0, 0, 0.5);
     --accent-soft: rgba(77, 178, 214, 0.2);
     --accent-main: 239 62% 68%;
+    --red-rgb: 224, 112, 138;
+    --amber-rgb: 224, 171, 88;
   }
   .inc-menu-scrim {
     background: linear-gradient(165deg, #191c30 0%, #0d0f1e 100%);
@@ -8174,4 +8181,57 @@ body.inc-game-active .inc-menu-scrim {
   .inc-menu-scrim {
     background: linear-gradient(165deg, #191c30 0%, #0d0f1e 100%);
   }
+}
+
+/* ============================================================
+   TODO SOBRE TOKENS — overrides de los componentes que seguían
+   con colores fijos del skin arcade: controles táctiles, pulgares
+   de slider y halos del tracker. Cambiar un token de :root ahora
+   cambia también esto (y los builders, que importan este mismo
+   archivo y no tienen un color propio).
+   ============================================================ */
+.touch-btn {
+  background: var(--glass);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px) saturate(1.3);
+  box-shadow: var(--shadow-card);
+  font-family: var(--ui-font);
+  font-weight: 700;
+}
+.touch-btn-interact {
+  background: linear-gradient(180deg, var(--violet), var(--violet-dim));
+  color: #fff;
+  border-color: transparent;
+}
+.touch-btn-pretend {
+  background: var(--glass);
+  color: var(--cyan);
+}
+.cam-slider::-webkit-slider-thumb {
+  border: 2px solid var(--paper);
+  background: var(--cyan);
+}
+.cam-slider::-moz-range-thumb {
+  border: 2px solid var(--paper);
+  background: var(--cyan);
+}
+.inc-tracker-red .inc-tracker-card {
+  border-color: rgba(var(--red-rgb), 0.55);
+  box-shadow: 0 0 20px rgba(var(--red-rgb), 0.18);
+}
+.inc-tracker-card.inc-tracker-card-warm {
+  border-color: rgba(var(--amber-rgb), 0.75);
+  box-shadow: 0 0 22px rgba(var(--amber-rgb), 0.28);
+}
+@keyframes inc-tracker-alarm {
+  0%, 100% { box-shadow: 0 0 24px rgba(var(--red-rgb), 0.4); }
+  50% { box-shadow: 0 0 34px rgba(var(--red-rgb), 0.75); }
+}
+/* Alertas del HUD que llevaban naranjas fijos de la paleta vieja. */
+.hud-suspicion-fill.danger {
+  background: linear-gradient(90deg, var(--amber), var(--red));
+}
+.hud-suspicion-fill.hot {
+  background: linear-gradient(90deg, var(--red), var(--red));
 }
