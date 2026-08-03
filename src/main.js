@@ -635,17 +635,19 @@ async function boot() {
     }
   });
 
-  // Mute toggle with 'V' key (Volume control)
+  // Mute toggle with 'V' key (Volume control).
+  //
+  // Funciona SIEMPRE, también con un menú o un diálogo abiertos: silenciar es
+  // un control global (el chiste del juego es que alguien puede estar
+  // mirando tu pantalla), y bloquearlo en los menús lo hacía inservible
+  // justo donde más se usa — el título, que es donde arranca la música.
+  // Ninguna pantalla acepta texto libre, así que la V no le hace falta a
+  // nadie más; el diálogo solo escucha espacio/enter/E.
   window.addEventListener("keydown", (e) => {
-    if (e.key.toLowerCase() === "v" && !engine?.dialogue?.isOpen && !engine?.menus?.isOpen) {
-      e.preventDefault();
-      const wasMuted = isMutedState();
-      if (wasMuted) {
-        unmute(getVolume());
-      } else {
-        setMuted(true);
-      }
-    }
+    if (e.key.toLowerCase() !== "v" || e.metaKey || e.ctrlKey || e.altKey) return;
+    e.preventDefault();
+    if (isMutedState()) unmute(getVolume());
+    else setMuted(true);
   });
 
   // Modo Incógnito: pause music when window loses focus
