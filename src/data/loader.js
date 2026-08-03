@@ -7,6 +7,7 @@
 
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { loadBaseModel, modelUrlFor } from "../entities/baseModel.js";
+import { baseFileFor } from "../entities/character3d.js";
 import { siteRoot } from "./siteRoot.js";
 import { applyCharacterModels } from "./characterRecipes.js";
 
@@ -196,9 +197,15 @@ export async function loadGameData(onProgress) {
  * antes dejaba la tarjeta en blanco.
  */
 export function preloadBaseModels(looks, onProgress) {
+  // `baseFileFor` y no `recipe.baseModel` a secas: quien no tiene .glb propio
+  // usa un cuerpo base según su género, y ese archivo también hay que
+  // precargarlo o los retratos de esos personajes salen en blanco.
   const files = new Set();
   for (const recipe of Object.values(looks?.characters ?? {})) {
-    if (recipe?.baseModel) files.add(recipe.baseModel);
+    if (recipe) files.add(baseFileFor(recipe));
+  }
+  for (const recipe of looks?.extras ?? []) {
+    if (recipe) files.add(baseFileFor(recipe));
   }
   const fileArray = [...files];
   return Promise.all(
@@ -225,7 +232,7 @@ export function preloadCharacterLooks(characterIds, looks, onProgress) {
   const files = new Set();
   for (const id of characterIds) {
     const recipe = looks?.characters?.[id];
-    if (recipe?.baseModel) files.add(recipe.baseModel);
+    if (recipe) files.add(baseFileFor(recipe));
   }
   const fileArray = [...files];
   if (fileArray.length === 0) {

@@ -174,6 +174,51 @@ function shade(hex, amount) {
 }
 
 /**
+ * La TIRA de gestos completa, con fondo TRANSPARENTE.
+ *
+ * Es la versión "calcomanía" de `faceTexture`: mismos trazos, pero sin
+ * rellenar la piel, porque esta tira no envuelve una cabeza — se PEGA DELANTE
+ * de una ya pintada (ver faceSheet.js), al estilo Animal Crossing. La usan
+ * los cuerpos base desnudos, que no tienen textura donde dibujar: sin esto
+ * eran maniquíes sin cara. Sale en el orden de `EXPRESSIONS`, que es el que
+ * espera `attachFaceSheet`.
+ */
+export function faceStripTexture(recipe, { cell = 256 } = {}) {
+  const canvas = document.createElement("canvas");
+  canvas.width = cell * EXPRESSIONS.length;
+  canvas.height = cell;
+  const ctx = canvas.getContext("2d");
+  const k = cell / SIZE;
+
+  const lash = recipe.lash ?? shade(recipe.hair?.color ?? "#3a2c26", -0.05);
+  EXPRESSIONS.forEach((expression, i) => {
+    const mood = MOODS[expression] ?? MOODS.neutral;
+    ctx.save();
+    ctx.translate(i * cell, 0);
+    ctx.scale(k, k);
+    if (recipe.blush) {
+      ctx.globalAlpha = 0.55;
+      for (const dir of [-1, 1]) {
+        ellipse(ctx, 0.5 + dir * L.blushX, L.blushY, 0.088, 0.052, recipe.blush);
+      }
+      ctx.globalAlpha = 1;
+    }
+    for (const dir of [-1, 1]) {
+      drawBrow(ctx, dir, { lash, y: mood.brow, tilt: mood.tilt });
+      drawEye(ctx, dir, { eyes: recipe.eyes ?? "#2a2118", lash, open: mood.open });
+    }
+    drawMouth(ctx, { kind: mood.mouth, mouth: recipe.mouth ?? "#b5645e" });
+    ctx.restore();
+  });
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+/**
  * Reproyecta las UV de una cabeza como una vista de frente.
  *
  * Las UV que trae un modelo base son un desplegado genérico para esculpir, no
