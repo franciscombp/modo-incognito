@@ -55,11 +55,6 @@ export function createLobby(root) {
   el("div", "inc-lobby-stairs-steps", stairs);
   el("div", "inc-lobby-stairs-rail", stairs);
 
-  const deco = el("div", "inc-lobby-deco", layer);
-  el("span", "inc-lobby-plant", deco).innerHTML = svgIcon("plant", { size: 42 });
-  el("span", "inc-lobby-waiting", deco).innerHTML = svgIcon("person", { size: 38 });
-  el("span", "inc-lobby-waiting inc-lobby-waiting-2", deco).innerHTML = svgIcon("person", { size: 34 });
-
   const sign = el("div", "inc-lobby-sign", layer);
   const signFloor = el("div", "inc-lobby-sign-floor", sign);
   const signName = el("div", "inc-lobby-sign-name", sign);

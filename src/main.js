@@ -40,6 +40,38 @@ const canvas = document.getElementById("scene");
 const app = document.getElementById("app");
 const boot0 = document.getElementById("boot");
 
+// El arranque es el BOOT de una computadora (la interfaz ES un sistema
+// operativo de mentira): un log en monoespaciada que va soltando líneas con
+// su estado, como el de maldonado.pro. Es teatro — no mide la carga real,
+// que la barra ya insinúa — pero convierte la espera en el primer chiste.
+const bootLog = document.getElementById("boot-log");
+if (bootLog) {
+  const LINES = [
+    ["> iniciando INCÓGNITO//OS", "ok"],
+    ["> conectando con el Piso 10", "ok"],
+    ["> contratando al reparto", "sin sueldo"],
+    ["> abriendo hoja de cálculo de coartada", "ok"],
+    ["> localizando a GABO", "mejor no"],
+  ];
+  LINES.forEach(([text, status], i) => {
+    setTimeout(() => {
+      if (!bootLog.isConnected) return;
+      const row = document.createElement("div");
+      row.className = "boot-line";
+      const t = document.createElement("span");
+      t.className = "boot-line-t";
+      t.textContent = text;
+      const dots = document.createElement("span");
+      dots.className = "boot-line-dots";
+      const s = document.createElement("em");
+      s.className = "boot-line-s";
+      s.textContent = status;
+      row.append(t, dots, s);
+      bootLog.appendChild(row);
+    }, 140 + i * 340);
+  });
+}
+
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
 const quality0 = resolveQuality();
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality0.maxPixelRatio));
