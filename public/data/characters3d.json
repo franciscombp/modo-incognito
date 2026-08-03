@@ -92,26 +92,14 @@
       "$note": "Corre por todo el piso. Chico. Amarillo, como su cono de visión. Sin .glb propio: usa el cuerpo base de chico pintado.",
       "gender": "m",
       "height": 1.62,
-      "paint": {
-        "skin": "#d9a06a",
-        "hair": "#4a2f1c",
-        "top": "#f2c744",
-        "bottom": "#3d4358",
-        "shoes": "#e8e2d8"
-      }
+      "paint": {"skin":"#d9a06a","hair":"#4a2f1c","top":"#f2c744","bottom":"#3d4358","shoes":"#e8e2d8"}
     },
     "washo": {
       "$note": "No mira: barre. Chico. Turquesa, como su radar. Sin .glb propio: usa el cuerpo base de chico pintado, con algo de barriga.",
       "gender": "m",
       "height": 1.73,
-      "build": { "width": 1.05, "belly": 0.4 },
-      "paint": {
-        "skin": "#b57a4d",
-        "hair": "#2c2c33",
-        "top": "#3fbfb2",
-        "bottom": "#4a4f60",
-        "shoes": "#d8d2c6"
-      }
+      "build": {"width":1.05,"belly":0.4},
+      "paint": {"skin":"#b57a4d","hair":"#2c2c33","top":"#3fbfb2","bottom":"#4a4f60","shoes":"#d8d2c6"}
     },
     "cesar": {
       "gender": "m",
@@ -132,109 +120,55 @@
       "$note": "Ya renunció, y por eso nada le afecta: es un genérico con nombre. Se le nota en la ropa. Usa el cuerpo base de chica pintado.",
       "gender": "f",
       "height": 1.69,
-      "paint": {
-        "skin": "#d2a173",
-        "hair": "#2d2018",
-        "top": "#f2a65a",
-        "bottom": "#e8ddc8",
-        "shoes": "#f4efe6"
-      }
+      "paint": {"skin":"#d2a173","hair":"#2d2018","top":"#f2a65a","bottom":"#e8ddc8","shoes":"#f4efe6"}
     },
     "generic": {
       "$note": "El compañero de fondo por defecto, para quien no traiga receta. Sin género a propósito: cuerpo de chico y texto neutro.",
       "height": 1.67,
-      "paint": {
-        "skin": "#e0ac82",
-        "hair": "#3a2c26",
-        "top": "#8fa8bd",
-        "bottom": "#3d4358",
-        "shoes": "#e8e2d8"
-      }
+      "paint": {"skin":"#e0ac82","hair":"#3a2c26","top":"#8fa8bd","bottom":"#3d4358","shoes":"#e8e2d8"}
     },
     "steven": {
       "$note": "Steven el Daddy, el amigo del call center (1,62 m — MISMA altura que Giuli; se diferencia por el torso y los hombros más anchos, NUNCA por altura: de eso se encarga build.chest). Piel cálida morena, rostro amplio, pelo negro corto hacia atrás, sin barba. Gafas rectangulares oscuras y smartwatch sencillo. Camisa blanca cálida con mangas recogidas, pantalón azul carbón, zapatos oscuros de suela clara. Usa el cuerpo base de chico pintado.",
       "gender": "m",
       "height": 1.62,
-      "build": { "chest": 1.16, "width": 1.04 },
-      "paint": {
-        "skin": "#c98d5c",
-        "hair": "#1e1a18",
-        "top": "#f4f0e8",
-        "bottom": "#2e3a52",
-        "shoes": "#33333a"
-      }
+      "build": {"chest":1.16,"width":1.04},
+      "paint": {"skin":"#c98d5c","hair":"#1e1a18","top":"#f4f0e8","bottom":"#2e3a52","shoes":"#33333a"}
     }
   },
   "extras": [
     {
       "gender": "f",
       "height": 1.66,
-      "paint": {
-        "skin": "#f2d3b0",
-        "hair": "#8a5a2c",
-        "top": "#7fa9c9",
-        "bottom": "#3a4152",
-        "shoes": "#ded7cb"
-      }
+      "paint": {"skin":"#f2d3b0","hair":"#8a5a2c","top":"#7fa9c9","bottom":"#3a4152","shoes":"#ded7cb"}
     },
     {
       "gender": "m",
       "height": 1.75,
-      "build": { "width": 1.08, "belly": 0.45 },
-      "paint": {
-        "skin": "#8d5a38",
-        "hair": "#1e1a18",
-        "top": "#c9805f",
-        "bottom": "#4b5262",
-        "shoes": "#2f2f34"
-      }
+      "build": {"width":1.08,"belly":0.45},
+      "paint": {"skin":"#8d5a38","hair":"#1e1a18","top":"#c9805f","bottom":"#4b5262","shoes":"#2f2f34"}
     },
     {
       "gender": "f",
       "height": 1.62,
-      "paint": {
-        "skin": "#e7bd93",
-        "hair": "#4a4a52",
-        "top": "#9db98a",
-        "bottom": "#333a48",
-        "shoes": "#e6e0d4"
-      }
+      "paint": {"skin":"#e7bd93","hair":"#4a4a52","top":"#9db98a","bottom":"#333a48","shoes":"#e6e0d4"}
     },
     {
       "gender": "f",
       "height": 1.69,
-      "build": { "width": 1.04 },
-      "paint": {
-        "skin": "#c98f66",
-        "hair": "#2b1f1a",
-        "top": "#b48ac9",
-        "bottom": "#404860",
-        "shoes": "#f0eae0"
-      }
+      "build": {"width":1.04},
+      "paint": {"skin":"#c98f66","hair":"#2b1f1a","top":"#b48ac9","bottom":"#404860","shoes":"#f0eae0"}
     },
     {
       "gender": "m",
       "height": 1.78,
-      "build": { "chest": 1.1 },
-      "paint": {
-        "skin": "#f0cfa8",
-        "hair": "#c99a4a",
-        "top": "#6b7f9e",
-        "bottom": "#2f3440",
-        "shoes": "#d5cec2"
-      }
+      "build": {"chest":1.1},
+      "paint": {"skin":"#f0cfa8","hair":"#c99a4a","top":"#6b7f9e","bottom":"#2f3440","shoes":"#d5cec2"}
     },
     {
       "gender": "m",
       "height": 1.62,
-      "build": { "belly": 0.5 },
-      "paint": {
-        "skin": "#a06a45",
-        "hair": "#20191a",
-        "top": "#e0a95c",
-        "bottom": "#3d4358",
-        "shoes": "#33333a"
-      }
+      "build": {"belly":0.5},
+      "paint": {"skin":"#a06a45","hair":"#20191a","top":"#e0a95c","bottom":"#3d4358","shoes":"#33333a"}
     }
   ]
 }

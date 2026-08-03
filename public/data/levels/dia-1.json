@@ -8,33 +8,19 @@
   "rules": {
     "duration": 240,
     "maxWarnings": 3,
-    "objectives": [
-      "coffee",
-      "movie",
-      "snack"
-    ],
+    "objectives": ["coffee","movie","snack"],
     "bossSpeedMul": 0.85,
     "visionMul": 0.9,
     "targetScore": 540,
     "bossRoute": "sur",
-    "bossTether": [
-      5,
-      9
-    ],
+    "bossTether": [5,9],
     "gate": {
       "guard": "jefe",
-      "task": {
-        "id": "meet-gabo",
-        "label": "Buscar a Gabo",
-        "icon": "person"
-      }
+      "task": {"id":"meet-gabo","label":"Buscar a Gabo","icon":"person"}
     }
   },
   "minions": [
-    {
-      "id": "crispo",
-      "route": "sur"
-    }
+    {"id":"crispo","route":"sur"}
   ],
   "$minigame": {
     "id": "crossing",
@@ -44,25 +30,15 @@
         "narrator": true,
         "text": "Oye, antes: hay que cruzar la Amazonas. Seis carriles de caos puro. La institución está al otro lado."
       },
-      {
-        "speaker": "Tú",
-        "text": "Nadie menciona esto en la oferta de trabajo. Bueno, allá vamos."
-      }
+      {"speaker":"Tú","text":"Nadie menciona esto en la oferta de trabajo. Bueno, allá vamos."}
     ],
     "onFail": {
       "icon": "alert",
       "title": "No fue tu día",
       "body": "Te atropellaron antes de llegar al piso.",
       "dialogue": [
-        {
-          "speaker": "Steven el Daddy",
-          "narrator": true,
-          "text": "Oye... ¿tú estás bien? Cuéntame qué pasó."
-        },
-        {
-          "speaker": "Tú",
-          "text": "La avenida. No la cruzamos juntos, así que... perdí."
-        },
+        {"speaker":"Steven el Daddy","narrator":true,"text":"Oye... ¿tú estás bien? Cuéntame qué pasó."},
+        {"speaker":"Tú","text":"La avenida. No la cruzamos juntos, así que... perdí."},
         {
           "speaker": "Steven el Daddy",
           "narrator": true,
@@ -77,28 +53,19 @@
       "speaker": "Tú",
       "text": "Piso 10. Ala sur. Aquí no hay nada de remodelación, solo diseñadores fingiendo ser productivos."
     },
-    {
-      "speaker": "Tú",
-      "text": "Yo soy una de esos diseñadores. Hoy es mi primer día."
-    },
+    {"speaker":"Tú","text":"Yo soy una de esos diseñadores. Hoy es mi primer día."},
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
       "text": "Hey. Yo soy Steven el Daddy. Tu amigo, ¿te acuerdas? El que te ayudó a entrar acá. Estoy en el call center, pero te voy a seguir de cerca."
     },
-    {
-      "speaker": "Tú",
-      "text": "Steven. Claro, mi amigo. El que hace milagros."
-    },
+    {"speaker":"Tú","text":"Steven. Claro, mi amigo. El que hace milagros."},
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
       "text": "Bueno, primero que nada: busca a Gabo. Es el jefe de diseño aquí. Va a ser quien te presente formalmente y te cuente cómo funcionan las cosas. Cuando lo encuentres, cuéntale que es tu primer día."
     },
-    {
-      "speaker": "Tú",
-      "text": "¿Y después?"
-    },
+    {"speaker":"Tú","text":"¿Y después?"},
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
@@ -126,11 +93,7 @@
     }
   ],
   "outroLose": [
-    {
-      "speaker": "Gabo",
-      "mood": "angry",
-      "text": "Vaya. En tu primer día. No pensé que fuera posible."
-    },
+    {"speaker":"Gabo","mood":"angry","text":"Vaya. En tu primer día. No pensé que fuera posible."},
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
@@ -149,21 +112,9 @@
     "choice": {
       "prompt": "¿Cómo llegas al piso 10?",
       "options": [
-        {
-          "label": "Esperar el ascensor",
-          "reply": "Espero. Con paciencia.",
-          "effect": "wait"
-        },
-        {
-          "label": "Subir por escaleras",
-          "reply": "Siete pisos. Voy.",
-          "effect": "stairs"
-        },
-        {
-          "label": "Colarte adelante",
-          "reply": "Permiso, es urgente.",
-          "effect": "cut"
-        }
+        {"label":"Esperar el ascensor","reply":"Espero. Con paciencia.","effect":"wait"},
+        {"label":"Subir por escaleras","reply":"Siete pisos. Voy.","effect":"stairs"},
+        {"label":"Colarte adelante","reply":"Permiso, es urgente.","effect":"cut"}
       ]
     }
   },

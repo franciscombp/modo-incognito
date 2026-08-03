@@ -26,10 +26,6 @@
     "after": 5,
     "hold": 2.4,
     "every": 11,
-    "poses": [
-      "phone",
-      "think",
-      "sit"
-    ]
+    "poses": ["phone","think","sit"]
   }
 }

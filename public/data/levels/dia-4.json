@@ -8,14 +8,7 @@
   "rules": {
     "duration": 230,
     "maxWarnings": 2,
-    "objectives": [
-      "scroll",
-      "sleep",
-      "meeting",
-      "snack",
-      "print",
-      "window"
-    ],
+    "objectives": ["scroll","sleep","meeting","snack","print","window"],
     "bossSpeedMul": 1.15,
     "visionMul": 1.15,
     "decayMul": 0.8,
@@ -30,11 +23,7 @@
     {
       "prompt": "Sin distracciones disponibles, ¿cómo lo juegas?",
       "options": [
-        {
-          "label": "Pegada a las paredes",
-          "reply": "Pegada a las paredes y a las plantas.",
-          "flag": "sigilo"
-        },
+        {"label":"Pegada a las paredes","reply":"Pegada a las paredes y a las plantas.","flag":"sigilo"},
         {
           "label": "A toda velocidad",
           "reply": "A toda velocidad. Que me alcance si puede.",
@@ -44,17 +33,10 @@
     }
   ],
   "outroWin": [
-    {
-      "speaker": "Tú",
-      "text": "Cinco actividades prohibidas, cero pruebas. Modo incógnito activado."
-    }
+    {"speaker":"Tú","text":"Cinco actividades prohibidas, cero pruebas. Modo incógnito activado."}
   ],
   "outroLose": [
-    {
-      "speaker": "Gabo",
-      "mood": "angry",
-      "text": "Sin impresora que culpar, ¿eh?"
-    }
+    {"speaker":"Gabo","mood":"angry","text":"Sin impresora que culpar, ¿eh?"}
   ],
   "prologue": {
     "kind": "elevator",
@@ -68,32 +50,14 @@
     "choice": {
       "prompt": "Un solo ascensor para todo el edificio.",
       "options": [
-        {
-          "label": "Aguantar la fila",
-          "reply": "Aguanto. Tengo margen.",
-          "effect": "wait"
-        },
-        {
-          "label": "Escaleras",
-          "reply": "Escaleras. Llego sudada pero llego.",
-          "effect": "stairs"
-        },
-        {
-          "label": "Montacargas del sótano",
-          "reply": "El montacargas. Nadie lo vigila.",
-          "effect": "cut"
-        }
+        {"label":"Aguantar la fila","reply":"Aguanto. Tengo margen.","effect":"wait"},
+        {"label":"Escaleras","reply":"Escaleras. Llego sudada pero llego.","effect":"stairs"},
+        {"label":"Montacargas del sótano","reply":"El montacargas. Nadie lo vigila.","effect":"cut"}
       ]
     }
   },
   "minions": [
-    {
-      "id": "chispita",
-      "route": "sur"
-    },
-    {
-      "id": "washo",
-      "route": "norte"
-    }
+    {"id":"chispita","route":"sur"},
+    {"id":"washo","route":"norte"}
   ]
 }

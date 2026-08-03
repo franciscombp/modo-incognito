@@ -25,10 +25,7 @@
       "difficulty": "normal",
       "blurb": "Tiene antigüedad. Puede acumular hasta 3 amonestaciones y a los secuaces cuesta más hacerles caso.",
       "playable": true,
-      "rules": {
-        "maxWarnings": 3,
-        "minionSuspicionMul": 0.7
-      },
+      "rules": {"maxWarnings":3,"minionSuspicionMul":0.7},
       "rig": "fran",
       "npc": "fran_npc"
     },
@@ -39,10 +36,7 @@
       "difficulty": "difícil",
       "blurb": "Solo dos amonestaciones. Los secuaces están encima de ella todo el día.",
       "playable": true,
-      "rules": {
-        "maxWarnings": 2,
-        "minionSuspicionMul": 1.4
-      },
+      "rules": {"maxWarnings":2,"minionSuspicionMul":1.4},
       "actionSheet": "guili-acciones",
       "rig": "giuli",
       "npc": "giuli"
@@ -54,9 +48,7 @@
       "difficulty": "fácil",
       "blurb": "Ya no le afecta nada. Modo exploración libre: sin sospecha, sin despido.",
       "playable": true,
-      "rules": {
-        "explore": true
-      }
+      "rules": {"explore":true}
     },
     "manu": {
       "name": "Manu",
@@ -66,13 +58,11 @@
       "actionSheet": "manu-acciones",
       "difficulty": "intermedio",
       "blurb": "Programador con suerte. Puede acumular 2 amonestaciones, pero los secuaces lo ignoran más que a otros.",
-      "playable": true,
-      "rules": {
-        "maxWarnings": 2,
-        "minionSuspicionMul": 0.5
-      },
+      "playable": false,
+      "rules": {"maxWarnings":2,"minionSuspicionMul":0.5},
       "rig": "manu",
-      "npc": "manu_npc"
+      "npc": "manu_npc",
+      "lockedReason": "Se desbloquea jugando: la gente con personalidad se gana su día"
     },
     "gabo": {
       "name": "Gabo",
