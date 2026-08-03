@@ -7907,3 +7907,123 @@ body.inc-game-active .inc-menu-scrim {
   color: var(--ink-soft);
   white-space: nowrap;
 }
+
+/* ============================================================
+   VESTÍBULO — la pantalla del ascensor y el hueco de la escalera.
+   La carga se disfraza según cómo elijas subir (lobby.setMode):
+   display de ascensor con "SUBIENDO" titilando, o rellanos con
+   su cartel por piso si vas por las gradas.
+   ============================================================ */
+.inc-lobby-sign {
+  background: linear-gradient(180deg, #101418 0%, #0a0d10 100%);
+  border: 2px solid #2a3138;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.8), 0 8px 20px rgba(0, 0, 0, 0.55);
+  min-width: 220px;
+}
+.inc-lobby-sign-floor {
+  color: #ffb454;
+  text-shadow: 0 0 12px rgba(255, 180, 84, 0.55);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  animation: none;
+}
+.inc-lobby-sign-up {
+  display: inline-grid;
+  place-items: center;
+  transform: rotate(-90deg);
+  color: #ffb454;
+  animation: inc-lobby-rise 1.1s ease-in-out infinite;
+}
+@keyframes inc-lobby-rise {
+  0%, 100% { transform: rotate(-90deg) translateX(0); opacity: 0.5; }
+  50% { transform: rotate(-90deg) translateX(4px); opacity: 1; }
+}
+.inc-lobby-sign-name {
+  color: #9fd8a4;
+  text-shadow: 0 0 10px rgba(120, 220, 140, 0.4);
+}
+.inc-lobby-blink {
+  animation: inc-lobby-blink 1s steps(1) infinite;
+}
+@keyframes inc-lobby-blink {
+  0%, 60% { opacity: 1; }
+  61%, 100% { opacity: 0.25; }
+}
+.inc-lobby-sign-joke {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: #cfd6cf;
+  max-width: 34ch;
+  text-align: center;
+}
+.inc-lobby-sign-joke:empty {
+  display: none;
+}
+
+/* Fundido de salida (gradas: no hay puertas que abrir). */
+.inc-lobby-scene {
+  transition: opacity 0.8s ease;
+}
+.inc-lobby-scene.inc-lobby-fade {
+  opacity: 0;
+}
+
+/* --- Modo GRADAS: fuera puertas, dentro el hueco de la escalera. --- */
+.inc-lobby--stairs .inc-lobby-door,
+.inc-lobby--stairs .inc-lobby-waiting,
+.inc-lobby--stairs .inc-lobby-waiting-2 {
+  display: none;
+}
+.inc-lobby--stairs {
+  background: linear-gradient(180deg, #2e3440 0%, #232833 55%, #1a1e27 100%);
+}
+.inc-lobby-stairs {
+  position: absolute;
+  inset: 0;
+  display: none;
+}
+.inc-lobby--stairs .inc-lobby-stairs {
+  display: block;
+}
+.inc-lobby-stairs-steps {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 0;
+  top: 30%;
+  background: repeating-linear-gradient(
+    to top,
+    #3a4150 0 26px,
+    #2c323e 26px 30px,
+    #454d5e 30px 56px,
+    #343a48 56px 60px
+  );
+  clip-path: polygon(0 100%, 100% 100%, 100% 22%, 55% 0, 0 34%);
+  box-shadow: inset 0 18px 40px rgba(0, 0, 0, 0.5);
+}
+.inc-lobby-stairs-rail {
+  position: absolute;
+  left: 22%;
+  right: 24%;
+  top: 38%;
+  height: 5px;
+  background: linear-gradient(90deg, #8b93a5, #666e7f);
+  transform: rotate(-9deg);
+  border-radius: 3px;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.45);
+}
+.inc-lobby--stairs .inc-lobby-sign {
+  background: linear-gradient(180deg, #3d5a48 0%, #2e4637 100%);
+  border-color: #567b62;
+}
+.inc-lobby--stairs .inc-lobby-sign-floor {
+  color: #eef4ee;
+  text-shadow: none;
+}
+.inc-lobby--stairs .inc-lobby-sign-name {
+  color: #bfe3c6;
+  text-shadow: none;
+}
