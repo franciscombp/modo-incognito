@@ -23,7 +23,6 @@ import { createSave } from "./game/save.js";
 import { createTouchControls } from "./game/touchControls.js";
 import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./game/settings.js";
 import { createPopups } from "./ui/popups.js";
-import { createAudioControl } from "./ui/audioControl.js";
 import { isMutedState, setMuted, getVolume, unmute } from "./game/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
 import { initTheme } from "./game/theme.js";
@@ -278,9 +277,9 @@ async function boot() {
 
   const popups = createPopups(app, camera);
 
-  // Audio control: muted by default until user interaction
-  const audioControl = createAudioControl();
-  app.appendChild(audioControl);
+  // El control de sonido ya no es un widget suelto en la esquina: es un
+  // menulet de la barra (ver ui/menubar.js), como en macOS. Flotando aparte
+  // chocaba con los paneles de la propia barra y duplicaba su función.
 
   const engine = createEngine({
     app,
