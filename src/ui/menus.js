@@ -176,61 +176,122 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     });
   }
 
-  // ---------------- Character select ----------------
-  const charScreen = makeScreen("characters");
-  const charTitle = el("h2", "inc-menu-screen-title-text", charScreen, "Elige tu personaje");
-  const charGrid = el("div", "inc-menu-day-grid inc-menu-char-grid", charScreen);
+  // ---------------- Character select: PANTALLA DE LOGIN ----------------
+  // La primera pantalla del "sistema operativo" de mentira: elegir personaje
+  // es INICIAR SESIÓN. Un usuario grande con su avatar en círculo, carrusel
+  // con flechas/teclado/swipe, y abajo el muelle con todos los usuarios,
+  // como la pantalla de entrada de un Mac. Los bloqueados aparecen con
+  // candado y su motivo — se desbloquean jugando.
+  const charScreen = makeScreen("characters", "inc-login");
+  const charTitle = el("h2", "inc-login-greeting", charScreen, "Elige tu usuario");
+  const loginStage = el("div", "inc-login-stage", charScreen);
+  const prevBtn = el("button", "inc-login-arrow", loginStage);
+  prevBtn.type = "button";
+  prevBtn.innerHTML = svgIcon("back", { size: 28 });
+  prevBtn.setAttribute("aria-label", "Usuario anterior");
+  const loginUser = el("div", "inc-login-user", loginStage);
+  const nextBtn = el("button", "inc-login-arrow", loginStage);
+  nextBtn.type = "button";
+  nextBtn.innerHTML = svgIcon("next", { size: 28 });
+  nextBtn.setAttribute("aria-label", "Usuario siguiente");
+  const loginDock = el("div", "inc-login-dock", charScreen);
   const charBackBtn = button(el("div", "inc-menu-screen-foot", charScreen), "Volver", {
     back: true,
     onClick: () => show(previousScreen ?? "title"),
   });
 
+  const loginEntries = Object.entries(modes);
+  let loginAt = Math.max(
+    0,
+    loginEntries.findIndex(([id]) => id === (save.characterId ?? "giu"))
+  );
+
+  function moveLogin(delta) {
+    if (!loginEntries.length) return;
+    loginAt = ((loginAt + delta) % loginEntries.length + loginEntries.length) % loginEntries.length;
+    sfxMove();
+    buzz(6);
+    renderCharacters();
+  }
+  prevBtn.addEventListener("click", () => moveLogin(-1));
+  nextBtn.addEventListener("click", () => moveLogin(1));
+
+  // Swipe: el carrusel también se hojea con el dedo.
+  let touchX = null;
+  loginStage.addEventListener("touchstart", (e) => (touchX = e.touches[0]?.clientX ?? null), { passive: true });
+  loginStage.addEventListener(
+    "touchend",
+    (e) => {
+      if (touchX == null) return;
+      const dx = (e.changedTouches[0]?.clientX ?? touchX) - touchX;
+      touchX = null;
+      if (Math.abs(dx) > 40) moveLogin(dx < 0 ? 1 : -1);
+    },
+    { passive: true }
+  );
+
+  function loginSelect(id) {
+    buzz(10);
+    sfxSelect();
+    actions.selectCharacter(id);
+    renderCharBadge();
+    renderCharacters();
+    show(previousScreen ?? "title");
+  }
+
   function renderCharacters() {
-    charGrid.innerHTML = "";
-    // Sin personaje elegido todavía: no hay a dónde "volver" — hay que elegir
-    // para poder jugar. Una vez elegido, la pantalla vuelve a ser opcional.
+    // Sin personaje elegido todavía: no hay a dónde "volver" — hay que
+    // iniciar sesión para poder jugar. Una vez dentro, la pantalla vuelve a
+    // ser opcional.
     const forced = !save.characterId;
-    charTitle.textContent = forced ? "Elige tu personaje para empezar" : "Elige tu personaje";
+    charTitle.textContent = forced ? "¿Quién entra a fingir hoy?" : "Cambiar de usuario";
     charBackBtn.classList.toggle("inc-hidden", forced);
-    Object.entries(modes).forEach(([id, mode]) => {
-      const locked = mode.playable === false;
-      // Giuli va marcada por defecto: es quien narra el día 1 en femenino y
-      // la única con pliego de acciones propio (café, peli, comer).
-      const active = save.characterId === id || (!save.characterId && id === "giu");
-      const card = el(
-        "button",
-        `inc-menu-day inc-menu-char${locked ? " inc-menu-day--locked" : ""}${active ? " inc-menu-day--done" : ""}`,
-        charGrid
-      );
-      card.type = "button";
-      card.disabled = locked;
-      // SIEMPRE el muñeco 3D, el mismo que vas a mover por el piso. Antes
-      // caía al pliego de píxeles y, si tampoco había, a un emoji: elegías un
-      // dibujo pixelado para entrar a un juego 3D. `looks.get` nunca devuelve
-      // vacío, así que quien no tenga receta propia sale con la genérica.
-      const shot = looks ? characterShot(looks.get(id) ?? looks.get(mode.sheet), CARD_POSE[id]) : null;
-      if (shot) {
-        const thumb = el("span", "inc-menu-char-shot", card);
-        thumb.style.backgroundImage = `url(${shot})`;
-      }
-      el(
-        "span",
-        "inc-menu-day-name",
-        card,
-        mode.alias ? `${mode.name} · "${mode.alias}"` : mode.name
-      );
-      el("span", "inc-menu-day-sub", card, locked ? mode.lockedReason ?? "Bloqueado" : mode.blurb ?? "");
-      if (!locked && mode.difficulty) {
-        el("span", "inc-menu-day-best", card, `Modo ${mode.difficulty}`);
-      }
-      card.addEventListener("click", () => {
-        if (locked) return;
-        buzz(10);
-        sfxSelect();
-        actions.selectCharacter(id);
-        renderCharBadge();
+
+    const [id, mode] = loginEntries[loginAt] ?? [];
+    if (!mode) return;
+    const locked = mode.playable === false;
+    loginUser.innerHTML = "";
+    const avatar = el("div", `inc-login-avatar${locked ? " locked" : ""}`, loginUser);
+    // SIEMPRE el muñeco 3D, el mismo que vas a mover por el piso. `looks.get`
+    // nunca devuelve vacío: quien no tenga receta propia sale con la
+    // genérica. Si el cuerpo aún no llegó, refreshCharacters() redibuja al
+    // terminar la precarga.
+    const shot = looks ? characterShot(looks.get(id) ?? looks.get(mode.sheet), CARD_POSE[id]) : null;
+    if (shot) avatar.style.backgroundImage = `url(${shot})`;
+    if (locked) {
+      const lockBadge = el("span", "inc-login-lock", avatar);
+      lockBadge.innerHTML = svgIcon("lock", { size: 22 });
+    }
+    el("div", "inc-login-name", loginUser, mode.alias ? `${mode.name} "${mode.alias}"` : mode.name);
+    const metaBits = [mode.role, !locked && mode.difficulty ? `modo ${mode.difficulty}` : null].filter(Boolean);
+    el("div", "inc-login-role", loginUser, metaBits.join(" · "));
+    el("p", "inc-login-blurb", loginUser, locked ? mode.lockedReason ?? "Bloqueado" : mode.blurb ?? "");
+    const enter = el("button", "inc-btn inc-btn--primary inc-login-enter", loginUser);
+    enter.type = "button";
+    if (locked) {
+      enter.disabled = true;
+      enter.innerHTML = `<span class="inc-menu-btn-icon">${svgIcon("lock")}</span><span>Cuenta bloqueada</span>`;
+    } else {
+      enter.innerHTML = `<span class="inc-menu-btn-icon">${svgIcon("play")}</span><span>Iniciar sesión</span>`;
+      enter.addEventListener("click", () => loginSelect(id));
+    }
+
+    // El muelle de usuarios: un circulito por cuenta, como en un Mac.
+    loginDock.innerHTML = "";
+    loginEntries.forEach(([uid, m], i) => {
+      const dot = el("button", "inc-login-mini", loginDock);
+      dot.type = "button";
+      dot.classList.toggle("active", i === loginAt);
+      dot.classList.toggle("locked", m.playable === false);
+      dot.setAttribute("aria-label", m.name);
+      const miniShot = looks ? characterShot(looks.get(uid) ?? looks.get(m.sheet), CARD_POSE[uid]) : null;
+      if (miniShot) dot.style.backgroundImage = `url(${miniShot})`;
+      el("span", "inc-login-mini-name", dot, m.name);
+      dot.addEventListener("click", () => {
+        if (i === loginAt) return;
+        loginAt = i;
+        sfxMove();
         renderCharacters();
-        show(previousScreen ?? "title");
       });
     });
   }
@@ -459,6 +520,19 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     const key = e.key.toLowerCase();
     const onSlider = document.activeElement?.tagName === "INPUT";
 
+    // En el login, izquierda/derecha hojean el carrusel de usuarios (como en
+    // la pantalla de entrada de un sistema de verdad); arriba/abajo siguen
+    // moviendo el foco para llegar al botón de entrar y al muelle.
+    if (!onSlider && currentScreen === "characters" && (key === "arrowright" || key === "d")) {
+      e.preventDefault();
+      moveLogin(1);
+      return;
+    }
+    if (!onSlider && currentScreen === "characters" && (key === "arrowleft" || key === "a")) {
+      e.preventDefault();
+      moveLogin(-1);
+      return;
+    }
     if (!onSlider && (key === "arrowdown" || key === "s" || key === "arrowright" || key === "d")) {
       e.preventDefault();
       moveFocus(1);
