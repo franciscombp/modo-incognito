@@ -11,16 +11,20 @@
 import * as Tone from "tone";
 import { getSettings, subscribeSettings } from "./settings.js";
 import { THEMES } from "./soundtrackThemes.js";
+import { getStepContent } from "./soundtrackPatterns.js";
 
 let ready = false;
 let started = false;
 let currentThemeName = null;
-let bassSynth, leadSynth, padSynth, percSynth, brassSynth, stringSynth, stingerSynth;
-let bassGain, leadGain, padGain, percGain, brassGain, stringGain, stingerGain;
+let bassSynth, leadSynth, padSynth, percSynth, brassSynth, stringSynth, guitarSynth, fxSynth, stingerSynth;
+let bassGain, leadGain, padGain, percGain, brassGain, stringGain, guitarGain, fxGain, stingerGain;
 let masterGain;
 let mainLoop = null;
 let percLoop = null;
 let stepIndex = 0;
+const synthByLayer = {};
+const gainByLayer = {};
+
 // Último instante (en segundos de audio) en que cada synth monofónico sonó de
 // verdad. Un synth mono revienta si se le pide `triggerAttack` en un instante
 // igual o anterior al último que ya atacó — y eso pasa de verdad cuando
@@ -28,7 +32,7 @@ let stepIndex = 0;
 // el siguiente tick puede recalcular un "time" que cae encima o antes del
 // anterior. Sin este guardián el synth lanzaba, y esos golpes perdidos/rotos
 // eran justo lo que se oía como "todo se mezcla mal" al cambiar de ánimo.
-const lastTrigger = { bass: -1, lead: -1, pad: -1, perc: -1, brass: -1, string: -1 };
+const lastTrigger = { bass: -1, lead: -1, pad: -1, perc: -1, brass: -1, string: -1, guitar: -1, fx: -1, piano: -1, organ: -1, choir: -1 };
 function safeTrigger(synth, key, note, duration, time) {
   if (time <= lastTrigger[key]) return;
   lastTrigger[key] = time;
@@ -52,17 +56,31 @@ function build() {
   percGain = new Tone.Gain(0).connect(masterGain);
   brassGain = new Tone.Gain(0).connect(masterGain);
   stringGain = new Tone.Gain(0).connect(masterGain);
+  guitarGain = new Tone.Gain(0).connect(masterGain);
+  fxGain = new Tone.Gain(0).connect(masterGain);
+  pianoGain = new Tone.Gain(0).connect(masterGain);
+  organGain = new Tone.Gain(0).connect(masterGain);
+  choirGain = new Tone.Gain(0).connect(masterGain);
 
-  bassSynth = new Tone.Synth({
+  bassSynth = new Tone.FMSynth({
     oscillator: { type: "triangle" },
-    envelope: { attack: 0.01, decay: 0.15, sustain: 0.2, release: 0.2 },
+    envelope: { attack: 0.005, decay: 0.16, sustain: 0.16, release: 0.2 },
+    modulation: { type: "sine" },
   }).connect(bassGain);
 
-  // Pizzicato/ukulele: PluckSynth es justo esa cuerda pulsada y corta que le
-  // da al riff su aire de "mockumentary de oficina" en vez de sonar a videojuego serio.
-  leadSynth = new Tone.PluckSynth({ attackNoise: 0.6, dampening: 3200, resonance: 0.82 }).connect(
-    leadGain
-  );
+  leadSynth = new Tone.DuoSynth({
+    vibratoAmount: 0.03,
+    vibratoRate: 4,
+    harmonicity: 1.02,
+    voice0: {
+      oscillator: { type: "sine" },
+      envelope: { attack: 0.01, decay: 0.12, sustain: 0.35, release: 0.16 },
+    },
+    voice1: {
+      oscillator: { type: "triangle" },
+      envelope: { attack: 0.02, decay: 0.16, sustain: 0.32, release: 0.2 },
+    },
+  }).connect(leadGain);
 
   padSynth = new Tone.PolySynth(Tone.Synth, {
     oscillator: { type: "sine" },
@@ -74,19 +92,64 @@ function build() {
     envelope: { attack: 0.001, decay: 0.04, sustain: 0 },
   }).connect(percGain);
 
-  // Trompetas de fanfarria: diente de sierra con ataque duro, el "¡pa-pa!"
-  // festivo de una banda de pop-rock, no un pad ni un lead más.
   brassSynth = new Tone.PolySynth(Tone.Synth, {
     oscillator: { type: "sawtooth" },
     envelope: { attack: 0.008, decay: 0.22, sustain: 0.15, release: 0.2 },
   }).connect(brassGain);
 
-  // Strings sintetizados: onda cuadrada suave para acordes sostenidos
-  // tipo violín sintético (tímbrica más cálida que pad puro).
   stringSynth = new Tone.PolySynth(Tone.Synth, {
     oscillator: { type: "square" },
     envelope: { attack: 0.3, decay: 0.2, sustain: 0.7, release: 1.0 },
   }).connect(stringGain);
+
+  guitarSynth = new Tone.PluckSynth({ attackNoise: 0.32, dampening: 5600, resonance: 0.76 }).connect(guitarGain);
+
+  fxSynth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.005, decay: 0.08, sustain: 0.08, release: 0.14 },
+  }).connect(fxGain);
+
+  pianoSynth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "triangle" },
+    envelope: { attack: 0.01, decay: 0.2, sustain: 0.3, release: 0.35 },
+  }).connect(pianoGain);
+
+  organSynth = new Tone.FMSynth({
+    harmonicity: 2.5,
+    modulationIndex: 8,
+    oscillator: { type: "sawtooth" },
+    envelope: { attack: 0.004, decay: 0.2, sustain: 0.4, release: 0.1 },
+    modulation: { type: "sine" },
+  }).connect(organGain);
+
+  choirSynth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type: "sine" },
+    envelope: { attack: 0.06, decay: 0.18, sustain: 0.55, release: 0.6 },
+  }).connect(choirGain);
+
+  synthByLayer.bass = bassSynth;
+  synthByLayer.lead = leadSynth;
+  synthByLayer.pad = padSynth;
+  synthByLayer.perc = percSynth;
+  synthByLayer.brass = brassSynth;
+  synthByLayer.string = stringSynth;
+  synthByLayer.guitar = guitarSynth;
+  synthByLayer.fx = fxSynth;
+  synthByLayer.piano = pianoSynth;
+  synthByLayer.organ = organSynth;
+  synthByLayer.choir = choirSynth;
+
+  gainByLayer.bass = bassGain;
+  gainByLayer.lead = leadGain;
+  gainByLayer.pad = padGain;
+  gainByLayer.perc = percGain;
+  gainByLayer.brass = brassGain;
+  gainByLayer.string = stringGain;
+  gainByLayer.guitar = guitarGain;
+  gainByLayer.fx = fxGain;
+  gainByLayer.piano = pianoGain;
+  gainByLayer.organ = organGain;
+  gainByLayer.choir = choirGain;
 
   // Los stingers (victoria/derrota) tienen su propio sintetizador a
   // propósito. Compartir `leadSynth` con el bucle hacía que Tone lanzara
@@ -124,6 +187,32 @@ async function ensureStarted() {
   document.addEventListener(event, () => ensureStarted(), { passive: true });
 });
 
+function playLayerStep(theme, layer, time, stepIndex) {
+  const synth = synthByLayer[layer];
+  const gain = gainByLayer[layer];
+  if (!synth || !gain) return;
+  if (gain.gain.value <= 0.001) return;
+
+  const contents = getStepContent(theme, layer, stepIndex);
+  if (!contents.length) return;
+
+  const baseVolume = theme.mix?.[layer] ?? 0.5;
+  contents.forEach((event) => {
+    const notes = event.notes ?? (event.note ? [event.note] : []);
+    const noteList = (Array.isArray(notes) ? notes : [notes]).filter(Boolean);
+    if (!noteList.length) return;
+    const volume = Math.max(0.05, Math.min(1, (event.velocity ?? baseVolume) * 1.05));
+    const duration = event.duration ?? "8n";
+    const toPlay = noteList.length === 1 ? noteList[0] : noteList;
+    if (layer === "perc") {
+      safeTrigger(synth, layer, toPlay, duration, time);
+      return;
+    }
+    if (volume <= 0) return;
+    safeTrigger(synth, layer, toPlay, duration, time);
+  });
+}
+
 // Un único Tone.Loop persistente por capa, en vez de un Tone.Sequence que se
 // destruye y se recrea en cada cambio de ánimo. Lo segundo sonaba fatal:
 // disposer + recrear mientras el Transport seguía corriendo hacía que Tone
@@ -138,21 +227,9 @@ function ensureLoops() {
     mainLoop = new Tone.Loop((time) => {
       const theme = THEMES[currentThemeName];
       if (!theme) return;
-      // Cada capa lee su PROPIA longitud, no `theme.steps`: lead trae el
-      // doble de pasos que bass (una frase de dos vueltas de bajo en vez de
-      // una), y modular todo por `theme.steps` (8) recortaba esa segunda
-      // mitad de la melodía sin que sonara ningún error — simplemente nunca
-      // se tocaba.
-      const bassNote = theme.bass?.length ? theme.bass[stepIndex % theme.bass.length] : null;
-      if (bassNote != null) safeTrigger(bassSynth, "bass", bassNote, "8n", time);
-      const leadNote = theme.lead?.length ? theme.lead[stepIndex % theme.lead.length] : null;
-      if (leadNote != null) safeTrigger(leadSynth, "lead", leadNote, "8n", time);
-      const padNote = theme.pad?.length ? theme.pad[stepIndex % theme.pad.length] : null;
-      if (padNote != null) safeTrigger(padSynth, "pad", padNote, "8n", time);
-      const brassNote = theme.brass?.length ? theme.brass[stepIndex % theme.brass.length] : null;
-      if (brassNote != null) safeTrigger(brassSynth, "brass", brassNote, "8n", time);
-      const stringNote = theme.string?.length ? theme.string[stepIndex % theme.string.length] : null;
-      if (stringNote != null) safeTrigger(stringSynth, "string", stringNote, "8n", time);
+      ["bass", "lead", "pad", "brass", "guitar", "string", "fx", "piano", "organ", "choir"].forEach((layer) => {
+        playLayerStep(theme, layer, time, stepIndex);
+      });
       stepIndex++;
     }, "8n").start(0);
   }
@@ -187,12 +264,17 @@ export async function setMood(name) {
   Tone.Transport.bpm.rampTo(theme.bpm, 0.6);
 
   const mix = theme.mix;
-  bassGain.gain.rampTo(mix.bass, 0.5);
-  leadGain.gain.rampTo(mix.lead, 0.5);
-  padGain.gain.rampTo(mix.pad, 0.5);
-  percGain.gain.rampTo(mix.perc, 0.5);
+  bassGain.gain.rampTo(mix.bass ?? 0, 0.5);
+  leadGain.gain.rampTo(mix.lead ?? 0, 0.5);
+  padGain.gain.rampTo(mix.pad ?? 0, 0.5);
+  percGain.gain.rampTo(mix.perc ?? 0, 0.5);
   brassGain.gain.rampTo(mix.brass ?? 0, 0.5);
   stringGain.gain.rampTo(mix.string ?? 0, 0.5);
+  guitarGain.gain.rampTo(mix.guitar ?? 0, 0.5);
+  fxGain.gain.rampTo(mix.fx ?? 0, 0.5);
+  pianoGain.gain.rampTo(mix.piano ?? 0, 0.5);
+  organGain.gain.rampTo(mix.organ ?? 0, 0.5);
+  choirGain.gain.rampTo(mix.choir ?? 0, 0.5);
 
   if (Tone.Transport.state !== "started") Tone.Transport.start();
 }
@@ -228,6 +310,11 @@ export function soundtrackState() {
           perc: +percGain.gain.value.toFixed(3),
           brass: +brassGain.gain.value.toFixed(3),
           string: +stringGain.gain.value.toFixed(3),
+          guitar: +guitarGain.gain.value.toFixed(3),
+          fx: +fxGain.gain.value.toFixed(3),
+          piano: +pianoGain.gain.value.toFixed(3),
+          organ: +organGain.gain.value.toFixed(3),
+          choir: +choirGain.gain.value.toFixed(3),
         }
       : null,
   };

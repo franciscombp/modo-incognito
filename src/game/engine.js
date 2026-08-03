@@ -258,7 +258,7 @@ export function createEngine({
     game?.setPaused(true);
     hud.setVisible(false);
     hud.hideResult();
-    setMood("main");
+    setMood("title");
     const done = save.state.completedDays.length;
     menus.openTitle({
       hasProgress: done > 0 || save.dayIndex > 0,
@@ -270,6 +270,7 @@ export function createEngine({
     if (!inLevel || dialogue.isOpen || game?.gameOver) return;
     menuPaused = true;
     game?.setPaused(true);
+    setMood("calm");
     menus.openPause(`Día ${levels[dayIndex].number} · ${levels[dayIndex].title}`);
   }
 
@@ -521,7 +522,7 @@ export function createEngine({
     // Día nuevo: las alertas de "una sola vez" (media hora de nada, etc.)
     // vuelven a contar, y no arrastramos las de ayer en pantalla.
     menuBar.resetNotices();
-    setMood("calm");
+    setMood("main");
     teamsTimer = null;
     lastTeamsMessage = null;
     resetEntities();
