@@ -287,6 +287,20 @@ const POSE_LIBRARY = {
   },
 };
 
+/**
+ * Colores por región para un cuerpo sin textura. El .glb base de Kiara viene
+ * sin material: se pinta POR VÉRTICE según qué hueso manda en cada uno, así
+ * que cada personaje que lo preste puede ir de sus propios colores solo con
+ * un bloque `paint` en su receta.
+ */
+export const DEFAULT_PAINT = {
+  skin: "#e8b088",
+  hair: "#3a2c26",
+  top: "#7f96ab",
+  bottom: "#3d4358",
+  shoes: "#e8e2d8",
+};
+
 export const DEFAULT_RECIPE = {
   skin: "#f0c9a8",
   hair: { color: "#3a2c26", style: "short" },
@@ -314,6 +328,9 @@ function mergeRecipe(recipe) {
     // se pierde en silencio. `baseModel` faltaba, y por eso el camino del .glb
     // no llegó a ejecutarse nunca: llegaba siempre como undefined.
     baseModel: r.baseModel ?? null,
+    // Pintura por regiones para cuerpos SIN textura (ver _paintByBones):
+    // { skin, hair, top, bottom, shoes }. En un .glb con textura se ignora.
+    paint: r.paint ?? null,
     // Altura propia de la receta, si trae una — ver setRecipe(). Sin esto,
     // todo cuerpo importado se escala a la altura que le pasó quien lo creó
     // (characters.json por rol: jefe, secuaz, jugadora…), la misma para
@@ -453,6 +470,81 @@ export class Character3D {
     this._assembleGLB(gltf, r, modelName);
   }
 
+  /**
+   * Pinta un cuerpo sin textura POR VÉRTICE, mirando qué hueso pesa más en
+   * cada uno: manos y cabeza son piel, torso y brazos la prenda, caderas y
+   * piernas el pantalón, pies zapatos. Dentro de la cabeza, la mitad de
+   * arriba (y la nuca) es pelo — no hay hueso de pelo, así que se corta por
+   * altura sobre la propia caja de los vértices de cabeza.
+   */
+  _paintByBones(mesh, paint) {
+    const colors = { ...DEFAULT_PAINT, ...(paint ?? {}) };
+    // cloneSkinned COMPARTE la geometría entre instancias (es lo barato);
+    // pintar colores por vértice sobre la compartida repintaba a TODO el
+    // reparto del color del último en montarse. Cada muñeco pinta su copia.
+    mesh.geometry = mesh.geometry.clone();
+    const geo = mesh.geometry;
+    const pos = geo.getAttribute("position");
+    const skinIndex = geo.getAttribute("skinIndex");
+    const skinWeight = geo.getAttribute("skinWeight");
+    if (!pos || !skinIndex || !skinWeight || !mesh.skeleton) return;
+
+    const boneNames = mesh.skeleton.bones.map((b) => b.name);
+    const REGION_OF = (name) => {
+      if (/hand/i.test(name)) return "skin";
+      if (/head|neck/i.test(name)) return "head"; // se decide piel/pelo abajo
+      if (/foot|toe/i.test(name)) return "shoes";
+      if (/upleg|leg/i.test(name)) return "bottom";
+      if (/hips/i.test(name)) return "bottom";
+      return "top"; // spine, chest, shoulder, arm, forearm
+    };
+
+    // La caja de la cabeza, para el corte piel/pelo.
+    let headMinY = Infinity;
+    let headMaxY = -Infinity;
+    const domOf = new Array(pos.count);
+    for (let i = 0; i < pos.count; i++) {
+      let best = 0;
+      let bestW = -1;
+      for (let k = 0; k < 4; k++) {
+        const w = skinWeight.getComponent(i, k);
+        if (w > bestW) {
+          bestW = w;
+          best = skinIndex.getComponent(i, k);
+        }
+      }
+      const region = REGION_OF(boneNames[best] ?? "");
+      domOf[i] = region;
+      if (region === "head") {
+        const y = pos.getY(i);
+        if (y < headMinY) headMinY = y;
+        if (y > headMaxY) headMaxY = y;
+      }
+    }
+    const hairline = headMinY + (headMaxY - headMinY) * 0.55;
+
+    const c = new THREE.Color();
+    const out = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+      let region = domOf[i];
+      if (region === "head") {
+        // Arriba de la línea, o detrás de la cabeza (nuca), es pelo.
+        region = pos.getY(i) > hairline || pos.getZ(i) < -0.055 ? "hair" : "skin";
+      }
+      c.set(colors[region] ?? colors.top);
+      out[i * 3] = c.r;
+      out[i * 3 + 1] = c.g;
+      out[i * 3 + 2] = c.b;
+    }
+    geo.setAttribute("color", new THREE.BufferAttribute(out, 3));
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const m of mats) {
+      m.vertexColors = true;
+      m.color?.set("#ffffff");
+      m.needsUpdate = true;
+    }
+  }
+
   /** El montaje en sí, sin nada que esperar. Ver `_buildFromGLB`. */
   _assembleGLB(gltf, r, modelName) {
     const H = this.height;
@@ -465,6 +557,17 @@ export class Character3D {
       if (!mesh && o.isSkinnedMesh) mesh = o;
     });
     if (!mesh) throw new Error(`El modelo ${modelName} no trae ningún SkinnedMesh`);
+
+    // Un cuerpo SIN textura (el .glb base viene desnudo a propósito) se
+    // pinta aquí por vértice: cada hueso dominante decide la región (piel,
+    // pelo, prenda, pantalón, zapatos) y la receta pone los colores.
+    let untextured = true;
+    model.traverse((o) => {
+      if (!o.isMesh && !o.isSkinnedMesh) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      if (mats.some((m) => m?.map)) untextured = false;
+    });
+    if (untextured) this._paintByBones(mesh, r.paint);
 
     // Cada exportador deja su propio metalness/roughness en el material —
     // varios cuerpos importados traen metalness:1 con un roughness bajo, que
@@ -573,13 +676,22 @@ export class Character3D {
     // ese: para eso lo exportó quien modeló el personaje.
     this._mixer = null;
     this._walkAction = null;
+    this._runAction = null;
     const clips = gltf.animations ?? [];
     const walkClip = pickClip(clips, ["walk", "walking", "caminar", "andar"]);
-    if (walkClip) {
+    const runClip = pickClip(clips, ["run", "running", "correr", "sprint"]);
+    if (walkClip || runClip) {
       this._mixer = new THREE.AnimationMixer(model);
-      this._walkAction = this._mixer.clipAction(walkClip);
-      this._walkAction.play();
-      this._walkAction.setEffectiveWeight(0);
+      if (walkClip) {
+        this._walkAction = this._mixer.clipAction(walkClip);
+        this._walkAction.play();
+        this._walkAction.setEffectiveWeight(0);
+      }
+      if (runClip) {
+        this._runAction = this._mixer.clipAction(runClip);
+        this._runAction.play();
+        this._runAction.setEffectiveWeight(0);
+      }
     }
 
     // El T-pose del archivo es SAGRADO: todas las rotaciones se aplican de forma
@@ -827,15 +939,50 @@ export class Character3D {
     // en escribir gana y sale un temblor. Mientras camina manda el clip; en
     // cuanto hay una pose (café, dormir, susto) vuelven las nuestras, que son
     // las que el juego necesita y ningún .glb trae.
-    if (this._walkAction) {
-      const want = this._moving && this._blend < 0.5 ? 1 : 0;
-      const w = this._walkAction.getEffectiveWeight();
-      const next = w + (want - w) * Math.min(1, dt * 10);
-      this._walkAction.setEffectiveWeight(next);
+    if (this._mixer) {
+      // La velocidad no se pide a quien mueve al personaje: se MIDE del propio
+      // desplazamiento entre frames. Así jugadora, jefe, secuaces y NPCs
+      // quedan sincronizados sin que ninguno tenga que avisar de nada.
+      const px = this.object.position.x;
+      const pz = this.object.position.z;
+      let speed = 0;
+      if (this._lastPos) {
+        speed = Math.hypot(px - this._lastPos.x, pz - this._lastPos.z) / Math.max(dt, 1e-4);
+      }
+      this._lastPos = { x: px, z: pz };
+      this._speedSmooth = (this._speedSmooth ?? 0) * 0.8 + speed * 0.2;
+
+      // Los clips vienen calibrados para un cuerpo de 1.7 unidades: paso
+      // ~1.25 u/s andando y ~3.1 u/s corriendo. Se reescalan a la altura de
+      // ESTE muñeco y el reloj del clip sigue a la velocidad real — es lo que
+      // mata el patinaje de pies, que era andar a 5 u/s con un ciclo de 1.25.
+      const bodyScale = this.height / 1.7;
+      const runThreshold = 2.1 * bodyScale;
+      const running = this._runAction && this._speedSmooth > runThreshold;
+
+      const moving = this._moving && this._blend < 0.5;
+      const wantWalk = moving && !running ? 1 : 0;
+      const wantRun = moving && running ? 1 : 0;
+      let top = 0;
+      for (const [action, want, ref] of [
+        [this._walkAction, wantWalk, 1.25],
+        [this._runAction, wantRun, 3.1],
+      ]) {
+        if (!action) continue;
+        const w = action.getEffectiveWeight();
+        const next = w + (want - w) * Math.min(1, dt * 10);
+        action.setEffectiveWeight(next);
+        if (want) {
+          action.timeScale = THREE.MathUtils.clamp(
+            this._speedSmooth / (ref * bodyScale) || 1, 0.55, 2.4
+          );
+        }
+        top = Math.max(top, next);
+      }
       this._mixer.update(dt);
       // A pleno peso no se toca nada más: pisar el clip con `_applyPose` es
       // justo lo que devolvía la marcha militar.
-      if (next > 0.99) return;
+      if (top > 0.99) return;
     }
 
     this._applyPose();
@@ -1021,6 +1168,8 @@ export class Character3D {
     this._mixer?.stopAllAction();
     this._mixer = null;
     this._walkAction = null;
+    this._runAction = null;
+    this._lastPos = null;
     this._face?.dispose();
     this._face = null;
     this._extras.forEach((m) => {
