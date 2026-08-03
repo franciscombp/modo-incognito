@@ -5,7 +5,7 @@
  * - Indicador visual del estado de audio
  */
 
-import { isMutedState, setMuted, setVolume, getVolume, unmute } from "../game/audioControl.js";
+import { isMutedState, setMuted, setVolume, getVolume, unmute, subscribeAudio } from "../game/audioControl.js";
 import { icon } from "./icons.js";
 
 export function createAudioControl() {
@@ -127,32 +127,25 @@ export function createAudioControl() {
     document.head.appendChild(style);
   }
 
+  // Solo visual: pinta el estado actual, sin tocarlo. El "mover el slider
+  // desmutea" vive en el handler de input — cuando el que lo movió es un
+  // dedo de verdad. Antes esto también desmuteaba al redibujarse, así que
+  // cualquier refresco programático (la tecla V, el mute al perder foco)
+  // se deshacía a sí mismo al instante.
   const updateVolumeSlider = () => {
     const newVal = Math.round(getVolume() * 100);
     volumeSlider.value = String(newVal);
     volumeSlider.style.background = 'linear-gradient(to right, hsl(var(--accent-main)) 0%, hsl(var(--accent-main)) ' +
       newVal + '%, hsl(var(--text-faint) / 0.3) ' + newVal + '%, hsl(var(--text-faint) / 0.3) 100%)';
-
-    // Si el usuario mueve el slider, desactiva mute automáticamente
-    if (isMutedState()) {
-      setMuted(false);
-      updateMuteButton();
-    }
   };
 
   volumeSlider.addEventListener('input', (e) => {
     const newVolume = parseInt(e.target.value) / 100;
-    setVolume(newVolume);
+    // Mover el volumen ES querer oír: desmutea si hacía falta.
+    if (isMutedState()) unmute(newVolume);
+    else setVolume(newVolume);
     updateVolumeSlider();
     updateMuteButton();
-  });
-
-  volumeSlider.addEventListener('change', () => {
-    // Desactiva mute si cambió el volumen
-    if (isMutedState()) {
-      unmute(getVolume());
-      updateMuteButton();
-    }
   });
 
   container.appendChild(muteButton);
@@ -160,6 +153,14 @@ export function createAudioControl() {
 
   // Inicializar estado visual
   updateMuteButton();
+  updateVolumeSlider();
+
+  // Cambios hechos desde FUERA del widget (tecla V, mute por perder el
+  // foco, otro control futuro): el widget se repinta para no mentir.
+  subscribeAudio(() => {
+    updateMuteButton();
+    updateVolumeSlider();
+  });
 
   return container;
 }
