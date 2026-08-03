@@ -3665,7 +3665,7 @@ body.touch-device #hint {
 .px-menu-scrim {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 35%, rgba(74, 78, 118, 0.42), rgba(26, 28, 50, 0.72));
+  background: radial-gradient(circle at 50% 35%, rgba(238, 240, 245, 0.55), rgba(214, 218, 232, 0.8));
 }
 
 /* Parpadeo de tubo CRT muy sutil, para que el menú se sienta arcade y no una
@@ -6286,11 +6286,11 @@ input[type="range"]:focus-visible {
 .inc-menu-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(165deg, #262a44 0%, #131527 100%);
+  background: linear-gradient(180deg, #eef0f5 0%, #e1e4ee 100%);
 }
 
 body.inc-game-active .inc-menu-scrim {
-  background: radial-gradient(circle at 50% 35%, rgba(74, 78, 118, 0.42), rgba(26, 28, 50, 0.72));
+  background: radial-gradient(circle at 50% 35%, rgba(238, 240, 245, 0.55), rgba(214, 218, 232, 0.8));
 }
 
 .inc-menu::after {
@@ -8096,5 +8096,82 @@ body.inc-game-active .inc-menu-scrim {
     background: rgba(30, 33, 52, 0.92);
     color: var(--ink);
     border-color: var(--line);
+  }
+}
+
+/* ============================================================
+   BOOT — el arranque como el encendido de una computadora:
+   log en monoespaciada con estado por línea y barra fina,
+   como el boot de maldonado.pro. Claro, mono y sin adornos.
+   ============================================================ */
+#boot {
+  background: linear-gradient(180deg, #eef0f5, #e4e7f0);
+  place-content: center;
+}
+.boot-shell {
+  width: min(560px, 86vw);
+  display: grid;
+  gap: 22px;
+  font-family: var(--mono);
+}
+.boot-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.34em;
+  color: var(--dim);
+}
+.boot-log {
+  display: grid;
+  gap: 10px;
+  min-height: 5.5em;
+  align-content: start;
+}
+.boot-line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: clamp(13px, 1.6vw, 16px);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.boot-line-t {
+  white-space: nowrap;
+}
+.boot-line-dots {
+  flex: 1;
+  border-bottom: 2px dotted rgba(var(--ink-rgb), 0.28);
+  transform: translateY(-3px);
+}
+.boot-line-s {
+  font-style: normal;
+  color: var(--red);
+  white-space: nowrap;
+}
+.boot-line:first-child .boot-line-s {
+  color: var(--cyan);
+}
+#boot .boot-bar {
+  width: 100%;
+  height: 4px;
+  border: none;
+  border-radius: 999px;
+  box-shadow: none;
+  background: rgba(var(--ink-rgb), 0.12);
+  overflow: hidden;
+}
+#boot .boot-bar span {
+  border-radius: 999px;
+  background: var(--red);
+}
+@media (prefers-color-scheme: dark) {
+  #boot {
+    background: linear-gradient(180deg, #14162a, #0e1020);
+  }
+  /* Y los menús oscuros conservan su anochecer (la referencia clara es
+     para el esquema claro). */
+  .inc-menu-scrim {
+    background: linear-gradient(165deg, #191c30 0%, #0d0f1e 100%);
   }
 }
