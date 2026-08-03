@@ -119,7 +119,10 @@ const posed = await page.evaluate(async () => {
   const g = window.__game;
   const s = g?.player?.sprite;
   if (!s?._built || !s.recipe?.baseModel) return null;
-  const arm = s.bone("LeftArm");
+  // El brazo DERECHO: es el que sujeta la taza en "coffee" — el izquierdo se
+  // queda a propósito en su reposo, y medirlo daba un giro de ~0.002 rad que
+  // parecía un rig roto sin serlo.
+  const arm = s.bone("RightArm");
   const chest = s.bone("Chest");
   if (!arm) return { arm: false };
   // El giro se compone sobre el reposo (ver `setBoneRotation`), así que lo que
