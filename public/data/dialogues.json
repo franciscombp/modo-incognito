@@ -254,6 +254,14 @@
             "speaker": "Manu de la suerte",
             "text": "«No contaban con mi astucia» — Chapulín Colorado, y yo cada vez que esquivo una reunión de las 8am."
           }
+        ],
+        [
+          {
+            "text": "Te cuento pero no digas nada: el wifi del piso no se llama «Piso10_Corporativo». Se llama «vamo_a_calmarno_5G» y la clave la puso el Parce."
+          },
+          {
+            "text": "Sistemas lleva un año intentando cambiarla. El Parce dice que primero tienen que ganarle en el FIFA."
+          }
         ]
       ]
     },
@@ -325,6 +333,14 @@
             "mood": "angry",
             "text": "«Vamo a calmarno» me dijo el de Talento Humano. A MÍ. El que menos calmado está en este edificio soy yo, con toda razón."
           }
+        ],
+        [
+          {
+            "text": "¿Viste que pusieron una planta nueva junto al ascensor? Es de plástico. La riegan igual. Lleva un mes CRECIENDO."
+          },
+          {
+            "text": "Yo ya no pregunto. En esta empresa las cosas que no deberían funcionar son las únicas que funcionan."
+          }
         ]
       ]
     },
@@ -390,6 +406,19 @@
           {
             "speaker": "Enriquetta",
             "text": "«Las mujeres ya no lloran, facturan», mi amor. Yo ya llevo tres horas facturando chisme del bueno."
+          }
+        ],
+        [
+          {
+            "text": "¿Supiste lo del refrigerador del piso 9? Alguien lleva TRES meses guardando un tupper que ya tiene ecosistema propio."
+          },
+          {
+            "text": "Recursos Humanos mandó un correo. El tupper respondió. Nadie quiere abrir ese hilo."
+          }
+        ],
+        [
+          {
+            "text": "Dicen que en la sala 6 hay una reunión que empezó en 2023 y nunca terminó. Que si acercas la oreja a la puerta se oye «¿me escuchan? creo que estás en mute»."
           }
         ]
       ]
@@ -605,6 +634,14 @@
             "speaker": "Giuli",
             "text": "Estoy en modo Shakira: aunque me pregunten qué hago, la cadera —digo, el mouse— no miente. Sigue moviéndose. Nada más."
           }
+        ],
+        [
+          {
+            "text": "Chisme fino: Gabo pidió una silla ergonómica «de importación». Llegó una silla normal con una etiqueta que dice «ergonomic» pegada con cinta."
+          },
+          {
+            "text": "Se sienta como si fuera un trono. Nadie le ha dicho nada. Es más bonito así."
+          }
         ]
       ]
     },
@@ -653,6 +690,14 @@
           {
             "speaker": "Fran",
             "text": "Estoy compilando algo. No preguntes qué. «No contaban con mi astucia» aplica también a los sprints."
+          }
+        ],
+        [
+          {
+            "text": "Alguien imprimió 200 páginas de memes de Shakira en la impresora buena y ahora hay una investigación interna. Con comité y todo."
+          },
+          {
+            "text": "El principal sospechoso es el comité."
           }
         ]
       ]
@@ -721,6 +766,14 @@
             "speaker": "El Parce",
             "text": "Ala parce, ¿vio el partido? No, mentiras, aquí no se ve nada. Yo solo vengo a ofrecerle un traguito y a decir «vamo a calmarno» cuando el jefe pasa."
           }
+        ],
+        [
+          {
+            "text": "Ala parce, ¿le cuento el chisme gordo? En el cajón de Crispo no hay cuadernos. Hay UN cuaderno... con la lista de cuántas veces parpadea cada uno."
+          },
+          {
+            "text": "A mí me tiene en 12.400 este mes. Dice que parpadeo «con intención». Vamo a calmarno."
+          }
         ]
       ]
     }
@@ -767,5 +820,32 @@
       "¿alguien mas siente que esta semana es un capítulo de telenovela? porque yo sí, y soy el malo",
       "actualización de humor: hoy me siento Shakira en videollamada, la cadera no miente pero el ánimo tampoco"
     ]
-  }
+  },
+  "$exhausted": [
+    "POZO GLOBAL DE DESPEDIDAS: cuando un personaje agota sus escenas, cierra",
+    "con una de estas en vez de repetirse palabra por palabra. Un encounter",
+    "puede traer el suyo propio (encounters.<id>.exhausted) y gana al global."
+  ],
+  "exhausted": [
+    [
+      {
+        "text": "Me encanta el chisme, de verdad, pero Gabo me encargó una cosa y me está mirando. Luego seguimos."
+      }
+    ],
+    [
+      {
+        "text": "Espera, espera... ahí viene alguien. Hazte la ocupada. Luego te cuento el resto."
+      }
+    ],
+    [
+      {
+        "text": "Ya te conté todo lo que sé. Cuando sepa más, tú eres la primera. Palabra de oficina."
+      }
+    ],
+    [
+      {
+        "text": "Uy no, ya hablamos mucho. Crispo lleva DOS minutos mirándonos y apuntando. Circula."
+      }
+    ]
+  ]
 }
