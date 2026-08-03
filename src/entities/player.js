@@ -88,7 +88,12 @@ export class Player {
     // Standing still while "working" still shows the idle pose, not a walk.
     // Moverse cancela la pose: no puedes tomar café mientras caminas.
     this.sprite.setPose(moving ? null : this.pose);
-    if (!moving) this.sprite.setFacing(this.facing);
+    // Quieto, el muñeco CONSERVA el rumbo que le haya puesto el juego
+    // (sentarse de cara a la mesa, encarar a quien te habla). Antes aquí se
+    // re-imponía la cardinal de pantalla cada frame, y pisaba cualquier
+    // orientación de mundo un frame después de fijarla. La cardinal
+    // `facing` que lee el resto del juego se sincroniza DESDE el sprite.
+    if (!moving) this.facing = this.sprite.facing;
     this.sprite.setMoving(moving && !this.isPretending);
     this.sprite.setPosition(this.position.x, this.position.z);
     this.sprite.setTint(this.isHiding ? 0.6 : 1);

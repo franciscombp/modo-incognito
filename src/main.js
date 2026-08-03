@@ -11,6 +11,7 @@ import { skyTexture, ATMOSPHERE } from "./scene/cozy.js";
 import * as floorplan from "./scene/floorplan.js";
 import { setActiveScene } from "./scene/floorplan.js";
 import * as iso from "./scene/iso.js";
+import { getCameraSettings, setCameraSettings } from "./scene/cameraSettings.js";
 import { loadGameData, preloadBaseModels } from "./data/loader.js";
 import { Player } from "./entities/player.js";
 import { NPC } from "./entities/npc.js";
@@ -608,6 +609,22 @@ async function boot() {
     if (moved || hintPlayTime > 18) document.body.classList.add("hints-done");
   }
 
+  // El yaw en el que estaba la cámara antes de la acción, para devolverlo al
+  // soltar. null = no hay acción en curso ni vuelta pendiente.
+  let actionYawRestore = null;
+  /** Orbita el yaw hacia `targetDeg` por el arco corto; true al llegar. */
+  function orbitTowards(targetDeg, dt) {
+    const cur = getCameraSettings().yawDeg;
+    const delta = ((targetDeg - cur + 540) % 360) - 180;
+    if (Math.abs(delta) < 0.5) {
+      setCameraSettings({ yawDeg: targetDeg }, { persistNow: false });
+      return true;
+    }
+    const step = delta * Math.min(1, dt * 4.5);
+    setCameraSettings({ yawDeg: cur + step }, { persistNow: false });
+    return false;
+  }
+
   let last = performance.now();
   function animate(now) {
     const dt = Math.min((now - last) / 1000, 0.05);
@@ -634,7 +651,21 @@ async function boot() {
       updateHidingMarkers();
       updateSafeSpotMarkers();
       updateLabels();
-      view.setActionZoom(!!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending));
+      const acting = !!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending);
+      view.setActionZoom(acting);
+      // Mientras dura una acción, la cámara ORBITA sola hasta ver a la
+      // jugadora DE FRENTE — la pose y el gesto son el premio visual y de
+      // espaldas no se ven — y al soltar vuelve, también orbitando, al yaw
+      // en el que estaba. Se toca el yaw de los settings (sin persistir),
+      // que es por donde ya pasan el orbit manual y el mapeo de controles:
+      // así mover con WASD sigue siendo coherente con lo que se ve.
+      const spriteYaw = engine.game?.player?.sprite?._yaw;
+      if (acting && spriteYaw != null) {
+        if (actionYawRestore == null) actionYawRestore = getCameraSettings().yawDeg;
+        orbitTowards(THREE.MathUtils.radToDeg(spriteYaw), dt);
+      } else if (actionYawRestore != null) {
+        if (orbitTowards(actionYawRestore, dt)) actionYawRestore = null;
+      }
       view.update(dt, player.position);
       popups.update(dt);
       pixels.render(scene, camera);

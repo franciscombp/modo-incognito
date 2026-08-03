@@ -11,6 +11,20 @@ import { WORLD_SCALE as S } from "../scene/config.js";
 const STROLL_SPEED = 1.1 * S;
 const ARRIVE_EPS = 0.3 * S;
 
+/**
+ * El `facing` del JSON es una dirección DEL MUNDO, no de la pantalla. Se
+ * autoró con la cámara en su yaw por defecto (0°), donde "south" es +z; al
+ * pasar por `setFacing` (que es relativa a la cámara VIVA) un asiento
+ * quedaba mirando a cualquier lado en cuanto alguien orbitaba. Sentarse
+ * frente a la mesa no puede depender de desde dónde mires tú.
+ */
+const WORLD_FACING = {
+  south: { x: 0, z: 1 },
+  north: { x: 0, z: -1 },
+  east: { x: 1, z: 0 },
+  west: { x: -1, z: 0 },
+};
+
 export class NPC {
   constructor(
     look,
@@ -22,12 +36,13 @@ export class NPC {
     this.radius = radius;
     this.sway = sway * S;
     this.homeFacing = facing;
+    this.homeDir = WORLD_FACING[facing] ?? WORLD_FACING.south;
     this.navmesh = navmesh;
     // La pose de "estar en su puesto". `null` explícito en el JSON = de pie.
     this.homePose = pose;
 
     this.sprite = new Character3D(look, { height });
-    this.sprite.setFacing(facing);
+    this.sprite.setHeading(this.homeDir.x, this.homeDir.z);
     this.sprite.setPosition(x, z);
     this._phase = Math.random() * Math.PI * 2;
 
@@ -98,14 +113,19 @@ export class NPC {
     switch (this._state) {
       case "settle": {
         // En su puesto: sentado trabajando (o de pie si su def lo pide), con
-        // el vaivén sutil de siempre por encima si lo trae.
-        if (this.sprite._poseName !== this.homePose) this.sprite.setPose(this.homePose);
+        // el vaivén sutil de siempre por encima si lo trae. El rumbo se
+        // vuelve a fijar AL SENTARSE, en mundo: es lo que lo deja frente a
+        // su mesa venga de donde venga el paseo.
+        if (this.sprite._poseName !== this.homePose) {
+          this.sprite.setHeading(this.homeDir.x, this.homeDir.z);
+          this.sprite.setPose(this.homePose);
+        }
         this.sprite.setMoving(false);
         if (this.sway > 0 && !this.homePose) {
           const offset = Math.sin(t * 0.6 + this._phase) * this.sway;
           const prev = this.position.x;
           this.position.x = this.home.x + offset;
-          this.sprite.setFacing(this.position.x >= prev ? "east" : "west");
+          this.sprite.setHeading(this.position.x >= prev ? 1 : -1, 0);
           this.sprite.setMoving(Math.abs(this.position.x - prev) > 0.0005);
           this.sprite.setPosition(this.position.x, this.position.z);
         }
@@ -143,7 +163,7 @@ export class NPC {
           this.position.z = this.home.z;
           this.sprite.setPosition(this.position.x, this.position.z);
           this.sprite.setMoving(false);
-          this.sprite.setFacing(this.homeFacing);
+          this.sprite.setHeading(this.homeDir.x, this.homeDir.z);
           this._state = "settle";
           this._timer = 15 + Math.random() * 30;
         }
