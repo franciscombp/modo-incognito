@@ -124,6 +124,7 @@ export function createEngine({
     document.body.classList.toggle("inc-game-active", value);
   }
   let teamsTimer = null;
+  let stevenTimer = null;
   let lastTeamsMessage = null;
 
   const ctx = {
@@ -532,6 +533,7 @@ export function createEngine({
     menuBar.resetNotices();
     setMood("main");
     teamsTimer = null;
+    stevenTimer = null;
     lastTeamsMessage = null;
     resetEntities();
     applyBossTuning();
@@ -831,21 +833,45 @@ export function createEngine({
     });
   }
 
-  /** Gabo's Teams messages: fire on a timer, independent of his position. */
+  /**
+   * Los Teams que te llegan durante la jornada, cada uno con su reloj:
+   * Gabo escribe al canal del equipo y Steven te escribe A TI. Los dos son
+   * NOTIFICACIONES (la burbuja de chat, que se va sola y nunca roba el
+   * foco): lo importante de Steven ya sale en primer plano como tarjeta de
+   * narrador dentro de las escenas del día — un mensaje de pasillo jamás
+   * debe interrumpir la partida.
+   */
   function updateGabo(dt, live) {
     if (live.gameOver || game.rules.explore) return;
     if (teamsTimer == null) teamsTimer = randomTeamsDelay();
     teamsTimer -= dt;
-    if (teamsTimer > 0) return;
-    teamsTimer = randomTeamsDelay();
-    const pool = dialogues.teamsMessages?.gabo ?? [];
-    if (!pool.length) return;
+    if (teamsTimer <= 0) {
+      teamsTimer = randomTeamsDelay();
+      const text = pickTeams(dialogues.teamsMessages?.gabo);
+      if (text) hud.showTeamsMessage(text);
+    }
+    // Steven escribe menos que Gabo (un amigo no microgestiona) y arranca
+    // desfasado, para que los dos relojes no suenen a la vez.
+    if (stevenTimer == null) stevenTimer = randomTeamsDelay() * 1.6;
+    stevenTimer -= dt;
+    if (stevenTimer <= 0) {
+      stevenTimer = randomTeamsDelay() * 2.2;
+      const text = pickTeams(dialogues.teamsMessages?.steven);
+      if (text) hud.showTeamsMessage(text, "Steven el Daddy");
+    }
+  }
+
+  function pickTeams(pool) {
+    if (!pool?.length) return null;
     let text = pool[Math.floor(Math.random() * pool.length)];
     if (pool.length > 1) {
       while (text === lastTeamsMessage) text = pool[Math.floor(Math.random() * pool.length)];
     }
     lastTeamsMessage = text;
-    hud.showTeamsMessage(text);
+    // La burbuja no pasa por el visor de diálogo, así que los tokens
+    // {masculino|femenino} se concuerdan aquí con la misma regla.
+    const fem = ctx.getPlayerGender?.() === "f";
+    return text.replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (_, m, f) => (fem ? f : m));
   }
 
   function randomTeamsDelay() {
