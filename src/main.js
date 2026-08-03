@@ -205,7 +205,7 @@ async function boot() {
       // entre las variantes de `extras` para que el piso no salga clonado
       // (en el plano, nueve de los diez NPC compartían el mismo pliego gris).
       const look = def.cast ? looks.get(def.cast) : looks.extra(i);
-      const npc = new NPC(look, { ...def, radius: stats.radius, height: stats.height });
+      const npc = new NPC(look, { ...def, radius: stats.radius, height: stats.height, navmesh });
       // Named colleagues can be talked to; the rest are set dressing.
       npc.cast = def.cast ?? null;
       npc.displayName = persona?.name ?? stats.name ?? "Compañero";
