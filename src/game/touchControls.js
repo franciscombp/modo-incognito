@@ -114,7 +114,10 @@ export function createTouchControls(player, root, { onZoom, onInspect, onPause }
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "touch-util";
-    btn.textContent = icon;
+    // innerHTML, no textContent: lo que llega es el markup de un SVG. Con
+    // textContent, el botón del plano enseñaba el código fuente del icono
+    // como TEXTO gigante en mitad de la pantalla del móvil.
+    btn.innerHTML = icon;
     btn.title = title;
     btn.setAttribute("aria-label", title);
     btn.addEventListener("click", (e) => {
@@ -126,12 +129,14 @@ export function createTouchControls(player, root, { onZoom, onInspect, onPause }
     return btn;
   }
 
+  // Iconos SVG propios, nunca glifos de la fuente del sistema: "＋"/"⏸"
+  // cambian de dibujo por plataforma y en algunas salen como cuadro vacío.
   if (onZoom) {
-    makeTapButton("＋", "Acercar", () => onZoom(0.18));
-    makeTapButton("－", "Alejar", () => onZoom(-0.18));
+    makeTapButton(svgIcon("plus", { size: 22 }), "Acercar", () => onZoom(0.18));
+    makeTapButton(svgIcon("minus", { size: 22 }), "Alejar", () => onZoom(-0.18));
   }
   if (onInspect) makeTapButton(svgIcon("map", { size: 22 }), "Inspeccionar plano", onInspect);
-  if (onPause) makeTapButton("⏸", "Pausa", onPause);
+  if (onPause) makeTapButton(svgIcon("pause", { size: 22 }), "Pausa", onPause);
 
   return { isTouch };
 }
