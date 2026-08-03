@@ -478,8 +478,11 @@ export function createEngine({
       if (day.prologue.choice) nodes.push(day.prologue.choice);
       await dialogue.play(withSprites(nodes), ctx);
       // El cartel se queda en PB mientras dura la elección de cómo llegar;
-      // solo empieza a subir una vez que la jugadora ya decidió. A partir de
-      // aquí es donde se ve avanzar el ascensor.
+      // solo empieza a subir una vez que la jugadora ya decidió. Y la subida
+      // se VISTE según la elección: pantalla de ascensor con "SUBIENDO"
+      // titilando, o el hueco de la escalera con el cartel de cada rellano
+      // si subes por las gradas (ver lobby.setMode).
+      lobby.setMode(prologueChoice);
       await rideElevator();
     }
 
