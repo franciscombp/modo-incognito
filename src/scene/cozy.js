@@ -1,56 +1,53 @@
 import * as THREE from "three";
 
 /**
- * LA PALETA COZY DEL SET.
+ * LA PALETA DEL SET: TECH RETROFUTURISTA, SOBRIA.
  *
- * El escenario está a propósito en tonos cálidos, apagados y sin textura: es
- * el fondo, no el protagonista. Todo el color saturado se reserva para los
- * personajes (que traen el de su pliego original), y así la gente se lee
- * siempre por encima de los muebles — que es justo lo que hacen las
- * referencias: decorado en pastel, reparto en color.
+ * Dirección de arte nueva (adiós a los cafés/cremas de la etapa cozy): la
+ * oficina es fría y tecnológica — porcelana, grafito, azules de acero — y
+ * TODO el color saturado se reserva para los personajes y los acentos
+ * puntuales (sillas, pantallas), como en Animal Crossing u Overcooked: el
+ * decorado es legible y contenido, la gente es la que brilla.
  *
- * Antes cada superficie llevaba una textura de píxeles generada en un lienzo
- * (el juego imitaba pixel art visto en ángulo). Con personajes 3D esa trama
- * pelea con ellos y ensucia la imagen, así que ahora son colores planos.
+ * Sigue siendo color plano sin textura: con muñecos 3D encima, cualquier
+ * trama pelea con ellos y ensucia la imagen.
  */
 
 /** Superficies del edificio. Los nombres los usan builder.js y furniture.js. */
 export const SURFACES = {
-  // Suelos
-  tileLight: "#ece2d2", // el suelo general, arena cálida
-  tileLobby: "#f5efe4", // los pasillos, un punto más claros
-  woodFloor: "#d9b48f", // la alfombra de la entrada
-  carpetPurple: "#e2d7c6", // base de las moquetas de zona (el color va por vértice)
+  // Suelos: porcelana fría, pasillos un punto más claros.
+  tileLight: "#e2e6ec",
+  tileLobby: "#eef1f5",
+  woodFloor: "#aeb8c9", // la alfombra de la entrada, acero suave
+  carpetPurple: "#d4dae4", // base de las moquetas de zona (el color va por vértice)
 
-  // Paredes y volúmenes: gris corporativo, no el beige cálido del resto del
-  // decorado — las paredes son oficina de verdad, el mobiliario se queda
-  // cozy.
-  wallPanel: "#c6c4bf",
-  panelLight: "#d2d0ca",
+  // Paredes y volúmenes: hormigón claro azulado, oficina tech de verdad.
+  wallPanel: "#c3c9d4",
+  panelLight: "#d3d8e1",
 
-  // Mobiliario
-  deskTop: "#f2e7d5",
-  deskEdge: "#dcc9ad",
-  deskLeg: "#c4a88c",
-  fabricDark: "#8fa9b8", // la tapicería de las sillas ya no es gris oscuro
-  screen: "#3c4550",
-  screenGlow: "#bfd8e0",
+  // Mobiliario: superficies blancas de laboratorio, patas de grafito.
+  deskTop: "#f0f2f6",
+  deskEdge: "#c5cbd6",
+  deskLeg: "#4b515e",
+  fabricDark: "#5a9fb0", // tapicería teal — el acento del set
+  screen: "#232833",
+  screenGlow: "#7fe3f0",
 
-  // Vegetación
-  woodPot: "#c98b6b",
-  leaves: "#7fa86b",
+  // Vegetación: el único verde orgánico, para que respire.
+  woodPot: "#8b93a3",
+  leaves: "#6fae76",
 
-  // Cristal y metal, mucho menos fríos que antes
-  glass: "#d8e8ea",
-  frame: "#c0b09a",
-  metal: "#cbbba6",
+  // Cristal y metal fríos, como toca en este set.
+  glass: "#cfe3ec",
+  frame: "#8f97a6",
+  metal: "#aab2c0",
 };
 
 /** El cielo y la luz. */
 export const ATMOSPHERE = {
-  skyTop: "#e4dbef", // lavanda suave, como la referencia del camión
-  skyBottom: "#f7eee2", // crema cálido a la altura del horizonte
-  fog: "#f2e8dc",
+  skyTop: "#bfcbec", // azul lavanda frío, cielo de mañana tech
+  skyBottom: "#eef2f8",
+  fog: "#e6ebf3",
 };
 
 /**
@@ -58,7 +55,7 @@ export const ATMOSPHERE = {
  * Son pocos y emparentados: una silla granate junto a una verde salvia se
  * lee como una oficina con gusto, doce colores distintos se leen como ruido.
  */
-export const ACCENTS = ["#8fa9b8", "#c98b7a", "#9dbfa4", "#d9b384", "#a89bc4"];
+export const ACCENTS = ["#59a8c9", "#e0736b", "#5fbf9a", "#e2b45c", "#8f83d6"];
 
 const materialCache = new Map();
 
