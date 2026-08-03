@@ -309,6 +309,11 @@ function mergeRecipe(recipe) {
     // se pierde en silencio. `baseModel` faltaba, y por eso el camino del .glb
     // no llegó a ejecutarse nunca: llegaba siempre como undefined.
     baseModel: r.baseModel ?? null,
+    // Altura propia de la receta, si trae una — ver setRecipe(). Sin esto,
+    // todo cuerpo importado se escala a la altura que le pasó quien lo creó
+    // (characters.json por rol: jefe, secuaz, jugadora…), la misma para
+    // cualquier personaje que herede ese rol.
+    height: r.height ?? null,
     skin: r.skin ?? DEFAULT_RECIPE.skin,
     eyes: r.eyes ?? DEFAULT_RECIPE.eyes,
     blush: r.blush === undefined ? DEFAULT_RECIPE.blush : r.blush,
@@ -395,6 +400,10 @@ export class Character3D {
     this._dispose();
     const r = mergeRecipe(recipe);
     this.recipe = r;
+    // La receta puede pedir su propia altura (personajes con cuerpo
+    // importado, de proporciones distintas entre sí); si no trae una, se
+    // queda con la que fijó quien construyó este Character3D.
+    if (r.height != null) this.height = r.height;
 
     // Un cuerpo importado tarda en llegar, y `setRecipe` se llama más de una
     // vez seguida al elegir personaje. Sin este testigo, la carga vieja aún
