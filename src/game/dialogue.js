@@ -342,7 +342,23 @@ export function createDialogue(root, { looks = null } = {}) {
   }
 
   function resolve(value, ctx) {
-    return typeof value === "function" ? value(ctx) : value;
+    const text = typeof value === "function" ? value(ctx) : value;
+    return genderize(text, ctx);
+  }
+
+  /**
+   * Concuerda el texto con quien JUEGA. Una línea puede escribir
+   * `{ocupado|ocupada}` (masculino|femenino) y aquí se elige la mitad que
+   * toca según el personaje elegido — Fran es chico, Giuli y Kiara son
+   * chicas, y "hazte la ocupada" fijo delataba que el texto no te miraba.
+   * Sin género conocido gana la primera mitad, que en español hace de
+   * genérico. El género de quien HABLA ya viaja en su receta
+   * (`looks.get(cast).gender`) para quien escriba con él.
+   */
+  function genderize(text, ctx) {
+    if (typeof text !== "string" || text.indexOf("{") === -1) return text;
+    const fem = ctx?.getPlayerGender?.() === "f";
+    return text.replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (_, m, f) => (fem ? f : m));
   }
 
   async function playNodes(nodes, ctx) {

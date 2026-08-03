@@ -129,6 +129,11 @@ export function createEngine({
   const ctx = {
     setFlag: (name, value) => save.setFlag(name, value),
     getFlag: (name) => save.getFlag(name),
+    // "m" | "f" | null del personaje elegido AHORA MISMO, para que el texto
+    // concuerde con quien juega: los tokens {masculino|femenino} de las
+    // líneas se resuelven con esto (ver `resolve` en dialogue.js). Función y
+    // no valor: el personaje puede cambiar entre partidas sin recrear el ctx.
+    getPlayerGender: () => looks?.get?.(save.character)?.gender ?? null,
     // El sprite del personaje elegido AHORA MISMO — nameToSheet.get(playerName)
     // ya se actualiza en selectCharacter, pero se resuelve como función (no
     // un valor guardado) para que las réplicas de diálogo escritas a mano en
@@ -657,7 +662,7 @@ export function createEngine({
         dialogues.exhausted ?? [
           [{ text: "Me encanta el chisme, de verdad, pero Gabo me encargó una cosa y me está mirando. Luego hablamos." }],
           [{ text: "Ahora no puedo, tengo una entrega. Bueno, \"tengo una entrega\". Ya sabes cómo es esto." }],
-          [{ text: "Shhh. Ahí viene alguien. Hazte la ocupada y luego seguimos." }],
+          [{ text: "Shhh. Ahí viene alguien. Hazte {el ocupado|la ocupada} y luego seguimos." }],
         ];
       scene = pool[(seen - encounter.scenes.length) % pool.length].map((n) => ({
         speaker: persona?.name ?? npc.displayName,

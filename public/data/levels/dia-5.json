@@ -8,15 +8,7 @@
   "rules": {
     "duration": 220,
     "maxWarnings": 1,
-    "objectives": [
-      "coffee",
-      "chat",
-      "movie",
-      "snack",
-      "sleep",
-      "meeting",
-      "window"
-    ],
+    "objectives": ["coffee","chat","movie","snack","sleep","meeting","window"],
     "bossSpeedMul": 1.25,
     "visionMul": 1.25,
     "decayMul": 0.72,
@@ -36,22 +28,11 @@
           "reply": "Estoy en modo incógnito, jefe.",
           "flag": "declaracion",
           "then": [
-            {
-              "speaker": "Gabo",
-              "mood": "angry",
-              "text": "…¿Eso qué significa?"
-            },
-            {
-              "speaker": "Tú",
-              "text": "Que no me va a ver."
-            }
+            {"speaker":"Gabo","mood":"angry","text":"…¿Eso qué significa?"},
+            {"speaker":"Tú","text":"Que no me va a ver."}
           ]
         },
-        {
-          "label": "Sonreír y no decir nada",
-          "reply": "…",
-          "flag": "silencio"
-        }
+        {"label":"Sonreír y no decir nada","reply":"…","flag":"silencio"}
       ]
     }
   ],
@@ -60,10 +41,7 @@
       "speaker": "Gabo",
       "text": "Semana impecable. No te vi ni una vez fuera de tu puesto. Te asciendo."
     },
-    {
-      "speaker": "Tú",
-      "text": "Exactamente. No me vio ni una vez."
-    },
+    {"speaker":"Tú","text":"Exactamente. No me vio ni una vez."},
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
@@ -79,17 +57,10 @@
       "narrator": true,
       "text": "La idea original fue de César y Manu — un día de queja en tiempo real que se convirtió en plan. Fran lo está programando de verdad, con Claude Code de copiloto."
     },
-    {
-      "speaker": "Tú",
-      "text": "Si preguntan, esto también fue una reunión de innovación."
-    }
+    {"speaker":"Tú","text":"Si preguntan, esto también fue una reunión de innovación."}
   ],
   "outroLose": [
-    {
-      "speaker": "Gabo",
-      "mood": "angry",
-      "text": "Recursos Humanos te espera. Trae la credencial."
-    }
+    {"speaker":"Gabo","mood":"angry","text":"Recursos Humanos te espera. Trae la credencial."}
   ],
   "prologue": {
     "kind": "elevator",
@@ -99,24 +70,13 @@
         "speaker": "Steven el Daddy",
         "text": "Viernes. La fila entera te mira. Alguien murmura «esa es la de la evaluación»."
       },
-      {
-        "speaker": "Tú",
-        "text": "Que miren. Hoy no me ve nadie."
-      }
+      {"speaker":"Tú","text":"Que miren. Hoy no me ve nadie."}
     ],
     "choice": {
       "prompt": "Último día. ¿Cómo entras?",
       "options": [
-        {
-          "label": "Con la fila, como todos",
-          "reply": "Con la fila. Como todos.",
-          "effect": "wait"
-        },
-        {
-          "label": "Escaleras, a paso vivo",
-          "reply": "Escaleras. A paso vivo.",
-          "effect": "stairs"
-        },
+        {"label":"Con la fila, como todos","reply":"Con la fila. Como todos.","effect":"wait"},
+        {"label":"Escaleras, a paso vivo","reply":"Escaleras. A paso vivo.","effect":"stairs"},
         {
           "label": "Entrar detrás del jefe",
           "reply": "Entro justo detrás de él. Punto ciego.",
@@ -126,17 +86,8 @@
     }
   },
   "minions": [
-    {
-      "id": "chispita",
-      "route": "sur"
-    },
-    {
-      "id": "washo",
-      "route": "norte"
-    },
-    {
-      "id": "crispo",
-      "route": "centro"
-    }
+    {"id":"chispita","route":"sur"},
+    {"id":"washo","route":"norte"},
+    {"id":"crispo","route":"centro"}
   ]
 }
