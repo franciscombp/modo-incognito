@@ -24,6 +24,9 @@ import { getFurniture, clearFurnitureCache } from "../game/furnitureModels.js";
  *   setTint · update · setRecipe · setRig · hasPoses · height · facing
  */
 
+// Reutilizado para leer escalas de hueso sin alojar un vector por frame.
+const _v3 = new THREE.Vector3();
+
 /** Las cuatro direcciones de siempre, ahora solo como puntos de referencia. */
 export const ROW_BY_FACING = { south: 0, west: 1, east: 2, north: 3 };
 
@@ -670,10 +673,22 @@ export class Character3D {
         const bone = byName.get(propDef.bone);
         if (!bone) continue;
 
+        // La taza, el plato, el teléfono… están medidos EN METROS, como el
+        // personaje. Pero un hueso de un cuerpo importado no vive a escala
+        // 1: el .glb está modelado ~110 veces más grande y se encoge entero
+        // al montarlo (ver instantiateBase), así que todo lo que cuelgue de
+        // un hueso hereda ese encogimiento. La taza acababa midiendo 1,7 mm
+        // en una persona de metro y medio — colgada de la mano, pero
+        // literalmente invisible. Aquí se deshace esa escala para que el
+        // objeto mida lo que dice medir, y el offset se convierte al espacio
+        // local del hueso por lo mismo.
+        const boneScale = bone.getWorldScale(_v3).x || 1;
+        const inv = 1 / boneScale;
+        prop.scale.setScalar(inv);
         prop.position.set(
-          propDef.offset[0],
-          propDef.offset[1],
-          propDef.offset[2]
+          propDef.offset[0] * inv,
+          propDef.offset[1] * inv,
+          propDef.offset[2] * inv
         );
         prop.rotation.set(
           propDef.rotation[0],
@@ -691,10 +706,14 @@ export class Character3D {
         const furniture = getFurniture(furnDef.name);
         if (!furniture) continue;
 
+        // Se cuelga de `this.object`, así que la posición ya es RELATIVA al
+        // personaje: sumarle además su posición de mundo la contaba dos
+        // veces y mandaba la silla al otro lado del piso (y con el
+        // personaje moviéndose, a perseguirlo desde lejos).
         furniture.position.set(
-          this.object.position.x + furnDef.position[0],
-          this.object.position.y + furnDef.position[1],
-          this.object.position.z + furnDef.position[2]
+          furnDef.position[0],
+          furnDef.position[1],
+          furnDef.position[2]
         );
         furniture.rotation.set(
           furnDef.rotation[0],
