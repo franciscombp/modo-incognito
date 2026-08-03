@@ -10,6 +10,7 @@ import {
   BOTTOM_STYLES,
   ACCESSORIES,
   DEFAULT_RECIPE,
+  baseFileFor,
 } from "../../src/entities/character3d.js";
 import { siteRoot } from "../../src/data/siteRoot.js";
 
@@ -129,7 +130,7 @@ function rehacerMuñeco() {
   const receta = doc.characters[current];
   if (!receta) return;
 
-  const baseModel = receta.baseModel ?? "kiara.glb";
+  const baseModel = baseFileFor(receta);
   if (!MODELOS.has(baseModel)) {
     MODELOS.set(baseModel, { loading: true });
   }

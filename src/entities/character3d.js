@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { screenToGround, facingFromGround } from "../scene/iso.js";
-import { faceTexture } from "./face.js";
-import { loadBaseModel, peekBaseModel, instantiateBase, modelUrlFor, loadFaceSheet } from "./baseModel.js";
+import { faceTexture, faceStripTexture } from "./face.js";
+import { loadBaseModel, peekBaseModel, instantiateBase, modelUrlFor, loadFaceSheet, applyBuild } from "./baseModel.js";
 import { attachFaceSheet } from "./faceSheet.js";
 import { getProp, clearPropCache } from "../game/propModels.js";
 import { getFurniture, clearFurnitureCache } from "../game/furnitureModels.js";
@@ -107,12 +107,27 @@ function pickClip(clips, words) {
  */
 const _poseEuler = new THREE.Euler();
 const _poseQuat = new THREE.Quaternion();
+const _poseConj = new THREE.Quaternion();
 function setBoneRotation(bone, x, y, z) {
   const rest = bone.userData?.restQuat;
   _poseEuler.set(x, y, z);
   _poseQuat.setFromEuler(_poseEuler);
   if (!rest) {
     bone.quaternion.copy(_poseQuat);
+    return;
+  }
+  // Los ángulos de POSE_LIBRARY están escritos en ejes de PERSONAJE (los del
+  // esqueleto procedural, donde hueso y personaje compartían ejes). Un rig
+  // importado trae los suyos propios, y aplicar el euler en local hacía que
+  // "brazo adelante" saliera "brazo en cruz" según el exportador. Con la
+  // orientación de reposo del hueso EN MUNDO (`restWorldQuat`) se conjuga el
+  // giro al espacio local: mismo resultado visual en cualquier rig. Para un
+  // rig de ejes alineados la conjugación es la identidad — por eso los
+  // cuerpos que ya posaban bien posan exactamente igual.
+  const world = bone.userData?.restWorldQuat;
+  if (world) {
+    _poseConj.copy(world).invert().multiply(_poseQuat).multiply(world);
+    bone.quaternion.copy(rest).multiply(_poseConj);
     return;
   }
   bone.quaternion.copy(rest).multiply(_poseQuat);
@@ -301,6 +316,16 @@ export const DEFAULT_PAINT = {
   shoes: "#e8e2d8",
 };
 
+/**
+ * Qué .glb le toca a una receta. `baseModel` explícito manda (personajes con
+ * cuerpo propio, o indexado desde public/models por characterRecipes.js); sin
+ * él, el GÉNERO de la receta elige entre los dos cuerpos base desnudos.
+ * Es la única regla: no hay más fallbacks escondidos por ahí.
+ */
+export function baseFileFor(r) {
+  return r?.baseModel ?? (r?.gender === "f" ? "base-chica.glb" : "base-chico.glb");
+}
+
 export const DEFAULT_RECIPE = {
   skin: "#f0c9a8",
   hair: { color: "#3a2c26", style: "short" },
@@ -312,7 +337,7 @@ export const DEFAULT_RECIPE = {
   badge: "#7a5cc4",
   blush: "#e8a0a0",
   accessories: [],
-  build: { width: 1, belly: 0, bust: 0 },
+  build: { width: 1, depth: null, chest: 1, belly: 0, head: 1 },
 };
 
 function mergeRecipe(recipe) {
@@ -328,9 +353,19 @@ function mergeRecipe(recipe) {
     // se pierde en silencio. `baseModel` faltaba, y por eso el camino del .glb
     // no llegó a ejecutarse nunca: llegaba siempre como undefined.
     baseModel: r.baseModel ?? null,
+    // "m" | "f". Sin baseModel propio decide el cuerpo base (ver baseFileFor)
+    // y el motor de diálogos lo lee para concordar el texto. Puede faltar:
+    // un genérico sin género usa el cuerpo de chico y texto neutro.
+    gender: r.gender ?? null,
     // Pintura por regiones para cuerpos SIN textura (ver _paintByBones):
     // { skin, hair, top, bottom, shoes }. En un .glb con textura se ignora.
     paint: r.paint ?? null,
+    // La tira de gestos (`<id>.faces.png`, la indexa characterRecipes.js) y
+    // su ajuste fino de colocación. Faltaban de esta lista-filtro y la rama
+    // entera de las caras pegadas era código muerto — la misma trampa que ya
+    // se pagó con baseModel.
+    faces: r.faces ?? null,
+    face: r.face ?? null,
     // Altura propia de la receta, si trae una — ver setRecipe(). Sin esto,
     // todo cuerpo importado se escala a la altura que le pasó quien lo creó
     // (characters.json por rol: jefe, secuaz, jugadora…), la misma para
@@ -433,8 +468,8 @@ export class Character3D {
     // cuerpos superpuestos, con `_built` apuntando solo a uno.
     const token = (this._buildToken = (this._buildToken ?? 0) + 1);
 
-    // Usar modelo específico si existe, sino usar kiara como base
-    const modelToLoad = r.baseModel ?? "kiara.glb";
+    // Su .glb propio si lo tiene; si no, el cuerpo base que diga su género.
+    const modelToLoad = baseFileFor(r);
 
     // Si ya está en memoria se monta AHORA, sin ceder el turno: los menús
     // montan un personaje y le sacan la foto en la misma vuelta, y con una
@@ -499,9 +534,17 @@ export class Character3D {
       return "top"; // spine, chest, shoulder, arm, forearm
     };
 
-    // La caja de la cabeza, para el corte piel/pelo.
+    // La caja de la cabeza, para los cortes piel/pelo. Los umbrales son
+    // RELATIVOS a esa caja (fracción de su alto y de su fondo), nunca
+    // absolutos: cada export centra la cabeza donde quiere, y un corte en
+    // metros que funcionaba en un cuerpo pintaba de pelo media cara del
+    // siguiente — que es como cuatro personajes salieron "de espaldas".
     let headMinY = Infinity;
     let headMaxY = -Infinity;
+    let headMinZ = Infinity;
+    let headMaxZ = -Infinity;
+    let allMinY = Infinity;
+    let allMaxY = -Infinity;
     const domOf = new Array(pos.count);
     for (let i = 0; i < pos.count; i++) {
       let best = 0;
@@ -515,21 +558,149 @@ export class Character3D {
       }
       const region = REGION_OF(boneNames[best] ?? "");
       domOf[i] = region;
+      const y = pos.getY(i);
+      if (y < allMinY) allMinY = y;
+      if (y > allMaxY) allMaxY = y;
       if (region === "head") {
-        const y = pos.getY(i);
+        const z = pos.getZ(i);
         if (y < headMinY) headMinY = y;
         if (y > headMaxY) headMaxY = y;
+        if (z < headMinZ) headMinZ = z;
+        if (z > headMaxZ) headMaxZ = z;
       }
     }
-    const hairline = headMinY + (headMaxY - headMinY) * 0.55;
+    // Línea PROVISIONAL, solo para clasificar componentes: la caja de cabeza
+    // de arriba aún mezcla cráneo y melena. La definitiva se recalcula abajo,
+    // ya sin el pelo.
+    let hairline = headMinY + (headMaxY - headMinY) * 0.55;
+
+    // EL FARO DE LA CARA. El rig trae un hueso `headfront` clavado en el
+    // centro de la cara; el vértice más cercano a él marca qué componente es
+    // el CRÁNEO. Sin este ancla no hay forma fiable de distinguirlo de la
+    // melena: una melena larga abraza el cráneo, lo desborda por todos lados
+    // y hasta lleva pesos de hombros — todos los umbrales de caja que se
+    // probaron acababan pintando de pelo la cara de alguien.
+    const facePoint = new THREE.Vector3(0, headMinY + (headMaxY - headMinY) * 0.45, headMaxZ * 0.9);
+    const hfIdx = mesh.skeleton.bones.findIndex((b) => /headfront/i.test(b.name));
+    if (hfIdx >= 0 && mesh.skeleton.boneInverses[hfIdx]) {
+      const bind = new THREE.Matrix4().copy(mesh.skeleton.boneInverses[hfIdx]).invert();
+      facePoint.setFromMatrixPosition(bind);
+    }
+    let nearestIdx = 0;
+    let nearestD = Infinity;
+    for (let i = 0; i < pos.count; i++) {
+      const dx = pos.getX(i) - facePoint.x;
+      const dy = pos.getY(i) - facePoint.y;
+      const dz = pos.getZ(i) - facePoint.z;
+      const d = dx * dx + dy * dy + dz * dz;
+      if (d < nearestD) {
+        nearestD = d;
+        nearestIdx = i;
+      }
+    }
+
+    // EL PELO ES SU PROPIA CARCASA. Estos cuerpos traen la melena esculpida
+    // como pieza aparte (sin soldar al cráneo), y pintarla por hueso dominante
+    // la degradaba: una melena larga cae hasta el pecho, donde mandan los
+    // huesos del torso, y esos mechones salían color camiseta. Se separan las
+    // componentes conexas de la malla (soldando por posición, que las costuras
+    // de UV parten los shells) y toda componente que no sea el cuerpo, llegue
+    // por encima de la línea del pelo y tenga vértices de cabeza, ES PELO
+    // entero, de la raíz a las puntas.
+    const hairComp = new Uint8Array(pos.count);
+    const index = geo.getIndex();
+    if (index) {
+      const keyOf = new Map();
+      const parent = new Int32Array(pos.count);
+      for (let i = 0; i < pos.count; i++) {
+        const k = `${pos.getX(i).toFixed(4)},${pos.getY(i).toFixed(4)},${pos.getZ(i).toFixed(4)}`;
+        const first = keyOf.get(k);
+        parent[i] = first === undefined ? i : first;
+        if (first === undefined) keyOf.set(k, i);
+      }
+      const find = (i) => {
+        let r = i;
+        while (parent[r] !== r) r = parent[r];
+        while (parent[i] !== r) {
+          const next = parent[i];
+          parent[i] = r;
+          i = next;
+        }
+        return r;
+      };
+      const union = (a, b) => {
+        const ra = find(a);
+        const rb = find(b);
+        if (ra !== rb) parent[rb] = ra;
+      };
+      for (let t = 0; t < index.count; t += 3) {
+        union(index.getX(t), index.getX(t + 1));
+        union(index.getX(t), index.getX(t + 2));
+      }
+      const comps = new Map(); // raíz -> { n, headN, maxY }
+      for (let i = 0; i < pos.count; i++) {
+        const r = find(i);
+        let s = comps.get(r);
+        if (!s) comps.set(r, (s = { n: 0, headN: 0, maxY: -Infinity }));
+        s.n++;
+        if (domOf[i] === "head") s.headN++;
+        const y = pos.getY(i);
+        if (y > s.maxY) s.maxY = y;
+      }
+      let bodyRoot = -1;
+      let bodyN = 0;
+      for (const [r, s] of comps) {
+        if (s.n > bodyN) {
+          bodyN = s.n;
+          bodyRoot = r;
+        }
+      }
+      // La componente del vértice más cercano a `headfront` ES el cráneo:
+      // jamás se marca de pelo, aunque cumpla todo lo demás.
+      const skullRoot = find(nearestIdx);
+      for (const [r, s] of comps) {
+        if (r === bodyRoot || r === skullRoot) continue;
+        if (s.maxY > hairline && s.headN / s.n > 0.15) {
+          for (let i = 0; i < pos.count; i++) if (find(i) === r) hairComp[i] = 1;
+        }
+      }
+    }
+
+    // La caja DEFINITIVA de la cabeza: solo el cráneo, sin la melena. Con la
+    // melena dentro, una cabellera larga corría la línea de la nuca hasta
+    // delante de la cara y la cara entera salía color pelo.
+    headMinY = Infinity;
+    headMaxY = -Infinity;
+    headMinZ = Infinity;
+    headMaxZ = -Infinity;
+    for (let i = 0; i < pos.count; i++) {
+      if (domOf[i] !== "head" || hairComp[i]) continue;
+      const y = pos.getY(i);
+      const z = pos.getZ(i);
+      if (y < headMinY) headMinY = y;
+      if (y > headMaxY) headMaxY = y;
+      if (z < headMinZ) headMinZ = z;
+      if (z > headMaxZ) headMaxZ = z;
+    }
+    hairline = headMinY + (headMaxY - headMinY) * 0.55;
+    // La cara mira a +Z: el 40% trasero del cráneo es nuca, o sea pelo.
+    const napeline = headMinZ + (headMaxZ - headMinZ) * 0.4;
+    // La caja (en espacio de la malla), para colocar después la cara
+    // sintética — ver _attachSyntheticFace.
+    this._bindFace =
+      headMaxY > -Infinity
+        ? { headMinY, headMaxY, headMinZ, headMaxZ, bindMinY: allMinY, bindHeight: allMaxY - allMinY }
+        : null;
 
     const c = new THREE.Color();
     const out = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) {
       let region = domOf[i];
-      if (region === "head") {
+      if (hairComp[i]) {
+        region = "hair";
+      } else if (region === "head") {
         // Arriba de la línea, o detrás de la cabeza (nuca), es pelo.
-        region = pos.getY(i) > hairline || pos.getZ(i) < -0.055 ? "hair" : "skin";
+        region = pos.getY(i) > hairline || pos.getZ(i) < napeline ? "hair" : "skin";
       }
       c.set(colors[region] ?? colors.top);
       out[i * 3] = c.r;
@@ -545,6 +716,84 @@ export class Character3D {
     }
   }
 
+  /**
+   * Si el rig reposa con los brazos EN CRUZ (T-pose), los baja a los lados.
+   * Se mide en mundo — la dirección hombro→codo casi horizontal delata la
+   * T-pose — y se corrige también en mundo, con un giro que lleva esa
+   * dirección a "colgando con una gota de holgura", convertido al espacio
+   * local del hueso. Así funciona igual venga el rig orientado como venga.
+   */
+  _relaxTPose(model, bones) {
+    model.updateMatrixWorld(true);
+    const a = new THREE.Vector3();
+    const b = new THREE.Vector3();
+    const pq = new THREE.Quaternion();
+    for (const side of ["Left", "Right"]) {
+      const arm = bones.get(`${side}Arm`);
+      const fore = bones.get(`${side}ForeArm`);
+      if (!arm || !fore || !arm.parent) continue;
+      arm.getWorldPosition(a);
+      fore.getWorldPosition(b);
+      const dir = b.sub(a).normalize();
+      if (dir.y < -0.5) continue; // ya cuelga: rig relajado, no tocar
+      // Abajo con una pizca hacia fuera, para no hundir la mano en la cadera
+      // (menos aún en un cuerpo ensanchado por `build`).
+      const target = new THREE.Vector3(side === "Left" ? 0.25 : -0.25, -0.96, 0.04).normalize();
+      const swing = new THREE.Quaternion().setFromUnitVectors(dir, target);
+      arm.parent.getWorldQuaternion(pq);
+      arm.quaternion.premultiply(pq.clone().invert().multiply(swing).multiply(pq));
+      arm.updateMatrixWorld(true);
+    }
+  }
+
+  /**
+   * La cara de un cuerpo base, dibujada y pegada delante (ver faceSheet.js).
+   *
+   * El plano NO se cuelga del hueso a pelo: los ejes locales del hueso de la
+   * cabeza son los que quiera el exportador, y la posición heredaría además
+   * su escala (~0.01 por el armature). Se cuelga de un grupo NORMALIZADOR que
+   * anula la orientación y la escala del hueso, de modo que dentro de él se
+   * trabaja en ejes de personaje y metros — y ahí las cuentas son las obvias:
+   * la cara va centrada en la caja de la cabeza, un pelo por delante.
+   */
+  _attachSyntheticFace(bones, r, H) {
+    const head = bones.get("Head");
+    const fb = this._bindFace;
+    if (!head || !fb || !(fb.bindHeight > 0)) return;
+    const k = H / fb.bindHeight; // malla (bind) → mundo
+
+    const carrier = new THREE.Group();
+    head.add(carrier);
+    head.updateWorldMatrix(true, false);
+    const objQ = new THREE.Quaternion();
+    this.object.getWorldQuaternion(objQ);
+    const headQ = new THREE.Quaternion();
+    head.getWorldQuaternion(headQ);
+    carrier.quaternion.copy(headQ).invert().multiply(objQ);
+    const ws = new THREE.Vector3();
+    head.getWorldScale(ws);
+    carrier.scale.set(1 / (ws.x || 1), 1 / (ws.y || 1), 1 / (ws.z || 1));
+
+    // Todo en espacio del PERSONAJE (pies en y=0, cara mirando a +z).
+    const headPos = this.object.worldToLocal(head.getWorldPosition(new THREE.Vector3()));
+    const faceY = (fb.headMinY - fb.bindMinY + (fb.headMaxY - fb.headMinY) * 0.52) * k;
+    const faceZ = fb.headMaxZ * k + 0.012;
+    const size = (fb.headMaxY - fb.headMinY) * k * 0.62;
+
+    const colors = { ...DEFAULT_PAINT, ...(r.paint ?? {}) };
+    const tex = faceStripTexture({
+      skin: colors.skin,
+      hair: { color: colors.hair },
+      eyes: r.eyes,
+      blush: r.blush,
+    });
+    this._face = attachFaceSheet(carrier, tex, {
+      height: H,
+      tune: { y: (faceY - headPos.y) / H, z: (faceZ - headPos.z) / H, size: size / H, ...(r.face ?? {}) },
+    });
+    this._face?.set(this._expression ?? "neutral");
+  }
+
   /** El montaje en sí, sin nada que esperar. Ver `_buildFromGLB`. */
   _assembleGLB(gltf, r, modelName) {
     const H = this.height;
@@ -557,6 +806,10 @@ export class Character3D {
       if (!mesh && o.isSkinnedMesh) mesh = o;
     });
     if (!mesh) throw new Error(`El modelo ${modelName} no trae ningún SkinnedMesh`);
+
+    // La caja de la cabeza se mide al PINTAR (solo cuerpos sin textura); un
+    // montaje anterior no debe dejar la suya colgando para este.
+    this._bindFace = null;
 
     // Un cuerpo SIN textura (el .glb base viene desnudo a propósito) se
     // pinta aquí por vértice: cada hueso dominante decide la región (piel,
@@ -598,13 +851,33 @@ export class Character3D {
       if (neck) bones.set("Neck", neck);
     }
 
+    // Un rig que reposa en T-POSE (los dos cuerpos base vienen así) se relaja
+    // aquí ANTES de nada: brazos abajo. Tiene que pasar antes de capturar
+    // `restQuat` (para que las poses partan de brazos caídos, no en cruz) y
+    // antes de crear el mixer (que guarda como estado "original" lo que
+    // encuentre al enlazar, y es a lo que vuelve al parar de andar). Un rig
+    // que ya viene relajado (los esculpidos) se detecta y no se toca.
+    this._relaxTPose(model, bones);
+
     // La postura de reposo del rig, que es lo que lo mantiene de pie y con los
     // brazos donde toca. Las poses se aplican COMO GIRO RELATIVO a esto (ver
     // `setBoneRotation`); escribiendo el ángulo directamente, el personaje
-    // salía tumbado y en cruz.
+    // salía tumbado y en cruz. Se guarda también la orientación de reposo EN
+    // MUNDO (aún sin colgar de `object`, o sea relativa al personaje), que es
+    // lo que permite conjugar las poses a los ejes de cualquier rig.
+    model.updateMatrixWorld(true);
+    const _wq = new THREE.Quaternion();
     for (const bone of bones.values()) {
       bone.userData.restQuat = bone.quaternion.clone();
+      bone.getWorldQuaternion(_wq);
+      bone.userData.restWorldQuat = _wq.clone();
     }
+
+    // La complexión de la receta: ancho/peso (width/depth), torso (chest),
+    // barriga (belly), cabeza (head). Va DESPUÉS de los alias (usa "Chest")
+    // y antes de medir la sombra, que así sale del cuerpo ya engordado.
+    // Nunca toca la altura — esa es de `height` y de nadie más.
+    applyBuild(bones, r.build);
 
     this.object.add(root);
 
@@ -668,6 +941,11 @@ export class Character3D {
       const tex = loadFaceSheet(r.faces);
       if (tex.then) tex.then(build).catch(() => {});
       else build(tex);
+    } else if (untextured && this._bindFace) {
+      // Un cuerpo base pintado no trae cara en su textura (no TIENE textura):
+      // sin esto era un maniquí. Se le pega la tira SINTÉTICA (ver
+      // faceStripTexture) delante de la cabeza, con la caja medida al pintar.
+      this._attachSyntheticFace(bones, r, H);
     }
 
     // LA CAMINATA VIENE EN EL ARCHIVO. Nuestro paso procedural está calibrado

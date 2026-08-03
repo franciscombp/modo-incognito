@@ -2,44 +2,47 @@
   "$comment": [
     "RECETAS DE PERSONAJE 3D. Un personaje no es un modelo: es esta receta.",
     "",
-    "EL SISTEMA PROCEDURAL (montar el cuerpo con primitivas a partir de hair/",
-    "top/bottom/build/…) YA NO EXISTE — character3d.js lo quitó del todo.",
-    "TODOS los personajes salen de un .glb: el suyo propio si `public/models/`",
-    "trae `<id>.glb` (lo indexa tools/index-models.mjs antes de cada build), o",
-    "si no el de Kiara como cuerpo de repuesto. Por eso las recetas de aquí",
-    "abajo son tan cortas: casi todo lo que había (color de piel, peinado,",
-    "ropa, complexión…) dejó de tener efecto y se quitó — quedaba mintiendo,",
-    "sugiriendo un control que ya no hace nada.",
+    "TODOS los personajes salen de un .glb. El suyo propio si `public/models/`",
+    "trae `<id>.glb` (lo indexa tools/index-models.mjs antes de cada build); si",
+    "no, uno de los DOS CUERPOS BASE desnudos: `base-chica.glb` o",
+    "`base-chico.glb`. Cuál de los dos lo decide el `gender` de la receta —",
+    "no hay que escribir `baseModel` a mano salvo para prestar un cuerpo",
+    "concreto por su nombre.",
     "",
-    "CAMPOS QUE SIGUEN VIVOS",
-    "  baseModel NO SE ESCRIBE AQUÍ para el personaje dueño de su .glb — se",
-    "            indexa solo. Escribirlo a mano solo sirve para apuntar a otro",
-    "            nombre (ej.: prestarle el cuerpo de otro personaje a uno sin",
-    "            modelo propio todavía).",
-    "  faces     igual: `<id>.faces.png` en public/models/ le da expresiones.",
-    "  height    metros de la receta. Cada .glb tiene sus propias proporciones",
-    "            y de aquí sale a qué altura se escala — sin esto, todos los",
-    "            cuerpos importados se estiran a la altura genérica que les",
-    "            pase quien los construya (characters.json, por ROL: jefe,",
-    "            secuaz, jugadora…), la misma para cualquiera que herede ese",
-    "            rol. Unidades de plano, como el resto del juego.",
-    "  $note     una línea de quién es, para quien escriba diálogo nuevo.",
-    "            No lo lee el motor.",
+    "CAMPOS",
+    "  gender    \"f\" o \"m\". Decide el cuerpo base de quien no tiene .glb",
+    "            propio, y el motor de diálogos lo lee para concordar el",
+    "            texto (ocupado/ocupada). Puede faltar: un genérico sin",
+    "            género usa el cuerpo de chico y texto neutro.",
+    "  height    metros REALES del personaje (canon: fran 1.56, giuli y",
+    "            steven 1.62, crispo 1.75, gabo/manu/enriquetta/cesar 1.80,",
+    "            parce 1.85). Cada .glb se escala a esta altura; sin ella,",
+    "            heredaría la altura genérica de su ROL (characters.json).",
+    "  paint     SOLO para cuerpos sin textura (los dos base vienen desnudos",
+    "            a propósito): colores por región, pintados por vértice según",
+    "            el hueso que manda — { skin, hair, top, bottom, shoes }.",
+    "            En un .glb con su propia textura se ignora sin más.",
+    "  build     complexión, escalando huesos (ver applyBuild en",
+    "            baseModel.js). Nunca toca la altura:",
+    "              width  corpulencia general (1 = como viene, 1.1 = ancho)",
+    "              depth  lo mismo a lo hondo (por defecto = width)",
+    "              chest  torso y hombros solos (lo que hace ancho a Steven)",
+    "              belly  barriga, 0 = nada, 0.5 = notable",
+    "              head   cabeza uniforme, palanca de caricatura",
+    "  baseModel solo para apuntar a OTRO nombre de archivo a mano; el propio",
+    "            se indexa solo y el base sale del gender.",
+    "  faces     `<id>.faces.png` en public/models/ le da expresiones.",
+    "  $note     quién es, para quien escriba diálogo nuevo. No lo lee el",
+    "            motor.",
     "",
-    "aliases: nombres alternativos que apuntan a la misma receta. Están para",
-    "  que el motor pueda buscar por id de personaje (giu), por id de cast",
-    "  (fran_npc) o por nombre de pliego heredado (guili-camina) sin que haya",
-    "  que duplicar la receta.",
+    "aliases: nombres alternativos que apuntan a la misma receta, para que el",
+    "  motor pueda buscar por id de personaje (giu), por id de cast del",
+    "  diálogo (steven_el_daddy, jefe, fran_npc) o por nombre de pliego",
+    "  heredado (guili-camina) sin duplicar recetas.",
     "",
-    "extras: relleno de oficina sin modelo propio — hoy todos caen al cuerpo",
-    "  de Kiara (ver arriba). Se deja el array por si algún día cada uno trae",
-    "  su .glb; hasta entonces son intercambiables entre sí, así que no hace",
-    "  falta que digan nada más que su altura.",
-    "",
-    "  paint     SOLO para cuerpos sin textura (el .glb base de Kiara viene",
-    "            desnudo a propósito): colores por región, pintados por vértice",
-    "            según el hueso que manda — { skin, hair, top, bottom, shoes }.",
-    "            En un .glb con su propia textura se ignora sin más."
+    "extras: relleno de oficina sin nombre. Se reparten entre los dos cuerpos",
+    "  base por su gender y cada uno lleva su paint (y algún build) para que",
+    "  el piso no parezca lleno de clones."
   ],
   "aliases": {
     "giu": "giuli",
@@ -51,6 +54,8 @@
     "manu_npc": "manu",
     "manu-camina": "manu",
     "crispo-camina": "crispo",
+    "steven_el_daddy": "steven",
+    "enriqueta": "enriquetta",
     "npc-camina": "generic",
     "npc1": "generic",
     "npc2": "generic",
@@ -59,27 +64,33 @@
   },
   "characters": {
     "gabo": {
-      "$note": "Jefe (escala estándar 1.00). Silueta moderadamente ancha, mandíbula suave cuadrada, pelo negro corto hacia arriba y atrás, barba corta, GAFAS DE SOL rectangulares dentro de la oficina. Camisa celeste con mangas recogidas, pantalón carbón, zapatos negros de suela clara. Villano TEATRAL: brazos cruzados, mirada de reojo — cómico y autoritario, jamás malvado de verdad.",
+      "$note": "Jefe (1,80 m). Silueta moderadamente ancha, mandíbula suave cuadrada, pelo negro corto hacia arriba y atrás, barba corta, GAFAS DE SOL rectangulares dentro de la oficina. Camisa celeste con mangas recogidas, pantalón carbón, zapatos negros de suela clara. Villano TEATRAL: brazos cruzados, mirada de reojo — cómico y autoritario, jamás malvado de verdad.",
+      "gender": "m",
       "height": 1.8
     },
     "giuli": {
-      "height": 1.584,
-      "$note": "Compañera de estatura media (escala 0.88, la misma que Steven). Compacta y delgada, ojos grandes marrón oscuro, sin gafas. Melena casi negra lacia con raya lateral hasta bajo los hombros. Jumpsuit negro carbón de manga larga con cinturón, botas negras de plataforma, argollas doradas y scrunchie rojo en la muñeca."
+      "gender": "f",
+      "height": 1.62,
+      "$note": "Compañera de estatura media (1,62 m — la misma que Steven). Compacta y delgada, ojos grandes marrón oscuro, sin gafas. Melena casi negra lacia con raya lateral hasta bajo los hombros. Jumpsuit negro carbón de manga larga con cinturón, botas negras de plataforma, argollas doradas y scrunchie rojo en la muñeca."
     },
     "fran": {
-      "$note": "El más bajito del reparto (escala 0.84). Presentación masculina, rostro estrecho, gafas grandes redondas transparentes de marco claro, bob casi negro con raya al centro hasta la mandíbula. Cárdigan gris abierto sobre camiseta oscura, pantalón carbón, zapatos casi negros de suela clara. NUNCA con pelo rizado ni suéter cerrado.",
-      "height": 1.512
+      "$note": "El más bajito del reparto (1,56 m). Presentación masculina, rostro estrecho, gafas grandes redondas transparentes de marco claro, bob casi negro con raya al centro hasta la mandíbula. Cárdigan gris abierto sobre camiseta oscura, pantalón carbón, zapatos casi negros de suela clara. NUNCA con pelo rizado ni suéter cerrado.",
+      "gender": "m",
+      "height": 1.56
     },
     "manu": {
-      "$note": "Escala 1.00 — EXACTAMENTE la misma altura que Enriqueta y César. Compacto y moderadamente ancho, piel cálida morena, pelo negro corto con 4-6 mechones grandes levantados arriba, sin barba ni gafas. Sudadera roja lisa con «COSA 1» en blanco (sin bolsillo, cordones ni cremallera), pantalón azul marino recto, zapatillas blancas.",
+      "$note": "1,80 m — EXACTAMENTE la misma altura que Enriqueta y César. Compacto y moderadamente ancho, piel cálida morena, pelo negro corto con 4-6 mechones grandes levantados arriba, sin barba ni gafas. Sudadera roja lisa con «COSA 1» en blanco (sin bolsillo, cordones ni cremallera), pantalón azul marino recto, zapatillas blancas.",
+      "gender": "m",
       "height": 1.8
     },
     "crispo": {
-      "$note": "La OTRA jefa (escala 1.00). Compacta y delgada, piel clara, halo de rizos cobrizos GRANDES (grupos redondeados, no cientos de rizos). Gafas de sol redondas de marco dorado, argollas doradas. Camiseta mostaza de manga corta sobre manga larga carbón, pantalón oscuro, zapatos claros. Libreta rectangular sencilla en mano; pose de sospecha reflexiva con la mano en el mentón, siempre en tono lúdico.",
-      "height": 1.8
+      "$note": "La OTRA jefa (1,75 m). Compacta y delgada, piel clara, halo de rizos cobrizos GRANDES (grupos redondeados, no cientos de rizos). Gafas de sol redondas de marco dorado, argollas doradas. Camiseta mostaza de manga corta sobre manga larga carbón, pantalón oscuro, zapatos claros. Libreta rectangular sencilla en mano; pose de sospecha reflexiva con la mano en el mentón, siempre en tono lúdico.",
+      "gender": "f",
+      "height": 1.75
     },
     "chispita": {
-      "$note": "Corre por todo el piso. Amarillo, como su cono de visión. Sin .glb propio todavía: usa el de Kiara.",
+      "$note": "Corre por todo el piso. Chico. Amarillo, como su cono de visión. Sin .glb propio: usa el cuerpo base de chico pintado.",
+      "gender": "m",
       "height": 1.62,
       "paint": {
         "skin": "#d9a06a",
@@ -90,8 +101,10 @@
       }
     },
     "washo": {
-      "$note": "No mira: barre. Turquesa, como su radar. Sin .glb propio todavía: usa el de Kiara.",
-      "height": 1.728,
+      "$note": "No mira: barre. Chico. Turquesa, como su radar. Sin .glb propio: usa el cuerpo base de chico pintado, con algo de barriga.",
+      "gender": "m",
+      "height": 1.73,
+      "build": { "width": 1.05, "belly": 0.4 },
       "paint": {
         "skin": "#b57a4d",
         "hair": "#2c2c33",
@@ -101,20 +114,24 @@
       }
     },
     "cesar": {
+      "gender": "m",
       "height": 1.8,
-      "$note": "Escala 1.00 — EXACTAMENTE la misma altura que Manu y Enriqueta. Moderadamente delgado, piel clara, pelo castaño claro con volumen arriba y atrás, barba corta del mismo tono. Su rasgo distintivo: nariz grande proyectada en cuña redondeada — reconocible y amigable, no caricatura. Gafas de sol rectangulares, camiseta azul carbón con un símbolo naranja pequeño, pantalón negro, zapatos oscuros."
+      "$note": "1,80 m — EXACTAMENTE la misma altura que Manu y Enriqueta. Moderadamente delgado, piel clara, pelo castaño claro con volumen arriba y atrás, barba corta del mismo tono. Su rasgo distintivo: nariz grande proyectada en cuña redondeada — reconocible y amigable, no caricatura. Gafas de sol rectangulares, camiseta azul carbón con un símbolo naranja pequeño, pantalón negro, zapatos oscuros."
     },
     "enriquetta": {
+      "gender": "f",
       "height": 1.8,
-      "$note": "Escala 1.00 — EXACTAMENTE la misma altura que Manu y César. Compacta, rostro redondeado, gafas grandes de marco translúcido suavemente rectangular. Pelo casi negro recogido en grandes volúmenes con 3-5 mechones AZULES anchos visibles de frente. Sudadera roja igual a la de Manu pero con «COSA 2», pantalón azul marino, zapatillas blancas. Misma construcción simplificada que Manu."
+      "$note": "1,80 m — EXACTAMENTE la misma altura que Manu y César. Compacta, rostro redondeado, gafas grandes de marco translúcido suavemente rectangular. Pelo casi negro recogido en grandes volúmenes con 3-5 mechones AZULES anchos visibles de frente. Sudadera roja igual a la de Manu pero con «COSA 2», pantalón azul marino, zapatillas blancas. Misma construcción simplificada que Manu."
     },
     "parce": {
-      "height": 1.845,
-      "$note": "El más alto, pero SOLO ligeramente (escala 1.025 — no debe sobresalir desproporcionado). Moderadamente delgado, barba oscura completa, gafas rectangulares transparentes, melena castaña muy oscura hasta la cintura en secciones grandes simplificadas. Camiseta de fútbol FICTICIA en bloques azul oscuro/blanco cálido/dorado apagado (sin equipos ni marcas reales), jean negro liso, zapatillas negras de suela clara."
+      "gender": "m",
+      "height": 1.85,
+      "$note": "El más alto, pero SOLO apenas (1,85 m — no debe sobresalir desproporcionado). Moderadamente delgado, barba oscura completa, gafas rectangulares transparentes, melena castaña muy oscura hasta la cintura en secciones grandes simplificadas. Camiseta de fútbol FICTICIA en bloques azul oscuro/blanco cálido/dorado apagado (sin equipos ni marcas reales), jean negro liso, zapatillas negras de suela clara."
     },
     "kiara": {
-      "$note": "Ya renunció. Se le nota en la ropa (y su cuerpo es el que prestan chispita, washo y todo el relleno sin modelo propio).",
-      "height": 1.692,
+      "$note": "Ya renunció, y por eso nada le afecta: es un genérico con nombre. Se le nota en la ropa. Usa el cuerpo base de chica pintado.",
+      "gender": "f",
+      "height": 1.69,
       "paint": {
         "skin": "#d2a173",
         "hair": "#2d2018",
@@ -124,8 +141,8 @@
       }
     },
     "generic": {
-      "$note": "El compañero de fondo por defecto, para quien no traiga receta. Sin .glb propio todavía: usa el de Kiara.",
-      "height": 1.674,
+      "$note": "El compañero de fondo por defecto, para quien no traiga receta. Sin género a propósito: cuerpo de chico y texto neutro.",
+      "height": 1.67,
       "paint": {
         "skin": "#e0ac82",
         "hair": "#3a2c26",
@@ -135,8 +152,10 @@
       }
     },
     "steven": {
-      "$note": "Steven el Daddy, el amigo del call center (escala 0.88 — MISMA altura que Giuli; se diferencia por torso y hombros más anchos, no por altura). Piel cálida morena, rostro amplio, pelo negro corto hacia atrás, sin barba. Gafas rectangulares oscuras y smartwatch sencillo. Camisa blanca cálida con mangas recogidas, pantalón azul carbón, zapatos oscuros de suela clara. Sin .glb propio todavía: usa el cuerpo base pintado.",
-      "height": 1.584,
+      "$note": "Steven el Daddy, el amigo del call center (1,62 m — MISMA altura que Giuli; se diferencia por el torso y los hombros más anchos, NUNCA por altura: de eso se encarga build.chest). Piel cálida morena, rostro amplio, pelo negro corto hacia atrás, sin barba. Gafas rectangulares oscuras y smartwatch sencillo. Camisa blanca cálida con mangas recogidas, pantalón azul carbón, zapatos oscuros de suela clara. Usa el cuerpo base de chico pintado.",
+      "gender": "m",
+      "height": 1.62,
+      "build": { "chest": 1.16, "width": 1.04 },
       "paint": {
         "skin": "#c98d5c",
         "hair": "#1e1a18",
@@ -148,7 +167,8 @@
   },
   "extras": [
     {
-      "height": 1.656,
+      "gender": "f",
+      "height": 1.66,
       "paint": {
         "skin": "#f2d3b0",
         "hair": "#8a5a2c",
@@ -158,7 +178,9 @@
       }
     },
     {
-      "height": 1.746,
+      "gender": "m",
+      "height": 1.75,
+      "build": { "width": 1.08, "belly": 0.45 },
       "paint": {
         "skin": "#8d5a38",
         "hair": "#1e1a18",
@@ -168,6 +190,7 @@
       }
     },
     {
+      "gender": "f",
       "height": 1.62,
       "paint": {
         "skin": "#e7bd93",
@@ -178,7 +201,9 @@
       }
     },
     {
-      "height": 1.692,
+      "gender": "f",
+      "height": 1.69,
+      "build": { "width": 1.04 },
       "paint": {
         "skin": "#c98f66",
         "hair": "#2b1f1a",
@@ -188,7 +213,9 @@
       }
     },
     {
-      "height": 1.782,
+      "gender": "m",
+      "height": 1.78,
+      "build": { "chest": 1.1 },
       "paint": {
         "skin": "#f0cfa8",
         "hair": "#c99a4a",
@@ -198,7 +225,9 @@
       }
     },
     {
+      "gender": "m",
       "height": 1.62,
+      "build": { "belly": 0.5 },
       "paint": {
         "skin": "#a06a45",
         "hair": "#20191a",
