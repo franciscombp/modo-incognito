@@ -166,7 +166,7 @@
     <a data-target="narrator">Narrador · Teams</a>
 
     <h3>Otros</h3>
-    <a data-target="audio">Control de audio (vivo)</a>
+    <a data-target="audio">Barra de menú / HUD (vivo)</a>
     <a data-target="lobby">Ascensor</a>
   </aside>
 
@@ -360,9 +360,9 @@
 
     <!-- AUDIO -->
     <section id="audio" class="section">
-      <h1>Control de audio</h1>
-      <p class="desc">Componente real (src/ui/audioControl.js) — mute + volumen, empieza silenciado por defecto.</p>
-      <div id="stage-audio" class="component-box" style="width:fit-content;"></div>
+      <h1>Barra de menú (HUD)</h1>
+      <p class="desc">Componente real (src/ui/menubar.js) — la barra estilo macOS que está siempre en pantalla: marca a la izquierda (abre la pausa), y a la derecha los menulets de tareas, presión, jornada y sonido. Cada uno abre su panel al pulsarlo. Aquí se monta con un estado de ejemplo.</p>
+      <div id="stage-audio" class="component-box" style="height:340px; position:relative; overflow:hidden;"></div>
     </section>
 
     <!-- LOBBY -->
@@ -389,7 +389,7 @@
     import { createMenus } from "../../src/ui/menus.js";
     import { createHud } from "../../src/game/hud.js";
     import { createDialogue } from "../../src/game/dialogue.js";
-    import { createAudioControl } from "../../src/ui/audioControl.js";
+    import { createMenuBar } from "../../src/ui/menubar.js";
     import { icon as svgIcon, ICON_NAMES } from "../../src/ui/icons.js";
 
     // ---------------- Sidebar navigation ----------------
@@ -550,13 +550,28 @@
       });
     }
 
-    // ---------------- Audio control, standalone ----------------
-    // .audio-control es position:fixed a propósito (vive pegado a la
-    // esquina de la pantalla mientras se juega) — para verlo DENTRO de su
-    // ficha aquí se neutraliza esa regla solo en esta copia de muestra.
-    const audioWidget = createAudioControl();
-    audioWidget.style.position = "static";
-    document.getElementById("stage-audio").appendChild(audioWidget);
+    // ---------------- Barra de menú, con estado de ejemplo -------------
+    // .inc-bar es position:fixed (vive pegada al borde de la pantalla
+    // mientras se juega); dentro de su ficha se ancla al recuadro para
+    // poder verla y abrir sus paneles sin salir del storybook.
+    {
+      const stage = document.getElementById("stage-audio");
+      const bar = createMenuBar(stage, { title: "Modo Incógnito" });
+      bar.root.style.position = "absolute";
+      stage.querySelector(".inc-bar-notices").style.position = "absolute";
+      bar.setLive(true);
+      bar.render({
+        objectives: [
+          { id: "coffee", label: "Tomar café", icon: "coffee", done: true, progress: 3, time: 3 },
+          { id: "movie", label: "Ver película", icon: "movie", done: false, progress: 1.4, time: 4 },
+          { id: "snack", label: "Comer a escondidas", icon: "snack", done: false, progress: 0, time: 3 },
+        ],
+        suspicion: 62, suspicionMax: 100, warnings: 1, maxWarnings: 3, heat: 2, maxHeat: 4,
+        inSafeSpot: false, timeLeft: 128, levelDuration: 240, timeGained: 46,
+        currentTime: "2:40 p.m.", bossState: "PATROL", area: { name: "Cafetería" },
+      });
+      bar.notify({ id: "demo", icon: "siren", tone: "danger", title: "Gabo te vio", text: "Viene para acá. Un lugar seguro lo corta." });
+    }
   </script>
 </body>
 </html>

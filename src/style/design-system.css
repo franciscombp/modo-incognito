@@ -7348,3 +7348,411 @@ body.inc-game-active .inc-menu-scrim {
   font-size: 14px;
   font-weight: 900;
 }
+
+/* ============================================================================
+   BARRA DE MENÚ (inc-bar-*) — el HUD del juego
+   ============================================================================
+   Siempre en pantalla, al estilo de la barra de macOS: la marca a la
+   izquierda (que además abre la pausa, como el menú Apple) y a la derecha los
+   "menulets" de estado — tareas, presión, reloj. Cada uno enseña una línea de
+   resumen y guarda el detalle en un panel flotante que se abre al pulsarlo.
+
+   Toda la piel sale de estos tokens: cambiarlos aquí re-tematiza la barra
+   entera sin tocar una sola regla de abajo.
+   ------------------------------------------------------------------------ */
+
+:root {
+  --bar-h: 34px;
+  --bar-bg: rgba(252, 250, 246, 0.72);
+  --bar-blur: saturate(180%) blur(20px);
+  --bar-line: rgba(var(--ink-rgb), 0.1);
+  --bar-ink: rgba(var(--ink-rgb), 0.78);
+  --bar-ink-strong: rgba(var(--ink-rgb), 0.96);
+  --bar-hover: rgba(var(--ink-rgb), 0.07);
+  --bar-active: rgba(var(--ink-rgb), 0.12);
+  --bar-panel-bg: rgba(252, 250, 246, 0.9);
+  --bar-panel-shadow: 0 16px 48px rgba(20, 16, 12, 0.18), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  --bar-radius: 12px;
+  --bar-warn: 38 92% 45%;
+  --bar-danger: 355 78% 48%;
+  --bar-ok: 152 55% 38%;
+}
+
+:root[data-theme="dark"] {
+  --bar-bg: rgba(26, 24, 21, 0.72);
+  --bar-line: rgba(255, 255, 255, 0.12);
+  --bar-ink: rgba(255, 255, 255, 0.76);
+  --bar-ink-strong: rgba(255, 255, 255, 0.96);
+  --bar-hover: rgba(255, 255, 255, 0.09);
+  --bar-active: rgba(255, 255, 255, 0.15);
+  --bar-panel-bg: rgba(32, 29, 26, 0.92);
+  --bar-panel-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.06) inset;
+}
+
+.inc-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--bar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 10px;
+  gap: var(--space-md);
+  background: var(--bar-bg);
+  -webkit-backdrop-filter: var(--bar-blur);
+  backdrop-filter: var(--bar-blur);
+  border-bottom: 1px solid var(--bar-line);
+  color: var(--bar-ink);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  z-index: 60;
+  user-select: none;
+}
+
+/* --- Marca / botón de pausa --- */
+.inc-bar-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 24px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--bar-ink-strong);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.inc-bar-brand:hover { background: var(--bar-hover); }
+.inc-bar-brand:active { background: var(--bar-active); }
+
+/* --- Menulets --- */
+.inc-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Fuera de partida no hay jornada que resumir, pero el sonido sigue estando:
+   la música suena ya en el título, y silenciarla es lo primero que se busca. */
+.inc-bar:not(.live) .inc-bar-item:not([data-item="audio"]) { display: none; }
+
+.inc-bar-item { position: relative; }
+
+.inc-bar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.inc-bar-btn:hover { background: var(--bar-hover); }
+.inc-bar-item.open .inc-bar-btn { background: var(--bar-active); color: var(--bar-ink-strong); }
+.inc-bar-btn-icon { display: inline-flex; opacity: 0.72; }
+.inc-bar-item.open .inc-bar-btn-icon { opacity: 1; }
+
+/* Tonos de estado: el color ya es el aviso, sin necesidad de abrir nada. */
+.inc-bar-item.warn .inc-bar-btn { color: hsl(var(--bar-warn)); }
+.inc-bar-item.warn .inc-bar-btn-icon { opacity: 1; }
+.inc-bar-item.danger .inc-bar-btn { color: hsl(var(--bar-danger)); }
+.inc-bar-item.danger .inc-bar-btn-icon { opacity: 1; }
+.inc-bar-item.danger .inc-bar-btn { animation: inc-bar-pulse 1.6s ease-in-out infinite; }
+
+@keyframes inc-bar-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* --- Panel desplegable --- */
+.inc-bar-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 268px;
+  padding: 12px;
+  border-radius: var(--bar-radius);
+  background: var(--bar-panel-bg);
+  -webkit-backdrop-filter: var(--bar-blur);
+  backdrop-filter: var(--bar-blur);
+  border: 1px solid var(--bar-line);
+  box-shadow: var(--bar-panel-shadow);
+  color: var(--bar-ink-strong);
+  transform-origin: top right;
+  animation: inc-bar-drop 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+}
+
+.inc-bar-panel.inc-hidden { display: none; }
+
+@keyframes inc-bar-drop {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.inc-bar-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.inc-bar-panel-title {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.6;
+}
+
+.inc-bar-panel-hint {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--bar-hover);
+  opacity: 0.7;
+}
+
+.inc-bar-panel-body { display: grid; gap: 7px; }
+
+/* --- Contenido: tareas --- */
+.inc-bar-task {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.3;
+}
+
+.inc-bar-task-mark { display: inline-flex; opacity: 0.55; }
+.inc-bar-task.done { opacity: 0.45; }
+.inc-bar-task.done .inc-bar-task-label { text-decoration: line-through; }
+.inc-bar-task.done .inc-bar-task-mark { color: hsl(var(--bar-ok)); opacity: 1; }
+
+.inc-bar-task-bar {
+  grid-column: 2;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--bar-hover);
+  overflow: hidden;
+}
+
+.inc-bar-task-bar i {
+  display: block;
+  height: 100%;
+  background: hsl(var(--accent-main));
+  transition: width var(--transition-fast);
+}
+
+/* --- Contenido: medidores y pares clave/valor --- */
+.inc-bar-meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bar-hover);
+  overflow: hidden;
+}
+
+.inc-bar-meter i {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: hsl(var(--accent-main));
+  transition: width var(--transition-base);
+}
+
+.inc-bar-kv {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+  font-size: 13px;
+}
+
+.inc-bar-kv span { opacity: 0.62; }
+.inc-bar-kv b { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+.inc-bar-big {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.inc-bar-note {
+  font-size: 11.5px;
+  line-height: 1.4;
+  opacity: 0.55;
+}
+
+.inc-bar-empty { font-size: 13px; opacity: 0.5; }
+
+/* --- Contenido: sonido --- */
+.inc-bar-audio-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.inc-bar-audio-mute {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--bar-hover);
+  color: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.inc-bar-audio-mute:hover { background: var(--bar-active); }
+
+.inc-bar-audio-slider {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  appearance: none;
+  background: var(--bar-hover);
+  cursor: pointer;
+}
+
+.inc-bar-audio-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: hsl(var(--accent-main));
+  box-shadow: var(--shadow-sm);
+}
+
+.inc-bar-audio-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: hsl(var(--accent-main));
+}
+
+.inc-bar-item.muted .inc-bar-btn { opacity: 0.5; }
+
+/* ============================================================================
+   NOTIFICACIONES (inc-notice-*)
+   ============================================================================
+   Caen desde la barra, se leen solas y se van. Nunca roban el foco ni piden
+   un clic: si te la pierdes, el estado sigue en su menulet.
+   ------------------------------------------------------------------------ */
+
+.inc-bar-notices {
+  position: fixed;
+  top: calc(var(--bar-h) + 8px);
+  right: 10px;
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  z-index: 59;
+  pointer-events: none;
+  transition: transform var(--transition-base);
+}
+
+.inc-notice {
+  display: grid;
+  grid-template-columns: 20px 1fr;
+  align-items: start;
+  gap: 9px;
+  width: min(320px, calc(100vw - 20px));
+  padding: 10px 12px;
+  border-radius: var(--bar-radius);
+  background: var(--bar-panel-bg);
+  -webkit-backdrop-filter: var(--bar-blur);
+  backdrop-filter: var(--bar-blur);
+  border: 1px solid var(--bar-line);
+  box-shadow: var(--bar-panel-shadow);
+  color: var(--bar-ink-strong);
+  animation: inc-notice-in 0.34s cubic-bezier(0.2, 0.9, 0.3, 1.25);
+}
+
+.inc-notice.out { animation: inc-notice-out 0.4s ease forwards; }
+
+@keyframes inc-notice-in {
+  from { opacity: 0; transform: translateY(-14px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes inc-notice-out {
+  to { opacity: 0; transform: translateX(24px) scale(0.97); }
+}
+
+.inc-notice-icon { display: inline-flex; margin-top: 1px; opacity: 0.75; }
+.inc-notice-body { display: grid; gap: 2px; }
+
+.inc-notice-title {
+  font-size: 12.5px;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.inc-notice-text {
+  font-size: 12.5px;
+  line-height: 1.35;
+  opacity: 0.72;
+}
+
+/* El borde izquierdo es el tono: se distingue de reojo, sin leer. */
+.inc-notice--warn { border-left: 3px solid hsl(var(--bar-warn)); }
+.inc-notice--warn .inc-notice-icon { color: hsl(var(--bar-warn)); opacity: 1; }
+.inc-notice--danger { border-left: 3px solid hsl(var(--bar-danger)); }
+.inc-notice--danger .inc-notice-icon { color: hsl(var(--bar-danger)); opacity: 1; }
+.inc-notice--info { border-left: 3px solid hsl(var(--bar-ok)); }
+.inc-notice--info .inc-notice-icon { color: hsl(var(--bar-ok)); opacity: 1; }
+
+/* Con la barra puesta, todo lo que vive pegado arriba baja para no cruzarse
+   con ella. */
+.inc-layer--hud .inc-hud-topbar { padding-top: calc(var(--bar-h) + 6px); }
+.audio-control { top: calc(var(--bar-h) + 10px) !important; }
+
+@media (max-width: 720px) {
+  .inc-bar-brand-name { display: none; }
+  .inc-bar-btn-label { font-size: 12px; }
+  .inc-bar { padding: 0 6px; }
+}
+
+/* --- Los paneles del HUD viejo, jubilados ------------------------------------
+   OBJETIVOS / SOSPECHA / JORNADA / TIEMPO EXTRA vivían como tres columnas de
+   tarjetas flotando sobre el piso a todas horas. Ahora esa misma información
+   está en la barra (resumen de una línea) y en sus paneles (el detalle, si lo
+   pides), así que aquí solo estorbaban: tapaban medio piso y repetían lo que
+   ya se lee arriba.
+
+   Se ocultan en vez de borrarse porque siguen siendo el respaldo del que sale
+   el snapshot; si algún día se quiere volver al HUD de paneles, es quitar
+   esta regla. Lo que SÍ se queda visible es el aviso de acción y el toast:
+   son reacción inmediata a lo que acabas de hacer, no estado de fondo. */
+.inc-hud-objectives,
+.inc-hud-suspicion,
+.inc-hud-day-row,
+.inc-hud-timer,
+.inc-hud-scorepanel {
+  display: none !important;
+}
+
+/* Sin las tarjetas, la columna central no necesita reservar su hueco. */
+.inc-hud-topbar { pointer-events: none; }
+.inc-hud-topbar .inc-hud-center { pointer-events: auto; }

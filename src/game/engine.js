@@ -9,6 +9,7 @@ import { createMenus } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
+import { createMenuBar } from "../ui/menubar.js";
 import { createEggReveal } from "../ui/eggReveal.js";
 import { createMinigameRegistry } from "./minigames.js";
 import {
@@ -70,6 +71,13 @@ export function createEngine({
   const dialogue = createDialogue(app, { looks });
   const lobby = createLobby(app);
   const eggReveal = createEggReveal(app);
+  // La barra de menú es el HUD de verdad y vive fuera de todo lo demás: se ve
+  // en los menús, en el ascensor y jugando. Ver ui/menubar.js.
+  const menuBar = createMenuBar(app, {
+    title: manifest.title ?? "Modo Incógnito",
+    onOpenPause: () => openPause(),
+  });
+  hud.attachMenuBar(menuBar);
   const save = createSave();
   let crossingActive = false;
 
@@ -510,6 +518,9 @@ export function createEngine({
     applyTheme(day.theme, { renderer, scene, ...lights });
     hud.setDay(day);
     hud.hideResult();
+    // Día nuevo: las alertas de "una sola vez" (media hora de nada, etc.)
+    // vuelven a contar, y no arrastramos las de ayer en pantalla.
+    menuBar.resetNotices();
     setMood("calm");
     teamsTimer = null;
     lastTeamsMessage = null;

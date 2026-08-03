@@ -250,6 +250,9 @@ export function createHud(root) {
   /** Toggles the whole in-game HUD, e.g. while a menu is up. */
   function setVisible(visible) {
     hud.classList.toggle("inc-hidden", !visible);
+    // La barra NO se esconde con el HUD (está siempre), pero solo enseña
+    // estado cuando hay jornada que resumir.
+    menuBar?.setLive(visible);
   }
 
   /** Shown between days; `actions` are [{ label, primary, onClick }]. */
@@ -361,8 +364,17 @@ export function createHud(root) {
     });
   }
 
+  // La barra de menú (ui/menubar.js) se monta fuera del HUD pero lee el MISMO
+  // snapshot por frame: es la misma verdad enseñada de dos formas, no dos
+  // fuentes que se puedan desincronizar.
+  let menuBar = null;
+  function attachMenuBar(bar) {
+    menuBar = bar;
+  }
+
   function render(state) {
     setAction(state.currentAction);
+    menuBar?.render(state);
 
     const heat = state.suspicionMax ? state.suspicion / state.suspicionMax : 0;
     danger.classList.toggle("on", heat >= DANGER_AT && !state.gameOver);
@@ -452,6 +464,10 @@ export function createHud(root) {
 
   return {
     render,
+    attachMenuBar,
+    get menuBar() {
+      return menuBar;
+    },
     setDay,
     setVisible,
     setActionRig,
