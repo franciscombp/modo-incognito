@@ -26,6 +26,8 @@ import grid from "@phosphor-icons/core/assets/regular/squares-four.svg?raw";
 import gear from "@phosphor-icons/core/assets/regular/gear.svg?raw";
 import help from "@phosphor-icons/core/assets/regular/question.svg?raw";
 import back from "@phosphor-icons/core/assets/regular/caret-left.svg?raw";
+import next from "@phosphor-icons/core/assets/regular/caret-right.svg?raw";
+import lock from "@phosphor-icons/core/assets/regular/lock-key.svg?raw";
 // Antifaz de sol: el juego va de pasar desapercibida.
 import incognito from "@phosphor-icons/core/assets/regular/sunglasses.svg?raw";
 import diamond from "@phosphor-icons/core/assets/regular/diamond.svg?raw";
@@ -82,6 +84,8 @@ const RAW = {
   gear,
   help,
   back,
+  next,
+  lock,
   incognito,
 
   // --- HUD ---
