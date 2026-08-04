@@ -104,6 +104,19 @@ export function createSave() {
       return state.flags[name];
     },
     /**
+     * Borra el estado de CONVERSACIÓN (talk:/caught:), y solo ese. Se llama
+     * al arrancar cada día: las charlas vuelven a empezar — Gabo se
+     * PRESENTA en vez de saltar a una línea de seguimiento como si el
+     * reintento no hubiera pasado. Los flags de historia (elecciones,
+     * secretos) no se tocan.
+     */
+    resetTalkFlags() {
+      for (const key of Object.keys(state.flags)) {
+        if (key.startsWith("talk:") || key.startsWith("caught:")) delete state.flags[key];
+      }
+      write(state);
+    },
+    /**
      * "Reiniciar progreso" de verdad: días completados, secretos, mejores
      * tiempos, con quién ya hablaste y cuántas amonestaciones llevas — todo
      * lo que hace que un día 1 nuevo no se sienta nuevo. El personaje

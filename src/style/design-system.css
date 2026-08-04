@@ -8461,3 +8461,93 @@ body.inc-game-active .inc-menu-scrim {
   background: linear-gradient(180deg, var(--red), #c24361);
   box-shadow: 0 4px 0 0 #a23751;
 }
+
+/* ============================================================
+   BOTONES "DE JUGUETE" EN TODO EL JUEGO — el estilo del menú de
+   resultado (píldora gorda, sombra dura abajo, se HUNDE al
+   pulsar) ya no es exclusivo de esa pantalla: es EL botón del
+   design system. Cualquier .inc-btn, esté donde esté (menús,
+   pausa, diálogo, ajustes, builders), sale igual de aquí. Todo
+   con tokens (--violet, --glass, --line), así que el modo
+   oscuro lo hereda sin más bloques. El vidrio se queda: los
+   fondos secundarios siguen siendo --glass.
+   ============================================================ */
+.inc-btn {
+  border-radius: 16px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease,
+    color 0.15s ease, border-color 0.15s ease;
+}
+.inc-btn.inc-btn--primary {
+  background: linear-gradient(180deg, var(--violet), var(--violet-dim));
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 0 0 var(--violet-dim);
+}
+.inc-btn.inc-btn--primary:hover {
+  background: linear-gradient(180deg, var(--violet), var(--violet-dim));
+  filter: brightness(1.07);
+  transform: none;
+  box-shadow: 0 4px 0 0 var(--violet-dim);
+}
+.inc-btn.inc-btn--primary:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 0 var(--violet-dim);
+  filter: none;
+}
+/* Secundario y ghost: vidrio con filo, mismo cuerpo y mismo hundirse. */
+.inc-btn.inc-btn--secondary,
+.inc-btn.inc-btn--glass {
+  background: var(--glass);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  box-shadow: 0 3px 0 0 var(--line);
+}
+.inc-btn.inc-btn--secondary:hover,
+.inc-btn.inc-btn--glass:hover {
+  background: var(--glass);
+  color: var(--violet);
+  border-color: var(--violet-dim);
+  transform: none;
+  box-shadow: 0 3px 0 0 var(--violet-dim);
+}
+.inc-btn.inc-btn--secondary:active,
+.inc-btn.inc-btn--glass:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 var(--line);
+}
+.inc-btn.inc-btn--ghost {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  color: var(--ink-soft);
+}
+.inc-btn.inc-btn--ghost:hover {
+  color: var(--violet);
+  background: rgba(var(--cyan-rgb), 0.08);
+}
+.inc-btn.inc-btn--ghost:active {
+  transform: translateY(1px);
+}
+/* Peligro (despedir partida, borrar progreso): mismo juguete en rojo. */
+.inc-btn.inc-btn--danger,
+.inc-modal__content.lose .inc-btn--primary {
+  background: linear-gradient(180deg, var(--red), #c24361);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 0 0 #a23751;
+}
+.inc-btn.inc-btn--danger:active,
+.inc-modal__content.lose .inc-btn--primary:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 0 #a23751;
+}
+/* Los paneles grandes comparten la tarjeta del resultado: mismo radio,
+   mismo vidrio. */
+.inc-modal__content,
+.inc-menu-screen,
+.inc-panel {
+  border-radius: 24px;
+}

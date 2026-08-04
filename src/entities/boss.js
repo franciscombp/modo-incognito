@@ -448,9 +448,28 @@ export class Boss {
     this.cone.rotation.y = facingRotationY(this.facingDir.x, this.facingDir.z);
 
     const hot = this.redAlert || this.state === CHASE;
-    this.coneMaterial.color.set(
-      hot ? 0xe6483f : this.state === SEARCH ? 0xe0a03c : this.baseConeColor
-    );
+    // El halo es un TERMÓMETRO: con la sospecha baja conserva su color base
+    // tranquilo, y según sube se va tiñendo a ámbar y luego a rojo — el
+    // nivel se lee del suelo sin abrir el HUD. Cazando (o viéndote en falta)
+    // se planta en rojo pleno, y buscando en ámbar, pase lo que pase con el
+    // medidor.
+    const ratio = THREE.MathUtils.clamp(this.suspicionRatio ?? 0, 0, 1);
+    if (hot) {
+      this.coneMaterial.color.set(0xe6483f);
+    } else if (this.state === SEARCH) {
+      this.coneMaterial.color.set(0xe0a03c);
+    } else {
+      this._heatColor = this._heatColor ?? new THREE.Color();
+      this._heatColor.set(this.baseConeColor);
+      if (ratio > 0.35) {
+        // 35%→70% funde hacia ámbar; 70%→100% de ámbar a rojo.
+        const amber = this._amberColor ?? (this._amberColor = new THREE.Color(0xe0a03c));
+        const red = this._redColor ?? (this._redColor = new THREE.Color(0xe6483f));
+        if (ratio < 0.7) this._heatColor.lerp(amber, (ratio - 0.35) / 0.35);
+        else this._heatColor.copy(amber).lerp(red, (ratio - 0.7) / 0.3);
+      }
+      this.coneMaterial.color.copy(this._heatColor);
+    }
     this._updateWaves(dt, hot);
   }
 
