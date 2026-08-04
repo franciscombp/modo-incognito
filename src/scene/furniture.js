@@ -15,7 +15,7 @@ import { cozyMaterial, SURFACES } from "./cozy.js";
 // end up in the dozens instead of the thousands.
 
 const TABLE_H = 0.74 * S;
-const TOP_T = 0.07 * S;
+const TOP_T = 0.045 * S;
 const CHAIR_GAP = 0.5 * S; // clear distance from the table edge to a chair
 const CHAIR_R = 0.22 * S;
 
@@ -23,7 +23,7 @@ const CHAIR_R = 0.22 * S;
 // One geometry per repeated part, built once and reused by every instance.
 
 function chairBodyGeometry() {
-  const seat = new THREE.CylinderGeometry(CHAIR_R, CHAIR_R * 0.92, 0.1 * S, 8);
+  const seat = new THREE.CylinderGeometry(CHAIR_R, CHAIR_R * 0.9, 0.075 * S, 12);
   seat.translate(0, 0.44 * S, 0);
   // Respaldo un pelín reclinado: es lo que separa "silla de oficina" de
   // "banqueta con tabla detrás".
@@ -89,6 +89,21 @@ function sharedAssets() {
       stool: new THREE.CylinderGeometry(0.17 * S, 0.17 * S, 0.45 * S, 8),
       podFrame: podFrameGeometry(),
       podCushion: podCushionGeometry(),
+      // Lámpara colgante (la lámina de la cabaña): cable fino, campana de
+      // metal y bombilla cálida. Cuelga "del aire" — en un diorama el techo
+      // se sobreentiende.
+      lampShade: (() => {
+        const shade = new THREE.CylinderGeometry(0.06 * S, 0.3 * S, 0.24 * S, 12, 1, true);
+        const cable = new THREE.CylinderGeometry(0.012 * S, 0.012 * S, 1.5 * S, 6);
+        cable.translate(0, 0.85 * S, 0);
+        return mergeGeometries([shade, cable], false);
+      })(),
+      lampBulb: new THREE.SphereGeometry(0.075 * S, 10, 8),
+      mug: (() => {
+        const cup = new THREE.CylinderGeometry(0.045 * S, 0.038 * S, 0.09 * S, 10);
+        cup.translate(0, 0.045 * S, 0);
+        return cup;
+      })(),
       // Madera clara y tapicería azul empolvado en vez de melamina blanca,
       // patas de metal gris y sillas negras: es lo que separa "oficina de
       // catálogo" de la oficina cálida de las referencias.
@@ -101,6 +116,11 @@ function sharedAssets() {
           color: new THREE.Color(SURFACES.screen),
           emissive: new THREE.Color(SURFACES.screenGlow),
           emissiveIntensity: 0.55,
+        }),
+        bulb: new THREE.MeshLambertMaterial({
+          color: new THREE.Color("#fff2cc"),
+          emissive: new THREE.Color("#ffca7a"),
+          emissiveIntensity: 1.2,
         }),
       },
     };
@@ -133,6 +153,8 @@ export function createFurnitureRegistry() {
   const monitors = [];
   const stools = [];
   const pods = [];
+  const lamps = [];
+  const mugs = [];
   const slabs = { top: [], edge: [], leg: [] };
 
   return {
@@ -159,6 +181,14 @@ export function createFurnitureRegistry() {
     /** Sillón de dos plazas (auditorio). rotY = hacia dónde MIRA. */
     addPod(x, z, rotY) {
       pods.push(transform(x, 0, z, rotY));
+    },
+    /** Lámpara colgante sobre (x,z); la campana queda a ~2.3 unidades. */
+    addLamp(x, z) {
+      lamps.push(transform(x, 2.3 * S, z));
+    },
+    /** Una taza olvidada sobre una mesa. y = alto de la superficie. */
+    addMug(x, y, z) {
+      mugs.push(transform(x, y, z, Math.abs(Math.sin(x * 7.3 + z * 3.1)) * Math.PI));
     },
     /** A static box that will be merged into the shared slab geometry. */
     addSlab(kind, geometry, x, y, z, rotY = 0) {
@@ -191,6 +221,9 @@ export function createFurnitureRegistry() {
       instanced(a.stool, a.materials.seat, stools);
       instanced(a.podFrame, a.materials.seat, pods);
       instanced(a.podCushion, a.materials.top, pods);
+      instanced(a.lampShade, a.materials.leg, lamps);
+      instanced(a.lampBulb, a.materials.bulb, lamps);
+      instanced(a.mug, a.materials.edge, mugs);
 
       for (const [kind, list] of Object.entries(slabs)) {
         if (!list.length) continue;
@@ -244,12 +277,13 @@ export function placeSeatedTable(
     registry.addSlab("top", new THREE.CylinderGeometry(r, r, TOP_T, 20), originX, TABLE_H, originZ);
     registry.addSlab(
       "leg",
-      new THREE.CylinderGeometry(0.09 * S, 0.22 * S, TABLE_H, 10),
+      new THREE.CylinderGeometry(0.055 * S, 0.16 * S, TABLE_H, 10),
       originX,
       TABLE_H / 2,
       originZ
     );
 
+    registry.addLamp(originX, originZ);
     const ringR = r + CHAIR_GAP + CHAIR_R;
     for (let i = 0; i < capacity; i++) {
       const angle = (i / capacity) * Math.PI * 2;
@@ -269,22 +303,26 @@ export function placeSeatedTable(
   registry.addSlab("top", new THREE.BoxGeometry(tw, TOP_T, td), originX, TABLE_H, originZ);
   registry.addSlab(
     "edge",
-    new THREE.BoxGeometry(tw * 0.97, 0.08 * S, td * 0.94),
+    new THREE.BoxGeometry(tw * 0.94, 0.05 * S, td * 0.88),
     originX,
     TABLE_H - TOP_T,
     originZ
   );
 
-  // Trestle legs, one pair per ~2.5 units of length.
+  // Trestle legs, one pair per ~2.5 units of length. Y una LÁMPARA colgante
+  // por tramo, a lo cabaña de la referencia: es lo que hace que cada mesa
+  // tenga su charco de luz implícito encima.
   const pairs = Math.max(2, Math.round(longLen / (2.5 * S)));
   for (let i = 0; i < pairs; i++) {
     const t = pairs === 1 ? 0.5 : i / (pairs - 1);
     const along = (t - 0.5) * longLen * 0.86;
+    const lampAlong = (t - 0.5) * longLen * 0.62;
+    registry.addLamp(originX + (alongX ? lampAlong : 0), originZ + (alongX ? 0 : lampAlong));
     for (const side of [-1, 1]) {
       const across = side * shortLen * 0.38;
       registry.addSlab(
         "leg",
-        new THREE.BoxGeometry(0.09 * S, TABLE_H - TOP_T, 0.09 * S),
+        new THREE.CylinderGeometry(0.032 * S, 0.04 * S, TABLE_H - TOP_T, 8),
         originX + (alongX ? along : across),
         (TABLE_H - TOP_T) / 2,
         originZ + (alongX ? across : along)
@@ -298,6 +336,18 @@ export function placeSeatedTable(
 
   const place = (px, pz, facing) => {
     registry.addChair(px, pz, facing);
+    // Una taza olvidada en ~un tercio de los puestos: el desorden vivido de
+    // las referencias, barato y determinista.
+    const mugSeed = Math.abs(Math.sin(px * 5.7 + pz * 9.1));
+    if (mugSeed < 0.36) {
+      const inwardMug = 0.22 * S;
+      const sideMug = (mugSeed * 10) % 1 < 0.5 ? 0.16 * S : -0.16 * S;
+      registry.addMug(
+        px - Math.sin(facing + Math.PI) * inwardMug + Math.cos(facing) * sideMug,
+        TABLE_H + TOP_T / 2,
+        pz - Math.cos(facing + Math.PI) * inwardMug - Math.sin(facing) * sideMug
+      );
+    }
     if (monitors) {
       // A slim monitor on the table in front of each seat sells "puesto de
       // trabajo" without cluttering the silhouette.
