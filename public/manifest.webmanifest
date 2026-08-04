@@ -1,0 +1,18 @@
+{
+  "name": "Modo Incógnito · Piso 10",
+  "short_name": "Incógnito",
+  "description": "Sobrevive la jornada en el Piso 10 sin trabajar y sin que el jefe te vea.",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#eef0f5",
+  "theme_color": "#23263a",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
