@@ -129,6 +129,7 @@ export class Game {
     onPopup = null,
     onTalk = null,
     onWarn = null,
+    onHeatAlert = null,
   }) {
     this.player = player;
     this.boss = boss;
@@ -136,6 +137,7 @@ export class Game {
     this.minions = minions;
     this.onTalk = onTalk;
     this.onWarn = onWarn;
+    this.onHeatAlert = onHeatAlert;
     this.hud = hud;
     this.canvas = canvas;
     this.rules = { ...DEFAULT_RULES, ...rules };
@@ -676,9 +678,20 @@ export class Game {
       if (level > this.heat) {
         buzz([20, 30, 20]);
         this.toast(`Nivel de búsqueda ${level}`);
+        // NIVEL 3 = ALARMA GENERAL, y eso no cabe en un toast que nadie ve
+        // mientras esquiva mesas: el juego se PAUSA con un aviso a pantalla
+        // completa (lo pinta el engine, ver onHeatAlert) y no sigue hasta
+        // que pulses "Entendido" — y entonces, a correr. Solo salta una vez
+        // por subida: se rearma al enfriarte por debajo del nivel 3.
+        if (level >= 3 && !this._heatAlertShown && !this.gameOver) {
+          this._heatAlertShown = true;
+          this.setPaused(true);
+          this.onHeatAlert?.(level);
+        }
       }
       this.heat = level;
     }
+    if (this.heat < 3) this._heatAlertShown = false;
 
     const tuning = HEAT_TUNING[this.heat];
     const base = this.boss.dayTuning ?? { vision: this.boss.baseVisionRange, speedMul: 1 };

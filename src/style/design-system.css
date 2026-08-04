@@ -8551,3 +8551,155 @@ body.inc-game-active .inc-menu-scrim {
 .inc-panel {
   border-radius: 24px;
 }
+
+/* ============================================================
+   CAPA "JUEGO" — el look Duolingo del menú de resultado, llevado
+   a TODO el sistema: tarjetas gordas de borde visible, barras
+   redondeadas con brillo, chips píldora y opciones de diálogo
+   que son botones de juego. Todo con tokens: el modo oscuro y
+   cualquier re-tematización futura lo heredan sin tocar nada.
+   El vidrio (--glass/--panel) se mantiene como fondo base.
+   ============================================================ */
+
+/* --- Tarjetas: mismo cuerpo en paneles, avisos y rastreadores --- */
+.inc-bar-panel,
+.inc-notice,
+.inc-tracker-card,
+.inc-world-prompt-card,
+.inc-dialogue-box,
+.inc-dialogue-narrator {
+  border-radius: 20px;
+  border: 2px solid var(--line);
+  box-shadow: 0 6px 18px rgba(var(--ink-rgb), 0.12);
+}
+.inc-tracker-compact .inc-tracker-card {
+  border-radius: 999px; /* la píldora del jefe sigue siendo píldora */
+}
+
+/* --- Títulos con peso de juego --- */
+.inc-menu-screen-title-text,
+.inc-bar-panel-title,
+.inc-dialogue-speaker-text,
+.inc-modal__content h1,
+.inc-modal__content h2 {
+  font-weight: 900;
+  letter-spacing: -0.01em;
+}
+
+/* --- Chips: siempre píldora, tinta del acento, negrita --- */
+.inc-menu-chip,
+.inc-menu-plat-chip,
+.inc-bar-kv,
+.inc-tracker-dist {
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+/* --- Barras de progreso con jugo: carril hundido + relleno brillante --- */
+.inc-action-progress-track,
+.inc-hud-suspicion-track,
+.inc-hud-timer-track,
+.inc-bar-meter,
+.inc-tracker-bar,
+.inc-world-prompt-fill,
+.inc-bar-task-bar {
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 2px 4px rgba(var(--ink-rgb), 0.14);
+}
+.inc-hud-suspicion-fill,
+.inc-hud-timer-fill,
+.inc-action-progress-fill,
+.inc-bar-meter > *,
+.inc-tracker-bar > *,
+.inc-bar-task-bar > * {
+  border-radius: 999px;
+  /* El filo de luz de arriba es lo que hace que el relleno se lea
+     "caramelo" y no "div de admin". */
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.35), transparent 45%);
+}
+
+/* --- Opciones de diálogo: botones de juego de verdad --- */
+.inc-dialogue-option {
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--glass);
+  font-weight: 700;
+  box-shadow: 0 3px 0 0 var(--line);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease,
+    border-color 0.15s ease, color 0.15s ease;
+}
+.inc-dialogue-option:hover {
+  border-color: var(--violet-dim);
+  color: var(--violet);
+}
+.inc-dialogue-option.focused {
+  background: linear-gradient(180deg, var(--violet), var(--violet-dim));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 3px 0 0 var(--violet-dim);
+}
+.inc-dialogue-option:active,
+.inc-dialogue-option.focused:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 var(--violet-dim);
+}
+
+/* --- Avisos bajo la barra: píldoras con icono, no banners --- */
+.inc-notice {
+  border-radius: 16px;
+  font-weight: 700;
+}
+
+/* --- La MISMA tarjeta-botón en menús, días y login. Antes cada lista
+   tenía su borde y su radio y la interfaz se leía como tres apps
+   distintas; ahora todo lo pulsable comparte cuerpo: borde 2px, radio
+   14, sombra dura abajo y hundirse al pulsar. --- */
+.inc-menu-opt,
+.inc-menu-day,
+.inc-menu-choice,
+.inc-menu-tab,
+.inc-login-mini {
+  border-radius: 14px;
+  border: 2px solid var(--line);
+  background: var(--glass);
+  box-shadow: 0 3px 0 0 var(--line);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease,
+    border-color 0.15s ease, color 0.15s ease;
+}
+.inc-menu-opt:hover,
+.inc-menu-day:hover:not(.inc-menu-day--locked),
+.inc-menu-choice:hover,
+.inc-menu-tab:hover,
+.inc-login-mini:hover {
+  border-color: var(--violet-dim);
+}
+.inc-menu-opt:active,
+.inc-menu-day:active:not(.inc-menu-day--locked),
+.inc-menu-choice:active,
+.inc-menu-tab:active,
+.inc-login-mini:active {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 0 var(--line);
+}
+/* Foco/selección: primario pleno, texto blanco — como la opción de
+   diálogo enfocada y el botón primario. UNA sola manera de decir
+   "esto es lo elegido". */
+.inc-menu-opt.focused,
+.inc-menu-opt[aria-selected="true"],
+.inc-menu-tab.active,
+.inc-menu-tab[aria-selected="true"] {
+  background: linear-gradient(180deg, var(--violet), var(--violet-dim));
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 3px 0 0 var(--violet-dim);
+}
+.inc-menu-opt.focused .inc-menu-opt-hint,
+.inc-menu-opt.focused .inc-menu-opt-value {
+  color: rgba(255, 255, 255, 0.8);
+}
+/* El día bloqueado no es pulsable y no debe fingir que sí. */
+.inc-menu-day--locked {
+  box-shadow: none;
+  opacity: 0.55;
+}
