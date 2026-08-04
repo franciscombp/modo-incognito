@@ -137,7 +137,18 @@ export function createFurnitureRegistry() {
 
   return {
     addChair(x, z, rotY) {
-      chairs.push(transform(x, 0, z, rotY));
+      // +PI: el respaldo del modelo vive en su +z local, y `rotY` llega como
+      // "hacia dónde mira quien se sienta" — sin el giro, todas las sillas
+      // daban la ESPALDA a su mesa. Y encima un poco de caos determinista
+      // (girito y corrimiento por posición): una oficina real nunca tiene
+      // las sillas clavadas en formación; recién usadas se leen vivas.
+      const seed = Math.abs(Math.sin(x * 12.9898 + z * 78.233)) * 43758.5453;
+      const r1 = seed % 1;
+      const r2 = (seed * 1.618) % 1;
+      const jitterRot = (r1 - 0.5) * 0.5;
+      const jx = (r2 - 0.5) * 0.14 * S;
+      const jz = (r1 - 0.5) * 0.1 * S;
+      chairs.push(transform(x + jx, 0, z + jz, rotY + Math.PI + jitterRot));
     },
     addMonitor(x, y, z, rotY) {
       monitors.push(transform(x, y, z, rotY));

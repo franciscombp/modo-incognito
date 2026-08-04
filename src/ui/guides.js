@@ -18,7 +18,10 @@ const BOSS_STATE = {
 
 export function createGuides(root, camera) {
   const task = createTracker(root, camera, { id: "task", side: "right", accent: "cyan" });
-  const boss = createTracker(root, camera, { id: "boss", side: "left", accent: "red" });
+  // La del jefe va COMPACTA: una píldora de icono + estado + metros. La
+  // tarjeta grande con "JEFE · NIVEL 0" ocupaba media esquina y nadie
+  // entendía qué era el nivel.
+  const boss = createTracker(root, camera, { id: "boss", side: "left", accent: "red", compact: true });
 
   function update(state) {
     if (!state || state.gameOver) {
@@ -43,7 +46,9 @@ export function createGuides(root, camera) {
         x: target.x,
         z: target.z,
         icon: target.icon ?? "diamond",
-        top: area ? `${WING[area.wing] ?? "PISO 10"} · ${area.name}` : "PISO 10",
+        // "TAREA ACTUAL" a secas: el ala y la sala ya los dice la flecha
+        // llevándote; el rótulo de antes parecía un cartel de ubicación.
+        top: "TAREA ACTUAL",
         label: target.label,
         meta:
           state.nearStation && state.nearStation.id === target.id
@@ -67,7 +72,7 @@ export function createGuides(root, camera) {
       z: state.bossPos.z,
       y: 2.2,
       icon: state.bossState === "CHASE" ? "siren" : "boss",
-      top: `JEFE · NIVEL ${state.heat}`,
+      top: "",
       label: info.label,
       meta: `${Math.round(bossDist)} m`,
       short: `${Math.round(bossDist)} m`,
