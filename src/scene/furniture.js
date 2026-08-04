@@ -25,17 +25,58 @@ const CHAIR_R = 0.22 * S;
 function chairBodyGeometry() {
   const seat = new THREE.CylinderGeometry(CHAIR_R, CHAIR_R * 0.92, 0.1 * S, 8);
   seat.translate(0, 0.44 * S, 0);
-  const back = new THREE.BoxGeometry(CHAIR_R * 1.8, 0.34 * S, 0.07 * S);
-  back.translate(0, 0.66 * S, CHAIR_R * 0.85);
+  // Respaldo un pelín reclinado: es lo que separa "silla de oficina" de
+  // "banqueta con tabla detrás".
+  const back = new THREE.BoxGeometry(CHAIR_R * 1.8, 0.4 * S, 0.06 * S);
+  back.rotateX(0.12);
+  back.translate(0, 0.7 * S, CHAIR_R * 0.9);
   return mergeGeometries([seat, back], false);
 }
 
 function chairStandGeometry() {
   const column = new THREE.CylinderGeometry(0.045 * S, 0.045 * S, 0.36 * S, 6);
   column.translate(0, 0.22 * S, 0);
-  const base = new THREE.CylinderGeometry(CHAIR_R * 0.95, CHAIR_R * 0.95, 0.05 * S, 8);
-  base.translate(0, 0.04 * S, 0);
-  return mergeGeometries([column, base], false);
+  // Base de ESTRELLA con rueditas, como una silla de oficina de verdad: el
+  // disco plano de antes leía como taburete de bar.
+  const parts = [column];
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const arm = new THREE.BoxGeometry(CHAIR_R * 0.95, 0.03 * S, 0.045 * S);
+    arm.rotateY(-a);
+    arm.translate(Math.cos(a) * CHAIR_R * 0.48, 0.045 * S, Math.sin(a) * CHAIR_R * 0.48);
+    parts.push(arm);
+    const wheel = new THREE.SphereGeometry(0.032 * S, 8, 6);
+    wheel.translate(Math.cos(a) * CHAIR_R * 0.9, 0.032 * S, Math.sin(a) * CHAIR_R * 0.9);
+    parts.push(wheel);
+  }
+  return mergeGeometries(parts, false);
+}
+
+/**
+ * Pod de auditorio: sillón de DOS plazas, bajo y envolvente. El armazón y
+ * los cojines salen como dos instancias con la misma matriz para poder
+ * darles materiales distintos sin duplicar transformaciones.
+ */
+function podFrameGeometry() {
+  const w = 1.35 * S;
+  const base = new THREE.BoxGeometry(w, 0.3 * S, 0.62 * S);
+  base.translate(0, 0.15 * S, 0);
+  const back = new THREE.BoxGeometry(w, 0.42 * S, 0.14 * S);
+  back.rotateX(0.14);
+  back.translate(0, 0.48 * S, 0.26 * S);
+  const armL = new THREE.BoxGeometry(0.14 * S, 0.42 * S, 0.6 * S);
+  armL.translate(-w / 2 + 0.07 * S, 0.24 * S, 0);
+  const armR = armL.clone();
+  armR.translate(w - 0.14 * S, 0, 0);
+  return mergeGeometries([base, back, armL, armR], false);
+}
+
+function podCushionGeometry() {
+  const c1 = new THREE.BoxGeometry(0.5 * S, 0.09 * S, 0.5 * S);
+  c1.translate(-0.29 * S, 0.34 * S, -0.03 * S);
+  const c2 = c1.clone();
+  c2.translate(0.58 * S, 0, 0);
+  return mergeGeometries([c1, c2], false);
 }
 
 let shared = null;
@@ -46,6 +87,8 @@ function sharedAssets() {
       chairStand: chairStandGeometry(),
       monitor: new THREE.BoxGeometry(0.34 * S, 0.24 * S, 0.04 * S),
       stool: new THREE.CylinderGeometry(0.17 * S, 0.17 * S, 0.45 * S, 8),
+      podFrame: podFrameGeometry(),
+      podCushion: podCushionGeometry(),
       // Madera clara y tapicería azul empolvado en vez de melamina blanca,
       // patas de metal gris y sillas negras: es lo que separa "oficina de
       // catálogo" de la oficina cálida de las referencias.
@@ -89,6 +132,7 @@ export function createFurnitureRegistry() {
   const chairs = [];
   const monitors = [];
   const stools = [];
+  const pods = [];
   const slabs = { top: [], edge: [], leg: [] };
 
   return {
@@ -100,6 +144,10 @@ export function createFurnitureRegistry() {
     },
     addStool(x, z) {
       stools.push(transform(x, 0.23 * S, z));
+    },
+    /** Sillón de dos plazas (auditorio). rotY = hacia dónde MIRA. */
+    addPod(x, z, rotY) {
+      pods.push(transform(x, 0, z, rotY));
     },
     /** A static box that will be merged into the shared slab geometry. */
     addSlab(kind, geometry, x, y, z, rotY = 0) {
@@ -130,6 +178,8 @@ export function createFurnitureRegistry() {
       instanced(a.chairStand, a.materials.leg, chairs);
       instanced(a.monitor, a.materials.screen, monitors);
       instanced(a.stool, a.materials.seat, stools);
+      instanced(a.podFrame, a.materials.seat, pods);
+      instanced(a.podCushion, a.materials.top, pods);
 
       for (const [kind, list] of Object.entries(slabs)) {
         if (!list.length) continue;

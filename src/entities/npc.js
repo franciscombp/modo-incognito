@@ -137,10 +137,14 @@ export class NPC {
         // poquito sobre sí mismo, y al pararse se levanta y vuelve andando.
         const speed = Math.hypot(this._rollVX, this._rollVZ);
         if (speed > 0.25 * S) {
-          const nextX = this.position.x + this._rollVX * dt;
-          const nextZ = this.position.z + this._rollVZ * dt;
-          this.position.x = nextX;
-          this.position.z = nextZ;
+          // La silla rueda, pero por el SUELO transitable: el navmesh la
+          // sujeta y no cruza paredes ni se cuela dentro de un mueble.
+          const next = this.navmesh?.snap(this.position.x + this._rollVX * dt, this.position.z + this._rollVZ * dt) ?? {
+            x: this.position.x + this._rollVX * dt,
+            z: this.position.z + this._rollVZ * dt,
+          };
+          this.position.x = next.x;
+          this.position.z = next.z;
           const damp = Math.pow(0.25, dt);
           this._rollVX *= damp;
           this._rollVZ *= damp;
