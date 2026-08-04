@@ -374,23 +374,29 @@ export function placeSeatedTable(
     if (hasChair) registry.addChair(px, pz, facing);
     // Una taza olvidada en ~un tercio de los puestos: el desorden vivido de
     // las referencias, barato y determinista.
+    // OJO CON LA GEOMETRÍA DEL PUESTO: el asiento está a CHAIR_GAP+CHAIR_R
+    // del borde de la mesa. Lo que va SOBRE la mesa se mide desde el
+    // asiento SUMANDO esa distancia primero — medido "un poquito hacia la
+    // mesa" a secas, monitor y taza caían fuera del tablero, flotando en el
+    // aire, que es exactamente el bug que hubo.
+    const TO_EDGE = CHAIR_GAP + CHAIR_R;
     const mugSeed = Math.abs(Math.sin(px * 5.7 + pz * 9.1));
     if (mugSeed < 0.36) {
-      const inwardMug = 0.22 * S;
+      const inwardMug = TO_EDGE + 0.16 * S;
       const sideMug = (mugSeed * 10) % 1 < 0.5 ? 0.16 * S : -0.16 * S;
       registry.addMug(
-        px - Math.sin(facing + Math.PI) * inwardMug + Math.cos(facing) * sideMug,
+        px + Math.sin(facing) * inwardMug + Math.cos(facing) * sideMug,
         TABLE_H + TOP_T / 2,
-        pz - Math.cos(facing + Math.PI) * inwardMug - Math.sin(facing) * sideMug
+        pz + Math.cos(facing) * inwardMug - Math.sin(facing) * sideMug
       );
     }
     if (monitors) {
       // Cada puesto trae monitor con pie, laptop abierta o NADA (el hueco
       // vacío también cuenta la historia). Apoyados EN la mesa, no flotando.
       const gearSeed = Math.abs(Math.sin(px * 8.13 + pz * 2.71));
-      const inward = 0.36 * S;
-      const gx = px - Math.sin(facing + Math.PI) * inward;
-      const gz = pz - Math.cos(facing + Math.PI) * inward;
+      const inward = TO_EDGE + 0.26 * S;
+      const gx = px + Math.sin(facing) * inward;
+      const gz = pz + Math.cos(facing) * inward;
       const surface = TABLE_H + TOP_T / 2;
       if (gearSeed < 0.55) registry.addMonitor(gx, surface, gz, facing);
       else if (gearSeed < 0.82) registry.addLaptop(gx, surface, gz, facing);

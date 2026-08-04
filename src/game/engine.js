@@ -571,6 +571,7 @@ export function createEngine({
       onPopup,
       onTalk: (npc, opts) => talkTo(npc, opts),
       onWarn: (info) => handleWarn(info),
+      onHeatAlert: () => showHeatAlert(),
     });
     // Pausado: el reloj no puede correr mientras se abren las puertas ni
     // durante la presentación de los secuaces.
@@ -580,6 +581,37 @@ export function createEngine({
 
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Nivel de búsqueda 3: el mundo se congela (game.setPaused, lo hizo ya
+   * game.js antes de llamar aquí) y cae un aviso A PANTALLA COMPLETA con la
+   * misma tarjeta de juego del fin de día — Gabo enorme, título de alarma y
+   * un único botón. Nada avanza hasta pulsar "¡Entendido, a correr!", y al
+   * soltar sí que toca correr: el nivel 3 sigue activo y el jefe viene.
+   */
+  function showHeatAlert() {
+    hud.showResult({
+      look: looks?.get?.("gabo") ?? null,
+      pose: "phone",
+      icon: "siren",
+      title: "¡ALARMA EN EL PISO!",
+      win: false,
+      body:
+        "Nivel de búsqueda 3: Gabo dio la orden y todo el mundo te está " +
+        "buscando. Escóndete o finge que trabajas hasta que se enfríe — " +
+        "si te alcanzan, amonestación directa.",
+      actions: [
+        {
+          label: "¡Entendido, a correr!",
+          primary: true,
+          onClick: () => {
+            hud.hideResult();
+            game?.setPaused(false);
+          },
+        },
+      ],
+    });
   }
 
   /** Turns the lift-queue choice into a real handicap for the day. */
