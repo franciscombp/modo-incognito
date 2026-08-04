@@ -30,27 +30,27 @@ export const themes = {
     sky: ["#b9c8ec", "#edf2f8"],
     fog: "#e2e9f2",
     ambient: { color: 0xf0f4fa, intensity: 1.15 },
-    hemi: { sky: 0xd6e2f8, ground: 0xa8b0c2, intensity: 0.95 },
-    key: { color: 0xfaf6ea, intensity: 1.1 },
-    exposure: 1.05,
+    hemi: { sky: 0xd6e2f8, ground: 0xc9b493, intensity: 1.0 },
+    key: { color: 0xffe9c9, intensity: 1.35 },
+    exposure: 1.1,
   },
   midday: {
     // 1pm - blanco de laboratorio
     sky: ["#c8d8ee", "#f2f5f9"],
     fog: "#ebeff5",
     ambient: { color: 0xffffff, intensity: 1.2 },
-    hemi: { sky: 0xe4edf8, ground: 0xb4bac6, intensity: 1.0 },
-    key: { color: 0xf7f7f2, intensity: 1.1 },
-    exposure: 1.05,
+    hemi: { sky: 0xe4edf8, ground: 0xc8bfae, intensity: 1.05 },
+    key: { color: 0xfff1d6, intensity: 1.3 },
+    exposure: 1.1,
   },
   afternoon: {
     // 3pm - la tarde vira a violeta
     sky: ["#b3a8dc", "#eed4cc"],
     fog: "#e2d2dc",
     ambient: { color: 0xf0e2ee, intensity: 1.1 },
-    hemi: { sky: 0xd4c4ec, ground: 0xa89ab0, intensity: 0.95 },
-    key: { color: 0xffd4b8, intensity: 1.15 },
-    exposure: 1.08,
+    hemi: { sky: 0xd4c4ec, ground: 0xbfa694, intensity: 1.0 },
+    key: { color: 0xffcf9e, intensity: 1.35 },
+    exposure: 1.12,
   },
   latAfternoon: {
     // 5pm - synthwave encendiéndose

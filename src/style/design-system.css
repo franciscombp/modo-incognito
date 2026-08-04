@@ -8263,3 +8263,66 @@ body.inc-game-active .inc-menu-scrim {
     max-width: 46vw;
   }
 }
+
+/* ============================================================
+   TÁCTIL Y APAISADO BAJO — reorganización para que el HUD no
+   estorbe: fuera los atajos de teclado (no hay teclado), las
+   tarjetas de rastreo se encogen y suben por encima del joystick
+   y de los botones de acción.
+   ============================================================ */
+@media (pointer: coarse) {
+  #hint {
+    display: none !important;
+  }
+}
+@media (max-height: 480px) {
+  .inc-tracker-card {
+    min-width: 0;
+    max-width: 36vw;
+    padding: 8px 12px 8px 10px;
+    gap: 4px 10px;
+    font-size: 11.5px;
+    bottom: max(104px, calc(84px + var(--safe-b)));
+  }
+  .inc-teams-toast {
+    font-size: 12px;
+  }
+}
+
+/* Dark mode del HUD en partida: la píldora de atajos y los toasts
+   llevaban blancos fijos que deslumbraban sobre el piso nocturno. */
+@media (prefers-color-scheme: dark) {
+  #hint {
+    background: rgba(30, 33, 52, 0.88);
+    color: var(--ink);
+  }
+  .inc-teams-toast {
+    background: rgba(24, 26, 42, 0.94);
+    color: var(--ink);
+  }
+}
+
+/* La barra de menú en OSCURO: sus tokens dark estaban atados a
+   :root[data-theme="dark"], un atributo que nadie pone — el juego decide
+   por prefers-color-scheme. Sin esto, la barra quedaba clara con texto
+   invisible sobre el piso nocturno. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bar-bg: rgba(22, 24, 38, 0.74);
+    --bar-line: rgba(255, 255, 255, 0.12);
+    --bar-ink: rgba(255, 255, 255, 0.76);
+    --bar-ink-strong: rgba(255, 255, 255, 0.96);
+    --bar-hover: rgba(255, 255, 255, 0.09);
+    --bar-active: rgba(255, 255, 255, 0.15);
+    --bar-panel-bg: rgba(24, 26, 42, 0.92);
+    --bar-panel-shadow: 0 16px 48px rgba(0, 0, 0, 0.45), 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+  }
+}
+
+/* En apaisado bajo, la tarjeta derecha del rastreador se aparta del
+   racimo de botones (+/− y mapa/pausa) en vez de meterse debajo. */
+@media (max-height: 480px) {
+  .inc-tracker-right .inc-tracker-card {
+    right: max(104px, calc(96px + env(safe-area-inset-right, 0px)));
+  }
+}
