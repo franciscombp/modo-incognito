@@ -522,6 +522,31 @@ export class Game {
     // encuentro el que cuenta.
     if (caught) this._warn();
 
+    // LA SOSPECHA AL TOPE SIEMPRE RESUELVE. El diseño dice que la
+    // amonestación llega con el encuentro físico — pero si el jefe se
+    // atasca o anda en la otra punta, el medidor se quedaba clavado en 100
+    // sin consecuencia y parecía un bug. Al máximo, a la vista y sin lugar
+    // seguro, corren unos segundos de gracia (da tiempo a esconderse) y la
+    // amonestación cae sola: al 100% ya te vio todo el mundo, no hace
+    // falta que te alcance con las piernas.
+    if (
+      !this.rules.explore &&
+      !this.gameOver &&
+      this.suspicion >= this.suspicionConfig.max &&
+      !this.inSafeSpot &&
+      !this.player.isHiding &&
+      this._caughtCooldown <= 0
+    ) {
+      this._peggedFor = (this._peggedFor ?? 0) + dt;
+      if (this._peggedFor > 4) {
+        this._peggedFor = 0;
+        this.toast("Te vieron desde la otra punta del piso.");
+        this._warn();
+      }
+    } else {
+      this._peggedFor = 0;
+    }
+
     if (!this.gameOver && !this.rules.explore) {
       if (this.objectives.every((o) => o.done)) this._finish(true);
       else if (this.timeLeft <= 0) this._finish(false);
@@ -749,10 +774,13 @@ export class Game {
       const key = o.id ?? o.cast ?? "boss";
       if ((this._bumpCooldowns.get(key) ?? 0) > 0) continue;
       this._bumpCooldowns.set(key, 1.4);
-      // "¡!" sobre los dos, tambaleo para el arrollado, un toque de vibración.
+      // "¡!" sobre los dos y un toque de vibración. A uno SENTADO el golpe
+      // no lo tambalea: la silla de rueditas se lo LLEVA rodando en la
+      // dirección del empujón (y su computadora se queda trabajando sola).
       this.onPopup?.({ text: "!", x: o.position.x, z: o.position.z, kind: "bump" });
       this.onPopup?.({ text: "!", x: p.position.x, z: p.position.z, kind: "bump" });
-      o.stumble?.();
+      if (o.isSeated && o.rollAway) o.rollAway(nx, nz);
+      else o.stumble?.();
       buzz(12);
     }
   }

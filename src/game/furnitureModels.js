@@ -94,13 +94,67 @@ function createOfficeChair() {
   column.position.y = 0.15;
   group.add(column);
 
-  // Base (ruedas)
-  const baseGeo = new THREE.CylinderGeometry(0.2, 0.2, 0.02, 32);
-  const baseMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-  const base = new THREE.Mesh(baseGeo, baseMat);
-  base.position.y = 0.01;
-  base.castShadow = true;
-  group.add(base);
+  // Base de estrella con RUEDITAS: cinco brazos y una bolita al final de
+  // cada uno. Es lo que vende que la silla ruede cuando el empujón se
+  // lleva a su dueño (ver npc.rollAway) — un disco plano parecía un taburete.
+  const armGeo = new THREE.BoxGeometry(0.2, 0.02, 0.04);
+  const armMat = new THREE.MeshStandardMaterial({ color: 0x44485a });
+  const wheelGeo = new THREE.SphereGeometry(0.028, 10, 8);
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x23263a });
+  for (let i = 0; i < 5; i++) {
+    const a = (i / 5) * Math.PI * 2;
+    const arm = new THREE.Mesh(armGeo, armMat);
+    arm.position.set(Math.cos(a) * 0.1, 0.035, Math.sin(a) * 0.1);
+    arm.rotation.y = -a;
+    arm.castShadow = true;
+    group.add(arm);
+    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+    wheel.position.set(Math.cos(a) * 0.18, 0.028, Math.sin(a) * 0.18);
+    group.add(wheel);
+  }
+
+  return group;
+}
+
+/**
+ * La computadora del puesto: monitor con pie + teclado. Va anclada al MUNDO
+ * (ver anchor en character3d.js): el trabajo no se mueve aunque a su dueño
+ * se lo lleve la silla. La pantalla mira a -z, hacia quien se sienta.
+ */
+function createComputer() {
+  const group = new THREE.Group();
+
+  const stand = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.02, 0.05, 0.08, 10),
+    new THREE.MeshStandardMaterial({ color: 0x44485a })
+  );
+  stand.position.y = 0.04;
+  group.add(stand);
+
+  const screen = new THREE.Mesh(
+    new THREE.BoxGeometry(0.34, 0.2, 0.02),
+    new THREE.MeshStandardMaterial({ color: 0x23263a })
+  );
+  screen.position.set(0, 0.19, 0.01);
+  screen.castShadow = true;
+  group.add(screen);
+
+  // El "brillo" de la pantalla: un plano emisivo por delante, mirando al
+  // asiento. Emissive para que se lea encendida con cualquier luz del día.
+  const glow = new THREE.Mesh(
+    new THREE.PlaneGeometry(0.3, 0.16),
+    new THREE.MeshStandardMaterial({ color: 0x9fd8e8, emissive: 0x77b8d0, emissiveIntensity: 0.65 })
+  );
+  glow.position.set(0, 0.19, -0.001);
+  glow.rotation.y = Math.PI;
+  group.add(glow);
+
+  const keyboard = new THREE.Mesh(
+    new THREE.BoxGeometry(0.24, 0.015, 0.09),
+    new THREE.MeshStandardMaterial({ color: 0xd8dbe6 })
+  );
+  keyboard.position.set(0, 0.01, -0.14);
+  group.add(keyboard);
 
   return group;
 }
@@ -203,6 +257,9 @@ export function getFurniture(name) {
       break;
     case "tv":
       furniture = createTV();
+      break;
+    case "computer":
+      furniture = createComputer();
       break;
     default:
       return null;
