@@ -76,10 +76,13 @@ export class NPC {
    */
   rollAway(nx, nz) {
     if (this._state === "roll") return;
-    const speed = (2.6 + Math.random() * 1.2) * S;
+    // Empujón franco y giro discreto: el chiste es que la silla LO LLEVE a
+    // otro lado, no que dé vueltas como un trompo en el sitio.
+    const speed = (3.4 + Math.random() * 1.2) * S;
     this._rollVX = nx * speed;
     this._rollVZ = nz * speed;
-    this._rollSpin = (Math.random() < 0.5 ? -1 : 1) * (2.5 + Math.random() * 2);
+    this._rollSpin = (Math.random() < 0.5 ? -1 : 1) * (1.4 + Math.random());
+    this._rollBlocked = 0;
     this._state = "roll";
   }
 
@@ -143,6 +146,15 @@ export class NPC {
             x: this.position.x + this._rollVX * dt,
             z: this.position.z + this._rollVZ * dt,
           };
+          // Si el navmesh se come el paso (una pared, la mesa), no tiene
+          // sentido seguir girando en el sitio: se levanta y ya.
+          const intended = speed * dt;
+          const got = Math.hypot(next.x - this.position.x, next.z - this.position.z);
+          this._rollBlocked = got < intended * 0.25 ? this._rollBlocked + dt : 0;
+          if (this._rollBlocked > 0.3) {
+            this._rollVX = 0;
+            this._rollVZ = 0;
+          }
           this.position.x = next.x;
           this.position.z = next.z;
           const damp = Math.pow(0.25, dt);

@@ -53,9 +53,9 @@ function overlaps(a, b) {
   );
 }
 
-export function createTracker(root, camera, { id, side = "right", accent = "cyan" }) {
+export function createTracker(root, camera, { id, side = "right", accent = "cyan", compact = false }) {
   const layer = document.createElement("div");
-  layer.className = `inc-tracker-layer inc-tracker-${side} inc-tracker-${accent}`;
+  layer.className = `inc-tracker-layer inc-tracker-${side} inc-tracker-${accent}${compact ? " inc-tracker-compact" : ""}`;
   layer.dataset.tracker = id;
   layer.innerHTML = `
     <div class="inc-tracker-card">

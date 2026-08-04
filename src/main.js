@@ -132,7 +132,7 @@ async function boot() {
   setActiveScene(data.scenes.get(firstLevel.scene));
 
   const world = createCollisionWorld();
-  const { roomLabels, markerGroup, hidingMarkers, safeSpotMarkers } = buildOffice(scene, world);
+  const { roomLabels, markerGroup, hidingMarkers, safeSpotMarkers, activityMarkers } = buildOffice(scene, world);
   const navmesh = buildNavmesh(world, { radius: 0.3 * S });
 
   // Pull every authored point onto walkable floor. A waypoint buried in a
@@ -570,18 +570,30 @@ async function boot() {
     });
   }
 
-  // Los lugares seguros gastan su carga del día y no se recuperan hasta
-  // mañana: cuando se acaban se quedan grises, sin parpadeo de "ya vuelve".
-  const SAFE_READY = new THREE.Color(0x4a9de0);
-  const SAFE_SPENT = new THREE.Color(0x555f6e);
+  // Los lugares seguros son ahora ETIQUETAS flotantes (ver builder.js): la
+  // agotada se apaga bajando su opacidad — no hay anillo que teñir.
   function updateSafeSpotMarkers() {
     const game = engine.game;
     if (!game || !safeSpotMarkers) return;
-    safeSpotMarkers.forEach((ring, i) => {
+    safeSpotMarkers.forEach((label, i) => {
       const charge = game.safeSpotCharge(i);
-      ring.material.color.copy(SAFE_SPENT).lerp(SAFE_READY, charge);
-      ring.material.opacity = 0.22 + charge * 0.63;
-      ring.scale.setScalar(0.82 + charge * 0.18);
+      const mats = Array.isArray(label.material) ? label.material : [label.material];
+      for (const m of mats) {
+        if (!m) continue;
+        m.transparent = true;
+        m.opacity = 0.35 + charge * 0.65;
+      }
+    });
+  }
+
+  // Los rombos de actividad solo se encienden para las tareas ACTIVAS del
+  // día (pendientes): marcar lo inactivo era ruido, no guía.
+  function updateActivityMarkers() {
+    if (!activityMarkers) return;
+    const game = engine.game;
+    activityMarkers.forEach((icon) => {
+      const objective = game?.objectives?.find((o) => o.id === icon.userData.stationId);
+      icon.visible = !!objective && !objective.done && !game.gameOver;
     });
   }
 
@@ -619,6 +631,7 @@ async function boot() {
   // El yaw en el que estaba la cámara antes de la acción, para devolverlo al
   // soltar. null = no hay acción en curso ni vuelta pendiente.
   let actionYawRestore = null;
+  let actionRestoreFor = 0;
   /** Orbita el yaw hacia `targetDeg` por el arco corto; true al llegar. */
   function orbitTowards(targetDeg, dt) {
     const cur = getCameraSettings().yawDeg;
@@ -657,6 +670,7 @@ async function boot() {
       updateHints(dt);
       updateHidingMarkers();
       updateSafeSpotMarkers();
+      updateActivityMarkers();
       updateLabels();
       const acting = !!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending);
       view.setActionZoom(acting);
@@ -669,9 +683,18 @@ async function boot() {
       const spriteYaw = engine.game?.player?.sprite?._yaw;
       if (acting && spriteYaw != null) {
         if (actionYawRestore == null) actionYawRestore = getCameraSettings().yawDeg;
+        actionRestoreFor = 0;
         orbitTowards(THREE.MathUtils.radToDeg(spriteYaw), dt);
       } else if (actionYawRestore != null) {
-        if (orbitTowards(actionYawRestore, dt)) actionYawRestore = null;
+        // La VUELTA no puede quedarse a medias: si en tres segundos el
+        // tween no cerró (una pausa, un diálogo, un dt raro), se planta el
+        // yaw original de golpe y en paz — quedarse mirando de frente para
+        // siempre era el bug.
+        actionRestoreFor += dt;
+        if (orbitTowards(actionYawRestore, dt) || actionRestoreFor > 3) {
+          setCameraSettings({ yawDeg: actionYawRestore }, { persistNow: false });
+          actionYawRestore = null;
+        }
       }
       view.update(dt, player.position);
       popups.update(dt);

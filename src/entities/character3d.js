@@ -228,13 +228,19 @@ const POSE_LIBRARY = {
   movie: {
     speed: 0.9,
     prop: null,
-    a: { head: [-0.14, 0.06, 0], armL: [-0.95, 0, 0.55], elbowL: [-1.75, 0, -0.6], armR: [-0.88, 0, -0.55], elbowR: [-1.8, 0, 0.6] },
-    b: { head: [-0.12, -0.06, 0], armL: [-0.98, 0, 0.55], elbowL: [-1.7, 0, -0.6], armR: [-0.91, 0, -0.55], elbowR: [-1.85, 0, 0.6] },
+    hands: "grip",
+    // SENTADA en el puff con el bucket de palomitas en el regazo: la mano
+    // derecha va y viene del bucket a la boca. Antes la pose se quedaba de
+    // pie ENCIMA del puf, que era exactamente lo contrario de ver una peli.
+    a: { head: [-0.1, 0.04, 0], torso: [0.1, 0, 0], legL: [-1.5, 0, 0.08], legR: [-1.5, 0, -0.08], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], armL: [-1.1, 0, 0.35], elbowL: [-0.95, 0, 0], armR: [-1.05, 0, -0.25], elbowR: [-1.0, 0, 0], lift: -0.088 },
+    b: { head: [-0.16, -0.04, 0], torso: [0.1, 0, 0], legL: [-1.5, 0, 0.08], legR: [-1.5, 0, -0.08], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], armL: [-1.12, 0, 0.35], elbowL: [-0.92, 0, 0], armR: [-1.75, 0, -0.12], elbowR: [-1.95, 0, 0], lift: -0.088 },
     context: {
       props: [{ name: "popcorn", bone: "LeftHand", offset: [0, -0.08, 0], rotation: [0, 0, 0] }],
       furniture: [
-        { name: "puff", position: [0, 0, 0.15], rotation: [0, 0, 0] },
-        { name: "tv", position: [0.35, 0.3, -0.5], rotation: [0, 0, 0] },
+        { name: "puff", position: [0, 0, -0.05], rotation: [0, 0, 0] },
+        // La tele es escenario: se queda donde está aunque el personaje se
+        // levante a media película.
+        { name: "tv", position: [0, 0.3, 0.9], rotation: [0, Math.PI, 0], anchor: "world" },
       ],
     },
   },
@@ -285,12 +291,12 @@ const POSE_LIBRARY = {
     context: {
       props: [],
       furniture: [
-        // La silla viaja CON el personaje (es hija suya): si lo empujan, la
-        // silla de rueditas se lo lleva rodando. El escritorio y la
-        // computadora van anclados al MUNDO: el trabajo no se mueve.
+        // SOLO la silla, que viaja CON el personaje (es hija suya): si lo
+        // empujan, la silla de rueditas se lo lleva rodando. La mesa y la
+        // computadora NO se crean aquí: son las del escenario — el personaje
+        // se sienta FRENTE a la mesa blanca que ya existe, y su monitor se
+        // queda en ella pase lo que pase.
         { name: "office_chair", position: [0, 0, -0.08], rotation: [0, 0, 0] },
-        { name: "desk", position: [0, 0, 0.42], rotation: [0, 0, 0], anchor: "world" },
-        { name: "computer", position: [0, 0.37, 0.5], rotation: [0, 0, 0], anchor: "world" },
       ],
     },
   },

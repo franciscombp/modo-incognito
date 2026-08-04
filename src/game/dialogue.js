@@ -9,6 +9,7 @@
 
 import { sfxMove, sfxSelect, sfxAdvance, sfxType } from "./sfx.js";
 import { createPortrait3D } from "../ui/portrait3d.js";
+import { characterShot } from "../ui/charshot.js";
 import { icon as svgIcon } from "../ui/icons.js";
 
 const ADVANCE_KEYS = new Set([" ", "enter", "e"]);
@@ -132,9 +133,32 @@ export function createDialogue(root, { looks = null } = {}) {
    * en blanco. `vn-narrating` es lo que la aparta.
    */
   function showNarrator(text) {
+    // Un mensaje de Steven es una NOTIFICACIÓN de chat: él vive dentro de
+    // la burbuja (su avatar en el título), no como retrato gigante detrás —
+    // el muñeco del hablante anterior se quedaba plantado presentando el
+    // Teams de otro.
+    portrait3d.stop?.();
+    portrait.classList.remove("inc-dialogue-portrait-3d");
+    portrait.classList.add("inc-dialogue-portrait-off");
+    ensureNarratorAvatar();
     narratorText.textContent = text;
     narratorEl.classList.remove("inc-hidden");
     layer.classList.add("inc-dialogue-narrating");
+  }
+
+  // El avatar de Steven dentro de la burbuja. characterShot devuelve null
+  // hasta que su cuerpo está en memoria, así que se reintenta en cada
+  // mensaje hasta conseguir la foto (y de ahí en adelante queda puesta).
+  let narratorAvatarSet = false;
+  function ensureNarratorAvatar() {
+    if (narratorAvatarSet || !looks) return;
+    const shot = characterShot(looks.get("steven"));
+    if (!shot) return;
+    const icon = narratorEl.querySelector(".inc-dialogue-narrator-icon");
+    if (icon) {
+      icon.innerHTML = `<img src="${shot}" alt="" class="inc-dialogue-narrator-avatar" />`;
+      narratorAvatarSet = true;
+    }
   }
 
   /** Ocultar narrador. */

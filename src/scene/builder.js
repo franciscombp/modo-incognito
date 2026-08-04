@@ -702,22 +702,25 @@ function buildGameplayMarkers() {
     return ring;
   });
 
-  // Lugares seguros: mismo trato que los escondites (un anillo cada uno, no
-  // fusionado) porque cada uno se agota por su cuenta y hay que poder atenuar
-  // el suyo sin tocar los demás. Azul para no confundirlos con los verdes.
-  const safeSpotMarkers = safeSpots.map(({ x, z, radius }, i) => {
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0x4a9de0,
-      transparent: true,
-      opacity: 0.85,
-      toneMapped: false,
-    });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(radius * 0.72, radius * 0.9, 22), mat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(x, 0.16 * S, z);
-    ring.userData.spotIndex = i;
-    group.add(ring);
-    return ring;
+  // Lugares seguros: una ETIQUETA flotante con su nombre e icono, no un
+  // anillo — los aros azules en el suelo no decían qué eran y ensuciaban el
+  // piso. Sigue siendo un mesh por sitio para poder atenuar el agotado sin
+  // tocar los demás (se baja la opacidad de su etiqueta).
+  const safeSpotMarkers = safeSpots.map((spot, i) => {
+    // Las salas de reuniones ya llevan su rótulo de sala: etiquetarlas otra
+    // vez era un cartel doble. Solo el puesto propio (kind desk) necesita
+    // decir dónde está. El resto devuelve un grupo vacío para que los
+    // índices sigan alineados con el estado del juego.
+    if (spot.kind !== "desk") {
+      const empty = new THREE.Group();
+      group.add(empty);
+      return empty;
+    }
+    const label = createLabel(spot.label ?? "Tu puesto", { icon: spot.icon ?? "", solid: false }, 0.72);
+    label.position.set(spot.x, 1.7 * S, spot.z);
+    label.userData.spotIndex = i;
+    group.add(label);
+    return label;
   });
 
   const starMat = new THREE.MeshBasicMaterial({ color: 0xf2c744, toneMapped: false });
@@ -729,26 +732,24 @@ function buildGameplayMarkers() {
     return star;
   });
 
+  // Actividades: SIN anillo en el suelo. Queda solo el rombo flotante que
+  // bota sobre la estación, y main.js lo enciende únicamente para las
+  // tareas ACTIVAS del día — antes los aros marcaban hasta lo que no se
+  // podía hacer, que es lo contrario de guiar.
   const activityMarkers = activityStations.map((station) => {
     const color = ACTIVITY_COLORS[station.type] ?? 0xffffff;
     const mat = new THREE.MeshBasicMaterial({
       color,
       transparent: true,
-      opacity: 0.85,
+      opacity: 0.9,
       toneMapped: false,
     });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.6 * S, 0.78 * S, 24), mat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(station.x, 0.16 * S, station.z);
-    ring.userData.stationId = station.id;
-    group.add(ring);
-
-    const icon = new THREE.Mesh(new THREE.OctahedronGeometry(0.16 * S, 0), mat);
-    icon.position.set(station.x, 0.85 * S, station.z);
-    icon.userData.bob = { base: 0.85 * S, speed: 1.8, amp: 0.07 * S, offset: Math.random() * Math.PI * 2 };
+    const icon = new THREE.Mesh(new THREE.OctahedronGeometry(0.18 * S, 0), mat);
+    icon.position.set(station.x, 0.9 * S, station.z);
+    icon.userData.bob = { base: 0.9 * S, speed: 1.8, amp: 0.08 * S, offset: Math.random() * Math.PI * 2 };
     icon.userData.stationId = station.id;
     group.add(icon);
-    return ring;
+    return icon;
   });
 
   return { group, distractionMarkers, activityMarkers, hidingMarkers, safeSpotMarkers };

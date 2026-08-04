@@ -8326,3 +8326,34 @@ body.inc-game-active .inc-menu-scrim {
     right: max(104px, calc(96px + env(safe-area-inset-right, 0px)));
   }
 }
+
+/* Avatar de Steven dentro de su burbuja de notificación. */
+.inc-dialogue-narrator-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  display: block;
+  background: var(--panel);
+  border: 1px solid rgba(var(--ink-rgb), 0.15);
+}
+
+/* Rastreador COMPACTO (el del jefe): una píldora de icono + estado +
+   metros. La tarjeta grande no se entendía y tapaba media esquina. */
+.inc-tracker-compact .inc-tracker-card {
+  min-width: 0;
+  max-width: none;
+  grid-template-areas: "icon body" "bar bar";
+  padding: 7px 14px 6px 10px;
+  gap: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.inc-tracker-compact .inc-tracker-top {
+  display: none;
+}
+.inc-tracker-compact .inc-tracker-card .inc-tracker-bar,
+.inc-tracker-compact .inc-tracker-bar {
+  display: none;
+}
