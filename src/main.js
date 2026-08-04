@@ -111,6 +111,13 @@ key.shadow.bias = -0.0018;
 scene.add(key);
 
 async function boot() {
+  // PWA a la carta: el service worker cachea SOLO los .glb (una descarga de
+  // los cuerpos y listos) y deja el motor y los datos siempre en red — ver
+  // public/sw.js. Si el navegador no lo soporta, no pasa nada.
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register(`${BASE}sw.js`).catch(() => {});
+  }
+
   // ---- Content: everything the game is made of comes from public/data ----
   const data = await loadGameData();
 

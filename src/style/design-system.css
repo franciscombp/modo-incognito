@@ -8235,3 +8235,31 @@ body.inc-game-active .inc-menu-scrim {
 .hud-suspicion-fill.hot {
   background: linear-gradient(90deg, var(--red), var(--red));
 }
+
+/* ============================================================
+   MÓVIL APAISADO — en pantallas bajas (un teléfono en horizontal)
+   el diálogo ocupaba media pantalla y tapaba el piso entero. Caja
+   compacta, retrato más chico y menos aire.
+   ============================================================ */
+@media (max-height: 480px) {
+  .inc-dialogue-box {
+    width: min(560px, 88vw);
+    padding: 10px 16px;
+    margin-bottom: 10px;
+    max-height: 34vh;
+  }
+  .inc-dialogue-text {
+    font-size: 14px;
+    line-height: 1.35;
+  }
+  .inc-dialogue-portrait {
+    width: min(30vw, 300px);
+    height: min(64vh, 340px);
+  }
+  .inc-dialogue-hint {
+    display: none;
+  }
+  .inc-teams-toast {
+    max-width: 46vw;
+  }
+}
