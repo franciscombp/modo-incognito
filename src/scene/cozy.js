@@ -16,38 +16,38 @@ import * as THREE from "three";
 /** Superficies del edificio. Los nombres los usan builder.js y furniture.js. */
 export const SURFACES = {
   // Suelos: porcelana fría, pasillos un punto más claros.
-  tileLight: "#eae4d9",
-  tileLobby: "#f3ede2",
-  woodFloor: "#d6b88c", // la alfombra de la entrada, acero suave
-  carpetPurple: "#d4dae4", // base de las moquetas de zona (el color va por vértice)
+  tileLight: "#d9d0be",
+  tileLobby: "#e5dcc9",
+  woodFloor: "#b8905e", // la alfombra de la entrada, acero suave
+  carpetPurple: "#b7b0a0", // base de las moquetas de zona (el color va por vértice)
 
   // Paredes y volúmenes: hormigón claro azulado, oficina tech de verdad.
-  wallPanel: "#ddd6e2",
-  panelLight: "#ece7f0",
+  wallPanel: "#c8bead",
+  panelLight: "#dbd2bf",
 
   // Mobiliario: superficies blancas de laboratorio, patas de grafito.
-  deskTop: "#f0f2f6",
-  deskEdge: "#c5cbd6",
+  deskTop: "#e9e2d2",
+  deskEdge: "#b2a691",
   deskLeg: "#4b515e",
-  fabricDark: "#5a9fb0", // tapicería teal — el acento del set
+  fabricDark: "#6f9a8b", // tapicería teal — el acento del set
   screen: "#232833",
   screenGlow: "#7fe3f0",
 
   // Vegetación: el único verde orgánico, para que respire.
-  woodPot: "#8b93a3",
-  leaves: "#5cb168",
+  woodPot: "#7c6f5c",
+  leaves: "#4f8d58",
 
   // Cristal y metal fríos, como toca en este set.
-  glass: "#cfe3ec",
-  frame: "#8f97a6",
-  metal: "#aab2c0",
+  glass: "#bccac4",
+  frame: "#6f6b60",
+  metal: "#8f897a",
 };
 
 /** El cielo y la luz. */
 export const ATMOSPHERE = {
-  skyTop: "#bfcbec", // azul lavanda frío, cielo de mañana tech
-  skyBottom: "#f4eee4",
-  fog: "#edeaee",
+  skyTop: "#5e675a", // azul lavanda frío, cielo de mañana tech
+  skyBottom: "#7d8572",
+  fog: "#68705e",
 };
 
 /**

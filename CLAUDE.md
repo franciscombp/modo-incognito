@@ -239,6 +239,13 @@ rejilla 4x4 de 128x176 (no vienen regulares: cortarlos por «ancho / 4» mete la
 cabeza de una fila en los pies de la anterior). Su sitio es siempre
 `public/sprites/`.
 
+### La estética cozy (hoy: nostálgica y madura)
+
+**La dirección de arte vigente está en `docs/referencias/`** (cuatro capturas
++ README): dioramas sobre vacío apagado, sepias/olivas/azul acero, la luz
+clave mandando con sombras hondas y viñeta. Menos infantil, más *Where Cards
+Fall*. Antes de dar por buena una mejora visual, compárala con esas imágenes.
+
 ### La estética cozy
 
 El decorado va en tonos cálidos, apagados y **sin textura**; todo el color

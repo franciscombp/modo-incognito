@@ -11,90 +11,91 @@ import { skyTexture } from "../scene/cozy.js";
 // color, que es lo que hace que el borde del piso se funda con el fondo en
 // vez de cortarse a cuchillo contra la nada.
 
-// Dirección de arte retrofuturista: la jornada arranca en azules fríos de
-// amanecer synthwave, pasa por un mediodía de laboratorio y se hunde en un
-// atardecer magenta-violeta con noche neón. El decorado (cozy.js) es gris
-// porcelana a propósito: es este cielo el que le pone el color a cada hora.
+// Dirección de arte NOSTÁLGICA Y MADURA (ver docs/referencias/): el piso es
+// un diorama flotando sobre un vacío de color apagado — sepia al amanecer,
+// verde oliva a media mañana, ámbar de lámpara por la tarde y azul acero de
+// luna por la noche. La luz clave manda (charcos cálidos, sombras hondas) y
+// la saturación vive en los acentos, no en el fondo.
 export const themes = {
   earlyMorning: {
-    // 7am - amanecer frío, rosa sobre acero
-    sky: ["#a8b4e0", "#f3cfd4"],
-    fog: "#e4d4e0",
-    ambient: { color: 0xd8ddf0, intensity: 0.95 },
-    hemi: { sky: 0xc8d4f0, ground: 0x9aa2b8, intensity: 0.8 },
-    key: { color: 0xffc4c8, intensity: 0.95 },
+    // 7am - amanecer sepia: la oficina despierta en tonos de madera vieja
+    sky: ["#6a594a", "#8c7660"],
+    fog: "#6e5e50",
+    ambient: { color: 0xe8d8c0, intensity: 0.66 },
+    hemi: { sky: 0xc9b8a0, ground: 0x6e5a48, intensity: 0.64 },
+    key: { color: 0xffd9a0, intensity: 1.53 },
     exposure: 1.0,
   },
   morning: {
-    // 9am-1pm - mañana clara azulada
-    sky: ["#b9c8ec", "#edf2f8"],
-    fog: "#e2e9f2",
-    ambient: { color: 0xf0f4fa, intensity: 1.15 },
-    hemi: { sky: 0xd6e2f8, ground: 0xc9b493, intensity: 1.0 },
-    key: { color: 0xffe9c9, intensity: 1.35 },
-    exposure: 1.1,
+    // 9am-12pm - vacío verde oliva y lámparas cálidas, la cabaña de la referencia
+    sky: ["#5e675a", "#7d8572"],
+    fog: "#68705e",
+    ambient: { color: 0xe9e4d2, intensity: 0.74 },
+    hemi: { sky: 0xb8bfa8, ground: 0x8a7458, intensity: 0.74 },
+    key: { color: 0xffdca4, intensity: 1.77 },
+    exposure: 1.06,
   },
   midday: {
-    // 1pm - blanco de laboratorio
-    sky: ["#c8d8ee", "#f2f5f9"],
-    fog: "#ebeff5",
-    ambient: { color: 0xffffff, intensity: 1.2 },
-    hemi: { sky: 0xe4edf8, ground: 0xc8bfae, intensity: 1.05 },
-    key: { color: 0xfff1d6, intensity: 1.3 },
-    exposure: 1.1,
+    // 1pm - luz de calle suave sobre acero apagado
+    sky: ["#75828e", "#a9aea0"],
+    fog: "#8a9089",
+    ambient: { color: 0xf2eee0, intensity: 0.8 },
+    hemi: { sky: 0xc4ccc8, ground: 0x93866e, intensity: 0.78 },
+    key: { color: 0xffe9c0, intensity: 1.77 },
+    exposure: 1.08,
   },
   afternoon: {
-    // 3pm - la tarde vira a violeta
-    sky: ["#b3a8dc", "#eed4cc"],
-    fog: "#e2d2dc",
-    ambient: { color: 0xf0e2ee, intensity: 1.1 },
-    hemi: { sky: 0xd4c4ec, ground: 0xbfa694, intensity: 1.0 },
-    key: { color: 0xffcf9e, intensity: 1.35 },
-    exposure: 1.12,
+    // 3pm - interior sepia: todo vira a ámbar de lámpara
+    sky: ["#6a584a", "#957c62"],
+    fog: "#7a685a",
+    ambient: { color: 0xe8d0b0, intensity: 0.7 },
+    hemi: { sky: 0xc0a888, ground: 0x77604c, intensity: 0.72 },
+    key: { color: 0xffc987, intensity: 1.83 },
+    exposure: 1.06,
   },
   latAfternoon: {
-    // 5pm - synthwave encendiéndose
-    sky: ["#8d7ed0", "#f0a898"],
-    fog: "#d0a8b8",
-    ambient: { color: 0xe8c0d0, intensity: 1.05 },
-    hemi: { sky: 0xc0a0e0, ground: 0x907898, intensity: 0.9 },
-    key: { color: 0xff9e8a, intensity: 1.2 },
-    exposure: 1.1,
+    // 5pm - la brasa: sepia hundiéndose
+    sky: ["#55453a", "#7d6450"],
+    fog: "#61514a",
+    ambient: { color: 0xd8b898, intensity: 0.62 },
+    hemi: { sky: 0xa08a70, ground: 0x54443a, intensity: 0.62 },
+    key: { color: 0xffb877, intensity: 1.65 },
+    exposure: 1.0,
   },
   dusk: {
-    // 6pm - atardecer magenta
-    sky: ["#7a68c0", "#e888a8"],
-    fog: "#b890b8",
-    ambient: { color: 0xdcb0d0, intensity: 1.0 },
-    hemi: { sky: 0xa890d8, ground: 0x786888, intensity: 0.85 },
-    key: { color: 0xff92b0, intensity: 1.15 },
-    exposure: 1.1,
+    // 6pm - la bisagra: el ámbar cede al acero
+    sky: ["#4a5364", "#6e6a72"],
+    fog: "#525c6b",
+    ambient: { color: 0xb8bcc8, intensity: 0.58 },
+    hemi: { sky: 0x8a95a8, ground: 0x45414a, intensity: 0.56 },
+    key: { color: 0xd8bda0, intensity: 1.36 },
+    exposure: 0.98,
   },
   duskDark: {
-    // 7pm - violeta profundo con brasa rosa
-    sky: ["#453a78", "#b85f90"],
-    fog: "#6a5288",
-    ambient: { color: 0x9070a8, intensity: 0.7 },
-    hemi: { sky: 0x7860a8, ground: 0x3c3450, intensity: 0.6 },
-    key: { color: 0xe878a0, intensity: 1.0 },
+    // 7pm - anochece en azul acero
+    sky: ["#3a4454", "#556070"],
+    fog: "#414b5b",
+    ambient: { color: 0x9aa8c0, intensity: 0.5 },
+    hemi: { sky: 0x7a8aa8, ground: 0x2f3542, intensity: 0.46 },
+    key: { color: 0xbcd0e8, intensity: 1.36 },
     exposure: 0.95,
   },
   twilight: {
-    // 8pm-9pm - noche neón: azul profundo y luces cian artificiales
-    sky: ["#1c1c3c", "#3c2c60"],
-    fog: "#302c4c",
-    ambient: { color: 0x4c5480, intensity: 0.5 },
-    hemi: { sky: 0x3c4470, ground: 0x22222e, intensity: 0.4 },
-    key: { color: 0x6ac0e0, intensity: 0.8 },
-    exposure: 0.85,
+    // 8pm-9pm - noche de luna por las ventanas, como la referencia azul
+    sky: ["#28303e", "#3c4654"],
+    fog: "#303945",
+    ambient: { color: 0x6b7a94, intensity: 0.4 },
+    hemi: { sky: 0x54637c, ground: 0x1f242e, intensity: 0.36 },
+    key: { color: 0xa8c4e8, intensity: 1.18 },
+    exposure: 0.88,
   },
   overcast: {
-    // fallback
-    sky: ["#c9d1e2", "#e8ecf2"],
-    fog: "#dde3ec",
-    ambient: { color: 0xeef1f6, intensity: 1.2 },
-    hemi: { sky: 0xdde6f4, ground: 0xaab0be, intensity: 1.0 },
-    key: { color: 0xeff1f2, intensity: 0.8 },
+    // fallback: gris verdoso neutro, maduro
+    sky: ["#6e7570", "#969a90"],
+    fog: "#7d837c",
+    ambient: { color: 0xe4e2d8, intensity: 0.76 },
+    hemi: { sky: 0xbcc2ba, ground: 0x7c7466, intensity: 0.72 },
+    key: { color: 0xf0e8d8, intensity: 1.3 },
     exposure: 1.0,
   },
 };
