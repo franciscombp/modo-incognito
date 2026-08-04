@@ -97,6 +97,15 @@ export function createDialogue(root, { looks = null } = {}) {
   /** Retrato: el muñeco 3D del hablante; si no se puede, su pliego. */
   function setPortrait(node) {
     portraitMood = node.mood ?? "neutral";
+    // Un nodo SIN hablante (la pregunta del ascensor, un prompt del
+    // sistema) no tiene cara que enseñar: caía al muñeco genérico y salía
+    // un desconocido flotando sobre las puertas, presentando tu decisión.
+    if (!node.speaker && !node.lookId && !node.look) {
+      portrait3d.stop?.();
+      portrait.classList.remove("inc-dialogue-portrait-3d");
+      portrait.classList.add("inc-dialogue-portrait-off");
+      return;
+    }
     const look = node.look ?? lookFor(node);
     if (look && portrait3d.show(look, portraitMood)) {
       portrait3d.start();

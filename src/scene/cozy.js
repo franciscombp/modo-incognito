@@ -16,14 +16,14 @@ import * as THREE from "three";
 /** Superficies del edificio. Los nombres los usan builder.js y furniture.js. */
 export const SURFACES = {
   // Suelos: porcelana fría, pasillos un punto más claros.
-  tileLight: "#e2e6ec",
-  tileLobby: "#eef1f5",
-  woodFloor: "#aeb8c9", // la alfombra de la entrada, acero suave
+  tileLight: "#eae4d9",
+  tileLobby: "#f3ede2",
+  woodFloor: "#d6b88c", // la alfombra de la entrada, acero suave
   carpetPurple: "#d4dae4", // base de las moquetas de zona (el color va por vértice)
 
   // Paredes y volúmenes: hormigón claro azulado, oficina tech de verdad.
-  wallPanel: "#c3c9d4",
-  panelLight: "#d3d8e1",
+  wallPanel: "#ddd6e2",
+  panelLight: "#ece7f0",
 
   // Mobiliario: superficies blancas de laboratorio, patas de grafito.
   deskTop: "#f0f2f6",
@@ -35,7 +35,7 @@ export const SURFACES = {
 
   // Vegetación: el único verde orgánico, para que respire.
   woodPot: "#8b93a3",
-  leaves: "#6fae76",
+  leaves: "#5cb168",
 
   // Cristal y metal fríos, como toca en este set.
   glass: "#cfe3ec",
@@ -46,8 +46,8 @@ export const SURFACES = {
 /** El cielo y la luz. */
 export const ATMOSPHERE = {
   skyTop: "#bfcbec", // azul lavanda frío, cielo de mañana tech
-  skyBottom: "#eef2f8",
-  fog: "#e6ebf3",
+  skyBottom: "#f4eee4",
+  fog: "#edeaee",
 };
 
 /**
