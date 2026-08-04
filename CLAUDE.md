@@ -397,9 +397,16 @@ en una captura.
   silenciosa. Si tocas el loader, no rompas esa garantía.
 - **Persecución comprometida**: desde que un vigilante te mete en el halo,
   `boss.lockedOn` queda en true y NO debe soltarte por perderte de vista ni
-  por atascarse contra un mueble; la única salida es un lugar seguro
+  por atascarse contra un mueble; las DOS salidas son un lugar seguro
   (`game._breakAllPursuits()`, que se comprueba cada frame mientras estés
-  dentro, no solo al entrar). Si tocas `_advanceState` o `_updateStuck`, corre
+  dentro, no solo al entrar) y enfriar la sospecha a CERO sostenido
+  (1.5 s seguidos en 0, sin que te esté viendo en falta) — entonces suelta
+  la presa con unos segundos de gracia y vuelve a su ronda, porque quedarse
+  plantado a tu lado con el medidor a cero bloqueaba el resto de tareas.
+  La amonestación es SIEMPRE física (`boss.catches`, un toque): no existe
+  ningún atajo que la dispare a distancia. Y al nivel de búsqueda 3 el juego
+  se PAUSA con un aviso a pantalla completa (`onHeatAlert` → engine) que se
+  rearma solo al enfriarse por debajo de ese nivel. Si tocas `_advanceState` o `_updateStuck`, corre
   `npm run check:pursuit`: las cuatro reglas se pisan entre sí con facilidad
   y el fallo típico es que el jefe vuelva a rendirse solo.
 - **El halo nace en los ojos**, no en el suelo: el vértice del cono va a la
