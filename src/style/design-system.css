@@ -8357,3 +8357,107 @@ body.inc-game-active .inc-menu-scrim {
 .inc-tracker-compact .inc-tracker-bar {
   display: none;
 }
+
+/* ============================================================
+   PANTALLAS DE RESULTADO COMO JUEGO — a lo Duolingo: el personaje
+   grande asomando por arriba de la tarjeta, título enorme, tema
+   por resultado (mint al ganar, drama al perder) y botón gordo
+   con su sombra dura de botón de juguete.
+   ============================================================ */
+.inc-modal__content {
+  overflow: visible;
+  text-align: center;
+  border-radius: 24px;
+}
+.inc-overlay-pop {
+  animation: inc-overlay-bounce 0.5s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+@keyframes inc-overlay-bounce {
+  from { transform: scale(0.7) translateY(30px); opacity: 0; }
+  to { transform: scale(1) translateY(0); opacity: 1; }
+}
+.inc-overlay-shot {
+  width: 168px;
+  height: 168px;
+  margin: -104px auto 0;
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top;
+  background: var(--panel);
+  border: 5px solid var(--paper);
+  box-shadow: 0 12px 30px rgba(var(--ink-rgb), 0.25);
+}
+.inc-modal__content.win .inc-overlay-shot {
+  border-color: var(--lime);
+}
+.inc-modal__content.lose .inc-overlay-shot {
+  border-color: var(--red);
+}
+.inc-modal__content.win {
+  background: linear-gradient(180deg, rgba(60, 181, 151, 0.14), transparent 38%), var(--panel);
+}
+.inc-modal__content.lose {
+  background: linear-gradient(180deg, rgba(217, 85, 112, 0.16), transparent 38%), var(--panel);
+}
+.inc-overlay-title {
+  font-size: clamp(26px, 4.4vw, 38px);
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  line-height: 1.08;
+  margin-top: 10px;
+}
+.inc-overlay-title.win {
+  color: var(--lime);
+}
+.inc-overlay-title.lose {
+  color: var(--red);
+}
+.inc-overlay-score-box {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.inc-overlay-points,
+.inc-overlay-target {
+  display: inline-flex;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-weight: 800;
+  font-size: 14px;
+  background: rgba(var(--cyan-rgb), 0.12);
+  color: var(--cyan);
+  border: 1px solid rgba(var(--cyan-rgb), 0.3);
+}
+.inc-overlay-body {
+  color: var(--ink-soft);
+  margin-top: 8px;
+}
+.inc-overlay-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+.inc-overlay-actions .inc-btn {
+  width: 100%;
+  padding: 14px 18px;
+  border-radius: 16px;
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.inc-overlay-actions .inc-btn--primary {
+  box-shadow: 0 4px 0 0 var(--violet-dim);
+}
+.inc-overlay-actions .inc-btn--primary:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 0 var(--violet-dim);
+}
+.inc-modal__content.lose .inc-btn--primary {
+  background: linear-gradient(180deg, var(--red), #c24361);
+  box-shadow: 0 4px 0 0 #a23751;
+}
