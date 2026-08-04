@@ -772,7 +772,7 @@ export function createEngine({
       body: onFail.body ?? "No llegaste a empezar la jornada.",
       win: false,
       actions: [
-        { label: "Reintentar", primary: true, onClick: () => startDay(dayIndex) },
+        { label: "Reintentar", primary: true, onClick: () => startDay(dayIndex, { skipPrologue: true }) },
         { label: "Menú", onClick: () => openTitle() },
       ],
     });
@@ -802,7 +802,11 @@ export function createEngine({
     actions.push({
       label: result.win ? "Repetir" : "Reintentar",
       primary: !result.win,
-      onClick: () => startDay(dayIndex),
+      // REINTENTAR cae DIRECTO al piso: el ascensor y su elección ya los
+      // viviste hoy, y repetirlos en cada despido convertía el castigo en
+      // trámite. La intro completa queda para quien empieza de cero
+      // ("Reiniciar progreso" del menú) o entra al día por primera vez.
+      onClick: () => startDay(dayIndex, { skipPrologue: true }),
     });
     actions.push({ label: "Menú", onClick: () => openTitle() });
 
