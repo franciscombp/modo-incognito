@@ -505,15 +505,23 @@ export class Game {
       // un lugar seguro o hablar con quien corresponda).
     }
 
-    // CON EL MEDIDOR EN CERO LA CAZA SE ACABA. Si lograste enfriar la
-    // sospecha del todo (fingiendo, escondida o en un lugar seguro), el jefe
-    // ya no tiene nada que reprocharte y quedarse plantado a tu lado solo
-    // bloqueaba el resto de tareas: suelta la presa, respira (gracia) y
-    // vuelve a su ronda de siempre. No aplica si te está viendo EN FALTA
-    // ahora mismo (redAlert): eso re-justifica la caza por sí solo.
+    // CON EL MEDIDOR EN CERO (SOSTENIDO) LA CAZA SE ACABA. Si lograste
+    // enfriar la sospecha del todo, el jefe ya no tiene nada que reprocharte
+    // y quedarse plantado a tu lado bloqueaba el resto de tareas: suelta la
+    // presa, respira (gracia) y vuelve a su ronda. El sostenido (1.5 s en
+    // cero seguidos) evita que un lockedOn recién ganado con el medidor aún
+    // frío se esfume en un frame — esconderse sigue sin salvarte en caliente.
+    // No aplica si te está viendo EN FALTA ahora mismo (redAlert).
     if (this.suspicion <= 0 && this.boss.isHunting && !this.boss.redAlert) {
-      this.boss.breakPursuit();
-      this.boss.grantGrace(3);
+      this._coldFor = (this._coldFor ?? 0) + dt;
+      if (this._coldFor >= 1.5) {
+        this._coldFor = 0;
+        this.boss.breakPursuit();
+        this.boss.grantGrace(3);
+        this.toast("Gabo se aburrió: vuelve a su ronda.");
+      }
+    } else {
+      this._coldFor = 0;
     }
 
     this._updateHeat(dt);
