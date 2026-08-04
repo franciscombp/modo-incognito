@@ -8,6 +8,7 @@ import {
   areaAt,
 } from "../scene/floorplan.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
+import { getCameraSettings } from "../scene/cameraSettings.js";
 import { BOSS_STATES } from "../entities/boss.js";
 import { buzz } from "./settings.js";
 import { sfxComplete, sfxWarn, sfxDistraction } from "./sfx.js";
@@ -335,14 +336,12 @@ export class Game {
       // La pose sale del JSON de la actividad (`pose`, ver scenes/*.json); si
       // el personaje no tiene hoja de acciones, sprite.js la ignora.
       this.player.pose = this.nearStation.pose ?? null;
-      // DE CARA a lo que usas: el punto de la estación es la barra, la mesa
-      // o la pantalla en sí, así que mirar hacia él es mirar el mueble — la
-      // pose (y la cámara, que orbita a verte de frente) dejan de leerse de
-      // espaldas. Si estás parada exactamente encima no hay dirección que
-      // valga y se respeta la que traías.
-      const fdx = this.nearStation.x - pos.x;
-      const fdz = this.nearStation.z - pos.z;
-      if (Math.hypot(fdx, fdz) > 0.06) this.player.sprite.setHeading(fdx, fdz);
+      // DE CARA A LA CÁMARA, con su giro normal de andar (setHeading hace
+      // el tween — nada se teletransporta). La cámara ya NO orbita durante
+      // las acciones (solo se acerca): el que se mueve para que la pose se
+      // vea de frente es el personaje, que es más barato y nunca marea.
+      const camYaw = (getCameraSettings().yawDeg * Math.PI) / 180;
+      this.player.sprite.setHeading(Math.sin(camYaw), Math.cos(camYaw));
       this.nearStation.progress = Math.min(this.nearStation.time, this.nearStation.progress + dt);
       if (this.nearStation.progress >= this.nearStation.time && !this.nearStation.done) {
         this.nearStation.done = true;
@@ -352,12 +351,12 @@ export class Game {
       this.player.isDoingActivity = false;
       // Fingir que trabajas es, literalmente, la pose de estar en el portátil.
       this.player.pose = this.player.isPretending ? "work" : null;
-      // Y fingiendo en un lugar seguro, de cara al centro del sitio (la mesa
-      // de la sala o tu propio escritorio), no hacia donde llegaste andando.
-      if (this.player.isPretending && this.currentSafeSpot) {
-        const sdx = this.currentSafeSpot.x - pos.x;
-        const sdz = this.currentSafeSpot.z - pos.z;
-        if (Math.hypot(sdx, sdz) > 0.06) this.player.sprite.setHeading(sdx, sdz);
+      // Y fingiendo, también de cara a la cámara: mismo criterio que las
+      // actividades — el gesto es el premio y se ve de frente, sin que la
+      // cámara tenga que girar a buscarlo.
+      if (this.player.isPretending) {
+        const camYaw = (getCameraSettings().yawDeg * Math.PI) / 180;
+        this.player.sprite.setHeading(Math.sin(camYaw), Math.cos(camYaw));
       }
     }
 
@@ -416,6 +415,11 @@ export class Game {
     // El jefe necesita saber cuánta sospecha hay YA para decidir si tantea
     // (fase lenta) o va con todo (fase rápida, ver boss.js/_speed()).
     this.boss.suspicion = this.suspicion;
+    // Y en qué FRACCIÓN del medidor va: el halo se tiñe con ella (verdoso
+    // tranquilo → ámbar → rojo) para que el nivel de sospecha se lea del
+    // suelo, sin mirar el HUD.
+    this.boss.suspicionRatio = this.suspicion / (this.suspicionConfig.max || 100);
+    this.minions.forEach((m) => (m.suspicionRatio = this.boss.suspicionRatio));
 
     // Un NPC apagado (el doble del personaje elegido) tampoco tapa la vista
     // del jefe: no está ahí para nadie. Se reutiliza el mismo array entre
@@ -499,6 +503,17 @@ export class Game {
       // un lugar seguro o hablar con quien corresponda).
     }
 
+    // CON EL MEDIDOR EN CERO LA CAZA SE ACABA. Si lograste enfriar la
+    // sospecha del todo (fingiendo, escondida o en un lugar seguro), el jefe
+    // ya no tiene nada que reprocharte y quedarse plantado a tu lado solo
+    // bloqueaba el resto de tareas: suelta la presa, respira (gracia) y
+    // vuelve a su ronda de siempre. No aplica si te está viendo EN FALTA
+    // ahora mismo (redAlert): eso re-justifica la caza por sí solo.
+    if (this.suspicion <= 0 && this.boss.isHunting && !this.boss.redAlert) {
+      this.boss.breakPursuit();
+      this.boss.grantGrace(3);
+    }
+
     this._updateHeat(dt);
 
     // Fingiendo con poca sospecha eres intocable, y un escondite o un lugar
@@ -522,30 +537,12 @@ export class Game {
     // encuentro el que cuenta.
     if (caught) this._warn();
 
-    // LA SOSPECHA AL TOPE SIEMPRE RESUELVE. El diseño dice que la
-    // amonestación llega con el encuentro físico — pero si el jefe se
-    // atasca o anda en la otra punta, el medidor se quedaba clavado en 100
-    // sin consecuencia y parecía un bug. Al máximo, a la vista y sin lugar
-    // seguro, corren unos segundos de gracia (da tiempo a esconderse) y la
-    // amonestación cae sola: al 100% ya te vio todo el mundo, no hace
-    // falta que te alcance con las piernas.
-    if (
-      !this.rules.explore &&
-      !this.gameOver &&
-      this.suspicion >= this.suspicionConfig.max &&
-      !this.inSafeSpot &&
-      !this.player.isHiding &&
-      this._caughtCooldown <= 0
-    ) {
-      this._peggedFor = (this._peggedFor ?? 0) + dt;
-      if (this._peggedFor > 4) {
-        this._peggedFor = 0;
-        this.toast("Te vieron desde la otra punta del piso.");
-        this._warn();
-      }
-    } else {
-      this._peggedFor = 0;
-    }
+    // LA AMONESTACIÓN ES FÍSICA, SIEMPRE: solo cae cuando el jefe te TOCA
+    // (boss.catches, arriba). Hubo un atajo que la disparaba sola tras unos
+    // segundos con el medidor clavado en 100 ("te vieron desde la otra
+    // punta"), y en la práctica se sentía arbitrario: te caía el castigo sin
+    // que nadie llegara. Al 100% el jefe ya viene a por ti con el nivel de
+    // búsqueda al máximo; que tenga que alcanzarte ES el juego.
 
     if (!this.gameOver && !this.rules.explore) {
       if (this.objectives.every((o) => o.done)) this._finish(true);
@@ -919,6 +916,22 @@ export class Game {
     return Math.hypot(spot.x - pos.x, spot.z - pos.z) < spot.radius;
   }
 
+  /** El lugar seguro USABLE más cercano, o null. Para la guía de refugio. */
+  _nearestUsableSafeSpot(pos) {
+    let best = null;
+    let bestD = Infinity;
+    safeSpots.forEach((spot, i) => {
+      const state = this.safeSpotState[i];
+      if (state.spent || state.busyLeft > 0) return;
+      const d = Math.hypot(spot.x - pos.x, spot.z - pos.z);
+      if (d < bestD) {
+        bestD = d;
+        best = { x: spot.x, z: spot.z, label: spot.label ?? "Lugar seguro", icon: spot.icon };
+      }
+    });
+    return best;
+  }
+
   /** Per-spot readout for the floor markers: 0 = agotado u ocupado, 1 = intacto. */
   safeSpotCharge(i) {
     const state = this.safeSpotState[i];
@@ -1125,6 +1138,9 @@ export class Game {
       revealBoss: this.revealBossUntil > 0,
       isPretending: this.player.isPretending,
       isHiding: this.player.isHiding,
+      // El lugar seguro usable más cercano: con la sospecha alta, la guía
+      // de tarea redirige ahí — "ve a fingir que trabajas" ES la tarea.
+      refugeSpot: this._nearestUsableSafeSpot(this.player.position),
       currentAction: this._currentAction(),
       redAlert: this.boss.redAlert,
       bossState: this.boss.state,

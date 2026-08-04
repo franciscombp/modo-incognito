@@ -23,13 +23,16 @@ const CHAIR_R = 0.22 * S;
 // One geometry per repeated part, built once and reused by every instance.
 
 function chairBodyGeometry() {
-  const seat = new THREE.CylinderGeometry(CHAIR_R, CHAIR_R * 0.9, 0.075 * S, 12);
+  // MISMA silueta que la silla de rueditas de los personajes
+  // (furnitureModels.js → createOfficeChair): asiento de caja mullida y
+  // respaldo alto un pelín reclinado. La de cilindro que había leía como
+  // banqueta de bar, y chocaba verla al lado de la "de verdad" cuando un
+  // personaje rodaba con la suya.
+  const seat = new THREE.BoxGeometry(CHAIR_R * 2, 0.09 * S, CHAIR_R * 1.9);
   seat.translate(0, 0.44 * S, 0);
-  // Respaldo un pelín reclinado: es lo que separa "silla de oficina" de
-  // "banqueta con tabla detrás".
-  const back = new THREE.BoxGeometry(CHAIR_R * 1.8, 0.4 * S, 0.06 * S);
-  back.rotateX(0.12);
-  back.translate(0, 0.7 * S, CHAIR_R * 0.9);
+  const back = new THREE.BoxGeometry(CHAIR_R * 1.9, 0.52 * S, 0.07 * S);
+  back.rotateX(0.14);
+  back.translate(0, 0.76 * S, CHAIR_R * 0.95);
   return mergeGeometries([seat, back], false);
 }
 
@@ -85,7 +88,29 @@ function sharedAssets() {
     shared = {
       chairBody: chairBodyGeometry(),
       chairStand: chairStandGeometry(),
-      monitor: new THREE.BoxGeometry(0.34 * S, 0.24 * S, 0.04 * S),
+      // Monitor CON pie: base plana sobre la mesa, cuello y pantalla un
+      // pelín reclinada. El origen está en la BASE (y=0 = superficie de la
+      // mesa) — la losa flotante de antes era justo lo que se veía falso.
+      monitor: (() => {
+        const foot = new THREE.BoxGeometry(0.16 * S, 0.018 * S, 0.11 * S);
+        foot.translate(0, 0.009 * S, 0);
+        const neck = new THREE.CylinderGeometry(0.016 * S, 0.02 * S, 0.1 * S, 6);
+        neck.translate(0, 0.06 * S, 0);
+        const screen = new THREE.BoxGeometry(0.34 * S, 0.22 * S, 0.024 * S);
+        screen.rotateX(0.08);
+        screen.translate(0, 0.22 * S, 0.01 * S);
+        return mergeGeometries([foot, neck, screen], false);
+      })(),
+      // Laptop abierta: base fina + pantalla abatida hacia atrás. Origen en
+      // la bisagra, apoyada sobre la mesa.
+      laptop: (() => {
+        const base = new THREE.BoxGeometry(0.26 * S, 0.016 * S, 0.18 * S);
+        base.translate(0, 0.008 * S, -0.02 * S);
+        const lid = new THREE.BoxGeometry(0.26 * S, 0.17 * S, 0.012 * S);
+        lid.rotateX(0.32);
+        lid.translate(0, 0.078 * S, 0.085 * S);
+        return mergeGeometries([base, lid], false);
+      })(),
       stool: new THREE.CylinderGeometry(0.17 * S, 0.17 * S, 0.45 * S, 8),
       podFrame: podFrameGeometry(),
       podCushion: podCushionGeometry(),
@@ -151,6 +176,7 @@ function transform(x, y, z, rotY = 0) {
 export function createFurnitureRegistry() {
   const chairs = [];
   const monitors = [];
+  const laptops = [];
   const stools = [];
   const pods = [];
   const lamps = [];
@@ -174,6 +200,9 @@ export function createFurnitureRegistry() {
     },
     addMonitor(x, y, z, rotY) {
       monitors.push(transform(x, y, z, rotY));
+    },
+    addLaptop(x, y, z, rotY) {
+      laptops.push(transform(x, y, z, rotY));
     },
     addStool(x, z) {
       stools.push(transform(x, 0.23 * S, z));
@@ -218,6 +247,7 @@ export function createFurnitureRegistry() {
       instanced(a.chairBody, a.materials.seat, chairs);
       instanced(a.chairStand, a.materials.leg, chairs);
       instanced(a.monitor, a.materials.screen, monitors);
+      instanced(a.laptop, a.materials.screen, laptops);
       instanced(a.stool, a.materials.seat, stools);
       instanced(a.podFrame, a.materials.seat, pods);
       instanced(a.podCushion, a.materials.top, pods);
@@ -335,7 +365,13 @@ export function placeSeatedTable(
   const shortOffset = longLen / 2 + CHAIR_GAP + CHAIR_R;
 
   const place = (px, pz, facing) => {
-    registry.addChair(px, pz, facing);
+    // PUESTOS DESIGUALES a propósito: una oficina real tiene huecos — el
+    // puesto de alguien que está de viaje (mesa sin silla), quien se llevó
+    // la laptop a una reunión (silla sin equipo)... Todo determinista por
+    // posición, para que el piso sea el mismo en cada partida.
+    const spotSeed = Math.abs(Math.sin(px * 3.37 + pz * 7.79));
+    const hasChair = spotSeed > 0.1;
+    if (hasChair) registry.addChair(px, pz, facing);
     // Una taza olvidada en ~un tercio de los puestos: el desorden vivido de
     // las referencias, barato y determinista.
     const mugSeed = Math.abs(Math.sin(px * 5.7 + pz * 9.1));
@@ -349,15 +385,16 @@ export function placeSeatedTable(
       );
     }
     if (monitors) {
-      // A slim monitor on the table in front of each seat sells "puesto de
-      // trabajo" without cluttering the silhouette.
-      const inward = 0.34 * S;
-      registry.addMonitor(
-        px - Math.sin(facing + Math.PI) * inward,
-        TABLE_H + 0.16 * S,
-        pz - Math.cos(facing + Math.PI) * inward,
-        facing
-      );
+      // Cada puesto trae monitor con pie, laptop abierta o NADA (el hueco
+      // vacío también cuenta la historia). Apoyados EN la mesa, no flotando.
+      const gearSeed = Math.abs(Math.sin(px * 8.13 + pz * 2.71));
+      const inward = 0.36 * S;
+      const gx = px - Math.sin(facing + Math.PI) * inward;
+      const gz = pz - Math.cos(facing + Math.PI) * inward;
+      const surface = TABLE_H + TOP_T / 2;
+      if (gearSeed < 0.55) registry.addMonitor(gx, surface, gz, facing);
+      else if (gearSeed < 0.82) registry.addLaptop(gx, surface, gz, facing);
+      // else: puesto pelado — ni pantalla ni laptop.
     }
   };
 

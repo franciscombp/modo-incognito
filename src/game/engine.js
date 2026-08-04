@@ -471,6 +471,11 @@ export function createEngine({
     // que el lobby esté completamente oculto, así evitamos que el piso aparezca
     // y se superponga durante los diálogos del ascensor.
 
+    // Día nuevo (o reintento): las conversaciones empiezan de cero. Sin esto,
+    // Gabo saludaba el reintento con una línea de seguimiento en vez de
+    // presentarse, y el gate del día se sentía roto.
+    save.resetTalkFlags();
+
     prologueChoice = null;
     if (day.prologue && !skipPrologue) {
       lobby.show();
