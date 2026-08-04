@@ -285,8 +285,12 @@ const POSE_LIBRARY = {
     context: {
       props: [],
       furniture: [
-        { name: "office_chair", position: [0.2, 0, 0], rotation: [0, 0, 0] },
-        { name: "desk", position: [-0.3, 0.3, -0.3], rotation: [0, 0, 0] },
+        // La silla viaja CON el personaje (es hija suya): si lo empujan, la
+        // silla de rueditas se lo lleva rodando. El escritorio y la
+        // computadora van anclados al MUNDO: el trabajo no se mueve.
+        { name: "office_chair", position: [0, 0, -0.08], rotation: [0, 0, 0] },
+        { name: "desk", position: [0, 0, 0.42], rotation: [0, 0, 0], anchor: "world" },
+        { name: "computer", position: [0, 0.37, 0.5], rotation: [0, 0, 0], anchor: "world" },
       ],
     },
   },
@@ -1031,7 +1035,9 @@ export class Character3D {
     this._activePropsByBone.clear();
 
     for (const furniture of this._activeFurniture) {
-      this.object.remove(furniture);
+      // Puede colgar del personaje (silla) o de la escena (escritorio
+      // anclado al mundo): se le pregunta a su padre real.
+      furniture.parent?.remove(furniture);
       furniture.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose();
         if (obj.material) {
@@ -1111,7 +1117,17 @@ export class Character3D {
           furnDef.rotation[2]
         );
 
-        this.object.add(furniture);
+        if (furnDef.anchor === "world" && this.object.parent) {
+          // Anclado al MUNDO: el escritorio y su computadora se quedan
+          // clavados donde estaban al sentarse, aunque a su dueño se lo
+          // lleve la silla rodando (ver npc.rollAway). Se hornea la
+          // transformación del personaje y se cuelga de la escena.
+          this.object.updateMatrixWorld(true);
+          furniture.applyMatrix4(this.object.matrixWorld);
+          this.object.parent.add(furniture);
+        } else {
+          this.object.add(furniture);
+        }
         this._activeFurniture.push(furniture);
       }
     }
@@ -1153,18 +1169,13 @@ export class Character3D {
   }
 
   _updateFurniturePositions() {
-    if (!this._pose || !this._pose.context?.furniture) return;
-    const context = this._pose.context;
-    for (let i = 0; i < this._activeFurniture.length; i++) {
-      const furniture = this._activeFurniture[i];
-      const furnDef = context.furniture[i];
-      if (!furnDef) continue;
-      furniture.position.set(
-        this.object.position.x + furnDef.position[0],
-        this.object.position.y + furnDef.position[1],
-        this.object.position.z + furnDef.position[2]
-      );
-    }
+    // Los muebles de pose son HIJOS del grupo del personaje con offset
+    // LOCAL: se mueven con él sin ayuda (así es como la silla RUEDA con su
+    // dueño al empujarlo). Aquí se escribía encima la posición de MUNDO en
+    // coordenadas locales — el doble — y al primer setPosition (un
+    // empujón) la silla saltaba al otro lado del piso: "desaparecía". Los
+    // anclados al mundo (escritorio, computadora) cuelgan de la escena y
+    // tampoco necesitan nada. No hay nada que hacer, y eso es lo correcto.
   }
 
   /** Atenúa el muñeco a cubierto. El color va por vértice, así que el del

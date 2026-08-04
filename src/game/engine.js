@@ -672,7 +672,14 @@ export function createEngine({
     // Un interrogatorio (te atraparon) sí rota sus escenas para siempre: es
     // castigo, no charla, y quedarse mudo sería peor.
     let scene;
-    if (seen < encounter.scenes.length || opts?.caught) {
+    if (opts?.caught && encounter.caughtScenes?.length) {
+      // Te ATRAPARON: el interrogatorio tiene su propio pozo, que rota para
+      // siempre (es castigo, no charla). Antes reciclaba las escenas de
+      // conversación y Chispita te "capturaba" contándote sus pasos diarios.
+      const c = save.getFlag(`caught:${npc.cast}`) ?? 0;
+      save.setFlag(`caught:${npc.cast}`, c + 1);
+      scene = encounter.caughtScenes[c % encounter.caughtScenes.length];
+    } else if (seen < encounter.scenes.length || opts?.caught) {
       scene = encounter.scenes[seen % encounter.scenes.length];
     } else {
       const pool = encounter.exhausted ??
@@ -721,10 +728,17 @@ export function createEngine({
       const idx = Math.floor(Math.random() * encounter.softWarnings.length);
       scene = encounter.softWarnings[idx];
     } else {
-      // Formal amonestación scene. scenes[0] es la bienvenida — la que ya
-      // vio en el primer encuentro voluntario (talkTo) al conocerlo — así
-      // que una amonestación nunca la repite; rota por el resto.
-      const warnScenes = encounter.scenes.length > 1 ? encounter.scenes.slice(1) : encounter.scenes;
+      // La amonestación FORMAL sale de su propio pozo (`warnScenes`): las
+      // `scenes` son charla de pasillo, y regañarte con un "te ves
+      // concentrada, sigue así" era el bug más desconcertante del juego.
+      // Sin pozo propio (contenido viejo), se cae a las scenes saltando la
+      // bienvenida, como antes.
+      const warnScenes =
+        encounter.warnScenes?.length
+          ? encounter.warnScenes
+          : encounter.scenes.length > 1
+            ? encounter.scenes.slice(1)
+            : encounter.scenes;
       const seen = save.getFlag("talk:jefe_warn") ?? 0;
       save.setFlag("talk:jefe_warn", seen + 1);
       scene = warnScenes[seen % warnScenes.length];

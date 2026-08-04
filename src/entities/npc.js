@@ -64,6 +64,25 @@ export class NPC {
     this._stumbleLeft = 0.55;
   }
 
+  /** ¿Está ahora mismo sentado en su puesto? (para que el empujón ruede). */
+  get isSeated() {
+    return this._state === "settle" && !!this.homePose && this.sprite._poseName === this.homePose;
+  }
+
+  /**
+   * El empujón a alguien SENTADO: la silla de rueditas se lo lleva en la
+   * dirección del golpe, girando un poco, y cuando la silla se para se
+   * levanta y vuelve a su puesto andando. La computadora ni se entera.
+   */
+  rollAway(nx, nz) {
+    if (this._state === "roll") return;
+    const speed = (2.6 + Math.random() * 1.2) * S;
+    this._rollVX = nx * speed;
+    this._rollVZ = nz * speed;
+    this._rollSpin = (Math.random() < 0.5 ? -1 : 1) * (2.5 + Math.random() * 2);
+    this._state = "roll";
+  }
+
   /** Un punto alcanzable a un par de mesas de distancia, o null. */
   _pickStrollTarget() {
     if (!this.navmesh) return null;
@@ -111,6 +130,32 @@ export class NPC {
       if (this._stumbleLeft <= 0) this.sprite.object.rotation.z = 0;
     }
     switch (this._state) {
+      case "roll": {
+        // La silla de rueditas se lo lleva: sigue SENTADO (la silla es hija
+        // suya y rueda con él; el escritorio y la computadora, ancladas al
+        // mundo, se quedan trabajando solas). El empujón decae, gira un
+        // poquito sobre sí mismo, y al pararse se levanta y vuelve andando.
+        const speed = Math.hypot(this._rollVX, this._rollVZ);
+        if (speed > 0.25 * S) {
+          const nextX = this.position.x + this._rollVX * dt;
+          const nextZ = this.position.z + this._rollVZ * dt;
+          this.position.x = nextX;
+          this.position.z = nextZ;
+          const damp = Math.pow(0.25, dt);
+          this._rollVX *= damp;
+          this._rollVZ *= damp;
+          // El girito va por el yaw objetivo: la rotación directa la pisa
+          // _updateTurn en el mismo frame.
+          this.sprite._targetYaw += this._rollSpin * dt;
+          this.sprite.setPosition(this.position.x, this.position.z);
+        } else {
+          this.sprite.setPose(null);
+          this._path = this.navmesh?.path(this.position, this.home) ?? null;
+          this._state = this._path?.length ? "return" : "teleportHome";
+          this._timer = 0;
+        }
+        break;
+      }
       case "settle": {
         // En su puesto: sentado trabajando (o de pie si su def lo pide), con
         // el vaivén sutil de siempre por encima si lo trae. El rumbo se

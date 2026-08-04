@@ -180,6 +180,41 @@
             "text": "Hoy me levante con ganas de ascender a alguien. Aún hay tiempo, ¿no?"
           }
         ]
+      ],
+      "warnScenes": [
+        [
+          {
+            "speaker": "Gabo",
+            "mood": "tense",
+            "text": "¡AJÁ! Te vi. Y no estabas trabajando: eso era ocio corporativo NO autorizado."
+          },
+          {
+            "speaker": "Gabo",
+            "text": "Amonestación uno. La apunto aquí... bueno, se la digo a Crispo, que ella sí tiene cuaderno."
+          }
+        ],
+        [
+          {
+            "speaker": "Gabo",
+            "mood": "tense",
+            "text": "Segunda vez. ¿Sabes qué le pasó a la última persona que vi dos veces? Nada. Pero porque me caía bien. Tú vas 50/50."
+          },
+          {
+            "speaker": "Gabo",
+            "text": "Vamo a calmarno: tú a tu puesto, y yo a fingir que no lloré en la 1:1 de hoy."
+          }
+        ],
+        [
+          {
+            "speaker": "Gabo",
+            "mood": "tense",
+            "text": "¡OTRA VEZ! Esto ya es una relación. Una tóxica, como la de Shakira con las facturas."
+          },
+          {
+            "speaker": "Gabo",
+            "text": "La próxima te asciendo a cliente. Y a los clientes no los saludo ni en Teams."
+          }
+        ]
       ]
     },
     "manu": {
@@ -451,6 +486,24 @@
             "text": "Ya tú sabe. Corro por este piso como si fuera el Rigo ese del meme, subiéndome al carro antes de que Gabo me vea llorar."
           }
         ]
+      ],
+      "caughtScenes": [
+        [
+          {
+            "speaker": "Chispita",
+            "mood": "tense",
+            "text": "¡TE VI! Y no corras, que el cardio de los dos ya lo hice yo."
+          },
+          {"speaker":"Chispita","text":"Lo tengo que reportar. Bueno, ya lo reporté. Escribo rapidísimo."}
+        ],
+        [
+          {
+            "speaker": "Chispita",
+            "mood": "tense",
+            "text": "¡Ey ey ey! Catorce mil pasos hoy y los últimos doscientos fueron persiguiéndote a TI."
+          },
+          {"speaker":"Chispita","text":"Esto va al canal de Gabo con tres signos de exclamación. Mínimo."}
+        ]
       ]
     },
     "washo": {
@@ -493,6 +546,24 @@
             "speaker": "Washo",
             "text": "«No era penal», dijiste cuando te vi con la cámara apagada en la reunión. Yo tengo el clip. Siempre tengo el clip."
           }
+        ]
+      ],
+      "caughtScenes": [
+        [
+          {
+            "speaker": "Washo",
+            "mood": "tense",
+            "text": "Quieta ahí. Tengo el ángulo, tengo la luz, tengo TODO."
+          },
+          {"speaker":"Washo","text":"Esto va directo a mi carpeta. La carpeta existe. Créeme."}
+        ],
+        [
+          {
+            "speaker": "Washo",
+            "mood": "tense",
+            "text": "No era penal... pero esto sí. Esto es rojísima directa."
+          },
+          {"speaker":"Washo","text":"Yo no acuso: documento. Y acabo de documentarte enterita."}
         ]
       ]
     },
@@ -547,6 +618,24 @@
             "speaker": "Crispo",
             "text": "Fue sin querer queriendo, dijiste la última vez que te vi lejos del puesto. Yo también anoté eso sin querer queriendo."
           }
+        ]
+      ],
+      "caughtScenes": [
+        [
+          {
+            "speaker": "Crispo",
+            "mood": "tense",
+            "text": "Anotado: «lejos del puesto, otra vez». Con hora. Con testigos. Con lapicero bueno."
+          },
+          {"speaker":"Crispo","text":"No es personal. Es papel."}
+        ],
+        [
+          {
+            "speaker": "Crispo",
+            "mood": "tense",
+            "text": "Veintidós minutos. No pregunto dónde estabas: ya lo sé, por eso los anoté."
+          },
+          {"speaker":"Crispo","text":"Gabo va a querer conversar. Él le dice conversar. Yo le digo acta."}
         ]
       ]
     },
