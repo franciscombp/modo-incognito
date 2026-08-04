@@ -208,17 +208,23 @@ export function preloadBaseModels(looks, onProgress) {
     if (recipe) files.add(baseFileFor(recipe));
   }
   const fileArray = [...files];
+  // El progreso cuenta COMPLETADOS, no índices: con `(i+1)/N` el valor final
+  // era el del archivo que terminara último — si ese era el índice 0, el
+  // progreso se quedaba clavado en 10% con todo ya cargado, y el ascensor
+  // esperaba su techo de 30 segundos mirando a la nada.
+  let done = 0;
   return Promise.all(
-    fileArray.map((f, i) =>
+    fileArray.map((f) =>
       loadBaseModel(modelUrlFor(f))
-        .then(() => {
-          if (onProgress) {
-            const progress = Math.round(((i + 1) / fileArray.length) * 100);
-            onProgress({ phase: "models", progress, message: `Cargando modelos 3D...` });
-          }
-        })
         .catch((e) => {
           console.error(`No se pudo precargar ${f}:`, e);
+        })
+        .finally(() => {
+          done += 1;
+          if (onProgress) {
+            const progress = Math.round((done / fileArray.length) * 100);
+            onProgress({ phase: "models", progress, message: `Cargando modelos 3D...` });
+          }
         })
     )
   );
@@ -239,17 +245,20 @@ export function preloadCharacterLooks(characterIds, looks, onProgress) {
     if (onProgress) onProgress({ phase: "selected-models", progress: 100, message: "Personaje listo" });
     return Promise.resolve();
   }
+  // Mismo arreglo que preloadBaseModels: el progreso cuenta completados.
+  let done = 0;
   return Promise.all(
-    fileArray.map((f, i) =>
+    fileArray.map((f) =>
       loadBaseModel(modelUrlFor(f))
-        .then(() => {
-          if (onProgress) {
-            const progress = Math.round(((i + 1) / fileArray.length) * 100);
-            onProgress({ phase: "selected-models", progress, message: "Cargando personaje..." });
-          }
-        })
         .catch((e) => {
           console.error(`No se pudo precargar ${f}:`, e);
+        })
+        .finally(() => {
+          done += 1;
+          if (onProgress) {
+            const progress = Math.round((done / fileArray.length) * 100);
+            onProgress({ phase: "selected-models", progress, message: "Cargando personaje..." });
+          }
         })
     )
   );
