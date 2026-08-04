@@ -766,6 +766,8 @@ export function createEngine({
     if (onFail.dialogue) await dialogue.play(withSprites(onFail.dialogue), ctx);
     hud.showResult({
       icon: onFail.icon ?? "door",
+      look: looks?.get?.("gabo"),
+      pose: "phone",
       title: onFail.title ?? "Te ascendieron a cliente",
       body: onFail.body ?? "No llegaste a empezar la jornada.",
       win: false,
@@ -806,6 +808,10 @@ export function createEngine({
 
     hud.showResult({
       icon: result.win ? (isLast ? "trophy" : "party") : "door",
+      // La pantalla la protagoniza un PERSONAJE, como en un juego de
+      // verdad: tú celebrando con tu café, o Gabo llamando a RRHH.
+      look: result.win ? looks?.get?.(save.character) : looks?.get?.("gabo"),
+      pose: result.win ? "coffee" : "phone",
       title: result.win
         ? day.winTitle ?? (isLast ? "Semana completada" : `${day.title}: superado`)
         : "Te ascendieron a cliente",
