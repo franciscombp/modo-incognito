@@ -769,6 +769,14 @@ export class Game {
       p.position.z -= nz * push;
       o.position.x += nx * push;
       o.position.z += nz * push;
+      // El empujón TAMBIÉN respeta las paredes: sin esto, un choque metía
+      // al jefe (o a un NPC) dentro de un mueble o al otro lado de un
+      // tabique — era la forma más fácil de verlo "atravesar" sitios.
+      const world = this.boss?.world;
+      if (world) {
+        world.resolveCircle(p.position, p.radius);
+        world.resolveCircle(o.position, o.radius ?? 0.3);
+      }
       o.sprite?.setPosition(o.position.x, o.position.z);
 
       const key = o.id ?? o.cast ?? "boss";

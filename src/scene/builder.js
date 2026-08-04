@@ -594,39 +594,47 @@ function addCafeteria(area, world, ctx) {
   });
 }
 
-/** Small auditorium: raised stage, screen, rows of chairs facing it. */
+/**
+ * Auditorio SIN tarima: una pantalla grande colgada de la pared norte y
+ * "pods" — sillones de dos plazas — en dos arcos mirándola, como un cine de
+ * oficina moderna. La tarima de antes ocupaba un cuarto de la sala y nadie
+ * se subía nunca.
+ */
 function addAuditorium(area, world, ctx) {
-  const stageD = area.d * 0.26;
-  const stageZ = area.z - area.d / 2 + stageD / 2 + 0.3 * S;
+  const screenZ = area.z - area.d / 2 + 0.18 * S;
 
-  const stage = new THREE.BoxGeometry(area.w * 0.82, 0.28 * S, stageD);
-  stage.translate(area.x, 0.19 * S, stageZ);
-  ctx.coreParts.body.push(stage);
-  if (world) world.addBox(area.x, stageZ, area.w * 0.82, stageD, { sight: false });
-
-  // The lit screen is a one-off landmark, so it stays its own small mesh.
+  // La pantalla iluminada es un hito único del piso: malla propia, grande y
+  // pegada a la pared norte.
   const screen = new THREE.Mesh(
-    new THREE.BoxGeometry(area.w * 0.5, 1.3 * S, 0.12 * S),
+    new THREE.BoxGeometry(area.w * 0.62, 1.5 * S, 0.1 * S),
     new THREE.MeshLambertMaterial({
       color: new THREE.Color(SURFACES.screen),
       emissive: new THREE.Color("#7fb4c9"),
       emissiveIntensity: 0.9,
     })
   );
-  screen.position.set(area.x, 1.25 * S, area.z - area.d / 2 + 0.2 * S);
+  screen.position.set(area.x, 1.35 * S, screenZ);
   ctx.extras.push(screen);
 
-  const rows = 3;
-  const perRow = 6;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < perRow; c++) {
-      ctx.registry.addStool(
-        area.x + (c / (perRow - 1) - 0.5) * area.w * 0.66,
-        area.z + area.d * (0.04 + r * 0.16)
-      );
+  // Dos arcos de pods centrados en la pantalla, cada sillón GIRADO para
+  // mirarla. El pod es ancho: su colisión es una caja por sillón.
+  const focus = { x: area.x, z: screenZ };
+  const arcs = [
+    { radius: area.d * 0.42, count: 3, span: 0.85 },
+    { radius: area.d * 0.68, count: 4, span: 1.15 },
+  ];
+  for (const arc of arcs) {
+    for (let i = 0; i < arc.count; i++) {
+      const t = arc.count === 1 ? 0 : i / (arc.count - 1) - 0.5;
+      const a = Math.PI / 2 + t * arc.span; // centrado mirando a -z
+      const px = focus.x + Math.cos(a - Math.PI / 2) * arc.radius * 0.9;
+      const pz = focus.z + Math.sin(a) * arc.radius;
+      // rotY para que el FRENTE del pod (su -z local) apunte a la pantalla.
+      const rotY = Math.atan2(focus.x - px, focus.z - pz) + Math.PI;
+      ctx.registry.addPod(px, pz, rotY);
+      if (world) world.addBox(px, pz, 1.4 * S, 0.7 * S, { sight: false });
     }
   }
-
 }
 
 // ---------- Cover props ----------
