@@ -20,9 +20,13 @@ import { texturedMaterial, getTexture } from "./textures.js";
 import { cozyMaterial, SURFACES } from "./cozy.js";
 import { createFurnitureRegistry, placeSeatedTable, placeBistroTable } from "./furniture.js";
 
-const GLASS_WALL_H = 1.9 * S;
-const PERIMETER_WALL_H = 2.2 * S;
-const CORE_H = 2.6 * S;
+// ESCALA HUMANA: los personajes miden 1.56–1.85 unidades (≈ metros) y el
+// techo de una oficina real está a ~3 m. Las mamparas interiores van justo
+// por encima de la cabeza (1.92) y nada supera los ~2.8: con las paredes de
+// antes (2.3–3.1) el piso parecía un búnker y los muñecos, enanos.
+const GLASS_WALL_H = 1.6 * S;
+const PERIMETER_WALL_H = 2.0 * S;
+const CORE_H = 2.3 * S;
 
 /**
  * Builds the whole floor from the `areas` table. Every solid piece registers
@@ -176,15 +180,21 @@ function buildCorridors() {
 }
 
 function interiorGlassMaterial() {
+  // Vidrio HOLOGRÁFICO: sigue siendo mampara transparente, pero con un
+  // rescoldo cian propio (emissive) — de noche y a contraluz se lee como un
+  // panel de luz proyectada, no como acrílico muerto. La opacidad se queda
+  // baja: el juego exige ver a través de las salas.
   return new THREE.MeshLambertMaterial({
     color: new THREE.Color(SURFACES.glass),
+    emissive: new THREE.Color("#4fb3a8"),
+    emissiveIntensity: 0.22,
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.22,
     side: THREE.DoubleSide,
   });
 }
 
-const BARRIER_H = 2.2 * S;
+const BARRIER_H = 1.8 * S;
 const BARRIER_THICK = 0.34 * S;
 
 /**
@@ -517,7 +527,7 @@ function addCoreBlock(area, world, parts) {
   const n = DOOR_NORMALS[side] ?? DOOR_NORMALS.frente;
   const leaf = 0.9 * S;
   const thin = 0.08 * S;
-  const door = new THREE.BoxGeometry(wall.horizontal ? leaf : thin, 1.9 * S, wall.horizontal ? thin : leaf);
+  const door = new THREE.BoxGeometry(wall.horizontal ? leaf : thin, 1.75 * S, wall.horizontal ? thin : leaf);
   door.translate(
     area.x + wall.x + n.x * 0.05 * S,
     0.95 * S,

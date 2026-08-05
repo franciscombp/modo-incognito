@@ -7,6 +7,7 @@ import { createSave } from "./save.js";
 import { applyTheme, createThemeBlender } from "./themes.js";
 import { createMenus } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
+import { createMinimap } from "../ui/minimap.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
 import { createMenuBar } from "../ui/menubar.js";
@@ -65,6 +66,7 @@ export function createEngine({
 }) {
   const hud = createHud(app);
   const guides = createGuides(app, camera.camera);
+  const minimap = createMinimap(app);
   const worldPrompt = createWorldPrompt(app, camera.camera, {
     isTouch: matchMedia("(pointer: coarse)").matches,
   });
@@ -873,6 +875,7 @@ export function createEngine({
     // Reuse the frame state the HUD just rendered instead of rebuilding it.
     const live = game && !menus.isOpen ? game.lastSnapshot : null;
     guides.update(live);
+    minimap.update(live);
     worldPrompt.update(dialogue.isOpen ? null : live);
     if (live && !dialogue.isOpen) {
       updateMoodFromSnapshot(live);
@@ -957,6 +960,7 @@ export function createEngine({
     dialogue,
     menus,
     guides,
+    minimap,
     save,
     start: () => openTitle(),
     startDay,

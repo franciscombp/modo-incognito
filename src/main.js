@@ -350,10 +350,13 @@ async function boot() {
   applyCharacterSprite(save.characterId);
 
   // -------- Labels: three tiers, so the diorama never drowns in signage ----
+  // La tecla M ("plano") abre el MAPA de terminal (ui/minimap.js) y a la vez
+  // enciende los rótulos del piso: el modo consulta completo, de un golpe.
   let inspectMode = false;
   function toggleInspect() {
     inspectMode = !inspectMode;
     document.body.classList.toggle("inspect-mode", inspectMode);
+    if (engine.minimap.isOpen !== inspectMode) engine.minimap.toggle();
   }
 
   createTouchControls(player, app, {

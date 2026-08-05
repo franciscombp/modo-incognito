@@ -75,6 +75,11 @@ export function createMenuBar(root, { title = "Modo Incógnito", onOpenPause = n
     // flotando suelto en la esquina, que además chocaba con estos paneles.
     audio: menulet({ id: "audio", iconName: "volume2", hint: "V" }),
   };
+  // EL RELOJ VA AL CENTRO: es la única moneda del juego, así que preside la
+  // barra — centrado de verdad (posición absoluta, no flexbox: no depende de
+  // cuánto pese cada lado). Sigue siendo el mismo menulet con su panel.
+  const center = el("div", "inc-bar-center", bar);
+  center.appendChild(items.clock.wrap);
   items.tasks.title.textContent = "Tareas de hoy";
   items.heat.title.textContent = "Presión";
   items.clock.title.textContent = "Jornada";
@@ -292,10 +297,13 @@ export function createMenuBar(root, { title = "Modo Incógnito", onOpenPause = n
   }
 
   function renderClock(state) {
-    items.clock.label.textContent = state.currentTime ?? "—";
     const left = Math.max(0, Math.round(state.timeLeft));
     const mins = Math.floor(left / 60);
     const secs = String(left % 60).padStart(2, "0");
+    // Cuenta atrás GRANDE al centro; la hora de mentira del piso, al lado.
+    items.clock.label.innerHTML =
+      `<b class="inc-bar-countdown">${mins}:${secs}</b>` +
+      `<span class="inc-bar-daytime">${state.currentTime ?? ""}</span>`;
     items.clock.wrap.classList.toggle("warn", left <= 45 && left > 20);
     items.clock.wrap.classList.toggle("danger", left <= 20);
 

@@ -8703,3 +8703,186 @@ body.inc-game-active .inc-menu-scrim {
   box-shadow: none;
   opacity: 0.55;
 }
+
+/* ============================================================
+   SKIN "TERMINAL//LUMON" — retro-futurista a lo Severance: azul
+   marino de tubo CRT, fósforo cian, tipografía mono y cajas de
+   filo fino. Es UNA capa de tokens al final del archivo: pisa a
+   los temas claro y oscuro (misma especificidad, llega después)
+   y todos los componentes — botones de juego, tarjetas, barras,
+   mapa, builders — la heredan solos. Para volver atrás o probar
+   otra piel, se toca SOLO este bloque.
+   ============================================================ */
+:root,
+:root[data-theme] {
+  /* Tinta y papel: fósforo pálido sobre marino profundo. */
+  --paper: #0a1420;
+  --ink: #d7efec;
+  --ink-soft: #8fb5b0;
+  --ink-rgb: 215, 239, 236;
+  /* El acento primario pasa a TEAL fósforo; el par -dim es su sombra dura. */
+  --violet: #2fa79a;
+  --violet-dim: #1f7a71;
+  --cyan: #7fd8cf;
+  --cyan-rgb: 127, 216, 207;
+  --lime: #8fd8a0;
+  --red: #e0596e;
+  --red-rgb: 224, 89, 110;
+  --amber: #e0b03c;
+  /* Superficies: vidrio OSCURO — el concepto glass se queda, cambia el tinte. */
+  --panel: linear-gradient(180deg, rgba(13, 24, 38, 0.94), rgba(9, 17, 28, 0.92));
+  --glass: rgba(13, 24, 38, 0.78);
+  --line: rgba(127, 216, 207, 0.28);
+  --scrim: rgba(4, 9, 15, 0.82);
+  /* La barra de menú, en la misma consola. */
+  --bar-bg: rgba(7, 13, 22, 0.88);
+  --bar-line: rgba(127, 216, 207, 0.22);
+  --bar-ink: rgba(215, 239, 236, 0.78);
+  --bar-ink-strong: #eafffb;
+  --bar-hover: rgba(127, 216, 207, 0.1);
+  --bar-active: rgba(127, 216, 207, 0.18);
+  --bar-panel-bg: rgba(9, 17, 28, 0.96);
+  --bar-panel-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(127, 216, 207, 0.16) inset;
+  /* El mapa lee estos tokens del root al abrirse (ui/minimap.js). */
+  --map-stroke: #7fd8cf;
+  --map-dim: rgba(127, 216, 207, 0.4);
+  --map-fill: rgba(127, 216, 207, 0.06);
+  --map-player: #eafffb;
+  --map-boss: #e0596e;
+  --map-task: #e0b03c;
+  --map-safe: #8fd8a0;
+  --map-text: rgba(127, 216, 207, 0.8);
+}
+
+/* El fondo de pantalla completa (menús, login, boot) es la consola. */
+body,
+.inc-menu-scrim,
+.inc-login {
+  background-color: var(--paper);
+}
+
+/* Rótulos y cifras van en MONO — es lo que hace "terminal" sin disfraz. */
+.inc-bar,
+.inc-menu-chip,
+.inc-menu-plat-chip,
+.inc-bar-kv,
+.inc-tracker-card,
+.inc-overlay-points,
+.inc-overlay-target,
+.inc-world-prompt-card,
+.inc-minimap {
+  font-family: var(--mono);
+}
+
+/* Un velo de SCANLINES sobre los fondos de pantalla completa: el guiño CRT,
+   sutil (3% de tinta) para no ensuciar la lectura. */
+.inc-menu-scrim::after,
+.inc-login::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(127, 216, 207, 0.03) 0 1px,
+    transparent 1px 3px
+  );
+}
+
+/* Títulos con un halo de fósforo, no un neón: 1px de glow basta. */
+.inc-menu-screen-title-text,
+.inc-overlay-title,
+.inc-bar-countdown {
+  text-shadow: 0 0 12px rgba(var(--cyan-rgb), 0.35);
+}
+
+/* --- El reloj centrado en la barra: cuenta atrás grande, hora al lado ---
+   OJO: la barra ya es position: fixed (y eso la ancla arriba) — un
+   `position: relative` aquí la mandaba al flujo del documento, o sea
+   FUERA de la pantalla. El fixed ya sirve de contenedor del absolute. */
+.inc-bar-center {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  z-index: 1;
+}
+.inc-bar-center .inc-bar-btn {
+  gap: 8px;
+}
+.inc-bar-countdown {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: var(--bar-ink-strong);
+  font-variant-numeric: tabular-nums;
+}
+.inc-bar-daytime {
+  font-size: 11px;
+  color: var(--bar-ink);
+  font-variant-numeric: tabular-nums;
+}
+.inc-bar-center .warn .inc-bar-countdown { color: var(--amber); }
+.inc-bar-center .danger .inc-bar-countdown { color: var(--red); }
+/* El panel del reloj centrado cuelga centrado, no pegado a un borde. */
+.inc-bar-center .inc-bar-panel {
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
+}
+
+/* --- El PLANO (tecla M): panel de terminal flotando bajo la barra --- */
+.inc-minimap {
+  position: fixed;
+  top: 44px;
+  right: 12px;
+  width: min(380px, calc(100vw - 24px));
+  z-index: 60;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  padding: 10px;
+  /* Esquina cortada, como las consolas de la sala de datos. */
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+}
+.inc-minimap-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 2px 4px 8px;
+}
+.inc-minimap-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--cyan);
+}
+.inc-minimap-hint {
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+.inc-minimap-canvas {
+  display: block;
+  width: 100%;
+  border-radius: 8px;
+  background:
+    repeating-linear-gradient(0deg, rgba(127, 216, 207, 0.025) 0 1px, transparent 1px 3px),
+    #081019;
+  border: 1px solid rgba(var(--cyan-rgb), 0.14);
+}
+
+/* Los velos de pantalla completa también son consola: los dos scrims
+   traían gradientes claros literales del skin plataforma. */
+.px-menu-scrim,
+.inc-menu-scrim,
+body.inc-game-active .inc-menu-scrim {
+  background: linear-gradient(180deg, rgba(7, 13, 22, 0.92), rgba(10, 20, 32, 0.95));
+  backdrop-filter: blur(10px) saturate(1.05);
+}
+.inc-bar-daytime {
+  margin-left: 7px;
+}
