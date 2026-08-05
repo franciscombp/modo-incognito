@@ -21,12 +21,13 @@ import { cozyMaterial, SURFACES } from "./cozy.js";
 import { createFurnitureRegistry, placeSeatedTable, placeBistroTable } from "./furniture.js";
 
 // ESCALA HUMANA: los personajes miden 1.56–1.85 unidades (≈ metros) y el
-// techo de una oficina real está a ~3 m. Las mamparas interiores van justo
-// por encima de la cabeza (1.92) y nada supera los ~2.8: con las paredes de
-// antes (2.3–3.1) el piso parecía un búnker y los muñecos, enanos.
+// TECHO manda a 2.50 — nada construido lo supera (2.5 / S ≈ 2.08·S). Las
+// mamparas interiores van justo por encima de la cabeza (1.92): con las
+// paredes de antes (2.3–3.1) el piso parecía un búnker y los muñecos, enanos.
+const CEILING_H = 2.08 * S; // ≈ 2.50 en unidades-persona
 const GLASS_WALL_H = 1.6 * S;
-const PERIMETER_WALL_H = 2.0 * S;
-const CORE_H = 2.3 * S;
+const PERIMETER_WALL_H = CEILING_H;
+const CORE_H = CEILING_H; // los núcleos (baños/ascensores) llegan al techo
 
 /**
  * Builds the whole floor from the `areas` table. Every solid piece registers
@@ -194,7 +195,7 @@ function interiorGlassMaterial() {
   });
 }
 
-const BARRIER_H = 1.8 * S;
+const BARRIER_H = 1.7 * S;
 const BARRIER_THICK = 0.34 * S;
 
 /**
