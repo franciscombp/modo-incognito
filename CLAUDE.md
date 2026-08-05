@@ -5,6 +5,11 @@ Para el mapa completo de "quiero cambiar X → edito Y" con enlaces a GitHub,
 usa la tabla del [README.md](https://github.com/franciscombp/modo-incognito/blob/main/README.md#quiero-cambiar-x--edito-y) —
 no la dupliques aquí.
 
+> **El motor, sus reglas y su balance están en [`docs/MOTOR.md`](docs/MOTOR.md).**
+> Ahí va el porqué de cada número (sospecha, persecución, lugares seguros) y es
+> el sitio donde se discuten cambios de diseño. Este archivo es el mapa del
+> repo; aquel, el del juego.
+
 ## Estado: MVP del día 1
 
 La campaña publicada es **solo el día 1** y está pulida de punta a punta:
@@ -266,58 +271,72 @@ saturado se reserva para los personajes. La paleta entera está en
 - Si pasas un `color` explícito a `texturedMaterial()`, pisa la paleta. Es lo
   que dejaba los pasillos y los núcleos en gris frío después del cambio.
 
-### La interfaz: TERMINAL//LUMON, y UNA sola capa de tokens
+### El TEMA: tres capas y una sola verdad
 
-`src/style/design-system.css` es retro-futurista a lo *Severance*: azul marino
-de tubo CRT, fósforo cian, mono y filo fino. Los NOMBRES de las variables se
-conservan (`--cyan`, `--magenta`, `--paper`) aunque ya no describan su color,
-porque se usan desde ochenta sitios.
+Cambiar la estética entera —interfaz **y edificio**— es editar UN bloque de
+`src/style/design-system.css`. Toda la estructura existe para poder cumplir eso.
 
-**La regla que no se rompe: TODO el color vive en el bloque de tokens del
-principio del archivo, y NADA MÁS define un color.** Ni `white`, ni
-`rgba(255,255,255,…)`, ni un hex suelto en un componente. Si hace falta un
-color que no está, se añade AHÍ y se consume por nombre.
+- **Capa 1 · primitivas** (`[data-theme="x"]`): los valores crudos, y el ÚNICO
+  sitio del proyecto donde se escribe un color. Un tema = un bloque.
+- **Capa 2 · semánticas** (`:root`): roles, sin un solo valor crudo.
+  `--surface`, `--text`, `--accent`, `--border`… No cambia entre temas: es el
+  contrato.
+- **Capa 3 · componentes**: consumen SOLO nombres de la capa 2.
 
-**Y no hay fork claro/oscuro.** Una sola paleta, siempre. Un
-`@media (prefers-color-scheme)` que redefina color vuelve a partir la verdad
-en dos, y es exactamente de donde vino el peor fallo que ha tenido esta
-interfaz.
+Hay dos temas de verdad: `terminal` (por defecto) y `cozy`. El segundo no es
+arqueología — es la PRUEBA de que la arquitectura funciona. Si al cambiar a él
+algo se queda marino, ese componente lee un valor crudo.
 
-Cómo fue: el archivo acumuló CUATRO pieles apiladas (crema "vibrant",
-dashboard verde "plataforma", tokens de barra, terminal) más CINCO bloques
-`prefers-color-scheme: dark` peleándose entre ellas — siete definiciones de
-las mismas variables. La piel de encima re-tintaba la TINTA pero no las
-SUPERFICIES, porque `--glass-light` solo existía en la capa crema y valía
-`rgba(255,255,255,0.86)` sin variante oscura. Resultado: la caja de diálogo
-era **texto blanco sobre panel blanco**, ilegible del todo — y aclarar más la
-tinta, que es el arreglo que parece obvio, lo empeoraba. Había además 94
-superficies blancas escritas a mano por el archivo.
+**Añadir un tema son dos pasos:** su bloque en la capa 1, y su id en `THEMES`
+(`src/game/theme.js`). Ni un componente se toca.
 
-La lección, contra lo que decía esta guía antes: **no se arregla una piel
-apilando otra capa de overrides encima.** Se arregla en la fuente. Si un
-componente se ve del skin viejo, es que lee un token que la paleta no define
-— se añade el token, no una regla nueva al final.
+**El EDIFICIO sale de los mismos tokens.** Los `--w-*` de la capa 1 los lee
+`src/scene/palette.js` del documento al arrancar y se los pasa a `cozy.js`, así
+que un tema re-tinta el decorado sin tocar `builder.js` ni `furniture.js`. Se
+leen del CSS y no se guardan en JS para que no haya DOS sitios donde vive un
+color, que es de donde vino todo esto.
 
-Al escribir CSS nuevo:
+Ojo con el otro eje: `src/game/themes.js` es el TIEMPO (qué hora es), no el
+tema (de qué color es el edificio). Por eso no sale de los tokens.
 
-- El texto va en `var(--ink)` (o `--ink-soft` para lo secundario) y los
-  paneles en `--panel`/`--glass`. `var(--paper)` NO es papel: es el MARINO del
-  fondo. Ponerlo como color de texto deja el texto invisible.
-- `--glass-light` tampoco significa "claro": es el vidrio de MENOS opacidad
-  del par, y es oscuro como todo lo demás.
-- Para transparencias hay `rgba(var(--ink-rgb), a)` y
-  `rgba(var(--cyan-rgb), a)`. El filo de luz de una tarjeta es `var(--rim)`.
-- Ojo con las sombras de texto heredadas: un canto duro
-  `0 6px 0 rgba(var(--ink-rgb), .6)` estaba calibrado para tinta oscura sobre
-  papel claro. Con tinta de fósforo pinta una copia pálida sólida — el
-  fantasma que tuvo el logo del título. El relieve aquí se hace con sombra
-  OSCURA debajo más halo de fósforo.
-- Nada de halos de neón. Un halo de 1px basta.
+Lo vigila `npm run check:theme`, que a propósito NO mira una captura: comprueba
+que al cambiar `data-theme` se mueven los tokens de interfaz Y de edificio, que
+volver atrás restaura exacto, y que ningún panel se quedó con un fondo fijo. Un
+componente anclado se ve idéntico en una captura pequeña.
 
-**Y una trampa que ya costó un rato:** una animación cuyos keyframes escriben
-`text-shadow` GANA a cualquier regla normal, por muy al final del archivo que
-esté. Si un override de texto "no hace nada", busca el `@keyframes` y arréglalo
-ahí.
+**La regla que no se rompe: ningún componente escribe un color.** Ni `white`,
+ni `rgba(255,255,255,…)`, ni un hex. Si falta un color, se añade a la capa 1.
+
+Y **no hay fork claro/oscuro**: ni un `@media (prefers-color-scheme)` que toque
+color. Así es como esta interfaz acabó con texto BLANCO SOBRE BLANCO — había
+cuatro pieles apiladas y cinco medias oscuras peleándose, la de encima
+re-tintaba la tinta pero no las superficies, y aclarar más la tinta (el arreglo
+que parece obvio) lo empeoraba.
+
+**No se apila una piel nueva al final.** Es lo que se hizo tres veces y es lo
+que produjo aquello.
+
+Al escribir CSS nuevo: el texto va en `var(--text)`, los paneles en
+`--surface`/`--surface-raised`, los filos en `--border`. `var(--paper)` NO es
+papel: es el FONDO. `--glass-light` tampoco es claro: es el vidrio de MENOS
+opacidad del par.
+
+**Trampa ya pagada:** una animación cuyos keyframes escriben `text-shadow` GANA
+a cualquier regla normal, por muy al final del archivo que esté. Si un override
+"no hace nada", busca el `@keyframes`.
+
+### El movimiento también es del DS
+
+Las microinteracciones viven en el bloque «MOVIMIENTO» y salen de las curvas de
+la capa 2 (`--ease-pop`, `--dur-*`), así que el TACTO se ajusta desde ahí igual
+que el color. Entradas de pantalla en cascada, brillo que barre lo pulsable,
+salto de lo elegido, y el feedback del bucle: tarea cumplida, reloj ganado,
+sacudida al subir la presión y latido cuando es crítica (`.mi-*`, disparadas
+desde `menubar.js`).
+
+Dos reglas: nada de esto puede tapar el piso ni robar un clic, y TODO respeta
+`prefers-reduced-motion` — con mareo vestibular una pantalla que salta es una
+barrera, no un adorno.
 
 Dos piezas montan el 3D DENTRO de la interfaz, y son la razón de que los
 menús y el diálogo ya no parezcan de otro juego:
@@ -446,6 +465,28 @@ en una captura.
 - Un JSON de contenido inválido debe fallar con el nombre del archivo en
   pantalla (ver `src/data/loader.js`), nunca con una pantalla en negro
   silenciosa. Si tocas el loader, no rompas esa garantía.
+- **El jefe NO persigue con la sospecha baja.** Por debajo de
+  `boss.chaseSuspicionFloor` (40, en `boss-config.json`) hace su ronda aunque
+  te pille en falta; como mucho se acerca a mirar. Antes bastaba una alerta
+  roja para que se lanzara desde el primer minuto y, con Gabo además atado a
+  la jugadora el día 1, no dejaba hacer nada. La tensión tiene que SUBIR: sin
+  esa rampa no hay sigilo, hay un pasillo con un perro suelto. La puerta está
+  en UN sitio, `Boss._mayChase()`, para que no se cuele una caza por una rama
+  nueva que olvide comprobarlo. La correa del día 1 se afloja igual por debajo
+  del umbral — no basta con no perseguir si su ronda sigue siendo encima de ti.
+  Una vez comprometido (`lockedOn`) el umbral ya no aplica.
+- **El trayecto se SUAVIZA tirando de la cuerda** (`_steer`): un camino de A*
+  sobre rejilla va en escalera, y caminarlo nodo a nodo es lo que le hacía
+  rebotar de esquina en esquina rozando todos los muebles. Se busca el nodo
+  más lejano al que ya se puede ir en línea recta y se apunta ahí. Mira 6
+  nodos como mucho: más allá no se nota y cada traza de línea se paga por
+  veinte personajes.
+- **Los montajes de `tools/` que prueban al jefe necesitan calentar el
+  medidor** por encima de ese umbral, o no habrá caza que medir. Y ojo con dos
+  cosas que ya costaron un rato: la alarma de nivel 3 PAUSA la partida desde
+  `game.js` (no desde la interfaz) y `_heatAlertShown` se rearma sola, así que
+  hay que reanudar dentro del bucle; y una amonestación resetea la sospecha a
+  cero, con lo que la prueba siguiente empieza en frío.
 - **Persecución comprometida**: desde que un vigilante te mete en el halo,
   `boss.lockedOn` queda en true y NO debe soltarte por perderte de vista ni
   por atascarse contra un mueble; las DOS salidas son un lugar seguro

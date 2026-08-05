@@ -52,7 +52,14 @@ const report = await page.evaluate(async () => {
   // a chase from starting in the first place; it just can't end one.) ----
   game.player.position.x = fp.spawn.x;
   game.player.position.z = fp.spawn.z;
-  game.suspicion = 10; // even very low suspicion
+  // El jefe ya NO arranca una caza con la sospecha baja: por debajo de
+  // `chaseSuspicionFloor` hace su ronda (el respiro que hace jugable el dia
+  // 1, ver docs/MOTOR.md 3.1). Este caso prueba que FINGIR no corta una caza
+  // YA EN MARCHA, asi que primero tiene que haber una: se calienta el
+  // medidor lo justo para que arranque. En las dos copias, que el jefe lleva
+  // la suya y game.js la sincroniza una vez por cuadro.
+  game.suspicion = game.boss.chaseSuspicionFloor + 10;
+  game.boss.suspicion = game.suspicion;
   game.player.keys.add("f");
   game.boss.startChase();
   const origCatches = game.boss.catches;
