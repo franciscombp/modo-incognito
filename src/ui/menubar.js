@@ -300,10 +300,16 @@ export function createMenuBar(root, { title = "Modo Incógnito", onOpenPause = n
     const left = Math.max(0, Math.round(state.timeLeft));
     const mins = Math.floor(left / 60);
     const secs = String(left % 60).padStart(2, "0");
-    // Cuenta atrás GRANDE al centro; la hora de mentira del piso, al lado.
+    // WIDGET DE RELOJ: la HORA del piso es la cifra grande (es el mundo en
+    // el que finges vivir); lo que de verdad te queda de jornada va debajo,
+    // en pequeño — la trastienda del juego. El estilo (vidrio líquido +
+    // dígitos pixel) es puro CSS del DS: aquí solo se parte la hora en
+    // cifra y sufijo (a.m./p.m.) para poder dimensionarlos por separado.
+    const [dayTime = "—", ...suffix] = String(state.currentTime ?? "—").split(" ");
     items.clock.label.innerHTML =
-      `<b class="inc-bar-countdown">${mins}:${secs}</b>` +
-      `<span class="inc-bar-daytime">${state.currentTime ?? ""}</span>`;
+      `<span class="inc-clockwidget-time">${dayTime}` +
+      `<i class="inc-clockwidget-suffix">${suffix.join(" ")}</i></span>` +
+      `<span class="inc-bar-countdown">${mins}:${secs} de jornada</span>`;
     items.clock.wrap.classList.toggle("warn", left <= 45 && left > 20);
     items.clock.wrap.classList.toggle("danger", left <= 20);
 
