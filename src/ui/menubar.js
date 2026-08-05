@@ -200,6 +200,8 @@ export function createMenuBar(root, { title = "Modo Incógnito", onOpenPause = n
   // --- Estado que la barra vigila para avisar sola ---
   let lastHeat = 0;
   let lastWarnings = 0;
+  let lastHeatPct = 0;
+  let lastDayTime = null;
   let lastDone = 0;
   let lastBossState = null;
 
@@ -239,12 +241,35 @@ export function createMenuBar(root, { title = "Modo Incógnito", onOpenPause = n
     lastDone = done;
   }
 
+  /**
+   * Pone una clase de animación y la quita al acabar.
+   *
+   * Hay que QUITARLA: estas marcas se vuelven a poner en cuadros
+   * siguientes, y una clase que ya está no rearranca su animación — el
+   * segundo aviso no se vería. El `void offsetWidth` fuerza el reflow que
+   * hace que el navegador la dé por nueva.
+   */
+  function pulse(node, cls, ms) {
+    if (!node) return;
+    node.classList.remove(cls);
+    void node.offsetWidth;
+    node.classList.add(cls);
+    clearTimeout(node._miTimer);
+    node._miTimer = setTimeout(() => node.classList.remove(cls), ms);
+  }
+
   function renderHeat(state) {
     const max = state.suspicionMax || 100;
     const pct = Math.round((state.suspicion / max) * 100);
     items.heat.label.textContent = `${pct}%`;
     items.heat.wrap.classList.toggle("warn", pct >= 55 && pct < 90);
     items.heat.wrap.classList.toggle("danger", pct >= 90);
+    // Con la presión crítica el medidor LATE. Es el aviso periférico que
+    // deja jugar sin tener que mirar el número: se ve de reojo.
+    items.heat.wrap.classList.toggle("mi-critical", pct >= 90);
+    // Y cuando pega un salto de golpe (te acaban de ver), sacude una vez.
+    if (pct - lastHeatPct >= 12) pulse(items.heat.wrap, "mi-shake", 420);
+    lastHeatPct = pct;
 
     const body = items.heat.panelBody;
     body.replaceChildren();
@@ -312,6 +337,14 @@ export function createMenuBar(root, { title = "Modo Incógnito", onOpenPause = n
       `<span class="inc-bar-countdown">${mins}:${secs} de jornada</span>`;
     items.clock.wrap.classList.toggle("warn", left <= 45 && left > 20);
     items.clock.wrap.classList.toggle("danger", left <= 20);
+    // Un tic mínimo al cambiar la hora del piso: el ojo lo capta de reojo y
+    // sabe que el reloj corre, sin tener que leerlo.
+    if (dayTime !== lastDayTime) {
+      pulse(items.clock.label.querySelector(".inc-clockwidget-time"), "mi-tick", 240);
+      lastDayTime = dayTime;
+    }
+    // Los últimos veinte segundos laten, como la presión crítica.
+    items.clock.wrap.classList.toggle("mi-critical", left <= 20);
 
     const body = items.clock.panelBody;
     body.replaceChildren();

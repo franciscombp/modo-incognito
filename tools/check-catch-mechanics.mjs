@@ -104,6 +104,10 @@ const bossSetup = await page.evaluate(() => {
   game.setPaused(false);
   game.rules.explore = false;
   game.warnings = 0;
+  // Igual que arriba: sin sospecha por encima del suelo no hay caza que
+  // medir, y lo que se prueba aqui es la AMONESTACION al alcanzarte.
+  game.suspicion = Math.max(game.suspicion, game.boss.chaseSuspicionFloor + 10);
+  game.boss.suspicion = game.suspicion;
   game.boss.startChase();
   game.boss.position.x = game.player.position.x;
   game.boss.position.z = game.player.position.z;

@@ -46,6 +46,30 @@ const out = await p.evaluate(() => {
   g.player.position.x = far.x; g.player.position.z = far.z;
   g.player.isHiding = false; g.player.isDoingActivity = true; g.player.isPretending = false;
 
+  // El jefe ya NO persigue con la sospecha baja: por debajo de
+  // `chaseSuspicionFloor` hace su ronda aunque te vea en falta (el respiro
+  // que hace jugable el dia 1; su prueba esta en check-chase.mjs). Todo este
+  // archivo va del COMPROMISO una vez la caza arranco, asi que se deja el
+  // medidor caliente de entrada. Hay que ponerlo en las dos copias: el jefe
+  // lleva la suya, que game.js sincroniza una vez por cuadro.
+  // La alarma de nivel 3 pausa la partida a pantalla completa, y con la
+  // partida pausada `update()` no mueve NADA: las pruebas de aqui abajo
+  // medirian cero sin que hubiera nada roto (el jefe se quedaba a 17 metros
+  // sin moverse y parecia que la persecucion estaba rota).
+  //
+  // No basta con `_heatAlertShown`: esa marca se REARMA sola al enfriarse
+  // por debajo del nivel 3, asi que volvia a saltar en la prueba siguiente.
+  // Se desconecta el aviso entero, que es interfaz y no es lo que se prueba
+  // aqui — check-suspicion.mjs es quien cubre la alarma.
+  g.onHeatAlert = null;
+  g._heatAlertShown = true;
+
+  const caliente = () => {
+    g.suspicion = Math.max(g.suspicion, boss.chaseSuspicionFloor + 20);
+    boss.suspicion = g.suspicion;
+  };
+  caliente();
+
   // --- 1. Te mete en el halo -> se compromete ---
   boss.resetToPatrol();
   boss.position.x = g.player.position.x + 14 * S;
@@ -103,15 +127,26 @@ const out = await p.evaluate(() => {
   g.setPaused(false);
   g._caughtCooldown = 0;
   boss._updateVision = sees;
+  caliente();
   boss.startChase();
   const warnings0 = g.warnings;
   for (let i = 0; i < 1800 && g.warnings === warnings0; i++) {
+    // La alarma de nivel 3 PAUSA la partida desde el propio game.js (no desde
+    // la interfaz), y `_heatAlertShown` se rearma solo cada cuadro que el
+    // medidor baja del nivel 3 — asi que ponerla a mano en el montaje no
+    // sobrevive. Con la partida pausada `update()` no mueve nada y el jefe se
+    // quedaba clavado a 17 metros: parecia que la persecucion estaba rota
+    // cuando lo que fallaba era el montaje. Aqui se prueba que ALCANZARTE es
+    // lo que amonesta; la alarma tiene su propia prueba en check-suspicion.
+    if (g.paused) g.setPaused(false);
     g.update(1 / 30);
     // Sujeta el medidor entre 1 y el umbral del nivel 3: ni se enfría a 0
     // (soltaría la caza) ni dispara la alarma de pantalla completa (pausa).
     g.suspicion = Math.min(Math.max(g.suspicion, 1), 50);
   }
   res.caughtWhileHidden = g.warnings > warnings0;
+
+
 
   // --- 4. El lugar seguro SÍ corta una persecución comprometida ---
   const safe = fp.safeSpots[0];
@@ -126,9 +161,20 @@ const out = await p.evaluate(() => {
   boss.position.x = safe.x + 14 * S;
   boss.position.z = safe.z;
   boss._updateVision = sees;
+  // La amonestacion de la prueba 3 resetea la sospecha a CERO, y con el
+  // medidor frio el jefe ya no se compromete (hace su ronda). Aqui se prueba
+  // que el lugar seguro CORTA una persecucion, asi que primero tiene que
+  // haber una: se vuelve a calentar el medidor.
+  caliente();
+  // La amonestacion de la prueba 3 abre el dialogo de regano, que deja la
+  // partida pausada — y pausada, `update()` no llama ni a la vision: el jefe
+  // se quedaba en CHASE viendola, y parecia que el lugar seguro no cortaba
+  // nada. Se reanuda antes de CADA update, no solo al empezar el bloque.
+  if (g.paused) g.setPaused(false);
   g.update(1 / 30);
   const lockedBeforeSafe = boss.lockedOn;
   boss._updateVision = blind;
+  if (g.paused) g.setPaused(false);
   g.update(1 / 30); // primer frame ya dentro del lugar seguro
   res.lockedBeforeSafe = lockedBeforeSafe;
   res.inSafeSpot = g.inSafeSpot;

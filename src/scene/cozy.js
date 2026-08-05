@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { loadWorldPalette } from "./palette.js";
 
 /**
  * LA PALETA DEL SET: TECH RETROFUTURISTA, SOBRIA.
@@ -13,51 +14,43 @@ import * as THREE from "three";
  * trama pelea con ellos y ensucia la imagen.
  */
 
-/** Superficies del edificio. Los nombres los usan builder.js y furniture.js. */
-export const SURFACES = {
-  // Suelos: porcelana fría, pasillos un punto más claros.
-  tileLight: "#d9d0be",
-  tileLobby: "#e5dcc9",
-  woodFloor: "#b8905e", // la alfombra de la entrada, acero suave
-  carpetPurple: "#b7b0a0", // base de las moquetas de zona (el color va por vértice)
-
-  // Paredes y volúmenes: hormigón claro azulado, oficina tech de verdad.
-  wallPanel: "#c8bead",
-  panelLight: "#dbd2bf",
-
-  // Mobiliario: superficies blancas de laboratorio, patas de grafito.
-  deskTop: "#e9e2d2",
-  deskEdge: "#b2a691",
-  deskLeg: "#4b515e",
-  fabricDark: "#6f9a8b", // tapicería teal — el acento del set
-  screen: "#232833",
-  screenGlow: "#7fe3f0",
-
-  // Vegetación: el único verde orgánico, para que respire.
-  woodPot: "#7c6f5c",
-  leaves: "#4f8d58",
-
-  // Cristal y metal fríos, como toca en este set.
-  glass: "#bccac4",
-  frame: "#6f6b60",
-  metal: "#8f897a",
-};
-
-/** El cielo y la luz. */
-export const ATMOSPHERE = {
-  skyTop: "#5e675a", // azul lavanda frío, cielo de mañana tech
-  skyBottom: "#7d8572",
-  fog: "#68705e",
-};
+/**
+ * Superficies del edificio. Los nombres los usan builder.js y furniture.js.
+ *
+ * Ya NO llevan sus colores escritos aquí: los rellena `loadWorldPalette()`
+ * desde los tokens `--w-*` del tema (ver src/scene/palette.js). El objeto se
+ * MUTA en vez de reasignarse, porque medio motor lo tiene ya importado.
+ */
+export const SURFACES = {};
 
 /**
  * Sillas y detalles se reparten estos acentos en vez de ser todos iguales.
  * Son pocos y emparentados: una silla granate junto a una verde salvia se
  * lee como una oficina con gusto, doce colores distintos se leen como ruido.
  */
-export const ACCENTS = ["#59a8c9", "#e0736b", "#5fbf9a", "#e2b45c", "#8f83d6"];
+export const ACCENTS = [];
+
+/** El cielo y la luz de reserva. Durante la partida manda el tema del día
+ *  (`src/game/themes.js`), que interpola su propio cielo y su niebla. */
+export const ATMOSPHERE = {
+  skyTop: "#1b2a38",
+  skyBottom: "#22323f",
+  fog: "#1d2c3a",
+};
+
+/**
+ * Recarga la paleta del set desde el tema activo y tira los materiales
+ * cacheados, que llevan el color dentro. Lo llama `theme.js` al cambiar de
+ * tema; hay que reconstruir el piso después para que se vea.
+ */
+export function refreshWorldPalette() {
+  loadWorldPalette(SURFACES, ACCENTS);
+  materialCache.clear();
+}
 
 const materialCache = new Map();
+
+loadWorldPalette(SURFACES, ACCENTS);
 
 /**
  * Un material plano del set.

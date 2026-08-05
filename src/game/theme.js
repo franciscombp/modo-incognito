@@ -3,13 +3,18 @@
 // variables del design system (ver src/style/design-system.css); cambiar de
 // tema es solo cambiar qué bloque de valores les da `:root[data-theme=…]`.
 //
-// "pixel" está declarado a propósito aunque su bloque de CSS esté vacío
-// todavía: da soporte a ambos temas desde ya, así que llenarlo más tarde no
-// pide tocar ni este archivo ni ningún componente.
+// Añadir un tema son DOS pasos: su bloque `[data-theme="x"]` en la capa 1 de
+// design-system.css, y su id en THEMES aquí. Ni un componente se toca.
+//
+// El tema no es solo la interfaz: también re-tinta el EDIFICIO, porque el
+// decorado 3D lee los mismos tokens `--w-*` (ver src/scene/palette.js). Por
+// eso `setTheme` avisa a quien tenga que reconstruir el piso.
+
+import { refreshWorldPalette } from "../scene/cozy.js";
 
 const KEY = "modo-incognito:theme:v1";
-export const THEMES = ["cozy", "pixel"];
-const DEFAULT_THEME = "cozy";
+export const THEMES = ["terminal", "cozy"];
+const DEFAULT_THEME = "terminal";
 
 function read() {
   try {
@@ -25,6 +30,10 @@ const listeners = new Set();
 
 function apply(theme) {
   document.documentElement.dataset.theme = theme;
+  // El decorado 3D lee los tokens del documento, así que hay que releerlos
+  // DESPUÉS de cambiar el atributo — y tirar los materiales cacheados, que
+  // llevan el color dentro.
+  refreshWorldPalette();
 }
 
 /** Aplica el tema guardado. Llamar una vez al arrancar, cuanto antes. */

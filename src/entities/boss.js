@@ -144,6 +144,9 @@ export class Boss {
     this.approachSpeedSlow = config?.approachSpeedSlow != null ? config.approachSpeedSlow * S : null;
     this.approachSpeedFast = config?.approachSpeedFast != null ? config.approachSpeedFast * S : null;
     this.suspicionThresholdFastApproach = config?.suspicionThresholdFastApproach ?? 90;
+    // Por debajo de esta sospecha no persigue: hace su ronda. Ver
+    // `_mayChase()`, que es donde de verdad se aplica.
+    this.chaseSuspicionFloor = config?.chaseSuspicionFloor ?? 40;
     this.suspicion = 0; // Game lo actualiza cada frame antes de update()
     this._graceTimer = 0; // grantGrace(): unos segundos ciego tras amonestar
     this.world = world;
@@ -285,7 +288,45 @@ export class Boss {
     return this.state === CHASE || this.state === SEARCH;
   }
 
+  /**
+   * ¿Le toca perseguir, o sigue a lo suyo?
+   *
+   * Con la sospecha baja el jefe hace su RONDA aunque te vea en falta. Antes
+   * bastaba una alerta roja para que se lanzara desde el primer minuto, y con
+   * Gabo además atado a la jugadora en el día 1 el resultado era que no
+   * dejaba hacer nada: te veía, venía, te alcanzaba, vuelta a empezar.
+   *
+   * El respiro es la parte del bucle que faltaba. La tensión tiene que
+   * SUBIR: primero te miran raro, luego te vigilan, y solo cuando ya has
+   * acumulado sospecha se convierte en persecución. Sin esa rampa no hay
+   * juego de sigilo, hay un pasillo con un perro suelto.
+   *
+   * Una vez comprometido (`lockedOn`) esto ya no aplica: bajar la sospecha
+   * en mitad de la carrera no lo despista — de eso se encargan el lugar
+   * seguro y el enfriamiento sostenido, en game.js.
+   */
+  _mayChase() {
+    if (this.lockedOn) return true;
+    if (this.chaseSuspicionFloor <= 0) return true;
+    return this.suspicion >= this.chaseSuspicionFloor;
+  }
+
   startChase() {
+    // La puerta está aquí, y no en cada uno de los sitios que la llaman,
+    // para que no se pueda colar una persecución nueva por una rama que
+    // alguien añada mañana y olvide comprobar el umbral.
+    if (!this._mayChase()) {
+      // Te ha visto, pero no le da para perseguirte: se acerca a mirar. Se
+      // nota que sospecha (viene hacia ti) sin que sea una cacería.
+      if (this.state !== INVESTIGATE) {
+        this.state = INVESTIGATE;
+        this.investigateTarget = this.lastSeenPlayerPos
+          ? { ...this.lastSeenPlayerPos }
+          : { ...this.position };
+        this.investigateTimer = 2.5;
+      }
+      return;
+    }
     this.state = CHASE;
     this.loseSightTimer = 0;
     this.lockedOn = true;
@@ -556,7 +597,17 @@ export class Boss {
         // "donde estes tu". Se acerca hasta la banda `near` y ahi la suelta,
         // para volver a la ronda de siempre hasta que te vuelvas a alejar.
         if (this.tether) {
-          const { target, near, far } = this.tether;
+          const { target, near: nearBase, far: farBase } = this.tether;
+          // Con la sospecha baja la correa se AFLOJA. No basta con no
+          // perseguir: si su ronda sigue siendo "donde estés tú", te lo
+          // encuentras encima igual y el piso se hace injugable — que es
+          // literalmente lo que pasaba el día 1. Al aflojarla se queda en la
+          // misma zona (sigue estando ahí, sigue dando miedo) pero te deja
+          // sitio para trabajar. En cuanto subes de sospecha vuelve a
+          // cerrarse sola.
+          const holgura = this._mayChase() ? 1 : 1.9;
+          const near = nearBase * holgura;
+          const far = farBase * holgura;
           const d = Math.hypot(target.x - this.position.x, target.z - this.position.z);
           if (d > far) {
             // Un punto sobre el anillo `near`, en la linea que los une: llega
@@ -722,6 +773,35 @@ export class Boss {
       Math.hypot(this._path[0].x - this.position.x, this._path[0].z - this.position.z) < 0.6 * S
     ) {
       this._path.shift();
+    }
+
+    // ── SUAVIZADO: tirar de la cuerda ──────────────────────────────────
+    // Un camino de A* sobre rejilla va en ESCALERA: nodo arriba, nodo a la
+    // derecha, nodo arriba… Caminarlo tal cual es lo que le hacía ir
+    // rebotando de esquina en esquina y rozar todos los muebles del pasillo,
+    // porque cada nodo lo manda contra el borde de la casilla siguiente en
+    // vez de hacia donde va de verdad.
+    //
+    // Aquí se busca el nodo MÁS LEJANO al que ya se puede ir en línea recta
+    // y se apunta directamente a él. La escalera se convierte en tramos
+    // rectos y el recorrido se lee como alguien que sabe por dónde va.
+    //
+    // Se mira desde el final hacia atrás y se corta en el primero que valga:
+    // el más lejano visible es siempre el mejor: cualquier nodo intermedio
+    // solo añadiría un quiebro inútil.
+    //
+    // El límite de 6 nodos es para no pagar una traza de línea por cada
+    // casilla de un camino largo, con veinte personajes a la vez. Más allá
+    // de seis el suavizado ya no se nota: lo que se ve es el quiebro de al
+    // lado, no el de dentro de diez metros.
+    if (this.world) {
+      const hasta = Math.min(this._path.length - 1, 6);
+      for (let i = hasta; i > 0; i--) {
+        if (!this.world.lineBlocked(this.position, this._path[i])) {
+          this._path.splice(0, i);
+          break;
+        }
+      }
     }
     return this._path[0];
   }
