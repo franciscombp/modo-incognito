@@ -8717,9 +8717,9 @@ body.inc-game-active .inc-menu-scrim {
 :root[data-theme] {
   /* Tinta y papel: fósforo pálido sobre marino profundo. */
   --paper: #0a1420;
-  --ink: #d7efec;
-  --ink-soft: #8fb5b0;
-  --ink-rgb: 215, 239, 236;
+  --ink: #e5f9f7;
+  --ink-soft: #a8d9d0;
+  --ink-rgb: 229, 249, 247;
   /* El acento primario pasa a TEAL fósforo; el par -dim es su sombra dura. */
   --violet: #2fa79a;
   --violet-dim: #1f7a71;
@@ -8737,21 +8737,21 @@ body.inc-game-active .inc-menu-scrim {
   /* La barra de menú, en la misma consola. */
   --bar-bg: rgba(7, 13, 22, 0.88);
   --bar-line: rgba(127, 216, 207, 0.22);
-  --bar-ink: rgba(215, 239, 236, 0.78);
-  --bar-ink-strong: #eafffb;
-  --bar-hover: rgba(127, 216, 207, 0.1);
-  --bar-active: rgba(127, 216, 207, 0.18);
+  --bar-ink: rgba(229, 249, 247, 0.86);
+  --bar-ink-strong: #f5fffe;
+  --bar-hover: rgba(127, 216, 207, 0.15);
+  --bar-active: rgba(127, 216, 207, 0.25);
   --bar-panel-bg: rgba(9, 17, 28, 0.96);
-  --bar-panel-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(127, 216, 207, 0.16) inset;
+  --bar-panel-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(127, 216, 207, 0.24) inset;
   /* El mapa lee estos tokens del root al abrirse (ui/minimap.js). */
-  --map-stroke: #7fd8cf;
-  --map-dim: rgba(127, 216, 207, 0.4);
-  --map-fill: rgba(127, 216, 207, 0.06);
-  --map-player: #eafffb;
-  --map-boss: #e0596e;
-  --map-task: #e0b03c;
-  --map-safe: #8fd8a0;
-  --map-text: rgba(127, 216, 207, 0.8);
+  --map-stroke: #8fd8cf;
+  --map-dim: rgba(143, 216, 207, 0.6);
+  --map-fill: rgba(127, 216, 207, 0.10);
+  --map-player: #f5fffe;
+  --map-boss: #ff6f7f;
+  --map-task: #ffd454;
+  --map-safe: #9fdeb0;
+  --map-text: rgba(165, 220, 215, 0.95);
 }
 
 /* El fondo de pantalla completa (menús, login, boot) es la consola. */
@@ -8930,9 +8930,9 @@ body.inc-game-active .inc-menu-scrim {
   /* Dígitos "pixel": sin suavizado de bordes en la sombra — un doble
      contorno duro escalonado que lee a fuente de 8 bits sin cargar fuentes. */
   text-shadow:
-    1px 1px 0 rgba(var(--cyan-rgb), 0.55),
-    2px 2px 0 rgba(6, 12, 20, 0.9),
-    0 0 18px rgba(var(--cyan-rgb), 0.35);
+    1px 1px 0 rgba(127, 216, 207, 0.7),
+    2px 2px 0 rgba(4, 8, 14, 0.95),
+    0 0 20px rgba(127, 216, 207, 0.5);
 }
 .inc-clockwidget-suffix {
   font-style: normal;
