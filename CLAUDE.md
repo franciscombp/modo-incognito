@@ -266,21 +266,58 @@ saturado se reserva para los personajes. La paleta entera está en
 - Si pasas un `color` explícito a `texturedMaterial()`, pisa la paleta. Es lo
   que dejaba los pasillos y los núcleos en gris frío después del cambio.
 
-### La interfaz también es cozy
+### La interfaz: TERMINAL//LUMON, y UNA sola capa de tokens
 
-`src/style/design-system.css` **no** es pixel art cyberpunk: papel crema, tinta marrón y
-acento terracota. Los NOMBRES de las variables se conservan (`--cyan`,
-`--magenta`) aunque ya no describan su color, porque se usan desde ochenta
-sitios. Al escribir CSS nuevo:
+`src/style/design-system.css` es retro-futurista a lo *Severance*: azul marino
+de tubo CRT, fósforo cian, mono y filo fino. Los NOMBRES de las variables se
+conservan (`--cyan`, `--magenta`, `--paper`) aunque ya no describan su color,
+porque se usan desde ochenta sitios.
+
+**La regla que no se rompe: TODO el color vive en el bloque de tokens del
+principio del archivo, y NADA MÁS define un color.** Ni `white`, ni
+`rgba(255,255,255,…)`, ni un hex suelto en un componente. Si hace falta un
+color que no está, se añade AHÍ y se consume por nombre.
+
+**Y no hay fork claro/oscuro.** Una sola paleta, siempre. Un
+`@media (prefers-color-scheme)` que redefina color vuelve a partir la verdad
+en dos, y es exactamente de donde vino el peor fallo que ha tenido esta
+interfaz.
+
+Cómo fue: el archivo acumuló CUATRO pieles apiladas (crema "vibrant",
+dashboard verde "plataforma", tokens de barra, terminal) más CINCO bloques
+`prefers-color-scheme: dark` peleándose entre ellas — siete definiciones de
+las mismas variables. La piel de encima re-tintaba la TINTA pero no las
+SUPERFICIES, porque `--glass-light` solo existía en la capa crema y valía
+`rgba(255,255,255,0.86)` sin variante oscura. Resultado: la caja de diálogo
+era **texto blanco sobre panel blanco**, ilegible del todo — y aclarar más la
+tinta, que es el arreglo que parece obvio, lo empeoraba. Había además 94
+superficies blancas escritas a mano por el archivo.
+
+La lección, contra lo que decía esta guía antes: **no se arregla una piel
+apilando otra capa de overrides encima.** Se arregla en la fuente. Si un
+componente se ve del skin viejo, es que lee un token que la paleta no define
+— se añade el token, no una regla nueva al final.
+
+Al escribir CSS nuevo:
 
 - El texto va en `var(--ink)` (o `--ink-soft` para lo secundario) y los
-  paneles en `--panel`/`--glass`. `var(--paper)` es CREMA: ponerlo como color
-  de texto sobre un panel lo deja invisible, que es exactamente lo que pasó
-  con medio HUD y con los menús al cambiar la paleta.
+  paneles en `--panel`/`--glass`. `var(--paper)` NO es papel: es el MARINO del
+  fondo. Ponerlo como color de texto deja el texto invisible.
+- `--glass-light` tampoco significa "claro": es el vidrio de MENOS opacidad
+  del par, y es oscuro como todo lo demás.
 - Para transparencias hay `rgba(var(--ink-rgb), a)` y
-  `rgba(var(--cyan-rgb), a)`. No metas `rgba(255,255,255,0.06)` (sobre crema
-  no se ve) ni `rgba(0,0,0,…)` (un filo negro duro rompe el conjunto).
-- Nada de halos de neón. Una sombra baja y cálida basta.
+  `rgba(var(--cyan-rgb), a)`. El filo de luz de una tarjeta es `var(--rim)`.
+- Ojo con las sombras de texto heredadas: un canto duro
+  `0 6px 0 rgba(var(--ink-rgb), .6)` estaba calibrado para tinta oscura sobre
+  papel claro. Con tinta de fósforo pinta una copia pálida sólida — el
+  fantasma que tuvo el logo del título. El relieve aquí se hace con sombra
+  OSCURA debajo más halo de fósforo.
+- Nada de halos de neón. Un halo de 1px basta.
+
+**Y una trampa que ya costó un rato:** una animación cuyos keyframes escriben
+`text-shadow` GANA a cualquier regla normal, por muy al final del archivo que
+esté. Si un override de texto "no hace nada", busca el `@keyframes` y arréglalo
+ahí.
 
 Dos piezas montan el 3D DENTRO de la interfaz, y son la razón de que los
 menús y el diálogo ya no parezcan de otro juego:
@@ -294,16 +331,30 @@ menús y el diálogo ya no parezcan de otro juego:
   personaje sale como una FOTO (`toDataURL`) de un único renderer, no como un
   lienzo vivo por tarjeta.
 
-**La interfaz es un dashboard de mentira.** Menús y HUD imitan una plataforma
-corporativa moderna (tarjetas blancas sobre vidrio, acento verde "sistema
-operativo", chips de estado, números tabulares) — el lore lo pide: Modo
-Incógnito es la coartada del equipo y tiene que parecer la herramienta en la
-que fingen trabajar. Todo ese skin vive en UNA capa de overrides al final de
-`src/style/design-system.css` («SKIN "PLATAFORMA"»), que re-tematiza los tokens de `:root`
-(`--cyan` ya no es cian: es el verde de acento; `--violet` es el primario) y
-pisa los componentes por cascada. Los bloques históricos de arriba NO se
-editan — documentan de dónde viene cada decisión; si algo se ve del skin
-viejo, su override falta en esa capa.
+**La interfaz es un terminal de mentira.** Menús y HUD imitan la consola
+interna de una corporación — el lore lo pide: Modo Incógnito es la coartada
+del equipo y tiene que parecer la herramienta en la que fingen trabajar. Ya
+no es el dashboard blanco de "plataforma" (esa piel se retiró entera al
+colapsar las capas): ahora es marino, mono y de filo fino.
+
+**Todo lo pulsable sale de UNA receta** (bloque «BOTÓN ÚNICO», al final de
+`design-system.css`) alimentada por los tokens `--btn-*`. Antes había OCHO
+familias de botón con radios de 8, 9, 10, 12, 14, 16, 18, 50% y 999px, varias
+definidas dos y tres veces en puntos distintos del archivo — y cada pantalla
+se leía como una app diferente. Tres formas, una sola piel:
+
+- **rectangular** — el caso normal (menús, días, opciones, pestañas);
+- **primaria** — misma geometría, relleno teal, UNA por pantalla: es lo que la
+  jugadora va a pulsar;
+- **redonda** — solo los controles de pulgar, redondos porque el dedo lo pide.
+
+Cambiar el radio de todos los botones del juego es editar `--btn-radius`. Si
+añades un pulsable nuevo, súmalo a esa lista de selectores en vez de darle
+su propio borde — que es como se separaron las ocho familias anteriores.
+
+Ese bloque va **al final a propósito**: alinea por cascada las familias
+históricas sin tener que perseguirlas por el archivo. Editar cada una "en su
+sitio" es justo lo que las volvió a separar las veces anteriores.
 
 ### El HUD es una barra de menú de macOS (`src/ui/menubar.js`)
 
