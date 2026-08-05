@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { DioramaCamera } from "./scene/camera.js";
+import { updateBeacons } from "./scene/beacons.js";
 import { buildOffice } from "./scene/builder.js";
 import { createCollisionWorld } from "./scene/collision.js";
 import { buildNavmesh } from "./scene/navmesh.js";
@@ -521,18 +522,24 @@ async function boot() {
 
   function updateLabels() {
     const overview = !view.isFollowing;
-    // Por defecto solo quedan los hitos de navegación (salas, baños,
-    // ascensores, cafetería): la barra de tarea activa ya dice en qué mesa
-    // estás, así que repetirlo flotando sobre cada una era ruido. El ajuste
-    // "Rótulos de zona" reactiva también las mesas de trabajo.
+    // POR DEFECTO NO HAY RÓTULOS. Eran cajas de texto flotando por todo el
+    // piso: tapaban el escenario, se solapaban entre ellas y obligaban a
+    // LEER justo cuando no se puede leer, con el jefe detrás. Lo que hace
+    // falta saber —dónde fingir, dónde hay café, dónde esconderse— lo dicen
+    // ahora las medallas (ver scene/beacons.js), que se entienden de un
+    // vistazo y desde lejos.
+    //
+    // Siguen existiendo para dos casos: el ajuste "Rótulos de zona", y el
+    // modo inspección (la vista de plano), donde sí estás leyendo el piso a
+    // propósito y un nombre ayuda.
     const labelsOn = getSettings().showLabels;
     roomLabels.forEach((label) => {
       const priority = label.userData.priority ?? 2;
       let t;
       if (inspectMode) t = 1;
+      else if (!labelsOn) t = 0;
       else if (priority === 1) t = 1;
       else if (priority >= 3) t = 0;
-      else if (!labelsOn) t = 0;
       else if (overview) t = 1;
       else {
         const d = Math.hypot(
@@ -564,16 +571,18 @@ async function boot() {
   function updateHidingMarkers() {
     const game = engine.game;
     if (!game || !hidingMarkers) return;
-    hidingMarkers.forEach((ring, i) => {
+    // Ahora son MEDALLAS (sprites), no anillos de suelo: la recarga se lee
+    // en la opacidad. Teñir el material tiraría el color del icono, que va
+    // dentro de la textura.
+    hidingMarkers.forEach((medal, i) => {
       const charge = game.hidingCharge(i);
-      ring.material.color.copy(HIDE_SPENT).lerp(HIDE_READY, charge);
-      ring.material.opacity = 0.28 + charge * 0.62;
-      ring.scale.setScalar(0.82 + charge * 0.18);
+      medal.material.opacity = 0.3 + charge * 0.7;
     });
   }
 
-  // Los lugares seguros son ahora ETIQUETAS flotantes (ver builder.js): la
-  // agotada se apaga bajando su opacidad — no hay anillo que teñir.
+  // Los lugares seguros son ahora MEDALLAS flotantes (ver beacons.js): la
+  // sala gastada u ocupada se apaga bajando su opacidad, pero NO desaparece
+  // — que se siga sabiendo que ahí había un sitio donde fingir.
   function updateSafeSpotMarkers() {
     const game = engine.game;
     if (!game || !safeSpotMarkers) return;
@@ -588,8 +597,8 @@ async function boot() {
     });
   }
 
-  // Los rombos de actividad solo se encienden para las tareas ACTIVAS del
-  // día (pendientes): marcar lo inactivo era ruido, no guía.
+  // Las medallas de tarea solo se encienden para las ACTIVAS del día: marcar
+  // lo que no toca era ruido, no guía.
   function updateActivityMarkers() {
     if (!activityMarkers) return;
     const game = engine.game;
@@ -650,6 +659,10 @@ async function boot() {
         m.position.y = b.base + Math.sin(t * b.speed + b.offset) * b.amp;
         m.rotation.y = t * 0.6 + b.offset;
       });
+      // Las medallas flotan y "respiran" aparte: son sprites y no giran (un
+      // sprite ya mira siempre a la cámara), así que no entran en el bucle
+      // de arriba.
+      updateBeacons(markerGroup, t);
 
       watchPerformance(dt);
       updateHints(dt);

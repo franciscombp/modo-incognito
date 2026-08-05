@@ -148,16 +148,16 @@
      La regla de este set: el decorado es CONTENIDO y el color saturado se
      reserva para los personajes. Si el edificio compite con la gente, la
      gente deja de leerse. */
-  --w-floor: #33475a;        /* suelo de oficina */
-  --w-floor-alt: #3b5266;    /* pasillos, un punto más claros */
-  --w-floor-lobby: #425a6f;  /* la entrada */
-  --w-rug: #2f4a5c;          /* moquetas de zona */
+  --w-floor: #3d5468;        /* suelo de oficina */
+  --w-floor-alt: #465e73;    /* pasillos, un punto más claros */
+  --w-floor-lobby: #4d677d;  /* la entrada */
+  --w-rug: #385568;          /* moquetas de zona */
   --w-wall: #4a637a;         /* tabiques */
   --w-wall-light: #5a768c;   /* paneles y volúmenes */
   --w-desk: #4e6779;         /* sobre de la mesa */
   --w-desk-edge: #33454f;
   --w-desk-leg: #2a3844;
-  --w-fabric: #3f9d92;       /* tapicería: el acento del set */
+  --w-fabric: #4a7a76;       /* tapicería: el acento del set */
   --w-screen: #1a2530;
   --w-screen-glow: #7fd8cf;
   --w-plant-pot: #3d4d58;
