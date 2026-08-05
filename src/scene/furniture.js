@@ -24,16 +24,50 @@ const CHAIR_R = 0.22 * S;
 
 function chairBodyGeometry() {
   // MISMA silueta que la silla de rueditas de los personajes
-  // (furnitureModels.js → createOfficeChair): asiento de caja mullida y
-  // respaldo alto un pelín reclinado. La de cilindro que había leía como
-  // banqueta de bar, y chocaba verla al lado de la "de verdad" cuando un
-  // personaje rodaba con la suya.
-  const seat = new THREE.BoxGeometry(CHAIR_R * 2, 0.09 * S, CHAIR_R * 1.9);
-  seat.translate(0, 0.44 * S, 0);
-  const back = new THREE.BoxGeometry(CHAIR_R * 1.9, 0.52 * S, 0.07 * S);
-  back.rotateX(0.14);
-  back.translate(0, 0.76 * S, CHAIR_R * 0.95);
-  return mergeGeometries([seat, back], false);
+  // (furnitureModels.js → createOfficeChair): asiento mullido y respaldo
+  // alto un pelín reclinado. La de cilindro que había leía como banqueta de
+  // bar, y chocaba verla al lado de la "de verdad" cuando un personaje
+  // rodaba con la suya.
+  //
+  // Lo que la separa de "una caja sobre otra caja" son tres cosas, y las
+  // tres se ven desde la cámara del juego: el asiento tiene CANTO (una
+  // rebaba más estrecha debajo, que es lo que da grosor de espuma), el
+  // respaldo se parte en lumbar y cabecero con un hueco entre medias
+  // —silueta reconocible de silla de oficina— y lleva REPOSABRAZOS, que es
+  // el detalle que más dice "esto es una silla de trabajo" y no una de
+  // comedor.
+  const partes = [];
+
+  const seat = new THREE.BoxGeometry(CHAIR_R * 2, 0.07 * S, CHAIR_R * 1.9);
+  seat.translate(0, 0.45 * S, 0);
+  partes.push(seat);
+  // Canto inferior: un pelín más estrecho, para que el asiento no sea un
+  // ladrillo de una sola cara.
+  const seatEdge = new THREE.BoxGeometry(CHAIR_R * 1.82, 0.05 * S, CHAIR_R * 1.72);
+  seatEdge.translate(0, 0.4 * S, 0);
+  partes.push(seatEdge);
+
+  // Respaldo en dos piezas con hueco: lumbar ancho y cabecero estrecho.
+  const lumbar = new THREE.BoxGeometry(CHAIR_R * 1.9, 0.3 * S, 0.07 * S);
+  lumbar.rotateX(0.14);
+  lumbar.translate(0, 0.66 * S, CHAIR_R * 0.92);
+  partes.push(lumbar);
+  const cabecero = new THREE.BoxGeometry(CHAIR_R * 1.5, 0.16 * S, 0.06 * S);
+  cabecero.rotateX(0.14);
+  cabecero.translate(0, 0.93 * S, CHAIR_R * 1.02);
+  partes.push(cabecero);
+
+  // Reposabrazos: soporte vertical + almohadilla horizontal, a cada lado.
+  for (const lado of [-1, 1]) {
+    const poste = new THREE.BoxGeometry(0.035 * S, 0.16 * S, 0.035 * S);
+    poste.translate(lado * CHAIR_R * 0.95, 0.55 * S, CHAIR_R * 0.35);
+    partes.push(poste);
+    const brazo = new THREE.BoxGeometry(0.05 * S, 0.035 * S, CHAIR_R * 1.1);
+    brazo.translate(lado * CHAIR_R * 0.95, 0.64 * S, CHAIR_R * 0.1);
+    partes.push(brazo);
+  }
+
+  return mergeGeometries(partes, false);
 }
 
 function chairStandGeometry() {
@@ -111,6 +145,15 @@ function sharedAssets() {
         lid.translate(0, 0.078 * S, 0.085 * S);
         return mergeGeometries([base, lid], false);
       })(),
+      // Teclado: una losa fina inclinada delante del monitor. Es barato y es
+      // lo que termina de leer "puesto de trabajo" — una mesa con pantalla y
+      // nada delante parece un escaparate.
+      keyboard: (() => {
+        const k = new THREE.BoxGeometry(0.3 * S, 0.014 * S, 0.11 * S);
+        k.rotateX(-0.04);
+        k.translate(0, 0.007 * S, 0);
+        return k;
+      })(),
       stool: new THREE.CylinderGeometry(0.17 * S, 0.17 * S, 0.45 * S, 8),
       podFrame: podFrameGeometry(),
       podCushion: podCushionGeometry(),
@@ -137,10 +180,14 @@ function sharedAssets() {
         edge: cozyMaterial("deskEdge"),
         leg: cozyMaterial("deskLeg"),
         seat: cozyMaterial("fabricDark"),
+        // Emisión BAJA a propósito. Una pantalla de escritorio encendida no
+        // ilumina la oficina: lo que la delata es el contraste contra su
+        // marco oscuro. Con la emisión alta, veinte monitores convertían el
+        // piso en una feria de luces y se comían el contraste de la escena.
         screen: new THREE.MeshLambertMaterial({
           color: new THREE.Color(SURFACES.screen),
           emissive: new THREE.Color(SURFACES.screenGlow),
-          emissiveIntensity: 0.55,
+          emissiveIntensity: 0.28,
         }),
         bulb: new THREE.MeshLambertMaterial({
           color: new THREE.Color("#fff2cc"),
@@ -177,6 +224,7 @@ export function createFurnitureRegistry() {
   const chairs = [];
   const monitors = [];
   const laptops = [];
+  const keyboards = [];
   const stools = [];
   const pods = [];
   const lamps = [];
@@ -203,6 +251,9 @@ export function createFurnitureRegistry() {
     },
     addLaptop(x, y, z, rotY) {
       laptops.push(transform(x, y, z, rotY));
+    },
+    addKeyboard(x, y, z, rotY) {
+      keyboards.push(transform(x, y, z, rotY));
     },
     addStool(x, z) {
       stools.push(transform(x, 0.23 * S, z));
@@ -248,6 +299,7 @@ export function createFurnitureRegistry() {
       instanced(a.chairStand, a.materials.leg, chairs);
       instanced(a.monitor, a.materials.screen, monitors);
       instanced(a.laptop, a.materials.screen, laptops);
+      instanced(a.keyboard, a.materials.leg, keyboards);
       instanced(a.stool, a.materials.seat, stools);
       instanced(a.podFrame, a.materials.seat, pods);
       instanced(a.podCushion, a.materials.top, pods);
@@ -338,6 +390,19 @@ export function placeSeatedTable(
     TABLE_H - TOP_T,
     originZ
   );
+  // FALDÓN central (el panel que separa las dos filas de puestos en un banco
+  // de oficina). Es lo que convierte "una losa sobre palillos" en un mueble:
+  // le da masa por debajo del sobre y tapa el hueco por el que se veía el
+  // suelo de lado a lado.
+  registry.addSlab(
+    "edge",
+    alongX
+      ? new THREE.BoxGeometry(tw * 0.9, 0.3 * S, 0.035 * S)
+      : new THREE.BoxGeometry(0.035 * S, 0.3 * S, td * 0.9),
+    originX,
+    TABLE_H - 0.22 * S,
+    originZ
+  );
 
   // Trestle legs, one pair per ~2.5 units of length. Y una LÁMPARA colgante
   // por tramo, a lo cabaña de la referencia: es lo que hace que cada mesa
@@ -398,8 +463,20 @@ export function placeSeatedTable(
       const gx = px + Math.sin(facing) * inward;
       const gz = pz + Math.cos(facing) * inward;
       const surface = TABLE_H + TOP_T / 2;
-      if (gearSeed < 0.55) registry.addMonitor(gx, surface, gz, facing);
-      else if (gearSeed < 0.82) registry.addLaptop(gx, surface, gz, facing);
+      if (gearSeed < 0.55) {
+        registry.addMonitor(gx, surface, gz, facing);
+        // Y su teclado, más cerca del borde: un monitor solo, con la mesa
+        // pelada delante, se lee como escaparate y no como puesto.
+        const kIn = TO_EDGE + 0.02 * S;
+        registry.addKeyboard(
+          px + Math.sin(facing) * kIn,
+          surface,
+          pz + Math.cos(facing) * kIn,
+          facing
+        );
+      } else if (gearSeed < 0.82) {
+        registry.addLaptop(gx, surface, gz, facing);
+      }
       // else: puesto pelado — ni pantalla ni laptop.
     }
   };

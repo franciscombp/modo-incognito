@@ -109,7 +109,10 @@ export class PixelPipeline {
   }
 
   setPixelSize(pixelSize) {
-    this.pixelSize = Math.max(1, Math.round(pixelSize));
+    // 0 = SIN pixelar: se renderiza a resolución nativa. El pase sigue
+    // corriendo porque además de pixelar es quien pone la viñeta y la
+    // calidez de los bordes — apagarlo entero deja la imagen plana.
+    this.pixelSize = Math.max(1, Math.round(pixelSize || 0) || 1);
     this._resizeTarget();
   }
 

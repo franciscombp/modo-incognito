@@ -325,6 +325,54 @@ opacidad del par.
 a cualquier regla normal, por muy al final del archivo que esté. Si un override
 "no hace nada", busca el `@keyframes`.
 
+### El piso no lleva rótulos: lleva MEDALLAS
+
+Los rótulos de zona (cajas de texto flotando) están apagados por defecto.
+Tapaban el escenario, se solapaban entre ellos y obligaban a LEER justo
+cuando no se puede leer, con el jefe detrás — y decían lo que ya dice la
+barra de tarea. Siguen existiendo para el ajuste «Rótulos de zona» y para el
+modo inspección, donde sí estás leyendo el plano a propósito.
+
+Lo que hace falta saber lo dicen las **medallas** (`src/scene/beacons.js`):
+un disco flotando sobre cada sitio interactuable con el icono de lo que ahí
+se hace. Ámbar = tarea, verde = aquí puedes fingir, azul = escondite. Se
+entienden de un vistazo y desde el otro lado del piso.
+
+Son sprites con la textura dibujada en canvas, no geometría, por dos
+razones: el icono tiene que ser el MISMO de `ui/icons.js` (modelarlos en 3D
+sería mantener dos juegos que se separan al primer cambio), y un disco plano
+desaparece al verse de canto. Van con `depthTest: false` a propósito — un
+indicador que se esconde tras una mesa no indica nada.
+
+**Trampa ya pagada:** `iconImage()` devuelve un ELEMENTO `Image` con su src
+ya puesto, no una URL. Asignarlo a `.src` lo convierte en la cadena
+`"[object HTMLImageElement]"`, la carga falla en silencio y la medalla se
+queda siendo un disco vacío. Y puede venir ya cargada de la caché: entonces
+no hay `onload` nunca, así que hay que comprobar `.complete` antes.
+
+### El decorado: tres trampas de color
+
+- **El efecto píxel va a 0 por defecto** (`pixelSize`), y los niveles de
+  color a 256. El pase de `pixelPipeline` sigue corriendo porque además de
+  pixelar pone la viñeta y la calidez de los bordes.
+- **Las moquetas son PLANOS a ras de suelo, no bloques.** Eran una caja de
+  10 cm con la cara superior por encima del pie del personaje: le tapaba los
+  pies y la zona se leía como una TARIMA sobre la que la gente estaba
+  subida. Llevan `polygonOffset` porque van pegadas al suelo (y `cozyMaterial`
+  tuvo que aprender a dejar pasar esa opción: descartaba en silencio todo lo
+  que no conocía).
+- **El color de vértice MULTIPLICA al del material.** El tinte de zona que
+  devuelve `pastel()` no es el color final: si se le baja la luminosidad para
+  "apagarlo un poco", parte el material por la mitad y la zona sale casi
+  negra, con un borde recto que parece un agujero en el suelo. Lo que se baja
+  ahí es la SATURACIÓN; la oscuridad la pone el tema en `--w-rug`.
+
+Y una de luz: **una pantalla grande con emisión alta deja de ser una
+pantalla y se vuelve un panel de luz.** La del auditorio iba a 0.9 y desde la
+cámara isométrica era un rectángulo azul plano flotando en mitad del piso.
+Una pantalla encendida en una sala iluminada apenas ilumina — lo que la
+delata es el contraste con su marco oscuro.
+
 ### El movimiento también es del DS
 
 Las microinteracciones viven en el bloque «MOVIMIENTO» y salen de las curvas de

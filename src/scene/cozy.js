@@ -62,11 +62,24 @@ loadWorldPalette(SURFACES, ACCENTS);
  * avisaría por consola por cada propiedad que no conoce.
  */
 export function cozyMaterial(name, opts = {}) {
-  const { color, vertexColors = false, transparent, opacity, side, ...rest } = opts;
+  const {
+    color,
+    vertexColors = false,
+    transparent,
+    opacity,
+    side,
+    // Para superficies pegadas a otra (la moqueta sobre el suelo): sin esto
+    // los dos planos se pelean por el mismo pixel y aparecen franjas que
+    // parpadean al mover la camara.
+    polygonOffset,
+    polygonOffsetFactor,
+    polygonOffsetUnits,
+    ...rest
+  } = opts;
   void rest; // roughness/metalness de la etapa anterior: ya no aplican
 
   const hex = color ?? SURFACES[name] ?? "#ded3c2";
-  const key = `${hex}|${vertexColors}|${transparent}|${opacity}|${side}`;
+  const key = `${hex}|${vertexColors}|${transparent}|${opacity}|${side}|${polygonOffset}|${polygonOffsetFactor}`;
   if (materialCache.has(key)) return materialCache.get(key);
 
   const material = new THREE.MeshLambertMaterial({
@@ -75,6 +88,9 @@ export function cozyMaterial(name, opts = {}) {
     ...(transparent != null ? { transparent } : {}),
     ...(opacity != null ? { opacity } : {}),
     ...(side != null ? { side } : {}),
+    ...(polygonOffset != null ? { polygonOffset } : {}),
+    ...(polygonOffsetFactor != null ? { polygonOffsetFactor } : {}),
+    ...(polygonOffsetUnits != null ? { polygonOffsetUnits } : {}),
   });
   materialCache.set(key, material);
   return material;

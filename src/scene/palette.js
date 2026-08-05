@@ -50,16 +50,16 @@ const ACCENT_TOKENS = ["--w-accent-1", "--w-accent-2", "--w-accent-3", "--w-acce
  * que solo se ve en una captura y que cuesta un rato rastrear.
  */
 const FALLBACK = {
-  tileLight: "#33475a",
-  tileLobby: "#425a6f",
-  woodFloor: "#3b5266",
-  carpetPurple: "#2f4a5c",
+  tileLight: "#3d5468",
+  tileLobby: "#4d677d",
+  woodFloor: "#465e73",
+  carpetPurple: "#385568",
   wallPanel: "#4a637a",
   panelLight: "#5a768c",
   deskTop: "#4e6779",
   deskEdge: "#33454f",
   deskLeg: "#2a3844",
-  fabricDark: "#3f9d92",
+  fabricDark: "#4a7a76",
   screen: "#1a2530",
   screenGlow: "#7fd8cf",
   woodPot: "#3d4d58",
