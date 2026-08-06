@@ -5,10 +5,13 @@ Para el mapa completo de "quiero cambiar X → edito Y" con enlaces a GitHub,
 usa la tabla del [README.md](https://github.com/franciscombp/modo-incognito/blob/main/README.md#quiero-cambiar-x--edito-y) —
 no la dupliques aquí.
 
-> **El motor, sus reglas y su balance están en [`docs/MOTOR.md`](docs/MOTOR.md).**
-> Ahí va el porqué de cada número (sospecha, persecución, lugares seguros) y es
-> el sitio donde se discuten cambios de diseño. Este archivo es el mapa del
-> repo; aquel, el del juego.
+> **El diseño del juego vive en `docs/`, no aquí.** Este archivo es el mapa
+> del REPO; aquellos, los del JUEGO:
+> - [`docs/MOTOR.md`](docs/MOTOR.md) — reglas y balance del bucle: sospecha,
+>   persecución, lugares seguros. El porqué de cada número.
+> - [`docs/CAMPANA.md`](docs/CAMPANA.md) — la campaña: misiones encadenadas,
+>   Qués y Cómos, temporadas, rangos, jubilación. **En diseño, sin implementar.**
+> - [`docs/HUD.md`](docs/HUD.md) — la interfaz de partida. **En diseño.**
 
 ## Estado: MVP del día 1
 

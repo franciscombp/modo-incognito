@@ -15,6 +15,12 @@ una edición de verdad.
 
 > **Estado.** El día 1 es lo único publicado. Los días 2–5 existen como JSON
 > pero no están en `manifest.json → levels`, así que el juego no los ve.
+>
+> ⚠️ **Este documento describe el modelo ACTUAL: una jornada suelta con
+> actividades libres.** Hay un rediseño en marcha —misiones encadenadas,
+> temporadas, rangos y jubilación— en [`CAMPANA.md`](CAMPANA.md). El bucle de
+> sigilo de aquí (secciones 1–4) se conserva entero; lo que cambia es qué se
+> te pide dentro. Cuando eso se implemente, hay que actualizar este archivo.
 
 ---
 

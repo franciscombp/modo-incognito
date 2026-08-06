@@ -130,9 +130,16 @@ Hoy no existe: la jugadora no se ve a sí misma en pantalla.
 └────────────────────────────────────┘
 ```
 
-- **Retrato**: el muñeco 3D del personaje, de busto. Ya sabemos hacerlo
-  (`charshot.js` para foto, `portrait3d.js` para vivo). Empezaría por FOTO —
-  un lienzo vivo permanente por un retrato es caro para lo que aporta.
+- **Retrato: VIVO, y solo la CARA** ✅ *decidido*. No de busto: encuadre
+  cerrado a la cabeza, como en la referencia. Sale de `portrait3d.js`, que ya
+  monta el `Character3D` real dentro de la interfaz — hay que darle un
+  encuadre nuevo (más cerca, centrado en el hueso de la cabeza) y dejarlo
+  dibujando siempre, no solo con el diálogo abierto.
+  **Coste a vigilar:** hoy ese lienzo solo corre mientras hay diálogo. Uno
+  permanente es un render extra por frame durante toda la partida. Se mide
+  antes de darlo por bueno; si pesa, se baja su resolución o se dibuja a
+  media tasa — pero NO se cambia por una foto, porque el gesto reactivo es
+  justo lo que se quiere.
 - **Los rombos son las AMONESTACIONES**, no vida. Es nuestro equivalente
   exacto: recurso discreto, pocas unidades, se pierden de una en una y
   al agotarse te despiden. Encaja como un guante.
@@ -301,13 +308,21 @@ Contéstalas aquí y con eso hago el plan de implementación.
 - [ ] El bisel en esquina: ¿en todo el HUD, o solo en las piezas nuevas?
 
 **La placa de identidad**
-- [ ] ¿Retrato foto (barato) o vivo (caro, reacciona en tiempo real)?
 - [ ] ¿Rombos = amonestaciones? ¿O prefieres que sean otra cosa?
 - [ ] ¿Sustituye a los menulets de la barra, o convive con ellos?
 
-**La barra de menú**
-- [ ] Si entra la placa arriba a la izquierda, **¿la barra de macOS sobra?**
-      Es la pregunta grande: son dos sistemas de estado a la vez.
+**La barra de menú** — ✅ *decidido: SE VA*
+La barra tipo macOS **desaparece**. Eran dos sistemas de estado a la vez, y
+el equipo creativo va por otro camino. Lo que llevaba se reparte:
+- Presión y amonestaciones → a la **placa** (§4.1).
+- Reloj → se queda, pero suelto en el centro, sin barra de la que colgar.
+- Sonido y pausa → a la **pausa** y a su leyenda de mandos (§4.5).
+- Tareas → a la **lista** (§4bis).
+**Ojo al retirarla:** `hud.attachMenuBar` es hoy quien alimenta la barra con
+el snapshot por frame, y las microinteracciones del bucle (`.mi-shake`,
+`.mi-critical`, el tic del reloj) se disparan desde `menubar.js`. Al quitarla
+hay que mudar esos disparos a las piezas nuevas o el feedback desaparece con
+ella.
 
 **Tareas (§4bis)**
 - [ ] ¿Colocación A, B o C?
