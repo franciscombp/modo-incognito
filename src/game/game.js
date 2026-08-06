@@ -513,6 +513,7 @@ export class Game {
     this._updateMinionApproach();
     this._updateEggs(dt);
     this._updateBumps(dt);
+    this._updateCrowdSeparation();
     this._updateSpeedMul();
 
     // ---- Suspicion ----
@@ -877,6 +878,83 @@ export class Game {
       if (o.isSeated && o.rollAway) o.rollAway(nx, nz);
       else o.stumble?.();
       buzz(12);
+    }
+  }
+
+  /**
+   * SEPARACIÓN ENTRE PERSONAJES (el punto flojo nº2 de MOTOR.md §9).
+   * `_updateBumps` ya hace físico el choque jugadora↔resto; esto cubre lo que
+   * faltaba: el resto ENTRE SÍ. El jefe cruzaba un corrillo de NPC como
+   * niebla y dos paseantes se atravesaban limpiamente.
+   *
+   * La regla que manda aquí es de JUEGO, no de física: **quien está de
+   * servicio NO CEDE**. El contacto del jefe y de los secuaces es mecánica
+   * —la amonestación es un toque, y la persecución exige cerrar distancia—,
+   * así que apartarlos un centímetro por un figurante sería dejar que el
+   * decorado empuje a las reglas. El jefe y los secuaces son inamovibles y
+   * el NPC de fondo absorbe el empujón entero. Un NPC SENTADO tampoco cede
+   * (nadie se desliza de su silla porque pasen a su lado); si se cruzan dos
+   * inamovibles, no pasa nada — ese solape ya no es de esta capa.
+   *
+   * Sin popups ni tambaleos a propósito: eso es feedback de la JUGADORA
+   * (_updateBumps). Aquí solo cuerpos que ocupan sitio, en silencio.
+   */
+  _updateCrowdSeparation() {
+    const list = (this._crowdBuf ??= []);
+    list.length = 0;
+    for (const n of this.npcs) if (n.active !== false) list.push(n);
+    for (const m of this.minions) if (m.active !== false) list.push(m);
+    list.push(this.boss);
+    const onDuty = (this._onDutySet ??= new Set());
+    onDuty.clear();
+    for (const m of this.minions) onDuty.add(m);
+    onDuty.add(this.boss);
+
+    const world = this.boss?.world;
+    for (let i = 0; i < list.length; i++) {
+      const a = list[i];
+      for (let j = i + 1; j < list.length; j++) {
+        const b = list[j];
+        const dx = b.position.x - a.position.x;
+        const dz = b.position.z - a.position.z;
+        const minDist = (a.radius ?? 0.3) + (b.radius ?? 0.3);
+        // Descarte por caja ANTES de la raíz: son ~400 pares por frame y casi
+        // todos están lejos.
+        if (Math.abs(dx) >= minDist || Math.abs(dz) >= minDist) continue;
+        const dist = Math.hypot(dx, dz);
+        if (dist >= minDist || dist < 1e-4) continue;
+
+        const aFija = onDuty.has(a) || a.isSeated;
+        const bFija = onDuty.has(b) || b.isSeated;
+        if (aFija && bFija) continue;
+
+        const nx = dx / dist;
+        const nz = dz / dist;
+        const solape = minDist - dist;
+        // El empujón respeta las paredes igual que en _updateBumps: sin el
+        // resolveCircle, separar a alguien junto a un tabique lo mete dentro.
+        if (aFija) {
+          b.position.x += nx * solape;
+          b.position.z += nz * solape;
+          world?.resolveCircle(b.position, b.radius ?? 0.3);
+          b.sprite?.setPosition(b.position.x, b.position.z);
+        } else if (bFija) {
+          a.position.x -= nx * solape;
+          a.position.z -= nz * solape;
+          world?.resolveCircle(a.position, a.radius ?? 0.3);
+          a.sprite?.setPosition(a.position.x, a.position.z);
+        } else {
+          const mitad = solape / 2;
+          a.position.x -= nx * mitad;
+          a.position.z -= nz * mitad;
+          b.position.x += nx * mitad;
+          b.position.z += nz * mitad;
+          world?.resolveCircle(a.position, a.radius ?? 0.3);
+          world?.resolveCircle(b.position, b.radius ?? 0.3);
+          a.sprite?.setPosition(a.position.x, a.position.z);
+          b.sprite?.setPosition(b.position.x, b.position.z);
+        }
+      }
     }
   }
 
