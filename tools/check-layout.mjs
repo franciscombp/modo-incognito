@@ -7,6 +7,7 @@
 //
 //   1. Que el lienzo no mida lo que le toca A ESE DISPOSITIVO. Son DOS
 //      tamaños: 1920×1080 con puntero fino y 1280×720 en táctil o ventana
+//      (con el ajuste en "auto"; por defecto ahora manda 1280 — ver abajo)
 //      pequeña (ui/stage.js). No es un segundo diseño: es el mismo, sobre
 //      un lienzo menor, para que en un teléfono todo no salga diminuto.
 //   2. Que la escala salga mal o quede descentrado en alguna relación de
@@ -48,6 +49,17 @@ for (const [w, h, name, touch] of [
     hasTouch: touch,
     isMobile: touch,
   })).newPage();
+  // El lienzo lo manda AHORA el ajuste «Tamaño de la interfaz», y su valor
+  // por defecto es 1280 para que toda la interfaz se lea más grande (ver
+  // DEFAULTS en game/settings.js). Esta comprobación lo que prueba es la
+  // regla AUTOMÁTICA —qué lienzo le toca a cada dispositivo—, así que pone
+  // el ajuste en "auto" antes de cargar. De paso queda probado que el
+  // ajuste llega a stage.js, que es lo único que podría romperlo.
+  await p.addInitScript(() => {
+    try {
+      localStorage.setItem("modo-incognito:settings:v1", JSON.stringify({ stageSize: "auto" }));
+    } catch {}
+  });
   await p.goto(url, { waitUntil: "domcontentloaded" });
   await p.waitForSelector("#app", { timeout: 20000 });
   await p.waitForTimeout(600);
