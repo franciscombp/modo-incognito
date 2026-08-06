@@ -14,7 +14,7 @@ lo que falta. Escribe encima, tacha, contesta las preguntas del final.
 | §4.5 Menú de pausa con pestañas | ◻︎ | Pendiente: hoy son pantallas sueltas |
 | §4.6 El bisel como lenguaje de formas | ◻︎ parcial | La placa y las filas ya lo llevan; falta el token `--cut` común |
 | §4bis Lista de tareas | ✅ | Opción **A** (placa izq. / tareas der.), teclas `1`–`3`, medalla compartida con el piso |
-| §4bis.3 Repliegue por presión | ◻︎ | La lista aún no se acorta en alerta |
+| §4bis.3 Repliegue por presión | ✅ | Calma: lista entera · alerta: solo títulos · persecución: solo la seguida. Lo vigila `npm run check:fold` |
 
 > **La barra de menú de macOS ya no existe.** `src/ui/menubar.js` se borró y
 > `gamehud.js` ocupa su sitio con la MISMA interfaz pública
