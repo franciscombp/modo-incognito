@@ -537,6 +537,13 @@ esquinas:
   solo.
 - **Notificaciones:** caen desde arriba y se van solas. Nunca roban el foco.
 
+**La lista SE REPLIEGA con la presión**, y no es un adorno: es la respuesta al
+único reparo serio de meter texto en pantalla. El principio que trajo las
+medallas al piso fue «no obligar a leer con el jefe detrás», y una lista de
+tres filas es exactamente eso. En calma se ve entera; en alerta se queda en
+títulos; en persecución, solo la que sigues. Cuanto más aprieta el juego,
+menos hay que leer. Lo vigila `npm run check:fold`.
+
 Los tarjetones viejos (`.inc-hud-objectives`, `.inc-hud-suspicion`,
 `.inc-hud-timer`, `.inc-hud-scorepanel`) siguen existiendo porque de ellos
 sale el snapshot, pero están ocultos por CSS — no los resucites sin motivo.
