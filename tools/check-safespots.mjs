@@ -105,6 +105,18 @@ const out = await page.evaluate(async () => {
 
   // Ocupada: llega gente a reunirse de verdad y deja de servir, aunque le
   // quede cupo. Se fuerza en vez de esperar a que toque sola.
+  // LA ALARMA DE NIVEL 3 ACABA DE PAUSAR LA PARTIDA. El aviso rojo de arriba
+  // se prueba al 95% de sospecha, y ese nivel dispara la alarma a pantalla
+  // completa, que pausa DESDE game.js (la trampa nº1 de MOTOR.md §8). Este
+  // test es ANTERIOR a la alarma y no lo sabía: todo lo de aquí abajo corría
+  // contra un juego congelado — el cupo no se gastaba nunca (en pausa,
+  // update() sale en seco) y «la sala deja de cubrirte» pasaba de chiripa,
+  // con inSafeSpot helado en false de antes de la pausa. El FAIL histórico
+  // «y su marcador lo refleja» era exactamente esto.
+  game.suspicion = 0;
+  game.setPaused(false);
+  await sleep(150);
+
   game.safeSpotState[mi].busyLeft = 8;
   res.meetingBusy = await probe({ at: meeting, pretend: true });
   res.meetingBusyCharge = game.safeSpotCharge(mi);
@@ -128,6 +140,9 @@ const out = await page.evaluate(async () => {
   // gastarse a media cuenta y la comprobación fallaba una de cada tres veces
   // sin que hubiera nada roto.
   for (let i = 0; i < 1200 && game.safeSpotCharge(mi) > 0; i++) {
+    // Reanudar DENTRO del bucle: `_heatAlertShown` se rearma sola y otra
+    // alarma a mitad de cuenta volvería a congelar el gasto.
+    game.setPaused(false);
     player.position.x = meeting.x;
     player.position.z = meeting.z;
     game.update(1 / 30);

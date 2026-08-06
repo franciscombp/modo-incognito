@@ -319,7 +319,10 @@ Tres trampas al escribir uno, las tres pagadas ya:
 1. **La alarma de nivel 3 pausa la partida**, y pausada `update()` no mueve
    nada — el jefe se queda clavado y parece que la IA está rota. `_heatAlertShown`
    **se rearma sola** al bajar del nivel 3, así que ponerla en el montaje no
-   sobrevive. Hay que reanudar dentro del bucle.
+   sobrevive. Hay que reanudar dentro del bucle. Y no muerde solo a los tests
+   del jefe: CUALQUIER prueba que suba la sospecha al 90%+ —aunque sea para
+   mirar un aviso de interfaz— deja la partida pausada para todo lo que venga
+   después. Así estuvo `check:safespots` años en rojo.
 2. **Una amonestación resetea la sospecha a cero**, así que la prueba siguiente
    empieza en frío — y en frío el jefe ya no persigue (regla 3.1).
 3. El jefe lleva **su propia copia** de la sospecha, que `game.js` sincroniza
@@ -341,18 +344,28 @@ Tres trampas al escribir uno, las tres pagadas ya:
 
 Honestidad por delante, para que decidas tú:
 
-1. **`check:safespots` tiene un FAIL** ("y su marcador lo refleja"). Es
-   anterior a la campaña y sigue ahí. Lo que se sabe hasta ahora: la prueba
-   mete a la jugadora en una sala y da vueltas de `update()` hasta agotarle
-   el cupo (26 s de juego en 1200 vueltas de 1/30 s, o sea 40 s de margen);
-   al salir, `inSafeSpot` es `false` —eso pasa— pero el marcador no llega a
-   0. **Sospecha, sin confirmar:** el cupo no se agota del todo y la
-   comprobación hermana ("una sala se gasta y deja de cubrirte") estaría
-   pasando por el motivo equivocado. Un intento de aislarlo con una sonda
-   dejó el navegador colgado sin devolver dato, así que la causa NO está
-   confirmada y no conviene "arreglarlo" a ciegas: si la teoría es cierta,
-   el fallo real es de la prueba, no del motor.
-2. **Los personajes no se esquivan entre ellos** (ver 3.6).
+1. ~~`check:safespots` tiene un FAIL~~ **RESUELTO**, y la teoría de aquí
+   era correcta a medias: el fallo era de la prueba, no del motor, pero la
+   causa no era el cupo — era LA ALARMA. El test prueba el aviso rojo al 95%
+   de sospecha, ese nivel dispara la alarma de nivel 3, y la alarma PAUSA la
+   partida (trampa nº1 de §8) en un test anterior a su existencia: todo lo
+   posterior corría contra un juego congelado. El cupo no se gastaba porque
+   `update()` sale en seco en pausa, y «la sala deja de cubrirte» pasaba de
+   chiripa con `inSafeSpot` helado de antes. Una sonda instrumentada (traza
+   cada 100 vueltas) lo enseñó en una pasada: `paused: true` desde el aviso
+   en adelante. La mecánica del motor estaba sana — drenaba 26→0 limpia con
+   la partida corriendo.
+2. ~~Los personajes no se esquivan entre ellos~~ **RESUELTO**
+   (`_updateCrowdSeparation` en game.js). La regla que manda es de juego, no
+   de física: **quien está de servicio NO CEDE.** El contacto del jefe y de
+   los secuaces es mecánica —la amonestación es un toque, la persecución
+   cierra distancia— y si un figurante pudiera empujarlos un centímetro, el
+   decorado empujaría a las reglas. El jefe y los secuaces son inamovibles;
+   el NPC de fondo absorbe el empujón entero, y un sentado tampoco cede
+   (nadie resbala de su silla porque pasen a su lado). Sin popups: el
+   feedback de choque es de la jugadora (`_updateBumps`), esto es silencio.
+   Lo vigila `npm run check:crowd`, y su primera aserción no es «se
+   separan» — es «el jefe no se movió».
 3. **El umbral de 40 está sin jugar de verdad.** Está probado que funciona,
    pero el número correcto sale de jugarlo, no de razonarlo.
 4. **La correa del día 1 sigue siendo el factor más agobiante.** Aflojarla

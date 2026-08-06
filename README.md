@@ -214,11 +214,11 @@ necesitan que `npm run preview` esté corriendo primero** (o pásales otra URL
 como argumento):
 
 > ⚠️ **`npm run check` encadena con `&&`, así que el primer fallo TAPA todo lo
-> que viene detrás.** Con el FAIL conocido de `check:safespots` (ver
-> [`docs/MOTOR.md`](docs/MOTOR.md) §9), las ocho comprobaciones siguientes ni
-> se ejecutan — y ahí puede haber otro fallo esperando meses. Si la cadena se
-> corta, corre a mano las de después antes de dar nada por bueno. Así se
-> encontró que `check:music` llevaba tiempo reventando con un timeout.
+> que viene detrás.** Si la cadena se corta, corre a mano las de después antes
+> de dar nada por bueno: así se encontró que `check:music` llevaba tiempo
+> reventando con un timeout, escondido detrás de un FAIL de `check:safespots`
+> que a su vez llevaba años abierto (ya resuelto — era la alarma de nivel 3
+> pausando la partida a mitad de test, ver [`docs/MOTOR.md`](docs/MOTOR.md) §9).
 
 ```bash
 npm run build && npm run preview &   # deja el servidor de preview corriendo
