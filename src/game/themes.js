@@ -51,9 +51,9 @@ export const themes = {
     // Sol rasante por el este: sombras largisimas cruzando el piso entero.
     sky: ["#20303f", "#33485c"],
     fog: "#243444",
-    ambient: { color: 0xc2d8e8, intensity: 0.26 },
-    hemi: { sky: 0x9fbcd6, ground: 0x7a5f42, intensity: 0.34 },
-    key: { color: 0xffcf92, intensity: 2.1 },
+    ambient: { color: 0xc2d8e8, intensity: 0.40 },
+    hemi: { sky: 0x9fbcd6, ground: 0x7a5f42, intensity: 0.51 },
+    key: { color: 0xffcf92, intensity: 1.43 },
     sun: { azimuth: 0.38, elevation: 0.16 },
     sunStrength: 1.0, // amanece rasante: el sol entra casi horizontal y el charco cruza medio piso
     exposure: 1.02,
@@ -62,9 +62,9 @@ export const themes = {
     // 9am-12pm - la manana abre: el sol sube y la sombra se acorta
     sky: ["#2a4054", "#3d5a70"],
     fog: "#2f4557",
-    ambient: { color: 0xc8dcea, intensity: 0.3 },
-    hemi: { sky: 0xa6c3da, ground: 0x8a7458, intensity: 0.4 },
-    key: { color: 0xffdca4, intensity: 2.25 },
+    ambient: { color: 0xc8dcea, intensity: 0.46 },
+    hemi: { sky: 0xa6c3da, ground: 0x8a7458, intensity: 0.60 },
+    key: { color: 0xffdca4, intensity: 1.53 },
     sun: { azimuth: 0.95, elevation: 0.62 },
     sunStrength: 1.0,
     exposure: 1.06,
@@ -73,9 +73,9 @@ export const themes = {
     // 1pm - lo mas alto del dia: sombra corta y dura, justo debajo
     sky: ["#3c5c74", "#5b8095"],
     fog: "#456579",
-    ambient: { color: 0xd2e4f0, intensity: 0.34 },
-    hemi: { sky: 0xb0cbe0, ground: 0x93866e, intensity: 0.44 },
-    key: { color: 0xffe9c0, intensity: 2.35 },
+    ambient: { color: 0xd2e4f0, intensity: 0.53 },
+    hemi: { sky: 0xb0cbe0, ground: 0x93866e, intensity: 0.66 },
+    key: { color: 0xffe9c0, intensity: 1.60 },
     sun: { azimuth: 1.62, elevation: 1.18 },
     sunStrength: 0.9, // sol alto: charcos cortos y marcados, pero entra menos por la fachada
     exposure: 1.08,
@@ -84,9 +84,9 @@ export const themes = {
     // 3pm - el sol cruza al oeste y la sombra empieza a tumbarse al otro lado
     sky: ["#33506a", "#4d7189"],
     fog: "#3a586f",
-    ambient: { color: 0xbdd4e6, intensity: 0.3 },
-    hemi: { sky: 0x9cbad4, ground: 0x77604c, intensity: 0.4 },
-    key: { color: 0xffc987, intensity: 2.3 },
+    ambient: { color: 0xbdd4e6, intensity: 0.46 },
+    hemi: { sky: 0x9cbad4, ground: 0x77604c, intensity: 0.60 },
+    key: { color: 0xffc987, intensity: 1.56 },
     sun: { azimuth: 2.25, elevation: 0.78 },
     sunStrength: 1.0,
     exposure: 1.06,
@@ -95,9 +95,9 @@ export const themes = {
     // 5pm - la brasa: sol bajo por el oeste, sombras largas otra vez
     sky: ["#293f55", "#3f5c74"],
     fog: "#2e4459",
-    ambient: { color: 0xafc9de, intensity: 0.27 },
-    hemi: { sky: 0x8aa8c6, ground: 0x6b4f38, intensity: 0.36 },
-    key: { color: 0xffb877, intensity: 2.15 },
+    ambient: { color: 0xafc9de, intensity: 0.42 },
+    hemi: { sky: 0x8aa8c6, ground: 0x6b4f38, intensity: 0.54 },
+    key: { color: 0xffb877, intensity: 1.46 },
     sun: { azimuth: 2.7, elevation: 0.34 },
     sunStrength: 1.0, // la brasa: la mejor hora de charcos, largos y ambar
     exposure: 1.0,
@@ -106,9 +106,9 @@ export const themes = {
     // 6pm - la bisagra: el ambar cede al acero y el sol toca el horizonte
     sky: ["#22354a", "#354e64"],
     fog: "#273a4f",
-    ambient: { color: 0xb8bcc8, intensity: 0.3 },
-    hemi: { sky: 0x7f9dbe, ground: 0x45414a, intensity: 0.34 },
-    key: { color: 0xd8bda0, intensity: 1.6 },
+    ambient: { color: 0xb8bcc8, intensity: 0.46 },
+    hemi: { sky: 0x7f9dbe, ground: 0x45414a, intensity: 0.51 },
+    key: { color: 0xd8bda0, intensity: 1.09 },
     sun: { azimuth: 2.95, elevation: 0.15 },
     sunStrength: 0.7, // se apaga
     exposure: 0.99,
@@ -120,9 +120,9 @@ export const themes = {
     // horizonte, cae del cielo entero.
     sky: ["#1b2c3e", "#2b4256"],
     fog: "#1f3143",
-    ambient: { color: 0x9aa8c0, intensity: 0.3 },
-    hemi: { sky: 0x6f8fb4, ground: 0x2f3542, intensity: 0.4 },
-    key: { color: 0xbcd0e8, intensity: 1.25 },
+    ambient: { color: 0x9aa8c0, intensity: 0.46 },
+    hemi: { sky: 0x6f8fb4, ground: 0x2f3542, intensity: 0.60 },
+    key: { color: 0xbcd0e8, intensity: 0.85 },
     sun: { azimuth: 3.25, elevation: 0.62 },
     sunStrength: 0.3, // ya no hay sol: lo poco que entra es resplandor de ciudad
     exposure: 0.95,
@@ -133,9 +133,9 @@ export const themes = {
     // de luz en el suelo de ref-noche-azul.png.
     sky: ["#121e2b", "#1e3040"],
     fog: "#152331",
-    ambient: { color: 0x6b7a94, intensity: 0.24 },
-    hemi: { sky: 0x556f92, ground: 0x1f242e, intensity: 0.3 },
-    key: { color: 0xa8c4e8, intensity: 1.35 },
+    ambient: { color: 0x6b7a94, intensity: 0.37 },
+    hemi: { sky: 0x556f92, ground: 0x1f242e, intensity: 0.45 },
+    key: { color: 0xa8c4e8, intensity: 0.92 },
     sun: { azimuth: 3.9, elevation: 0.85 },
     sunStrength: 0.35, // luna por las ventanas — tenue y fria, como la referencia azul
     exposure: 0.9,
@@ -146,9 +146,9 @@ export const themes = {
     // tema donde la sombra debe ser casi plana, y es a proposito.
     sky: ["#6e7570", "#969a90"],
     fog: "#7d837c",
-    ambient: { color: 0xe4e2d8, intensity: 0.62 },
-    hemi: { sky: 0xbcc2ba, ground: 0x7c7466, intensity: 0.66 },
-    key: { color: 0xf0e8d8, intensity: 0.85 },
+    ambient: { color: 0xe4e2d8, intensity: 0.95 },
+    hemi: { sky: 0xbcc2ba, ground: 0x7c7466, intensity: 0.95 },
+    key: { color: 0xf0e8d8, intensity: 0.58 },
     sun: { azimuth: 1.5, elevation: 1.3 },
     sunStrength: 0.25, // nublado: luz difusa, casi no deja charco
     exposure: 1.0,
