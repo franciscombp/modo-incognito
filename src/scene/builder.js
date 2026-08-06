@@ -651,42 +651,62 @@ function addCafeteria(area, world, ctx) {
  * se subía nunca.
  */
 function addAuditorium(area, world, ctx) {
-  const screenZ = area.z - area.d / 2 + 0.18 * S;
-
-  // La pantalla del auditorio es un hito único del piso: malla propia,
-  // grande y pegada a la pared norte.
+  // ── LA PANTALLA VA AL NORTE, O SEA A +X ──────────────────────────────
   //
+  // Estaba en el borde -z, que es el "fondo" en la convención del proyecto
+  // (ver `doorSide` en CLAUDE.md: norte = +x, sur = -x, frente = +z, fondo
+  // = -z). El comentario de antes decía "pared norte" usando otra
+  // convención, y ahí es donde se coló: ese borde es la MEDIANERA CON LA
+  // CAFETERÍA (auditorio z 6.9-14.9, cafetería z 1.9-6.7, mismo tramo de
+  // x), así que una pantalla de metro y medio plantada justo encima tapaba
+  // la cafetería entera.
+  //
+  // Contra la pared +x no estorba a nadie: al otro lado hay oficina
+  // abierta, que ya está separada por el vidrio.
+  const screenX = area.x + area.w / 2 - 0.18 * S;
+
   // Iba a 0.9 de emisión con un cian claro, y a esa intensidad una superficie
   // de este tamaño deja de leerse como pantalla y se vuelve un PANEL DE LUZ:
   // desde la cámara isométrica parecía un rectángulo azul plano flotando en
   // mitad del piso — el efecto "piscina" que no encajaba con nada. Una
   // pantalla encendida en una sala iluminada apenas ilumina; lo que la
   // delata es el contraste con su marco oscuro, no el brillo.
+  //
+  // Al girarla de pared, la geometría gira con ella: fina en x, ancha en z.
   const screen = new THREE.Mesh(
-    new THREE.BoxGeometry(area.w * 0.62, 1.5 * S, 0.1 * S),
+    new THREE.BoxGeometry(0.1 * S, 1.5 * S, area.d * 0.62),
     new THREE.MeshLambertMaterial({
       color: new THREE.Color(SURFACES.screen),
       emissive: new THREE.Color(SURFACES.screenGlow),
       emissiveIntensity: 0.22,
     })
   );
-  screen.position.set(area.x, 1.35 * S, screenZ);
+  screen.position.set(screenX, 1.35 * S, area.z);
   ctx.extras.push(screen);
 
-  // Dos arcos de pods centrados en la pantalla, cada sillón GIRADO para
-  // mirarla. El pod es ancho: su colisión es una caja por sillón.
-  const focus = { x: area.x, z: screenZ };
+  // ── Y LOS PODS SE REPARTEN DE VERDAD ────────────────────────────────
+  //
+  // El reparto anterior no repartía: usaba `cos(a - PI/2)` para la x y
+  // `sin(a)` para la z, que con `a = PI/2 + t*span` son LA MISMA función
+  // (cos de t*span). Al ser par, los pods simétricos caían en el MISMO
+  // punto: siete sillones ocupaban cuatro sitios, apilados de dos en dos y
+  // amontonados en diagonal en vez de en filas mirando a la pantalla.
+  //
+  // Ahora es un arco de verdad: el ángulo abre a lo largo de z y el radio
+  // separa en -x, que es donde se sienta el público.
+  const focus = { x: screenX, z: area.z };
   const arcs = [
-    { radius: area.d * 0.42, count: 3, span: 0.85 },
-    { radius: area.d * 0.68, count: 4, span: 1.15 },
+    { radius: area.w * 0.42, count: 3, span: 0.85 },
+    { radius: area.w * 0.68, count: 4, span: 1.15 },
   ];
   for (const arc of arcs) {
     for (let i = 0; i < arc.count; i++) {
       const t = arc.count === 1 ? 0 : i / (arc.count - 1) - 0.5;
-      const a = Math.PI / 2 + t * arc.span; // centrado mirando a -z
-      const px = focus.x + Math.cos(a - Math.PI / 2) * arc.radius * 0.9;
-      const pz = focus.z + Math.sin(a) * arc.radius;
-      // rotY para que el FRENTE del pod (su -z local) apunte a la pantalla.
+      const theta = t * arc.span;
+      const px = focus.x - Math.cos(theta) * arc.radius;
+      const pz = focus.z + Math.sin(theta) * arc.radius;
+      // rotY para que el FRENTE del pod apunte a la pantalla. Es relativo al
+      // foco, así que sigue valiendo con la pantalla en cualquier pared.
       const rotY = Math.atan2(focus.x - px, focus.z - pz) + Math.PI;
       ctx.registry.addPod(px, pz, rotY);
       if (world) world.addBox(px, pz, 1.4 * S, 0.7 * S, { sight: false });
