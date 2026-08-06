@@ -15,6 +15,10 @@ const EMPTY = {
   bestSpare: {},
   characterId: null,
   hadWarningYesterday: false,
+  // La carrera (docs/CAMPANA.md): temporada, día dentro de ella y las
+  // misiones ÚNICAS ya hechas. El guardado es por progreso de TAREAS: una
+  // única se escribe aquí en el acto, no al cerrar el día.
+  campaign: { temporada: 1, dia: 1, unicas: [] },
 };
 
 function read() {
@@ -51,6 +55,13 @@ export function createSave() {
     },
     get characterId() {
       return state.characterId;
+    },
+    get campaign() {
+      return state.campaign ?? { temporada: 1, dia: 1, unicas: [] };
+    },
+    set campaign(c) {
+      state.campaign = c;
+      write(state);
     },
     setCharacter(id) {
       state.characterId = id;

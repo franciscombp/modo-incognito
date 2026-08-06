@@ -1,13 +1,31 @@
 # La campaña — temporadas, misiones y carrera
 
-**Estado: DISEÑO. Nada de esto está implementado.** Es la guía para
-desarrollarlo y pulirlo, igual que [`MOTOR.md`](MOTOR.md) (reglas del motor),
-[`HUD.md`](HUD.md) (interfaz de partida) y [`PANTALLAS.md`](PANTALLAS.md) (el
-lienzo y las pantallas de menú). Escribe encima, tacha, contesta las preguntas.
+**Estado: EL ESQUELETO ESTÁ CONSTRUIDO Y LA TEMPORADA 1 SE JUEGA.** Es la
+guía para desarrollarlo y pulirlo, igual que [`MOTOR.md`](MOTOR.md) (reglas
+del motor), [`HUD.md`](HUD.md) (interfaz de partida) y
+[`PANTALLAS.md`](PANTALLAS.md) (el lienzo y las pantallas de menú). Escribe
+encima, tacha, contesta las preguntas.
 
-> ⚠️ **Esto reemplaza el modelo de juego actual.** Hoy el día 1 es una jornada
-> suelta con tres actividades libres. `MOTOR.md` describe ese modelo y habrá
-> que actualizarlo cuando esto se apruebe.
+| Sección | Estado | Dónde vive |
+|---|---|---|
+| §3.1 Cadena de misiones (con holgura: TODAS las elegibles a la vez) | ✅ | `src/game/campaign.js` → `startDay()` / `complete()` |
+| §3.2 Qués y Cómos | ✅ | campo `tipo` en el JSON; el HUD los pinta ámbar / cian |
+| §3.3 Recurrencia `unica` / `diaria` | ✅ | `campaign.js`; `por-temporada` sigue sin existir |
+| §3.4 Forma del dato | ✅ | `public/data/campaign/temporada-1.json` (tal cual la propuesta) |
+| §5.2 Calificación AAA/AA/A/B/C/Nivelación | ✅ | `campaign.js` → `endDay()`; la nota sale en el panel de resultado |
+| §7.2 Tres amonestaciones → RRHH | ✅ | `src/ui/hrCourse.js`, enganchado en `engine.js` → `finishDay` |
+| §9 Guardado por progreso de TAREAS | ✅ | una `unica` se persiste en el ACTO, no al cerrar el día |
+| §5.1 Salto de temporada con AAA | ✅ lógica | no hay temporadas 2–5 que escribir todavía |
+| §6 Rangos y jubilación | ◻︎ | `RANGOS` existe en `campaign.js`; sin pantalla ni final |
+| §8 Minijuegos de plan de nivelación | ◻︎ | la nota «Nivelación» se calcula pero no dispara nada |
+| Pantalla de evaluación (PANTALLAS §3) | ◻︎ | la nota se añade al panel de resultado de siempre |
+
+> ⚠️ **Esto reemplaza el modelo de juego actual.** El día 1 era una jornada
+> suelta con tres actividades libres; ahora esas tres actividades son
+> misiones de la temporada 1 y llegan encadenadas. `levels/dia-1.json` sigue
+> mandando en el guion, el reloj y el jefe: la campaña solo decide **qué se
+> te pide**. Si `public/data/campaign/` no trae temporada, el juego cae al
+> modelo viejo sin romperse.
 
 ---
 
@@ -372,26 +390,38 @@ Los digo ahora porque son más baratos de resolver en el documento:
 
 ---
 
-## 13. Plan por fases (cuando esté aprobado)
+## 13. Plan por fases
 
-Ordenado para que se pueda jugar algo desde pronto:
+Ordenado para que se pueda jugar algo desde pronto. **Del 1 al 6 está
+hecho; la temporada 1 se juega de punta a punta.**
 
-1. **Modelo de misión** (`tipo`, `recurrencia`, `requiere`) + el JSON de la
-   temporada 1. Sin motor todavía: solo el dato.
-2. **`campaign.js`**: activar, completar, encadenar. Con la temporada 1 se
-   juega el hilo entero de un día.
-3. **Lista de tareas en el HUD** (`HUD.md` §4bis) — sin ella la cadena no se
-   ve.
-4. **Cierre de día y calificación**: la pantalla de evaluación (maquetada en
-   [`PANTALLAS.md`](PANTALLAS.md) §3.2).
-5. **Temporadas y rangos**: el salto por AAA y el ascenso por antigüedad.
-6. **Curso de RRHH** ([`PANTALLAS.md`](PANTALLAS.md) §3.3).
-7. **Minijuegos de tarea** (comida, etc.) y reactivar la avenida.
-8. **Plan de nivelación**.
-9. **Temporada 5 y jubilación** — el final.
+1. ✅ **Modelo de misión** (`tipo`, `recurrencia`, `requiere`) + el JSON de la
+   temporada 1 → `public/data/campaign/temporada-1.json`.
+2. ✅ **`campaign.js`**: activar, completar, encadenar.
+3. ✅ **Lista de tareas en el HUD** (`HUD.md` §4bis) → `src/ui/gamehud.js`.
+4. ◻︎ **Cierre de día y calificación**: la NOTA ya se calcula y se enseña,
+   pero dentro del panel de resultado de siempre. Falta la pantalla de
+   evaluación maquetada en [`PANTALLAS.md`](PANTALLAS.md) §3.2.
+5. ✅ **Temporadas y rangos**: el salto por AAA y el ascenso por antigüedad
+   están en `endDay()`. Falta ESCRIBIR las temporadas 2–5.
+6. ✅ **Curso de RRHH** → `src/ui/hrCourse.js`.
+7. ◻︎ **Minijuegos de tarea** (comida, etc.) y reactivar la avenida.
+8. ◻︎ **Plan de nivelación**: la nota se calcula, pero no dispara nada.
+9. ◻︎ **Temporada 5 y jubilación** — el final.
 
-Cada fase con su comprobación en `tools/`, y `MOTOR.md` actualizado cuando
-la 2 esté puesta (ahí deja de ser cierto lo que dice hoy del día suelto).
+Cada fase con su comprobación en `tools/`. `MOTOR.md` ya está actualizado:
+dejó de ser cierto lo que decía del día suelto en cuanto entró la fase 2.
+
+**Lo que se decidió al construirlo** (§12 sigue abierto para cambiarlo, y
+cambiarlo es editar un número, no una arquitectura):
+
+| Pregunta | Se hizo así | Por qué |
+|---|---|---|
+| ¿Una misión activa o 2–3? | **Todas las elegibles a la vez** | Es la mitigación del §11.1: con una sola, el piso es un pasillo |
+| ¿Las letras de §5.2? | **Las seis** (AAA/AA/A/B/C/Nivelación) | B y C son las que señalan el eje que descuidaste, que es el chiste |
+| ¿Los Cómos cuentan para el AAA? | **Sí, obligatorios** | Si suman aparte, «no hablar con nadie» deja de costar |
+| Alcance de las 3 amonestaciones | **El día** | La recomendación de §7.1: perder la carrera entera es brutal |
+| ¿RRHH siempre se puede terminar? | **Sí** | Es un peaje, no otra derrota. Cazar el botón N veces, o aguantar el vídeo |
 
 ---
 

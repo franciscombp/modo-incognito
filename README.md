@@ -61,7 +61,8 @@ código**.
 | Qué personajes/modos puede elegir la jugadora | [`modes.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/modes.json) |
 | Estadísticas de la jugadora, el jefe y los NPC (velocidad, visión, sprite) | [`characters.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/characters.json) |
 | Cualquier diálogo (compañeros, secuaces, jefe) | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/dialogues.json) |
-| El guion de un día concreto (reglas, prólogo, secuaces de turno) | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/tree/main/public/data/levels) |
+| **Qué tareas te piden, y en qué orden** (misiones encadenadas, Qués y Cómos) | [`campaign/temporada-N.json`](https://github.com/franciscombp/modo-incognito/tree/main/public/data/campaign) — ver [`docs/CAMPANA.md`](https://github.com/franciscombp/modo-incognito/blob/main/docs/CAMPANA.md) |
+| El guion de un día concreto (reloj, prólogo, correa, secuaces de turno) | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/tree/main/public/data/levels) |
 | El plano de la oficina (zonas, escondites, distracciones, secretos) | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/scenes/piso7.json) |
 | El balance de IA del jefe / sospecha | [`boss-config.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/boss-config.json) |
 | Qué puede hacer una opción de diálogo (`effect`) | [`src/game/effects.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/effects.js) |
@@ -71,7 +72,10 @@ código**.
 | Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/soundtrack.js) |
 | Qué escenas/niveles/secretos por teclado existen | [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/manifest.json) |
 | Colocar zonas, tareas, lugares seguros… con el ratón | [`creador/`](https://github.com/franciscombp/modo-incognito/tree/main/creador) — ver «El builder» más abajo |
-| **El HUD / barra de menú** (menulets, paneles, notificaciones) | [`src/ui/menubar.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/ui/menubar.js) |
+| **El HUD de partida** (placa, lista de misiones, reloj, zona, avisos) | [`src/ui/gamehud.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/ui/gamehud.js) |
+| El lienzo fijo 1920×1080, la escala y la cortina de «gira el teléfono» | [`src/ui/stage.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/ui/stage.js) |
+| Quién decide qué misiones tocan hoy y qué nota sacas (código) | [`src/game/campaign.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/campaign.js) |
+| El curso de RRHH de la tercera amonestación | [`src/ui/hrCourse.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/ui/hrCourse.js) |
 | El cuerpo 3D de un personaje | deja `public/models/<id>.glb` — se indexa solo, no se toca ningún JSON |
 | La luz a lo largo del día (amanecer → atardecer) | [`src/game/themes.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/themes.js) |
 | Qué hacen los NPC de fondo (sentarse, pasear) | [`src/entities/npc.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/npc.js) |
@@ -225,13 +229,18 @@ npm run check                        # ahora sí, corre la batería completa
 | `check:suspicion` | La sospecha sube/baja/decae con los valores esperados |
 | `check:pursuit` | Que una persecución comprometida no se rinda (ni por perderte de vista ni por atascarse) y que el lugar seguro sea la única salida |
 | `check:music` | Que la pista suene de verdad (no solo que cargue) y que el ánimo le abra el filtro y le suba el tempo |
-| `check:layout` | Que en 6 tamaños de pantalla (de 1440px a un iPhone SE, y horizontal) ningún panel, botón o marcador se solape con otro, ningún texto se recorte y nada se salga de la pantalla |
+| `check:layout` | Que el LIENZO mide 1920×1080 pase lo que pase, que queda centrado en 5 relaciones de aspecto, que nada se sale, que un clic en una esquina llega a esa esquina, y que en vertical cae la cortina de «gira el teléfono» |
 
 `check:layout` es el que conviene correr después de tocar el HUD o el CSS:
 estos fallos no se ven leyendo el diff y cuesta pillarlos a ojo en una
 captura. Ya ha cazado el botón de pausa debajo de la tarjeta de tarea, el
 botón USAR encima de los de utilidades en horizontal, y la flecha que apunta
 al jefe metiéndose bajo los controles táctiles.
+
+Desde el **lienzo fijo** ya no comprueba seis viewports: solo hay UN tamaño,
+así que lo que se verifica es la ESCALA y el ENCUADRE. El fallo que caza hoy
+es el del puntero: con un `transform: scale` de por medio, un clic que no se
+divide por la escala cae desviado, y eso no se ve en ninguna captura.
 
 ## Controles
 
@@ -261,6 +270,8 @@ public/data/
   dialogues.json         el reparto y qué dice cada uno al hablarle
   levels/dia-1.json …    reglas del día, prólogo del ascensor, secuaces
                          de turno y diálogos de novela visual
+  campaign/temporada-1.json  LAS MISIONES: qué se te pide, encadenado
+                         (requiere), Qués y Cómos, recurrencia
 ```
 
 Las coordenadas del plano están en **unidades de plano** (≈ un puesto de
@@ -617,12 +628,18 @@ src/
   data/
     loader.js      carga y valida los JSON de public/data
   ui/
+    stage.js       EL LIENZO: 1920×1080, su escala, pantalla completa y la
+                   cortina de «gira el teléfono»
+    gamehud.js     el HUD de partida: placa con cara viva, lista de misiones,
+                   reloj, nombre de zona y avisos
+    hrCourse.js    el curso de RRHH de la tercera amonestación
     menus.js       título, elegir día, ajustes, ayuda y pausa
     cameraPanel.js el panel de pruebas de la cámara
     compass.js     tarjeta de tarea activa + marcador de destino
     popups.js      números de puntuación flotantes
   game/
     engine.js      bucle de campaña: menú -> día -> escena -> nivel -> escena
+    campaign.js    qué misiones tocan hoy, qué desbloquea cada una y la nota
     game.js        reglas de una jornada (sospecha, objetivos, advertencias)
     dialogue.js    novela visual con máquina de escribir y opciones
     hud.js         HUD e indicador de zona actual

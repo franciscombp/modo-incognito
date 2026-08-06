@@ -51,7 +51,10 @@ const out = await page.evaluate(() => {
   // Este test es sobre el interrogatorio de los secuaces y del jefe, no
   // sobre la puerta del día 1 (encontrar a Gabo primero) — se salta directo
   // a la vigilancia ya activada.
-  game.metGabo = true;
+  // `clearGate` y no `metGabo = true` a pelo: la bandera sola abre el piso
+  // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
+  // es la campana al enterarse de que la mision de la puerta cayo.
+  game.clearGate();
   return { dialogueOpenBefore: engine.dialogue.isOpen };
 });
 

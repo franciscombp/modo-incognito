@@ -1,0 +1,299 @@
+import { iconEl } from "./icons.js";
+import { createPortrait3D } from "./portrait3d.js";
+
+/**
+ * EL HUD DE PARTIDA — sustituye a la barra de menú tipo macOS.
+ *
+ * La barra era un sistema de estado "de aplicación": menulets con etiquetas y
+ * porcentajes que había que ABRIR para ver el detalle. El equipo pidió un HUD
+ * de JUEGO (ver docs/HUD.md y docs/referencias/hud/), y la gramática de la
+ * referencia es otra: clusters en las esquinas, centro libre, información
+ * discreta que se lee de reojo.
+ *
+ *   ┌─────────────────────────────────────────────────┐
+ *   │ PLACA (yo)        RELOJ         MISIONES        │
+ *   │                                                 │
+ *   │                 (el piso)                       │
+ *   │                                                 │
+ *   │ acción (wprompt)                 NOMBRE DE ZONA │
+ *   └─────────────────────────────────────────────────┘
+ *
+ * · La PLACA funde en una pieza la cara VIVA del personaje (el mismo
+ *   Character3D del piso, encuadre de cara), las amonestaciones como ROMBOS
+ *   discretos y la presión como barra. Los rombos se cuentan de reojo — «me
+ *   quedan dos» — sin leer un número; la presión es continua porque sube y
+ *   baja sin parar y unos pips parpadeando serían ruido.
+ * · La cara REACCIONA a la presión (serena → de reojo → pánico). Es el mismo
+ *   sistema de expresiones del diálogo; aquí solo se decide el mood.
+ * · Las MISIONES van en filas SIN caja separadas por una línea, con el
+ *   número de atajo, el icono de su medalla (el mismo del piso) y la
+ *   distancia a la derecha. Con la presión alta la lista SE REPLIEGA: solo
+ *   títulos en alerta, solo la seguida en persecución — cuanto más aprieta
+ *   el juego, menos hay que leer. Es una decisión de tensión, no de espacio.
+ * · El RELOJ (la moneda del juego) se queda en el centro, como estaba.
+ * · El NOMBRE DE ZONA es texto pelado que aparece al cambiar de zona y se va
+ *   solo: da contexto sin ocupar nada.
+ *
+ * Interfaz idéntica a la barra retirada (render/notify/resetNotices/
+ * closePanels/setLive), para que hud.js y engine.js no cambien de contrato.
+ */
+
+function el(tag, className, parent, text) {
+  const n = document.createElement(tag);
+  if (className) n.className = className;
+  if (parent) parent.appendChild(n);
+  if (text != null) n.textContent = text;
+  return n;
+}
+
+/** Pone una clase de animación y la quita al acabar, para poder repetirla. */
+function pulse(node, cls, ms) {
+  if (!node) return;
+  node.classList.remove(cls);
+  void node.offsetWidth;
+  node.classList.add(cls);
+  clearTimeout(node._miTimer);
+  node._miTimer = setTimeout(() => node.classList.remove(cls), ms);
+}
+
+export function createGameHud(root, { onOpenPause = null, playerLook = null } = {}) {
+  const layer = el("div", "inc-gamehud", root);
+
+  // ── LA PLACA ──────────────────────────────────────────────────────────
+  const plate = el("div", "inc-plate", layer);
+  const faceHost = el("div", "inc-plate-face", plate);
+  const plateBody = el("div", "inc-plate-body", plate);
+  const pipsRow = el("div", "inc-plate-pips", plateBody);
+  const meter = el("div", "inc-plate-meter", plateBody);
+  const meterFill = el("i", null, meter);
+
+  // La cara viva. Dibuja SIEMPRE durante la partida (no solo en diálogo):
+  // es un render extra pequeño (128px) y es lo que hace que la placa sea un
+  // personaje y no un icono. Si no hay WebGL para el segundo contexto, la
+  // placa sigue funcionando sin cara.
+  const face = createPortrait3D(faceHost, { framing: "face" });
+  let faceOn = false;
+  let faceMood = null;
+  function setFaceMood(mood) {
+    if (!playerLook || mood === faceMood) return;
+    faceMood = mood;
+    faceOn = face.show(playerLook, mood);
+  }
+
+  let pips = [];
+  let pipsMax = -1;
+  let lastWarnings = -1;
+  let lastHeatPct = 0;
+
+  // ── LAS MISIONES ──────────────────────────────────────────────────────
+  const quests = el("div", "inc-quests", layer);
+  const questRows = new Map(); // id -> nodos, para no reconstruir por frame
+  let preferredId = null;
+
+  // ── EL RELOJ, centrado (mismo widget de siempre) ──────────────────────
+  const center = el("div", "inc-bar-center", layer);
+  const clockBtn = el("div", "inc-bar-btn", center);
+  const clockLabel = el("span", "inc-bar-btn-label", clockBtn);
+  let lastDayTime = null;
+
+  // ── SISTEMA: pausa, mínima y en su esquina ────────────────────────────
+  const sys = el("div", "inc-sysbtns", layer);
+  const pauseBtn = el("button", "inc-sysbtn", sys);
+  pauseBtn.type = "button";
+  pauseBtn.setAttribute("aria-label", "Pausa");
+  pauseBtn.appendChild(iconEl("pause"));
+  pauseBtn.addEventListener("click", () => onOpenPause?.());
+
+  // ── NOMBRE DE ZONA ────────────────────────────────────────────────────
+  const zone = el("div", "inc-zone-name", layer);
+  let zoneShown = null;
+  let zoneTimer = 0;
+
+  // ── AVISOS (caen bajo el reloj y se van solos) ────────────────────────
+  const notices = el("div", "inc-bar-notices", layer);
+  function notify({ icon = "alert", text = "", tone = "info", ttl = 4200 } = {}) {
+    const card = el("div", `inc-notice inc-notice--${tone}`, notices);
+    const ic = el("span", "inc-notice-icon", card);
+    ic.appendChild(iconEl(icon));
+    el("span", "inc-notice-text", card, text);
+    setTimeout(() => {
+      card.classList.add("out");
+      setTimeout(() => card.remove(), 400);
+    }, ttl);
+  }
+  function resetNotices() {
+    notices.replaceChildren();
+  }
+
+  // Teclas 1..3: seguir esa misión. El atajo vive aquí y no en main.js para
+  // que la tecla y el rótulo que la anuncia no puedan desincronizarse.
+  window.addEventListener("keydown", (e) => {
+    if (!layer.classList.contains("live")) return;
+    const n = Number(e.key);
+    if (!Number.isInteger(n) || n < 1 || n > 3) return;
+    const ids = [...questRows.keys()];
+    const id = ids[n - 1];
+    if (!id) return;
+    preferredId = preferredId === id ? null : id;
+    window.__game?.engine?.game && (window.__game.engine.game.preferredObjectiveId = preferredId);
+  });
+
+  function renderPlate(state) {
+    // Rombos: los que te QUEDAN, encendidos; los perdidos se apagan de uno
+    // en uno. Contar de reojo, no leer.
+    if (state.maxWarnings !== pipsMax) {
+      pipsMax = state.maxWarnings;
+      pipsRow.replaceChildren();
+      pips = Array.from({ length: pipsMax }, () => el("span", "inc-plate-pip", pipsRow));
+    }
+    const left = Math.max(0, state.maxWarnings - state.warnings);
+    pips.forEach((p, i) => p.classList.toggle("spent", i >= left));
+    if (state.warnings !== lastWarnings) {
+      if (lastWarnings >= 0 && state.warnings > lastWarnings) pulse(plate, "mi-shake", 420);
+      lastWarnings = state.warnings;
+    }
+
+    const pct = Math.round((state.suspicion / (state.suspicionMax || 100)) * 100);
+    meterFill.style.width = `${pct}%`;
+    meter.classList.toggle("warn", pct >= 55 && pct < 90);
+    meter.classList.toggle("danger", pct >= 90);
+    plate.classList.toggle("mi-critical", pct >= 90 && !state.gameOver);
+    if (pct - lastHeatPct >= 12) pulse(plate, "mi-shake", 420);
+    lastHeatPct = pct;
+
+    // La cara sigue a la presión. Los umbrales van holgados para que no
+    // parpadee en la frontera.
+    if (state.gameOver) setFaceMood(state.win ? "happy" : "sad");
+    else if (state.bossState === "CHASE" || state.bossState === "SEARCH") setFaceMood("scared");
+    else if (pct >= 55) setFaceMood("surprised");
+    else if (pct >= 25) setFaceMood("neutral");
+    else setFaceMood("happy");
+  }
+
+  function renderQuests(state) {
+    const list = (state.objectives ?? []).filter((o) => !o.done).slice(0, 3);
+    // Repliegue por TENSIÓN: alerta = solo títulos; persecución = solo la
+    // seguida. Con el jefe detrás no se puede leer, así que hay menos que
+    // leer. (Decisión de HUD.md §4bis.3.)
+    const chase = state.bossState === "CHASE" || state.bossState === "SEARCH";
+    const alert = state.heat >= 1 || chase;
+    quests.classList.toggle("folded", alert && !chase);
+    quests.classList.toggle("chase", chase);
+
+    const seen = new Set();
+    list.forEach((o, i) => {
+      seen.add(o.id);
+      let row = questRows.get(o.id);
+      if (!row) {
+        const node = el("div", "inc-quest", quests);
+        const key = el("span", "inc-quest-key", node, String(i + 1));
+        const main = el("div", "inc-quest-main", node);
+        const title = el("div", "inc-quest-title", main, o.label);
+        const bar = el("div", "inc-quest-bar", main);
+        const fill = el("i", null, bar);
+        const side = el("div", "inc-quest-side", node);
+        const dist = el("span", "inc-quest-dist", side);
+        const badge = el("span", "inc-quest-badge", side);
+        badge.appendChild(iconEl(o.icon || "star"));
+        row = { node, key, title, bar, fill, dist };
+        questRows.set(o.id, row);
+      }
+      row.key.textContent = String(i + 1);
+      row.title.textContent = o.label;
+      // "cómo" (con gente) contra "qué" (a solas): el color de la fila lo
+      // dice sin etiqueta, igual que la referencia distingue main de sub.
+      row.node.classList.toggle("q-como", o.kind === "como");
+      // La misión del guardián no tiene sitio fijo: su objetivo es el JEFE,
+      // que se mueve. Sin esta rama salía "NaN m".
+      const d = Number.isFinite(o.x)
+        ? Math.hypot(o.x - state.playerPos.x, o.z - state.playerPos.z) / state.worldScale
+        : state.bossDistance / state.worldScale;
+      row.dist.textContent = `${Math.round(d)} m`;
+      const running = state.currentAction?.stationId === o.id || (o.progress > 0 && o.progress < 1);
+      row.bar.classList.toggle("on", !!running || o.progress > 0);
+      row.fill.style.width = `${Math.round((o.progress ?? 0) * 100)}%`;
+      const followed = preferredId ? preferredId === o.id : i === 0;
+      row.node.classList.toggle("followed", followed);
+      row.node.classList.toggle("only", chase && !followed);
+    });
+    for (const [id, row] of questRows) {
+      if (!seen.has(id)) {
+        // Cumplida: golpe de acento y fuera. La fila muere después de la
+        // animación para que el hueco no salte de golpe.
+        if (!row.node.classList.contains("done-out")) {
+          row.node.classList.add("done-out", "mi-done");
+          setTimeout(() => {
+            row.node.remove();
+          }, 650);
+          questRows.delete(id);
+          if (preferredId === id) preferredId = null;
+        }
+      }
+    }
+  }
+
+  function renderClock(state) {
+    const leftS = Math.max(0, Math.round(state.timeLeft));
+    const mins = Math.floor(leftS / 60);
+    const secs = String(leftS % 60).padStart(2, "0");
+    const [dayTime = "—", ...suffix] = String(state.currentTime ?? "—").split(" ");
+    clockLabel.innerHTML =
+      `<span class="inc-clockwidget-time">${dayTime}` +
+      `<i class="inc-clockwidget-suffix">${suffix.join(" ")}</i></span>` +
+      `<span class="inc-bar-countdown">${mins}:${secs} de jornada</span>`;
+    clockBtn.classList.toggle("warn", leftS <= 45 && leftS > 20);
+    clockBtn.classList.toggle("danger", leftS <= 20);
+    clockBtn.classList.toggle("mi-critical", leftS <= 20 && !state.gameOver);
+    if (dayTime !== lastDayTime) {
+      pulse(clockLabel.querySelector(".inc-clockwidget-time"), "mi-tick", 240);
+      lastDayTime = dayTime;
+    }
+  }
+
+  function renderZone(state) {
+    const name = state.area?.name ?? null;
+    if (name && name !== zoneShown) {
+      zoneShown = name;
+      zone.textContent = name;
+      zone.classList.add("show");
+      clearTimeout(zoneTimer);
+      zoneTimer = setTimeout(() => zone.classList.remove("show"), 2400);
+    }
+    if (!name) zoneShown = null;
+  }
+
+  return {
+    root: layer,
+    notify,
+    resetNotices,
+    closePanels() {},
+    /** Modo partida: se enseña el estado. Fuera de partida, nada. */
+    setLive(live) {
+      layer.classList.toggle("live", !!live);
+      if (live) {
+        if (playerLook) setFaceMood(faceMood ?? "neutral");
+        if (faceOn) face.start();
+      } else {
+        face.stop();
+        zone.classList.remove("show");
+        zoneShown = null;
+      }
+    },
+    /** El personaje elegido puede cambiar entre partidas. */
+    setPlayerLook(look) {
+      playerLook = look;
+      faceMood = null;
+      if (layer.classList.contains("live") && look) {
+        setFaceMood("neutral");
+        if (faceOn) face.start();
+      }
+    },
+    render(state) {
+      if (!state) return;
+      renderPlate(state);
+      renderQuests(state);
+      renderClock(state);
+      renderZone(state);
+    },
+  };
+}

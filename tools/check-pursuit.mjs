@@ -36,7 +36,10 @@ const out = await p.evaluate(() => {
   // Sin pasar por el saludo de Gabo, el gate fuerza la sospecha a 0 cada
   // frame — y con la regla de "cero sostenido lo suelta", el jefe soltaba
   // la caza a los 1.5 s y todo el test de compromiso daba falso negativo.
-  g.metGabo = true;
+  // `clearGate` y no `metGabo = true` a pelo: la bandera sola abre el piso
+  // pero deja la lista de tareas VACIA (la campana suelta el plan del dia al
+  // enterarse de que la mision de la puerta cayo).
+  g.clearGate();
   g.minions.forEach((m) => m.setActive(false));
   const blind = function () { this.playerVisible = false; this.redAlert = false; };
   const sees = function () { this.playerVisible = true; this.redAlert = true; };

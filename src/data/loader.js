@@ -126,6 +126,7 @@ export async function loadGameData(onProgress) {
     dialoguesRaw,
     modesRaw,
     bossConfigRaw,
+    campaignRaw,
     sceneList,
     levelList,
     rigList,
@@ -140,6 +141,9 @@ export async function loadGameData(onProgress) {
     getJSON(manifest.dialogues ?? "dialogues.json").catch(() => ({ cast: {}, encounters: {}, barks: {} })),
     getJSON(manifest.modes ?? "modes.json").catch(() => ({ characters: {} })),
     getJSON(manifest.bossConfig ?? "boss-config.json").catch(() => null),
+    // La temporada de campaña (docs/CAMPANA.md). Sin archivo, el juego cae
+    // al modelo de días sueltos de siempre: la campaña es opt-in por datos.
+    getJSON(manifest.campaign ?? "campaign/temporada-1.json").catch(() => null),
     Promise.all((manifest.scenes ?? []).map((id) => getJSON(`scenes/${id}.json`))),
     Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
     // Rigs de personaje: qué poses usa cada uno y cómo se queda esperando.
@@ -179,6 +183,7 @@ export async function loadGameData(onProgress) {
     characters: prepareCharacters(charactersRaw),
     modes: modesRaw.characters ?? {},
     bossConfig: bossConfigRaw,
+    campaign: campaignRaw,
     scenes,
     levels,
     rigs: new Map(rigList.map((r) => [r.id, r])),

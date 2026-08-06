@@ -1,9 +1,19 @@
 # Las pantallas y el lienzo
 
-**Estado: DISEÑO. Nada implementado.** Guía para desarrollarlo, como
+**Estado: §1 CONSTRUIDO, el resto en diseño.** Guía para desarrollarlo, como
 [`MOTOR.md`](MOTOR.md) (reglas), [`CAMPANA.md`](CAMPANA.md) (progresión) y
 [`HUD.md`](HUD.md) (interfaz de partida). Aquí va todo lo que NO es la partida: el lienzo sobre el que se
 dibuja todo, y las pantallas de menú.
+
+| Sección | Estado | Dónde vive |
+|---|---|---|
+| §1 El lienzo fijo 1920×1080 | ✅ construido | `src/ui/stage.js`, bloque «EL LIENZO FIJO» del DS, `src/main.js` |
+| §1.4 Cortina de orientación + pantalla completa | ✅ construido | `src/ui/stage.js` → `createStage()` |
+| §1.7 `check:layout` reescrito | ✅ construido | `tools/check-layout.mjs` (5 relaciones de aspecto) |
+| §1.8 Paneles con CSS 3D | ◻︎ la `perspective` está puesta en `#app`; ningún panel la usa aún |
+| §2 Selección de personaje como expediente | ◻︎ sin construir — sigue la pantalla de login anterior |
+| §3 Evaluación de desempeño | ◻︎ sin construir — hoy es el panel de resultado de siempre |
+| §4 RRHH | ✅ construido | `src/ui/hrCourse.js`, bloque «CURSO DE RRHH» del DS |
 
 **Referencias en el repo** (`docs/referencias/pantallas/`):
 
@@ -64,6 +74,33 @@ Tres cosas que hay que hacer bien o esto sale mal:
 3. **`transform: scale` sobre texto** puede verse blando. Alternativa a
    probar: escalar por `font-size` en `rem` con el `html` escalado. Se decide
    comparando en pantalla, no en teoría.
+
+> ### Cómo quedó, y las dos trampas que faltaban en esta lista
+>
+> Vive en `src/ui/stage.js` (`STAGE_W`/`STAGE_H`, `stageScale`,
+> `applyStageScale`, `createStage`) y en el bloque «EL LIENZO FIJO» del design
+> system. Los tres puntos de arriba se resolvieron así:
+>
+> 1. El 3D se renderiza a 1920×1080 lógicos (`setSize(STAGE_W, STAGE_H,
+>    false)`) y la nitidez la pone `stagePixelRatio()`, que multiplica el
+>    `devicePixelRatio` por la escala. La cámara usa siempre
+>    `STAGE_W / STAGE_H` de aspecto, así que el encuadre no depende de la
+>    ventana.
+> 2. Los deltas de puntero se dividen por la escala antes de mover la cámara.
+>    `check:layout` lo verifica con un clic en cada esquina.
+> 3. `scale` sobre texto: se probó y **no se ve blando** a las escalas reales
+>    (0.5–1.0). No hizo falta la alternativa del `rem`.
+>
+> Y dos que no estaban previstas y costaron:
+>
+> - **`--ui-scale` tiene que ser un NÚMERO, y por eso la escribe JS.** El
+>   `calc(min(100vw / 1920, 100vh / 1080))` que había en los tokens da una
+>   LONGITUD, y `scale()` con una longitud dentro rechaza la transformación
+>   ENTERA. No escalaba mal: no escalaba, y sin un solo aviso en consola.
+> - **Un `transform` convierte al elemento en el bloque contenedor de todo lo
+>   `position: fixed` de dentro.** Aquí se quiere —un HUD fijo se ancla al
+>   lienzo, no a la ventana—, pero explica por qué un `fixed` deja de llegar
+>   al borde de la pantalla en cuanto entra el lienzo.
 
 ## 1.4 Orientación y pantalla completa — la parte incómoda
 
@@ -358,8 +395,20 @@ Debería parecer **una evaluación de desempeño real**: la nota, el gráfico de
 los dos ejes, y un comentario del evaluador con el tono pasivo-agresivo de
 una de verdad.
 
-## 3.3 Curso de RRHH *(nueva, `CAMPANA.md` §7.2)*
+## 3.3 Curso de RRHH *(nueva, `CAMPANA.md` §7.2)* — ✅ **construida**
 El vídeo y el botón de saltar que huye. Pantalla completa, sin HUD.
+
+Vive en `src/ui/hrCourse.js`. Cómo quedó:
+- El "vídeo" es un **canvas procedural**, cero archivos — como todo el audio.
+  Frases de cumplimiento corporativo que van rotando.
+- La barra de progreso avanza al **70% de la velocidad real**: el chiste del
+  reproductor que no adelanta. Aguantarla entera también libera.
+- El botón de saltar **pasea solo** la primera visita; desde la segunda,
+  además **huye del cursor**. Cazarlo `min(3 + reincidencias, 6)` veces
+  termina el curso.
+- **Siempre se puede terminar.** Es un peaje, no otra derrota. Y siempre
+  dentro de la tarjeta: inalcanzable no es gracioso.
+- Cierra con un certificado: «Válido hasta tu próxima amonestación».
 
 ## 3.4 Ascenso / jubilación *(nueva)*
 El momento de recompensa de cada temporada. Es el único sitio donde el juego
@@ -371,7 +420,10 @@ puede ser sincero un segundo.
 
 **El lienzo**
 - [x] ~~¿1920×1080 o 1600×900?~~ → **1920×1080** ✅
-- [ ] La cortina de «gira el teléfono»: ¿con chiste de empresa o seca?
+- [x] ~~La cortina de «gira el teléfono»: ¿con chiste de empresa o seca?~~ →
+      **con chiste**: «ROTACIÓN DE PERSONAL EN CURSO / Gira el teléfono: el
+      Piso 10 solo atiende en horizontal». Cambiarlo es una línea de
+      `src/ui/stage.js`.
 - [ ] ¿Empujamos la instalación como PWA desde el menú?
 
 **Menús 3D**
@@ -396,24 +448,22 @@ puede ser sincero un segundo.
 El lienzo va primero **porque todo lo demás se construye encima**; hacerlo
 después obligaría a rehacer cada pantalla.
 
-1. **`#stage` y la escala** + arreglar coordenadas de puntero.
-2. **Cortina de orientación** + pantalla completa + PWA.
-3. **Limpiar** las 19 media queries (cuidado con las de `creador/`).
-4. **`check:layout` nuevo** (§1.7).
-5. **Menús 3D**
-- [ ] ¿Cuántos grados de inclinación? Propongo 3°, que es donde el texto
-      aguanta nítido.
-- [ ] Si `backdrop-filter` y la inclinación no se llevan bien: ¿vidrio o
-      inclinación?
+1. ✅ **`#stage` y la escala** + arreglar coordenadas de puntero.
+2. ✅ **Cortina de orientación** + pantalla completa. (La PWA ya declaraba
+   `orientation: landscape` en el manifest; empujar la instalación desde el
+   menú sigue sin hacerse.)
+3. ✅ **Limpiar** las media queries de tamaño: se fueron 14. Las que quedan
+   son de `creador/` y de `prefers-reduced-motion`, que no son de tamaño.
+4. ✅ **`check:layout` nuevo** (§1.7): 5 relaciones de aspecto, coordenadas de
+   lienzo, clic en las esquinas y cortina en vertical.
+5. ◻︎ **Menús 3D** con las tres columnas. La `perspective` ya está puesta en
+   `#app`; falta que algún panel la use.
+6. ◻︎ Las pantallas de `CAMPANA.md` — de las tres, **RRHH está hecha**
+   (`src/ui/hrCourse.js`); faltan evaluación y ascenso.
 
-**Selección de personaje**
-- [ ] ¿Tira de cartas abajo (mi propuesta) o rejilla lateral?
-- [ ] ¿El personaje se sale del marco? Es el detalle que más aporta y el que
-      más puede pelearse con el recorte del panel. con las tres columnas.
-6. Las pantallas de `CAMPANA.md` (evaluación, RRHH, ascenso).
-
-Del 1 al 4 no cambia nada visible: es infraestructura. Conviene hacerlo de
-una tacada y verificar que el juego sigue igual antes de seguir.
+Del 1 al 4 no cambiaba nada visible: era infraestructura. Se hizo de una
+tacada y la suite entera de `tools/` se corrió antes de seguir, que es lo que
+cazó que media suite daba por hecho el modelo de día anterior.
 
 ---
 

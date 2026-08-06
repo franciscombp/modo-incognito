@@ -37,7 +37,10 @@ const log = await page.evaluate(async () => {
   // This test is about the boss AI once the day is in progress, not about
   // the day-1 gate (find Gabo before he starts actually watching you) — so
   // clear it directly instead of walking up to him first.
-  game.metGabo = true;
+  // `clearGate` y no `metGabo = true` a pelo: la bandera sola abre el piso
+  // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
+  // es la campana al enterarse de que la mision de la puerta cayo.
+  game.clearGate();
   // This test is about the boss, not the sidekicks: an on-duty minion could
   // walk up and start an unsolicited chat, which pauses the level and would
   // otherwise stall every assertion below on a dialogue nobody answers.
@@ -74,8 +77,13 @@ const log = await page.evaluate(async () => {
   boss.suspicion = game.suspicion;
 
   // Put a forbidden activity right where she is standing.
-  // Day 1 only enables a couple of activities, so take whichever is first.
-  const station = game.objectives[0];
+  // Tiene que ser una ESTACIÓN de verdad, no cualquier objetivo: desde que
+  // la campaña reparte las tareas, la lista mezcla estaciones del plano con
+  // misiones sin sitio fijo (`dynamic`) — hablar con alguien, o el tutorial
+  // de fingir. Esas no se hacen pulsando espacio encima, así que coger la
+  // primera a ciegas dejaba al jefe sin nada que reprocharle y toda la
+  // prueba caía por el motivo equivocado.
+  const station = game.objectives.find((o) => !o.dynamic) ?? game.objectives[0];
   station.x = px;
   station.z = z;
   station.done = false;

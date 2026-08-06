@@ -34,7 +34,10 @@ const out = await page.evaluate(async () => {
   // Este test es sobre lugares seguros, no sobre la puerta del día 1 — sin
   // esto la sospecha se queda fija en 0 (ver rules.gate) y el aviso rojo
   // nunca se dispara pase lo que se le fuerce a mano.
-  game.metGabo = true;
+  // `clearGate` y no `metGabo = true` a pelo: la bandera sola abre el piso
+  // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
+  // es la campana al enterarse de que la mision de la puerta cayo.
+  game.clearGate();
   // El jefe fuera de escena: aquí se mide la mecánica del sitio, no su IA.
   game.boss.setTether(null);
   game.boss._updateVision = () => {

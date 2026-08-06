@@ -41,7 +41,7 @@ const MOOD_TO_POSE = {
 
 const HEIGHT = 1.5;
 
-export function createPortrait3D(host) {
+export function createPortrait3D(host, { framing = "bust" } = {}) {
   let renderer = null;
   let scene = null;
   let camera = null;
@@ -97,8 +97,14 @@ export function createPortrait3D(host) {
     // El retrato es una franja alta y estrecha: si se encuadra por ancho, en
     // pantallas anchas la cabeza se sale por arriba. Se encuadra por ALTO y se
     // deja que el ancho sobre.
-    const lookY = HEIGHT * 0.74;
-    const fit = HEIGHT * 0.58; // media altura visible, de la cintura a la coronilla
+    // Dos encuadres: "bust" (el diálogo, de la cintura a la coronilla) y
+    // "face" (la placa del HUD: SOLO la cara, como el retrato de la
+    // referencia). El de cara mira un pelín más arriba y encuadra apretado —
+    // que respire poco es lo que lo hace leerse como una insignia y no como
+    // una miniatura del personaje.
+    const face = framing === "face";
+    const lookY = face ? HEIGHT * 0.84 : HEIGHT * 0.74;
+    const fit = face ? HEIGHT * 0.21 : HEIGHT * 0.58;
     camera.position.set(0, lookY + HEIGHT * 0.05, fit / Math.tan((camera.fov * Math.PI) / 360) + 0.35);
     camera.lookAt(0, lookY, 0);
     camera.updateProjectionMatrix();

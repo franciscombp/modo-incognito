@@ -24,6 +24,7 @@ import { createSave } from "./game/save.js";
 import { createTouchControls } from "./game/touchControls.js";
 import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./game/settings.js";
 import { createPopups } from "./ui/popups.js";
+import { createStage, applyStageScale, stageScale, STAGE_W, STAGE_H } from "./ui/stage.js";
 import { isMutedState, setMuted, getVolume, unmute } from "./game/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
 import { initTheme } from "./game/theme.js";
@@ -39,6 +40,9 @@ const BUILD = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
 
 const canvas = document.getElementById("scene");
 const app = document.getElementById("app");
+// La escala del lienzo, ANTES del primer frame: sin esto el arranque se ve
+// un instante sin escalar (o recortado) hasta que corre el resto del setup.
+applyStageScale();
 const boot0 = document.getElementById("boot");
 
 // El arranque es el BOOT de una computadora (la interfaz ES un sistema
@@ -75,13 +79,23 @@ if (bootLog) {
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
 const quality0 = resolveQuality();
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality0.maxPixelRatio));
+/**
+ * EL LIENZO FIJO: el canvas mide 1920×1080 en coordenadas de lienzo y el
+ * CSS lo escala entero. Para que el 3D no salga borroso, el BUFFER se
+ * dimensiona a resolución real: pixelRatio = dpr × escala del lienzo (con
+ * el tope de calidad de siempre). setSize va con updateStyle=false — el
+ * tamaño CSS lo manda el design system, no Three.
+ */
+function stagePixelRatio(maxPR) {
+  return Math.min(window.devicePixelRatio, maxPR) * Math.min(stageScale(), 2);
+}
+renderer.setPixelRatio(stagePixelRatio(quality0.maxPixelRatio));
 renderer.shadowMap.enabled = quality0.shadows;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(STAGE_W, STAGE_H, false);
 
 const scene = new THREE.Scene();
 // Cielo y niebla cálidos desde el primer frame: el tema del día los reajusta
@@ -151,15 +165,16 @@ async function boot() {
   snapInPlace(floorplan.hidingSpots);
   snapInPlace(floorplan.safeSpots);
 
-  const aspect = window.innerWidth / window.innerHeight;
-  const view = new DioramaCamera(aspect);
+  // El encuadre es SIEMPRE 16:9: forma parte del contrato del lienzo. Lo
+  // que cambia con la pantalla son las bandas negras, nunca lo que se ve.
+  const view = new DioramaCamera(STAGE_W / STAGE_H);
   const camera = view.camera;
 
   const pixels = new PixelPipeline(renderer, {
     pixelSize: getSettings().pixelSize,
     levels: getSettings().colorLevels,
   });
-  pixels.setSize(window.innerWidth, window.innerHeight);
+  pixels.setSize(STAGE_W, STAGE_H);
 
   // ---- Characters, straight from data/characters.json ----
   const chars = data.characters;
@@ -206,7 +221,7 @@ async function boot() {
     // piso, así que la calle y la oficina parecen la misma ciudad.
     crowd: [0, 1, 2, 3, 4, 5].map((i) => looks.extra(i)),
   });
-  crossing3D.resize(window.innerWidth / window.innerHeight);
+  crossing3D.resize(STAGE_W / STAGE_H);
 
   // Los minijuegos se registran aquí; el motor solo los busca por el id que
   // pida el JSON del día (ver game/minigames.js). Añadir otro es una línea
@@ -313,9 +328,9 @@ async function boot() {
 
   const popups = createPopups(app, camera);
 
-  // El control de sonido ya no es un widget suelto en la esquina: es un
-  // menulet de la barra (ver ui/menubar.js), como en macOS. Flotando aparte
-  // chocaba con los paneles de la propia barra y duplicaba su función.
+  // El control de sonido ya no es un widget suelto en la esquina: vive en la
+  // pausa (ver ui/gamehud.js y su atajo `V`). Flotando aparte chocaba con los
+  // paneles y duplicaba su función.
 
   const engine = createEngine({
     app,
@@ -334,6 +349,7 @@ async function boot() {
     looks: data.looks,
     modes: data.modes,
     bossConfig: data.bossConfig,
+    campaignData: data.campaign,
     playerSheet: modeOf(save.characterId)?.sheet ?? chars.player.sheet,
     onCharacter: (id) => applyCharacterSprite(id),
     playerName: chars.player.name ?? "Tú",
@@ -387,7 +403,8 @@ async function boot() {
   });
   canvas.addEventListener("pointermove", (e) => {
     if (e.pointerId !== orbitPointer) return;
-    view.orbitBy((e.clientX - orbitLast.x) * 0.25, -(e.clientY - orbitLast.y) * 0.2);
+    const k = 1 / Math.max(stageScale(), 0.001);
+    view.orbitBy((e.clientX - orbitLast.x) * 0.25 * k, -(e.clientY - orbitLast.y) * 0.2 * k);
     orbitLast = { x: e.clientX, y: e.clientY };
   });
   const endOrbit = (e) => {
@@ -444,14 +461,25 @@ async function boot() {
   );
 
   function resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    renderer.setSize(w, h);
-    pixels.setSize(w, h);
-    view.setAspect(w / h);
-    crossing3D.resize(w / h);
+    // Con el lienzo fijo, el resize ya no cambia el LAYOUT (siempre
+    // 1920×1080): solo la densidad del buffer, que sigue a la escala.
+    const q = resolveQuality(getSettings().quality);
+    renderer.setPixelRatio(stagePixelRatio(q.maxPixelRatio));
+    renderer.setSize(STAGE_W, STAGE_H, false);
+    pixels.setSize(STAGE_W, STAGE_H);
+    view.setAspect(STAGE_W / STAGE_H);
+    crossing3D.resize(STAGE_W / STAGE_H);
   }
   window.addEventListener("resize", resize);
+
+  // La cortina de orientación pausa el juego mientras el teléfono esté en
+  // vertical, y lo suelta al girar. Fuera del lienzo a propósito.
+  createStage({
+    onCover(covered) {
+      if (covered) engine.game?.setPaused(true);
+      else if (!engine.menus.isOpen && !engine.dialogue.isOpen) engine.game?.setPaused(false);
+    },
+  });
 
   window.addEventListener("keydown", (e) => {
     if (e.key.toLowerCase() === "m" && !engine.dialogue.isOpen && !engine.menus.isOpen) {
@@ -483,7 +511,7 @@ async function boot() {
     if (markerGroup) markerGroup.visible = s.showMarkers;
 
     const q = resolveQuality(s.quality);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.maxPixelRatio));
+    renderer.setPixelRatio(stagePixelRatio(q.maxPixelRatio));
     renderer.shadowMap.enabled = q.shadows;
     if (key.shadow.mapSize.x !== q.shadowMap) {
       key.shadow.mapSize.set(q.shadowMap, q.shadowMap);
@@ -493,8 +521,8 @@ async function boot() {
     scene.traverse((obj) => {
       if (obj.isMesh || obj.isInstancedMesh) obj.castShadow = obj.castShadow && q.shadows;
     });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    pixels.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(STAGE_W, STAGE_H, false);
+    pixels.setSize(STAGE_W, STAGE_H);
   });
 
   // Frame-rate watchdog. On "auto" a device that cannot hold ~30fps for a

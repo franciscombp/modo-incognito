@@ -31,7 +31,7 @@ const report = await page.evaluate(async () => {
   // captura), no sobre la puerta del día 1 — sin esto la sospecha se
   // congela en 0 pase lo que pase (ver rules.gate) y varias de las
   // aserciones de abajo pasarían por el motivo equivocado.
-  game.metGabo = true;
+  game.clearGate(); // la puerta del dia, por la via unica (ver Game.clearGate)
 
   const fp = window.__floorplan;
   const out = {};
@@ -92,7 +92,7 @@ const report = await page.evaluate(async () => {
   const gameK = engine.game;
   gameK.setPaused(false);
   gameK.minions.forEach((m) => m.setActive(false));
-  gameK.metGabo = true; // que sea explore mode lo que ponga la sospecha a 0, no la puerta
+  gameK.clearGate(); // que sea explore mode lo que ponga la sospecha a 0, no la puerta
   gameK.suspicion = 999; // try to force it, explore mode should zero it next frame
   gameK.boss.catches = () => true;
   gameK.boss.isHunting = true;
@@ -112,7 +112,7 @@ const report = await page.evaluate(async () => {
   // La sospecha no sube mientras la puerta del día 1 siga sin superar (ver
   // rules.gate) — este test es sobre la mecánica ya en marcha, no sobre esa
   // puerta.
-  game2.metGabo = true;
+  game2.clearGate();
   game2.player.position.x = fp.spawn.x;
   game2.player.position.z = fp.spawn.z;
   game2.player.isDoingActivity = false;

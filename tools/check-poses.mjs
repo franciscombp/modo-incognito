@@ -38,11 +38,17 @@ const result = await page.evaluate(async () => {
   document.querySelector(".vn-layer")?.classList.add("hidden");
   // Este test es sobre las poses de actividad, no sobre la puerta del día 1
   // (encontrar a Gabo primero) — se salta directo a tareas desbloqueadas.
-  game.metGabo = true;
+  // `clearGate` y no `metGabo = true` a pelo: la bandera sola abre el piso
+  // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
+  // es la campana al enterarse de que la mision de la puerta cayo.
+  game.clearGate();
 
   const out = { hasPoses: player.sprite.hasPoses, activities: [] };
 
-  for (const station of game.objectives) {
+  // Solo las ESTACIONES del plano: la campaña también reparte misiones sin
+  // sitio fijo (`dynamic`) —hablar con alguien, el tutorial de fingir— y esas
+  // no tienen pose de actividad que muestrear.
+  for (const station of game.objectives.filter((o) => !o.dynamic)) {
     player.keys.clear();
     player.position.x = station.x;
     player.position.z = station.z;

@@ -10,7 +10,9 @@ import { createGuides } from "../ui/guides.js";
 import { createMinimap } from "../ui/minimap.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
-import { createMenuBar } from "../ui/menubar.js";
+import { createGameHud } from "../ui/gamehud.js";
+import { createCampaign } from "./campaign.js";
+import { createHrCourse } from "../ui/hrCourse.js";
 import { createEggReveal } from "../ui/eggReveal.js";
 import { createMinigameRegistry } from "./minigames.js";
 import {
@@ -54,6 +56,7 @@ export function createEngine({
   looks = null,
   modes = {},
   bossConfig = null,
+  campaignData = null,
   playerSheet = "npc-camina",
   playerName = "Tú",
   minions = new Map(),
@@ -73,14 +76,25 @@ export function createEngine({
   const dialogue = createDialogue(app, { looks });
   const lobby = createLobby(app);
   const eggReveal = createEggReveal(app);
-  // La barra de menú es el HUD de verdad y vive fuera de todo lo demás: se ve
-  // en los menús, en el ascensor y jugando. Ver ui/menubar.js.
-  const menuBar = createMenuBar(app, {
-    title: manifest.title ?? "Modo Incógnito",
+  // El HUD de partida (ui/gamehud.js): la placa con la cara viva, la lista
+  // de misiones, el reloj centrado y el nombre de zona. Sustituye a la barra
+  // de menú tipo macOS — el equipo creativo fue por un HUD de juego (ver
+  // docs/HUD.md). Mantiene la interfaz de la barra (render/notify/...), así
+  // que hud.js no cambia de contrato.
+  const menuBar = createGameHud(app, {
     onOpenPause: () => openPause(),
+    playerLook: null, // la pone setPlayerLook en cuanto exista `save` (abajo)
   });
   hud.attachMenuBar(menuBar);
   const save = createSave();
+  // El director de campaña (docs/CAMPANA.md): misiones encadenadas, Qués y
+  // Cómos, la nota de RRHH. Sin datos de temporada, `active` es false y el
+  // juego se comporta como siempre — la campaña es opt-in por datos.
+  const campaign = createCampaign({ save, data: campaignData });
+  const hrCourse = createHrCourse(app);
+  // Con el guardado ya leído se sabe qué personaje es la jugadora: la placa
+  // del HUD enseña SU cara desde el primer frame, no la del por defecto.
+  menuBar.setPlayerLook?.(save.characterId ? looks?.get?.(save.characterId) : null);
   let crossingActive = false;
 
   const eggIds = [...locationEggs.map((e) => e.id), ...codeEggs.map((e) => e.id)];
@@ -255,6 +269,8 @@ export function createEngine({
         const sheet = modes[id]?.sheet ?? playerSheet;
         nameToSheet.set(playerName, sheet);
         nameToSheet.set("Tú", sheet);
+        // La placa del HUD enseña la CARA del personaje elegido: cambia con él.
+        menuBar.setPlayerLook?.(looks?.get?.(id) ?? null);
         onCharacter?.(id);
       },
     },
@@ -575,6 +591,38 @@ export function createEngine({
       onWarn: (info) => handleWarn(info),
       onHeatAlert: () => showHeatAlert(),
     });
+
+    // ── LA CAMPAÑA TOMA EL DÍA (docs/CAMPANA.md) ──
+    // El plan de hoy sustituye a las tareas sueltas del JSON del día: las
+    // misiones elegibles (cadena `requiere` satisfecha, únicas no hechas)
+    // entran como objetivos; el resto se desbloquea EN CALIENTE al caer sus
+    // requisitos, con su aviso — la zanahoria de la cadena.
+    if (campaign.active && !game.rules.explore) {
+      const plan = campaign.startDay();
+      game.objectives.length = 0;
+      game.addCampaignObjectives(plan);
+      game.onMissionDone = (id) => {
+        // El objetivo en pantalla también se marca: algunas misiones se
+        // cumplen fuera de la lista (la puerta del día) y sin esto quedaba
+        // la fila como pendiente para siempre.
+        const obj = game.objectives.find((o) => o.id === id);
+        if (obj && !obj.done) {
+          obj.done = true;
+          obj.progress = obj.time ?? 1;
+        }
+        const nuevas = campaign.complete(id);
+        if (!nuevas.length) return;
+        game.addCampaignObjectives(nuevas);
+        for (const n of nuevas) {
+          hud.menuBar?.notify?.({
+            icon: n.icono ?? "star",
+            text: `Nueva misión: ${n.titulo}`,
+            tone: "info",
+          });
+        }
+      };
+    }
+
     // Pausado: el reloj no puede correr mientras se abren las puertas ni
     // durante la presentación de los secuaces.
     game.setPaused(true);
@@ -697,7 +745,7 @@ export function createEngine({
     // secuaces. Un día sin `gate` ya empieza desbloqueado (game.metGabo lo
     // arranca en true), así que esto no hace nada en esos días.
     if (game?.gate && !game.metGabo && npc.cast === game.gate.guard) {
-      game.metGabo = true;
+      game.clearGate();
       game.toast?.("Actividades desbloqueadas");
     }
 
@@ -739,6 +787,9 @@ export function createEngine({
       )
     );
     if (opts?.caught) buzz([15, 30, 15]);
+    // Hablar con un colega puede SER la misión (un "cómo" de la campaña):
+    // se cumple al cerrar la charla, no al abrirla — interrumpirla no vale.
+    if (!opts?.caught) game?.completeTalk?.(npc.cast);
   }
 
   // Segundos que el jefe pasa sin observar justo después de amonestar, para
@@ -818,6 +869,32 @@ export function createEngine({
   }
 
   async function finishDay(day, result) {
+    // TRES AMONESTACIONES YA NO DESPIDEN: te mandan a RRHH (docs/CAMPANA.md
+    // §7). El curso del botón-que-huye es el castigo; al terminarlo, el DÍA
+    // se reinicia — pierdes el progreso de HOY, pero las misiones únicas ya
+    // completadas quedaron guardadas en el acto (guardado por tareas). El
+    // alcance es el DÍA a propósito: la temporada entera sería brutal y la
+    // carrera lo volvería un roguelike.
+    const fired = !result.win && result.warnings >= (day.rules?.maxWarnings ?? 3);
+    if (fired && campaign.active) {
+      setInLevel(false);
+      playStinger("defeat");
+      const strikes = save.getFlag("rrhh") ?? 0;
+      save.setFlag("rrhh", strikes + 1);
+      await dialogue.play(
+        withSprites([
+          {
+            speaker: "Gabo (Barbie Malibú)",
+            text: "Tres amonestaciones. No te despido porque el proceso es LARGUÍSIMO: te mando al curso de cumplimiento. Otra vez.",
+          },
+        ]),
+        ctx
+      );
+      await hrCourse.play({ strikes });
+      startDay(dayIndex, { skipPrologue: true });
+      return;
+    }
+
     setInLevel(false);
     playStinger(result.win ? "victory" : "defeat");
     save.setHadWarningYesterday(result.warnings > 0);
@@ -829,6 +906,9 @@ export function createEngine({
 
     const isLast = dayIndex >= levels.length - 1;
     const done = result.objectives.filter((o) => o.done).length;
+    // La EVALUACIÓN de RRHH: nota por los dos ejes (Qués y Cómos) y avance
+    // de calendario — AAA salta la temporada, A asciende por antigüedad.
+    const evalRes = campaign.active ? campaign.endDay({ win: result.win }) : null;
     const actions = [];
 
     if (result.win && !isLast) {
@@ -860,11 +940,12 @@ export function createEngine({
         : "Te ascendieron a cliente",
       timeLeft: result.timeLeft,
       timeGained: result.timeGained,
-      body: result.win
-        ? `${done}/${result.objectives.length} actividades · ${result.eggsFound} secretos hoy`
+      body: (result.win
+        ? `${done}/${result.objectives.length} misiones · ${result.eggsFound} secretos hoy`
         : result.warnings >= (day.rules?.maxWarnings ?? 3)
         ? "Sin advertencias de sobra: te ascienden a cliente."
-        : "Se acabó la jornada con objetivos pendientes.",
+        : "Se acabó la jornada con objetivos pendientes.") +
+        (evalRes ? `\nEvaluación ${evalRes.nota} · ${evalRes.detalle}` : ""),
       win: result.win,
       actions,
     });
