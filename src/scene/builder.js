@@ -18,6 +18,8 @@ import { WORLD_SCALE as S } from "./config.js";
 import { createLabel } from "./labels.js";
 import { createBeacon } from "./beacons.js";
 import { texturedMaterial, getTexture } from "./textures.js";
+import { createSunPools } from "./sunlight.js";
+import { setSunPools } from "./lighting.js";
 import { cozyMaterial, SURFACES } from "./cozy.js";
 import { createFurnitureRegistry, placeSeatedTable, placeBistroTable } from "./furniture.js";
 
@@ -56,6 +58,14 @@ export function buildOffice(scene, world) {
   group.add(buildCorridors());
   group.add(buildPerimeterWalls(world));
   group.add(buildBarriers(world));
+
+  // Los charcos de luz de ventana. Se montan AQUÍ porque este es el único
+  // sitio que tiene a la vez el contorno del piso y el alto de la fachada;
+  // quien los mueve es `game/themes.js`, que sabe dónde está el sol. Los dos
+  // se encuentran a través del registro de `lighting.js`. Ver `sunlight.js`.
+  const pools = createSunPools(footprint, PERIMETER_WALL_H);
+  setSunPools(pools);
+  group.add(pools.group);
 
   areas.forEach((area) => {
     const label = buildArea(area, world, { registry, carpets, glassPanes, coreParts, extras });

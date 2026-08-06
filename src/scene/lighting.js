@@ -93,3 +93,33 @@ export function setSunAngles(key, { azimuth, elevation }, S = 1) {
   key.position.set(Math.cos(azimuth) * horizontal, Math.sin(e) * r, Math.sin(azimuth) * horizontal);
   key.target.updateMatrixWorld();
 }
+
+/**
+ * EL REGISTRO DE LOS CHARCOS DE LUZ.
+ *
+ * Los charcos (`sunlight.js`) los CONSTRUYE `builder.js`, porque es quien
+ * tiene el contorno del piso y el alto de la fachada; y los MUEVE
+ * `themes.js`, porque es quien sabe dónde está el sol en cada instante. Ni
+ * uno ni otro se conocen, así que se dejan aquí en medio — al lado de la luz
+ * a la que siguen.
+ *
+ * Va por un registro de módulo, y no pasándolos por el objeto de luces,
+ * a propósito: los charcos nacen al MONTAR el piso, mucho después de que
+ * `main.js` haya creado las luces y se las haya dado al motor. Enchufarlos
+ * por ahí obligaría a que el motor los conociera, y este frente no debe
+ * tocar el motor (ver `docs/ARTE.md`).
+ *
+ * Se reemplaza entero en cada montaje: un día nuevo reconstruye el piso, y
+ * quedarse con los charcos del anterior sería dejar luz de un edificio que
+ * ya no existe.
+ */
+let sunPools = null;
+
+export function setSunPools(pools) {
+  sunPools?.dispose?.();
+  sunPools = pools ?? null;
+}
+
+export function getSunPools() {
+  return sunPools;
+}
