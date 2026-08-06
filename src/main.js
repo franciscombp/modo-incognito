@@ -5,6 +5,7 @@ import { buildOffice } from "./scene/builder.js";
 import { createCollisionWorld } from "./scene/collision.js";
 import { buildNavmesh } from "./scene/navmesh.js";
 import { PixelPipeline } from "./scene/pixelPipeline.js";
+import { createWorldLighting } from "./scene/lighting.js";
 import { createCrossing3D } from "./scene/crossing3d.js";
 import { createMinigameRegistry } from "./game/minigames.js";
 import { WORLD_SCALE as S } from "./scene/config.js";
@@ -104,26 +105,15 @@ const scene = new THREE.Scene();
 scene.background = skyTexture();
 scene.fog = new THREE.Fog(new THREE.Color(ATMOSPHERE.fog), 60, 190);
 
-// -------- Luz cozy: mucho relleno suave y cálido, y una key floja que apenas
-// marca sombras. Un contraste fuerte endurece los muñecos de color plano y
-// rompe justo la sensación que buscamos. El tema del día la re-tinta. -----
-const ambient = new THREE.AmbientLight(0xfff6ea, 1.15);
-scene.add(ambient);
-const hemi = new THREE.HemisphereLight(0xf0e6ff, 0xd8c4a8, 0.95);
-scene.add(hemi);
-
-const key = new THREE.DirectionalLight(0xfff0d4, 1.1);
-key.position.set(26 * S, 40 * S, 20 * S);
-key.castShadow = true;
-key.shadow.mapSize.set(quality0.shadowMap, quality0.shadowMap);
-const shadowSpan = 44 * S;
-key.shadow.camera.left = -shadowSpan;
-key.shadow.camera.right = shadowSpan;
-key.shadow.camera.top = shadowSpan;
-key.shadow.camera.bottom = -shadowSpan;
-key.shadow.camera.far = 220 * S;
-key.shadow.bias = -0.0018;
-scene.add(key);
+// La luz del piso se monta en scene/lighting.js — es ARTE, y se calibra en
+// muchas pasadas seguidas, así que tenerla aquí hacía chocar cada ajuste de
+// luz con cualquier cambio de arranque. Ver docs/ARTE.md.
+// El objeto que devuelve es el mismo que el motor derrama en applyTheme, así
+// que añadir una luz allí llega sola a game/themes.js sin tocar este archivo.
+const lights = createWorldLighting(scene, quality0, S);
+// Solo el sol se vuelve a tocar desde aquí, y solo para el mapa de sombras
+// cuando cambia la calidad. El color y el ángulo los manda game/themes.js.
+const { key } = lights;
 
 async function boot() {
   // PWA a la carta: el service worker cachea SOLO los .glb (una descarga de
@@ -338,7 +328,7 @@ async function boot() {
     canvas,
     renderer,
     scene,
-    lights: { ambient, hemi, key },
+    lights,
     player,
     boss,
     npcs,
