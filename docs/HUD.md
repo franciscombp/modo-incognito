@@ -1,8 +1,25 @@
 # El HUD — conceptualización
 
-**Estado: NADA DE ESTO ESTÁ IMPLEMENTADO.** Es el documento para pensarlo
-antes de tocar código. Sirve igual que `MOTOR.md`: escribe encima, tacha,
-contesta las preguntas del final, y lo que quede aprobado se construye.
+**Estado: LA MAYOR PARTE YA ESTÁ EN JUEGO** (`src/ui/gamehud.js`). Este
+documento sigue siendo donde se piensa antes de tocar código —igual que
+`MOTOR.md`—, pero ya no describe un futuro: describe lo construido, y marca
+lo que falta. Escribe encima, tacha, contesta las preguntas del final.
+
+| Sección | Estado | Nota |
+|---|---|---|
+| §4.1 La placa de identidad | ✅ | Cara VIVA (no retrato estático), rombos de amonestación y medidor de presión, fundidos en una pieza |
+| §4.2 El reloj al centro | ✅ | Se conservó tal cual estaba |
+| §4.3 Nombre de zona (inf. der.) | ✅ | Sale al entrar y se va solo |
+| §4.4 Prompt de acción (inf. izq.) | ◻︎ | Sigue solo el botón táctil |
+| §4.5 Menú de pausa con pestañas | ◻︎ | Pendiente: hoy son pantallas sueltas |
+| §4.6 El bisel como lenguaje de formas | ◻︎ parcial | La placa y las filas ya lo llevan; falta el token `--cut` común |
+| §4bis Lista de tareas | ✅ | Opción **A** (placa izq. / tareas der.), teclas `1`–`3`, medalla compartida con el piso |
+| §4bis.3 Repliegue por presión | ◻︎ | La lista aún no se acorta en alerta |
+
+> **La barra de menú de macOS ya no existe.** `src/ui/menubar.js` se borró y
+> `gamehud.js` ocupa su sitio con la MISMA interfaz pública
+> (`render`/`notify`/`resetNotices`/`closePanels`/`setLive`), así que el
+> snapshot por frame de `hud.js` sigue siendo la única verdad.
 
 **Referencias en el repo** (`docs/referencias/hud/`):
 
@@ -335,6 +352,11 @@ el snapshot por frame, y las microinteracciones del bucle (`.mi-shake`,
 `.mi-critical`, el tic del reloj) se disparan desde `menubar.js`. Al quitarla
 hay que mudar esos disparos a las piezas nuevas o el feedback desaparece con
 ella.
+
+> ✅ **Hecho así.** `gamehud.js` se quedó con la MISMA interfaz pública y con
+> el mismo `attachMenuBar`, así que el snapshot por frame no se tocó y las
+> microinteracciones se mudaron con él. El nombre del método delata su origen
+> y se deja: renombrarlo solo movería ruido.
 
 **Tareas (§4bis)**
 - [ ] ¿Colocación A, B o C?

@@ -378,9 +378,11 @@ export function createHud(root) {
     });
   }
 
-  // La barra de menú (ui/menubar.js) se monta fuera del HUD pero lee el MISMO
+  // El HUD de partida (ui/gamehud.js) se monta fuera de aquí pero lee el MISMO
   // snapshot por frame: es la misma verdad enseñada de dos formas, no dos
-  // fuentes que se puedan desincronizar.
+  // fuentes que se puedan desincronizar. El nombre `attachMenuBar` es de
+  // cuando lo que colgaba era la barra estilo macOS; el contrato no cambió al
+  // sustituirla, así que renombrarlo solo movería ruido.
   let menuBar = null;
   function attachMenuBar(bar) {
     menuBar = bar;

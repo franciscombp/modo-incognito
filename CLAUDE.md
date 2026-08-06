@@ -10,25 +10,33 @@ no la dupliques aquí.
 > - [`docs/MOTOR.md`](docs/MOTOR.md) — reglas y balance del bucle: sospecha,
 >   persecución, lugares seguros. El porqué de cada número.
 > - [`docs/CAMPANA.md`](docs/CAMPANA.md) — la campaña: misiones encadenadas,
->   Qués y Cómos, temporadas, rangos, jubilación. **En diseño, sin implementar.**
-> - [`docs/HUD.md`](docs/HUD.md) — la interfaz de partida. **En diseño.**
+>   Qués y Cómos, temporadas, rangos, jubilación. **Temporada 1 jugable;
+>   2–5 sin escribir.**
+> - [`docs/HUD.md`](docs/HUD.md) — la interfaz de partida. **Construida,
+>   menos la pausa por pestañas.**
 > - [`docs/PANTALLAS.md`](docs/PANTALLAS.md) — el LIENZO FIJO (1920×1080
->   apaisado, escalado como un juego de motor) y las pantallas de menú:
->   selección de personaje, evaluación, RRHH. **En diseño.**
+>   apaisado, escalado como un juego de motor) y las pantallas de menú.
+>   **El lienzo y RRHH construidos; el expediente de personal y la evaluación,
+>   en diseño.**
+>
+> Cada uno abre con una tabla de qué está construido y qué no. Esa tabla es la
+> verdad; si implementas algo de ahí, actualízala en el mismo commit.
 
-## Estado: MVP del día 1
+## Estado: temporada 1, día 1
 
-La campaña publicada es **solo el día 1** y está pulida de punta a punta:
-ascensor → tres actividades (café, película, comer) en el **ala sur**, con
-Gabo atado a la jugadora. El cruce de la avenida existe y funciona, pero está
-DESACTIVADO (ver más abajo) para tener el foco en el piso. Los archivos `dia-2`..`dia-5`
+La campaña publicada es **la temporada 1 sobre el día 1**: ascensor →
+presentarte con Gabo → y de ahí se abre la cadena de misiones (fingir, café,
+el chisme de Fran, la película, la comida) en el **ala sur**, con Gabo atado a
+la jugadora. El cruce de la avenida existe y funciona, pero está DESACTIVADO
+(ver más abajo) para tener el foco en el piso. Los archivos `dia-2`..`dia-5`
 siguen en `public/data/levels/` pero **no están en `manifest.json` →
 `levels`**, así que el juego no los ve. Si te piden reactivar un día, es
 añadir su id a esa lista y nada más — no hay código que tocar.
 
-Si te piden algo del día 1, revisa que no rompas ninguna de sus tres piezas:
-`levels/dia-1.json` (reglas y guion), `scenes/piso7.json` (plano, muro,
-actividades) y `src/ui/lobby.js` (el ascensor con el que abre).
+Si te piden algo del día 1, revisa que no rompas ninguna de sus **cuatro**
+piezas: `campaign/temporada-1.json` (qué se te pide y en qué orden),
+`levels/dia-1.json` (reloj, guion y correa), `scenes/piso7.json` (plano, muro,
+estaciones) y `src/ui/lobby.js` (el ascensor con el que abre).
 
 ## Qué es esto
 
@@ -399,7 +407,7 @@ la capa 2 (`--ease-pop`, `--dur-*`), así que el TACTO se ajusta desde ahí igua
 que el color. Entradas de pantalla en cascada, brillo que barre lo pulsable,
 salto de lo elegido, y el feedback del bucle: tarea cumplida, reloj ganado,
 sacudida al subir la presión y latido cuando es crítica (`.mi-*`, disparadas
-desde `menubar.js`).
+desde `gamehud.js`).
 
 Dos reglas: nada de esto puede tapar el piso ni robar un clic, y TODO respeta
 `prefers-reduced-motion` — con mareo vestibular una pantalla que salta es una
@@ -442,33 +450,74 @@ Ese bloque va **al final a propósito**: alinea por cascada las familias
 históricas sin tener que perseguirlas por el archivo. Editar cada una "en su
 sitio" es justo lo que las volvió a separar las veces anteriores.
 
-### El HUD es una barra de menú de macOS (`src/ui/menubar.js`)
+### El LIENZO FIJO: 1920×1080 y nada más (`src/ui/stage.js`)
 
-**Lo que se ve mientras juegas tiene que ser el PISO, no la interfaz.** El
-HUD ya no son tres tarjetones flotando sobre el escenario: es una barra fina
-y permanente arriba del todo, al estilo de la de macOS, que está en pantalla
-SIEMPRE (menús, ascensor y partida). Los tarjetones viejos
-(`.inc-hud-objectives`, `.inc-hud-suspicion`, `.inc-hud-timer`,
-`.inc-hud-scorepanel`) siguen existiendo porque de ellos sale el snapshot,
-pero están ocultos por CSS — no los resucites sin motivo.
+**Ya no hay diseño responsive: hay UN diseño.** El juego entero se dibuja
+sobre un lienzo de 1920×1080 apaisado y ese lienzo se ESCALA para caber en la
+pantalla, con bandas negras si sobra. Es como escala un juego de Unity, y es
+lo que permite que un botón de 40 px mida 40 px SIEMPRE. Antes había 19 media
+queries peleándose por seis tamaños, y cada elemento nuevo sumaba tres reglas.
 
-- **Izquierda:** la marca, que además es el botón de pausa (como el menú
-  Apple).
-- **Derecha:** un "menulet" por cosa que vigilar — tareas (n/total), presión
-  (% de sospecha), reloj de la jornada y sonido. Cada uno enseña UNA línea de
-  resumen y guarda el detalle en un panel que se abre al pulsarlo (o con su
-  atajo: `Q` tareas, `V` sonido). El color del menulet ya avisa sin abrir
-  nada.
-- **Notificaciones:** las alertas caen bajo la barra y se van solas (Gabo te
-  vio, sube el nivel de búsqueda, cae una amonestación, terminas una tarea,
-  queda media hora). Nunca roban el foco. Si hay un panel abierto, se apartan
-  hacia abajo LO QUE MIDA ese panel — se mide, no se reserva una banda fija,
-  porque cada panel tiene su alto.
+Cinco cosas de este montaje que hay que saber, y las cinco costaron:
 
-La barra lee el MISMO snapshot por frame que el HUD (`hud.attachMenuBar`),
-así que no hay dos verdades que se puedan desincronizar. Y toda su piel sale
-de tokens `--bar-*` con su bloque para tema oscuro: re-tematizarla es una
-edición, no una batida por las reglas.
+- **`--ui-scale` la escribe JS, y como NÚMERO PURO** (`ui/stage.js` →
+  `applyStageScale`). Un `calc(100vw / 1920)` da una LONGITUD, y `scale()`
+  rechaza la transformación ENTERA: no es que escale mal, es que no escala
+  nada y no avisa.
+- **El `transform` de `#app` lo convierte en el bloque contenedor de todo lo
+  `position: fixed` de dentro.** Aquí eso se quiere: un HUD fijo se ancla al
+  lienzo, no a la ventana. Pero explica por qué un `fixed` "no llega al borde
+  de la pantalla" — llega al borde del lienzo, que es lo correcto.
+- **El 3D se renderiza a 1920×1080 lógicos** (`renderer.setSize(STAGE_W,
+  STAGE_H, false)`) y la nitidez la pone `stagePixelRatio()`, que multiplica
+  el `devicePixelRatio` por la escala. Sin eso, en un móvil se ve borroso y en
+  un 4K se ve a media resolución.
+- **Los deltas de puntero se dividen por la escala** antes de mover la
+  cámara, o el arrastre va desviado. Es el fallo clásico de este montaje.
+- **La cortina de orientación NO es un plan B, es obligatoria.** iPhone en
+  Safari no tiene Fullscreen API para elementos ni `screen.orientation.lock`:
+  en vertical, lo único que hay es pedir que giren el teléfono. Se pide
+  pantalla completa y bloqueo apaisado al primer toque, y si no se puede, cae
+  la cortina («Rotación de personal en curso») y el juego se pausa detrás.
+
+Los builders de `creador/` **se quedan fuera del lienzo** a propósito: son
+herramientas de escritorio y ahí el responsive normal es lo correcto.
+
+`npm run check:layout` ya no comprueba seis viewports: comprueba que el
+lienzo mide 1920×1080 pase lo que pase, que queda centrado en cinco
+relaciones de aspecto, que nada se sale en coordenadas de lienzo, que un clic
+en una esquina LLEGA a esa esquina, y que la cortina aparece en vertical.
+
+### El HUD de partida (`src/ui/gamehud.js`)
+
+**Lo que se ve mientras juegas tiene que ser el PISO, no la interfaz.**
+La barra de menú de macOS **ya no existe** (`src/ui/menubar.js` se borró): era
+una barra permanente arriba del todo, y obligaba a ABRIR un panel para ver
+tus tareas. Lo que hay ahora sale de `docs/HUD.md`, y va en las cuatro
+esquinas:
+
+- **Sup. izq. · la PLACA.** Retrato + amonestaciones + presión fundidos en UNA
+  pieza, no tres tarjetas: el ojo lo lee como "yo". El retrato es la cara
+  **VIVA** del muñeco 3D de tu personaje (`portrait3d.js` con
+  `framing: "face"`), no una foto.
+- **Sup. der. · la LISTA DE MISIONES.** Todas a la vez, sin cajas, separadas
+  por una línea fina. Cada fila lleva su atajo (`1` `2` `3`) para seguirla sin
+  abrir nada, su distancia, su progreso y **la misma medalla que flota sobre
+  el sitio en el piso** — la lista y el escenario hablan el mismo idioma. El
+  color dice el tipo: ámbar los Qués, cian los Cómos.
+- **Centro arriba · el reloj**, que es la única moneda del juego.
+- **Inf. der. · el nombre de zona**, texto pelado que sale al entrar y se va
+  solo.
+- **Notificaciones:** caen desde arriba y se van solas. Nunca roban el foco.
+
+Los tarjetones viejos (`.inc-hud-objectives`, `.inc-hud-suspicion`,
+`.inc-hud-timer`, `.inc-hud-scorepanel`) siguen existiendo porque de ellos
+sale el snapshot, pero están ocultos por CSS — no los resucites sin motivo.
+
+`gamehud.js` mantiene **la misma interfaz pública** que tenía la barra
+(`render` / `notify` / `resetNotices` / `closePanels` / `setLive`) y lee el
+MISMO snapshot por frame (`hud.attachMenuBar`), así que sigue sin haber dos
+verdades que se puedan desincronizar.
 
 **El scrim de los menús es SÓLIDO antes de que haya partida** (título, elegir
 personaje) y translúcido en pausa, donde sí hay una jornada detrás que vale
@@ -476,11 +525,35 @@ la pena entrever. Lo decide la clase `inc-game-active` del `<body>`, no qué
 pantalla esté abierta, para que ajustes-desde-pausa herede lo correcto.
 
 Si tocas el HUD o el CSS, corre `npm run check:layout` antes de darlo por
-bueno: comprueba en seis tamaños de pantalla que nada se solape, se recorte
-ni se salga. (⚠️ Cuando entre el lienzo fijo de `docs/PANTALLAS.md` §1, esta
-comprobación cambia de sentido: solo habrá UN tamaño y lo que se verifica es
-la escala y el encuadre.) Este tipo de fallo no se ve en el diff y es fácil que se cuele
-en una captura.
+bueno. Este tipo de fallo no se ve en el diff y es fácil que se cuele en una
+captura.
+
+### La CAMPAÑA reparte las tareas (`src/game/campaign.js`)
+
+El día ya no te suelta con tres actividades libres: las misiones vienen
+**encadenadas** desde `public/data/campaign/temporada-<n>.json`, y el motor
+sigue sin saber nada de temporadas — recibe una lista de objetivos como
+siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
+
+- **La cadena tiene HOLGURA a propósito.** `requiere` encadena, pero se
+  activan TODAS las misiones elegibles a la vez, no una. La cadena dice QUÉ
+  hacer, nunca CÓMO ni CUÁNDO: con una sola misión activa el piso se vuelve un
+  pasillo y el sigilo muere.
+- **Qués y Cómos.** `tipo: "que"` se hace sola; `tipo: "como"` exige hablar
+  con otro personaje. La nota los mira POR SEPARADO — puedes cumplir todo tu
+  trabajo y fallar por no hablar con nadie, que es el chiste entero.
+- **El guardado es POR TAREAS, no por días.** Una misión `unica` se persiste
+  EN EL ACTO. Las `diaria` son la rutina y vuelven cada día.
+- **Tres amonestaciones ya no despiden: mandan a RRHH** (`src/ui/hrCourse.js`)
+  a un curso de cumplimiento con un botón de saltar que se mueve — y que HUYE
+  del cursor a partir de la segunda visita. Siempre se puede terminar: es un
+  peaje, no otra derrota.
+- **Para superar la puerta del día se llama a `game.clearGate()`**, nunca
+  `metGabo = true` a pelo. Son dos pasos —la bandera y avisar a la campaña— y
+  hacer solo el primero abre el piso con la lista de tareas VACÍA. Media suite
+  de `tools/` se rompió justo así.
+- **Si no hay temporada cargada, el día vuelve a sus tareas del JSON.** El
+  modelo viejo sigue siendo el suelo; no se borró.
 
 ## Invariantes que no debes romper
 

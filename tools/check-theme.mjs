@@ -46,8 +46,14 @@ async function leer() {
       suelo: tok("--w-floor"),
       pared: tok("--w-wall"),
       tapiceria: tok("--w-fabric"),
-      // Lo que ve el ojo
-      cuerpoFondo: pintado("body", "backgroundColor"),
+      // Lo que ve el ojo: el VELO del menú, que es el fondo real del lienzo.
+      // (El body es otra cosa: son las BANDAS del lienzo fijo, lo que se ve
+      // fuera de los 1920×1080. Se mide aparte, abajo.)
+      cuerpoFondo: pintado(".inc-menu-scrim", "backgroundImage") ?? pintado(".px-menu-scrim", "backgroundImage"),
+      // Las bandas del lienzo. Son la única superficie que está FUERA de la
+      // pantalla del juego, y aun así salen de un token: si alguien vuelve a
+      // escribir un negro a mano en el body, esto deja de moverse.
+      bandas: tok("--letterbox"),
       // La paleta que el motor 3D tiene cargada AHORA
       mundo: window.__worldPalette ?? null,
     };
@@ -81,9 +87,14 @@ assert(
   `suelo ${terminal.suelo} -> ${cozy.suelo}`,
 );
 assert(
-  "el fondo de la página sigue al tema",
+  "el velo del menú sigue al tema",
   cozy.cuerpoFondo !== terminal.cuerpoFondo,
-  `${terminal.cuerpoFondo} -> ${cozy.cuerpoFondo}`,
+  `${String(terminal.cuerpoFondo).slice(0, 60)} -> ${String(cozy.cuerpoFondo).slice(0, 60)}`,
+);
+assert(
+  "hasta las bandas del lienzo salen de un token",
+  !!terminal.bandas && cozy.bandas !== terminal.bandas,
+  `--letterbox ${terminal.bandas} -> ${cozy.bandas}`,
 );
 
 // Y de vuelta: un tema no puede dejar poso.

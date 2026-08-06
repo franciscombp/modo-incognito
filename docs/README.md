@@ -6,10 +6,13 @@ corrige **aquí primero** y luego se implementa.
 | Documento | De qué va | Estado |
 |---|---|---|
 | [`MOTOR.md`](MOTOR.md) | Las reglas del bucle: sospecha, jefe, lugares seguros, escondites. El porqué de cada número | **Vivo** — describe lo implementado |
-| [`CAMPANA.md`](CAMPANA.md) | La carrera: misiones encadenadas, Qués y Cómos, temporadas, rangos, jubilación, RRHH | **Diseño** — sin implementar |
-| [`HUD.md`](HUD.md) | La interfaz DURANTE la partida: placa de identidad, lista de tareas, pausa | **Diseño** — sin implementar |
-| [`PANTALLAS.md`](PANTALLAS.md) | El lienzo fijo 1920×1080 y las pantallas que no son la partida: selección de personaje, evaluación, RRHH | **Diseño** — sin implementar |
+| [`CAMPANA.md`](CAMPANA.md) | La carrera: misiones encadenadas, Qués y Cómos, temporadas, rangos, jubilación, RRHH | **Parcial** — temporada 1 jugable; 2–5 sin escribir |
+| [`HUD.md`](HUD.md) | La interfaz DURANTE la partida: placa de identidad, lista de tareas, pausa | **Parcial** — placa, misiones, reloj y zona en juego; pausa por hacer |
+| [`PANTALLAS.md`](PANTALLAS.md) | El lienzo fijo 1920×1080 y las pantallas que no son la partida: selección de personaje, evaluación, RRHH | **Parcial** — lienzo y RRHH hechos; expediente y evaluación por hacer |
 | [`referencias/`](referencias/) | Las capturas que fijan el rumbo, con qué copiar de cada una | — |
+
+Cada documento abre con su propia tabla de **qué está construido y qué no**,
+archivo por archivo. Esa tabla es la verdad; esta de aquí es el resumen.
 
 ## Cómo se relacionan
 
@@ -25,7 +28,8 @@ corrige **aquí primero** y luego se implementa.
 
 `PANTALLAS.md` §1 (el lienzo fijo) es **la base de las otras dos**: hasta que
 eso esté, cualquier pantalla nueva se construiría contra un suelo que va a
-cambiar.
+cambiar. **Ya está**, así que ese bloqueo se levantó: lo que se construya
+ahora se mide en píxeles de 1920×1080 y no vuelve a moverse.
 
 ## Convenciones
 

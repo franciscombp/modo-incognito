@@ -41,7 +41,10 @@ const out = await page.evaluate(() => {
   // Este test es sobre la proximidad de los secuaces, no sobre la puerta del
   // día 1 (encontrar a Gabo primero) — se salta directo a la vigilancia ya
   // activada, o los secuaces no hablan aunque te toquen.
-  game.metGabo = true;
+  // `clearGate` y no `metGabo = true` a pelo: la bandera sola abre el piso
+  // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
+  // es la campana al enterarse de que la mision de la puerta cayo.
+  game.clearGate();
 
   const crispo = game.minions.find((m) => m.cast === "crispo");
   if (!crispo) return { error: "no crispo on duty today" };

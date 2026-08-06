@@ -16,11 +16,19 @@ una edición de verdad.
 > **Estado.** El día 1 es lo único publicado. Los días 2–5 existen como JSON
 > pero no están en `manifest.json → levels`, así que el juego no los ve.
 >
-> ⚠️ **Este documento describe el modelo ACTUAL: una jornada suelta con
-> actividades libres.** Hay un rediseño en marcha —misiones encadenadas,
-> temporadas, rangos y jubilación— en [`CAMPANA.md`](CAMPANA.md). El bucle de
-> sigilo de aquí (secciones 1–4) se conserva entero; lo que cambia es qué se
-> te pide dentro. Cuando eso se implemente, hay que actualizar este archivo.
+> ⚠️ **Las tareas del día YA NO SALEN DE AQUÍ: las reparte la campaña.**
+> `public/data/campaign/temporada-1.json` manda sobre qué se te pide y en qué
+> orden (misiones encadenadas, Qués y Cómos, temporadas y rangos:
+> [`CAMPANA.md`](CAMPANA.md)). **El bucle de sigilo de este documento —
+> secciones 1 a 5— se conserva entero y sin un solo cambio**: sospecha, jefe,
+> lugares seguros, escondites y reloj funcionan igual, porque la campaña
+> decide QUÉ, nunca CÓMO.
+>
+> En la práctica: donde este documento dice «la lista de tareas del día», hoy
+> hay que leer «la lista que la campaña dejó hoy». `levels/dia-1.json` sigue
+> mandando en el reloj, el guion, el jefe y su correa. Si no hay temporada
+> cargada, el día vuelve solo a sus tareas del JSON — el modelo viejo sigue
+> siendo el suelo, no se borró.
 
 ---
 
@@ -267,7 +275,8 @@ Esconderse baja la sospecha, pero **no rompe una persecución comprometida**.
 | Quiero cambiar… | Edito |
 |---|---|
 | Balance de sospecha y jefe | `public/data/boss-config.json` |
-| Reglas y guion del día | `public/data/levels/dia-1.json` |
+| **Qué tareas te piden, y en qué orden** | `public/data/campaign/temporada-1.json` |
+| Reloj, guion y correa del día | `public/data/levels/dia-1.json` |
 | Plano, muro, actividades, lugares seguros | `public/data/scenes/piso7.json` |
 | Diálogos | `public/data/dialogues.json` |
 | Aspecto de un personaje | `public/data/characters3d.json` |
@@ -297,6 +306,12 @@ Tres trampas al escribir uno, las tres pagadas ya:
    empieza en frío — y en frío el jefe ya no persigue (regla 3.1).
 3. El jefe lleva **su propia copia** de la sospecha, que `game.js` sincroniza
    una vez por cuadro. En un montaje hay que poner las dos.
+4. **Para saltarse la puerta del día 1 se llama a `game.clearGate()`**, nunca
+   `game.metGabo = true` a pelo. La bandera sola abre el piso pero deja la
+   lista de tareas VACÍA, porque quien reparte el plan del día es la campaña
+   al enterarse de que la misión de la puerta cayó. Media suite se rompió
+   justo así el día que entró la campaña, y el error que salía —«no se puede
+   leer x de undefined»— no apuntaba a nada parecido a la causa.
 
 ---
 

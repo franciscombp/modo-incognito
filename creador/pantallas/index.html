@@ -360,8 +360,8 @@
 
     <!-- AUDIO -->
     <section id="audio" class="section">
-      <h1>Barra de menú (HUD)</h1>
-      <p class="desc">Componente real (src/ui/menubar.js) — la barra estilo macOS que está siempre en pantalla: marca a la izquierda (abre la pausa), y a la derecha los menulets de tareas, presión, jornada y sonido. Cada uno abre su panel al pulsarlo. Aquí se monta con un estado de ejemplo.</p>
+      <h1>HUD de partida</h1>
+      <p class="desc">Componente real (src/ui/gamehud.js) — el HUD de las cuatro esquinas: la placa con la cara viva, las amonestaciones y la presión arriba a la izquierda; la lista de misiones a la derecha, con su atajo, su distancia y su medalla; el reloj al centro; el nombre de zona abajo. Aquí se monta con un estado de ejemplo.</p>
       <div id="stage-audio" class="component-box" style="height:340px; position:relative; overflow:hidden;"></div>
     </section>
 
@@ -389,7 +389,7 @@
     import { createMenus } from "../../src/ui/menus.js";
     import { createHud } from "../../src/game/hud.js";
     import { createDialogue } from "../../src/game/dialogue.js";
-    import { createMenuBar } from "../../src/ui/menubar.js";
+    import { createGameHud } from "../../src/ui/gamehud.js";
     import { icon as svgIcon, ICON_NAMES } from "../../src/ui/icons.js";
 
     // ---------------- Sidebar navigation ----------------
@@ -553,24 +553,30 @@
     // ---------------- Barra de menú, con estado de ejemplo -------------
     // .inc-bar es position:fixed (vive pegada al borde de la pantalla
     // mientras se juega); dentro de su ficha se ancla al recuadro para
-    // poder verla y abrir sus paneles sin salir del storybook.
+    // El HUD de partida real (sustituyó a la barra de menú): se monta con
+    // un snapshot representativo para poder verlo sin salir del storybook.
     {
       const stage = document.getElementById("stage-audio");
-      const bar = createMenuBar(stage, { title: "Modo Incógnito" });
-      bar.root.style.position = "absolute";
-      stage.querySelector(".inc-bar-notices").style.position = "absolute";
-      bar.setLive(true);
-      bar.render({
+      const hud = createGameHud(stage, {});
+      hud.root.style.position = "absolute";
+      hud.setLive(true);
+      hud.render({
         objectives: [
-          { id: "coffee", label: "Tomar café", icon: "coffee", done: true, progress: 3, time: 3 },
-          { id: "movie", label: "Ver película", icon: "movie", done: false, progress: 1.4, time: 4 },
-          { id: "snack", label: "Comer a escondidas", icon: "snack", done: false, progress: 0, time: 3 },
+          { id: "movie", label: "Ver película", icon: "movie", done: false, progress: 0.4, x: 4, z: 4 },
+          { id: "coffee", label: "Tomar café", icon: "coffee", done: false, progress: 0, x: 12, z: 2, kind: "como" },
         ],
-        suspicion: 62, suspicionMax: 100, warnings: 1, maxWarnings: 3, heat: 2, maxHeat: 4,
-        inSafeSpot: false, timeLeft: 128, levelDuration: 240, timeGained: 46,
-        currentTime: "2:40 p.m.", bossState: "PATROL", area: { name: "Cafetería" },
+        playerPos: { x: 0, z: 0 },
+        worldScale: 1.4,
+        suspicion: 42,
+        suspicionMax: 100,
+        warnings: 1,
+        maxWarnings: 3,
+        heat: 0,
+        timeLeft: 187,
+        currentTime: "11:24 a.m.",
+        area: { name: "Cafetería" },
+        bossState: "PATROL",
       });
-      bar.notify({ id: "demo", icon: "siren", tone: "danger", title: "Gabo te vio", text: "Viene para acá. Un lugar seguro lo corta." });
     }
   </script>
 </body>

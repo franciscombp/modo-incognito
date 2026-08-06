@@ -205,6 +205,9 @@ export class Game {
       : null;
 
     const wanted = this.rules.objectives;
+    // Todas las estaciones del plano, para que la campaña pueda añadir una
+    // que el día no traía (una misión desbloqueada en caliente).
+    this._allStations = activityStations;
     this.objectives = activityStations
       .filter((s) => !wanted || wanted.includes(s.id))
       .map((s) => ({ ...s, progress: 0, done: false }));
@@ -217,6 +220,9 @@ export class Game {
     this.nearDistraction = null;
     this.nearNpc = null;
     this.focusStation = null;
+    // La misión SEGUIDA a mano (teclas 1–3 en el HUD): si está pendiente,
+    // gana a la más cercana. null = automático de siempre.
+    this.preferredObjectiveId = null;
     this.message = null;
     this._actionFlash = null;
     this.currentArea = null;
@@ -296,6 +302,7 @@ export class Game {
     // persecución tiene que morir igual — con detección de flanco, ese caso
     // se quedaba perseguido para siempre.
     if (this.inSafeSpot) this._breakAllPursuits();
+    this._updateCampaignObjectives(dt);
 
     // "Tu sitio" ya no es media planta: es exactamente el lugar seguro en el
     // que estás. Fuera de ahí, estás fuera de tu puesto.
@@ -321,13 +328,23 @@ export class Game {
       const t = this._gateObjectives[0];
       this.focusStation = { x: this.boss.position.x, z: this.boss.position.z, label: t.label, icon: t.icon };
     } else {
-      let focusDist = Infinity;
-      for (const s of this.objectives) {
-        if (s.done) continue;
-        const d = Math.hypot(s.x - pos.x, s.z - pos.z);
-        if (d < focusDist) {
-          focusDist = d;
-          this.focusStation = s;
+      // Si la jugadora eligió una misión con las teclas 1–3, la brújula la
+      // respeta mientras siga pendiente; si no (o ya está hecha), vuelve al
+      // automático: la pendiente más cercana.
+      const preferred = this.preferredObjectiveId
+        ? this.objectives.find((s) => s.id === this.preferredObjectiveId && !s.done)
+        : null;
+      if (preferred) {
+        this.focusStation = preferred;
+      } else {
+        let focusDist = Infinity;
+        for (const s of this.objectives) {
+          if (s.done) continue;
+          const d = Math.hypot(s.x - pos.x, s.z - pos.z);
+          if (d < focusDist) {
+            focusDist = d;
+            this.focusStation = s;
+          }
         }
       }
     }
@@ -348,6 +365,9 @@ export class Game {
       if (this.nearStation.progress >= this.nearStation.time && !this.nearStation.done) {
         this.nearStation.done = true;
         this._completeActivity(this.nearStation);
+        // La campaña escucha: una estación cumplida puede desbloquear la
+        // siguiente misión de la cadena (ver engine.js -> campaign).
+        this.onMissionDone?.(this.nearStation.id);
       }
     } else {
       this.player.isDoingActivity = false;
@@ -555,7 +575,7 @@ export class Game {
     // búsqueda al máximo; que tenga que alcanzarte ES el juego.
 
     if (!this.gameOver && !this.rules.explore) {
-      if (this.objectives.every((o) => o.done)) this._finish(true);
+      if (this.objectives.length > 0 && this.objectives.every((o) => o.done)) this._finish(true);
       else if (this.timeLeft <= 0) this._finish(false);
     }
 
@@ -1122,6 +1142,114 @@ export class Game {
       };
     }
     return null;
+  }
+
+  /**
+   * Objetivos de CAMPAÑA que no son estaciones del plano (docs/CAMPANA.md):
+   *
+   * · "como" (personaje): hablar con ese NPC lo cumple. Su posición en la
+   *   lista y en la brújula es LA DEL NPC, que se mueve — se refresca por
+   *   frame en `_updateCampaignObjectives`.
+   * · "que" con accion "fingir": el tutorial de la mecánica central. Se
+   *   cumple acumulando unos segundos fingiendo en un lugar seguro; su
+   *   posición apunta al lugar seguro usable más cercano.
+   *
+   * Entran por `addCampaignObjectives` (al arrancar el día o al
+   * desbloquearse en caliente) y comparten lista con las estaciones: el
+   * HUD, el tracker y las medallas no saben de dónde vino cada uno.
+   */
+  addCampaignObjectives(missions) {
+    for (const m of missions) {
+      // La misión de la PUERTA del día (meet-gabo) ya la enseña el gate con
+      // su propia tarea: duplicarla dejaba una fila fantasma sin cumplir.
+      // Se compara por ID DE TAREA — comparar por guard fallaba porque el
+      // guard es el cast del jefe ("jefe"), no el personaje de la misión.
+      if (m.id === (this.gate?.task?.id ?? null)) continue;
+      if (this.objectives.some((o) => o.id === m.id)) continue;
+      if (m.estacion) {
+        // Estación del plano: si el día no la traía (wanted), se añade.
+        const st = this._allStations?.find((s) => s.id === m.estacion);
+        if (st && !this.objectives.some((o) => o.id === st.id)) {
+          this.objectives.push({ ...st, id: m.id, label: m.titulo ?? st.label, icon: m.icono ?? st.icon, kind: m.tipo, progress: 0, done: false });
+        }
+        continue;
+      }
+      this.objectives.push({
+        id: m.id,
+        label: m.titulo,
+        icon: m.icono ?? (m.tipo === "como" ? "chat" : "star"),
+        kind: m.tipo,
+        npcId: m.personaje ?? null,
+        accion: m.accion ?? null,
+        segundosNeeded: m.segundos ?? 3,
+        reward: m.recompensa?.reloj ?? 20,
+        // sin x/z todavia: los pone _updateCampaignObjectives
+        x: this.player.position.x,
+        z: this.player.position.z,
+        time: m.segundos ?? 3,
+        progress: 0,
+        done: false,
+        dynamic: true,
+      });
+    }
+  }
+
+  _updateCampaignObjectives(dt) {
+    for (const o of this.objectives) {
+      if (o.done || !o.dynamic) continue;
+      if (o.npcId) {
+        const npc = this.npcs.find((n) => n.cast === o.npcId && n.active !== false);
+        if (npc) {
+          o.x = npc.position.x;
+          o.z = npc.position.z;
+        }
+      } else if (o.accion === "fingir") {
+        const spot = this._nearestUsableSafeSpot(this.player.position);
+        if (spot) {
+          o.x = spot.x;
+          o.z = spot.z;
+        }
+        if (this.player.isPretending && this.inSafeSpot) {
+          o.progress = Math.min(o.time, o.progress + dt);
+          if (o.progress >= o.time) {
+            o.done = true;
+            this._grantTime(o.reward, { at: this.player.position, kind: "score" });
+            this.toast?.(`${o.label}: hecho`);
+            this.onMissionDone?.(o.id);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * SUPERAR LA PUERTA DEL DÍA (rules.gate: encontrar a Gabo el día 1).
+   *
+   * Son DOS cosas, y hay que hacer las dos: levantar la bandera —que abre las
+   * tareas, la vigilancia del jefe y la de los secuaces— y avisar de que la
+   * misión de la puerta cayó, que es lo que hace a la campaña soltar el plan
+   * del día. Poner solo `metGabo = true` deja el piso desbloqueado y la lista
+   * de tareas VACÍA: el día se gana solo o no se puede jugar, según por dónde
+   * caiga. Es exactamente lo que le pasó a media suite de `tools/` cuando
+   * entró la campaña, así que el paso doble vive aquí y no repetido en cada
+   * sitio que necesita abrir la puerta.
+   */
+  clearGate() {
+    if (this.metGabo) return false;
+    this.metGabo = true;
+    this.onMissionDone?.(this.gate?.task?.id ?? "meet-gabo");
+    return true;
+  }
+
+  /** El diálogo con un NPC cumple su misión "como", si estaba pendiente. */
+  completeTalk(npcId) {
+    const o = this.objectives.find((x) => x.npcId === npcId && !x.done);
+    if (!o) return false;
+    o.done = true;
+    o.progress = o.time;
+    this._grantTime(o.reward ?? 20, { at: this.player.position, kind: "score" });
+    this.onMissionDone?.(o.id);
+    return true;
   }
 
   _snapshot() {
