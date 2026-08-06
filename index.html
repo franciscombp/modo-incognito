@@ -26,7 +26,10 @@
           <div class="boot-bar"><span></span></div>
         </div>
       </div>
-      <div id="hint">WASD mover · Espacio usar/fingir · 1–3 seguir misión · M plano · V sonido · Esc pausa</div>
+      <!-- El texto lo rellena JS desde src/ui/controls.js, que es la ÚNICA
+           lista de mandos. Escrito a mano aquí, se separaba de las teclas que
+           el juego escucha de verdad y de lo que decía "Cómo se juega". -->
+      <div id="hint"></div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>

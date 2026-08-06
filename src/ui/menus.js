@@ -4,6 +4,7 @@ import { sfxMove, sfxSelect, sfxBack, sfxOpen } from "../game/sfx.js";
 import { createCameraPanel } from "./cameraPanel.js";
 import { characterShot } from "./charshot.js";
 import { icon as svgIcon } from "./icons.js";
+import { buildControlsLegend } from "./controls.js";
 
 // Every full-screen menu the game has: title, day select, settings (game +
 // camera), how-to-play and pause. They all live in one overlay that swaps
@@ -420,6 +421,12 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   const helpScreen = makeScreen("help");
   el("h2", "inc-menu-screen-title-text", helpScreen, "Cómo se juega");
   const helpBody = el("div", "inc-menu-help", helpScreen);
+  // OJO: los mandos NO se escriben aquí. Salen de ui/controls.js, que es la
+  // única lista. Esta pantalla llegó a enseñar `E` para usar y `F` para
+  // fingir mucho después de que la acción se unificara en ESPACIO — quien
+  // leía la ayuda pulsaba E, no pasaba nada, y concluía que el juego estaba
+  // roto. También hablaba de multiplicador y de puntuación, que se
+  // eliminaron hace tiempo: la única moneda es el RELOJ.
   helpBody.innerHTML = `
     <p>Eres diseñadora en el Piso 10. Tu trabajo de mentira es
     <b>no trabajar</b>: café, película, comer. El jefe patrulla la
@@ -427,22 +434,32 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     hay quien dice que fingir es, en realidad, la única forma de seguir
     diseñando algo con vida propia aquí dentro.)</p>
     <ul>
-      <li><b>Mover</b> — WASD o flechas · joystick en móvil</li>
-      <li><b>Usar / distraer</b> — <kbd>E</kbd> · botón USAR</li>
-      <li><b>Fingir que trabajas</b> — <kbd>F</kbd> · botón FINGIR. Baja la sospecha aunque te vean,
-      pero <b>solo funciona en un lugar seguro</b>: una sala de reuniones o tu propio puesto.</li>
-      <li><b>Salas de reuniones</b> — con entrar basta (se supone que estás reunida), pero cada una
-      tiene un cupo de segundos al día y cada tanto llega gente de verdad y la ocupa.</li>
-      <li><b>Tu puesto</b> — nunca se gasta ni se ocupa, pero solo te cubre mientras finges.</li>
+      <li><b>La moneda es el RELOJ.</b> No hay puntos: todo lo que haces bien
+      te alarga la jornada, y la jornada es lo único que se acaba.</li>
+      <li><b>Fingir que trabajas</b> baja la sospecha aunque te vean, pero
+      <b>solo en un lugar seguro</b>: una sala de reuniones o tu propio puesto.</li>
+      <li><b>Salas de reuniones</b> — con entrar basta (se supone que estás reunida),
+      pero cada una tiene un cupo de segundos al día y cada tanto llega gente de
+      verdad y la ocupa.</li>
+      <li><b>Tu puesto</b> — nunca se gasta ni se ocupa, pero solo te cubre
+      mientras finges de verdad.</li>
+      <li><b>Las tareas te exponen.</b> Mantener la acción las termina despacio;
+      tocar al ritmo de la tira las termina antes — y fallar hace ruido, que
+      sube la sospecha.</li>
       <li><b>Esconderse</b> — pisa un círculo verde: dejas de ser visible.</li>
       <li><b>Distracciones</b> — las estrellas amarillas se llevan al jefe a otro sitio.</li>
-      <li><b>Inspeccionar el plano</b> — <kbd>M</kbd> · botón MAPA</li>
-      <li><b>Pausa</b> — <kbd>Esc</kbd></li>
+      <li><b>Tres amonestaciones</b> no te despiden: te mandan a un curso de
+      RRHH del que se sale cazando un botón que huye.</li>
       <li><b>Orbitar la cámara</b> — botón derecho o dos dedos</li>
     </ul>
-    <p>Encadena actividades sin que te vean para subir el <b>multiplicador</b>.
-    Hacerlas con el jefe cerca puntúa más. Al final del día recibes un rango.</p>
+    <p>Al cerrar el día te evalúan por dos ejes: los <b>Qués</b> (lo que
+    entregaste, a solas) y los <b>Cómos</b> (con quién hablaste). Puedes
+    cumplir todo tu trabajo y suspender por no hablar con nadie. Eso no es un
+    bug.</p>
   `;
+  el("h3", "inc-menu-help-sub", helpScreen, "Mandos");
+  buildControlsLegend(helpScreen, { touch: matchMedia("(pointer: coarse)").matches });
+
   button(el("div", "inc-menu-screen-foot", helpScreen), "Volver", {
     back: true,
     onClick: () => show(previousScreen ?? "title"),
@@ -457,6 +474,11 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   button(pauseMenu, "Reiniciar día", { icon: "back", onClick: () => actions.restart() });
   button(pauseMenu, "Ajustes", { icon: "gear", onClick: () => show("settings") });
   button(pauseMenu, "Menú principal", { icon: "grid", onClick: () => actions.toTitle() });
+  // LA LEYENDA DE MANDOS, aquí y permanente (HUD.md §4.5). La píldora de
+  // bienvenida se apaga en cuanto te mueves, así que a los diez segundos de
+  // partida no había DÓNDE consultar un atajo. Sale de ui/controls.js, la
+  // misma lista que lee la ayuda y la píldora: imposible que se separen.
+  buildControlsLegend(pauseScreen, { touch: matchMedia("(pointer: coarse)").matches });
 
   // ---------------- Plumbing ----------------
   function show(name) {

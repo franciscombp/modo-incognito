@@ -25,6 +25,7 @@ import { createTouchControls } from "./game/touchControls.js";
 import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./game/settings.js";
 import { createPopups } from "./ui/popups.js";
 import { createStage, applyStageScale, stageScale, STAGE_W, STAGE_H } from "./ui/stage.js";
+import { controlsLine } from "./ui/controls.js";
 import { isMutedState, setMuted, getVolume, unmute } from "./game/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
 import { initTheme } from "./game/theme.js";
@@ -648,6 +649,12 @@ async function boot() {
   // de selección, pero si no, esas tarjetas están enseñando el pliego: en
   // cuanto están, se vuelven a dibujar con el muñeco 3D.
   baseModelsReady.then(() => engine.menus.refreshCharacters());
+
+  // La píldora se RELLENA desde la lista única de mandos (ui/controls.js).
+  // Estaba escrita a mano en index.html y por eso podía decir una tecla
+  // mientras el juego escuchaba otra.
+  const hintEl = document.getElementById("hint");
+  if (hintEl) hintEl.textContent = controlsLine();
 
   // Los controles de abajo son una nota de bienvenida: se apagan en cuanto la
   // jugadora se mueve por su cuenta (o tras un rato, si se queda mirando), y

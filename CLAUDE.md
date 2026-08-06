@@ -715,6 +715,14 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   DOM en cada frame porque todos cambian de tamaño con la pantalla; reservar
   una banda fija solo acierta en un tamaño. `npm run check:layout` es lo que
   lo vigila.
+- **LOS MANDOS SALEN DE UN SOLO SITIO** (`src/ui/controls.js`). Estuvieron en
+  tres, y los tres se separaron: la píldora de bienvenida era HTML fijo en
+  `index.html` —y encima se apaga en cuanto te mueves, así que a los diez
+  segundos no había dónde consultar un atajo—, «Cómo se juega» enseñaba
+  `E` para usar y `F` para fingir mucho después de que la acción se unificara
+  en ESPACIO, y las teclas `1`–`3` no estaban documentadas en ninguna parte.
+  Quien leía la ayuda pulsaba una tecla muerta y concluía que el juego estaba
+  roto. Si añades un atajo, va a esa lista; el rótulo se genera solo.
 - **NINGÚN icono es un emoji.** Un emoji lo dibuja la fuente del sistema: el
   mismo ☕ es una taza blanca en un iPhone, marrón en Android, plana en
   Windows, y en algunas plataformas sale un cuadro vacío. Desde el juego eso
