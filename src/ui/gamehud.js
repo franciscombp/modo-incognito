@@ -64,6 +64,13 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const faceHost = el("div", "inc-plate-face", plate);
   const plateBody = el("div", "inc-plate-body", plate);
   const pipsRow = el("div", "inc-plate-pips", plateBody);
+  // El rótulo va ENCIMA del medidor, no dentro: una barra sin nombre no
+  // dice de qué es, y la sospecha a cero —que es cuando más falta hace
+  // saber si te han visto— no tiene barra que la delate.
+  const meterLabel = el("div", "inc-plate-meter-label", plateBody);
+  const meterLabelText = el("span", null, meterLabel);
+  const meterLabelPct = el("b", null, meterLabel);
+  meterLabelText.textContent = "SOSPECHA";
   const meter = el("div", "inc-plate-meter", plateBody);
   const meterFill = el("i", null, meter);
 
@@ -189,6 +196,20 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     meterFill.style.width = `${pct}%`;
     meter.classList.toggle("warn", pct >= 55 && pct < 90);
     meter.classList.toggle("danger", pct >= 90);
+    meterLabelPct.textContent = `${pct}%`;
+    // El rótulo dice el ESTADO, no solo el número: "te vieron" es la
+    // información que se busca de reojo, y un porcentaje no la da.
+    const chasing = state.bossState === "CHASE";
+    const searching = state.bossState === "SEARCH";
+    meterLabelText.textContent = chasing
+      ? "TE VIERON"
+      : searching
+        ? "TE BUSCAN"
+        : pct >= 55
+          ? "SOSPECHAN"
+          : "SOSPECHA";
+    plate.classList.toggle("warn", (pct >= 55 && pct < 90) || searching);
+    plate.classList.toggle("danger", pct >= 90 || chasing);
     plate.classList.toggle("mi-critical", pct >= 90 && !state.gameOver);
     if (pct - lastHeatPct >= 12) pulse(plate, "mi-shake", 420);
     lastHeatPct = pct;

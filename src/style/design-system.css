@@ -9242,24 +9242,74 @@ body {
 }
 
 /* La presión, continua: sube y baja sin parar y unos pips parpadeando
-   serían ruido. El color escala con el peligro. */
+   serían ruido. El color escala con el peligro.
+
+   ── POR QUÉ TIENE CANAL VISIBLE, Y NO ES DECORACIÓN ──────────────────
+   Iba sin filo, con el fondo hundido a secas: a cero era un hilo oscuro
+   sobre una placa oscura, o sea NADA. Y la sospecha a cero es justo el
+   estado en el que más falta hace verla, porque es cuando quieres saber
+   si te han visto o no. Sin barra visible no hay forma de distinguir "voy
+   bien" de "esto no funciona".
+
+   Así que el CANAL se ve siempre —filo claro y hueco marcado— y lo que
+   cambia es cuánto lo llena la barra. Un medidor vacío sigue siendo un
+   medidor; un medidor invisible es un medidor perdido. */
 .inc-plate-meter {
-  height: 8px;
+  position: relative;
+  height: 10px;
   border-radius: 999px;
-  background: var(--surface-sunken);
+  background: hsl(var(--p-ink-900) / 0.55);
+  border: 1px solid hsl(var(--p-accent-bright) / 0.28);
+  box-shadow: inset 0 1px 3px hsl(var(--p-ink-900) / 0.6);
   overflow: hidden;
 }
 .inc-plate-meter > i {
   display: block;
   height: 100%;
   width: 0%;
+  /* Mínimo visible: aunque la sospecha esté a cero, queda un resto de
+     barra encendida. Es lo que dice "esto es un medidor y está a cero",
+     en vez de "aquí no hay nada". */
+  min-width: 6px;
   border-radius: 999px;
   background: var(--accent);
   background-image: linear-gradient(180deg, hsl(var(--p-rim) / 0.35), transparent 45%);
-  transition: width 0.15s linear, background-color var(--transition-base);
+  box-shadow: 0 0 8px hsl(var(--p-accent-bright) / 0.45);
+  transition: width 0.15s linear, background-color var(--transition-base), box-shadow var(--transition-base);
 }
-.inc-plate-meter.warn > i { background-color: var(--warn); }
-.inc-plate-meter.danger > i { background-color: var(--danger); }
+.inc-plate-meter.warn > i {
+  background-color: var(--warn);
+  box-shadow: 0 0 10px hsl(var(--p-warn) / 0.6);
+}
+.inc-plate-meter.danger > i {
+  background-color: var(--danger);
+  box-shadow: 0 0 12px hsl(var(--p-danger) / 0.7);
+}
+
+/* El rótulo del medidor. Sin él, la barra es una barra: no dice de QUÉ.
+   Va en micro-texto y se tiñe con el peligro, así que el color lo dice
+   incluso sin leerlo. */
+.inc-plate-meter-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: hsl(var(--p-ink-300));
+  transition: color var(--transition-base);
+}
+.inc-plate-meter-label b {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: hsl(var(--p-ink-100));
+}
+.inc-plate.warn .inc-plate-meter-label,
+.inc-plate.warn .inc-plate-meter-label b { color: hsl(var(--p-warn)); }
+.inc-plate.danger .inc-plate-meter-label,
+.inc-plate.danger .inc-plate-meter-label b { color: hsl(var(--p-danger)); }
 
 /* ---------- Las MISIONES: filas sin caja, como la referencia ---------- */
 .inc-quests {
