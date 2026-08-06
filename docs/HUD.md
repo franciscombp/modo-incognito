@@ -200,7 +200,8 @@ un token, así que se ajusta en un sitio.
 
 ## 4bis. Las tareas — la segunda referencia
 
-> Captura pendiente en `docs/referencias/hud/tareas.png`.
+> ⚠️ Captura **no subida al repo**: se pegó en el chat sin adjuntar. Su sitio
+> sería `docs/referencias/hud/tareas.png` (ver `docs/referencias/README.md`).
 
 Esta es la que más nos sirve, porque ataca **el punto flojo que ya tenemos
 identificado**: hoy las tareas viven en un menulet que hay que ABRIR, y en

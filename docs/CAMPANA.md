@@ -1,8 +1,9 @@
 # La campaña — temporadas, misiones y carrera
 
 **Estado: DISEÑO. Nada de esto está implementado.** Es la guía para
-desarrollarlo y pulirlo, igual que `MOTOR.md` (reglas del motor) y `HUD.md`
-(interfaz). Escribe encima, tacha, contesta las preguntas.
+desarrollarlo y pulirlo, igual que [`MOTOR.md`](MOTOR.md) (reglas del motor),
+[`HUD.md`](HUD.md) (interfaz de partida) y [`PANTALLAS.md`](PANTALLAS.md) (el
+lienzo y las pantallas de menú). Escribe encima, tacha, contesta las preguntas.
 
 > ⚠️ **Esto reemplaza el modelo de juego actual.** Hoy el día 1 es una jornada
 > suelta con tres actividades libres. `MOTOR.md` describe ese modelo y habrá
@@ -381,9 +382,10 @@ Ordenado para que se pueda jugar algo desde pronto:
    juega el hilo entero de un día.
 3. **Lista de tareas en el HUD** (`HUD.md` §4bis) — sin ella la cadena no se
    ve.
-4. **Cierre de día y calificación**: la pantalla de evaluación.
+4. **Cierre de día y calificación**: la pantalla de evaluación (maquetada en
+   [`PANTALLAS.md`](PANTALLAS.md) §3.2).
 5. **Temporadas y rangos**: el salto por AAA y el ascenso por antigüedad.
-6. **Curso de RRHH**.
+6. **Curso de RRHH** ([`PANTALLAS.md`](PANTALLAS.md) §3.3).
 7. **Minijuegos de tarea** (comida, etc.) y reactivar la avenida.
 8. **Plan de nivelación**.
 9. **Temporada 5 y jubilación** — el final.

@@ -1,12 +1,20 @@
 # Las pantallas y el lienzo
 
 **Estado: DISEÑO. Nada implementado.** Guía para desarrollarlo, como
-`MOTOR.md` (reglas), `CAMPANA.md` (progresión) y `HUD.md` (interfaz de
-partida). Aquí va todo lo que NO es la partida: el lienzo sobre el que se
+[`MOTOR.md`](MOTOR.md) (reglas), [`CAMPANA.md`](CAMPANA.md) (progresión) y
+[`HUD.md`](HUD.md) (interfaz de partida). Aquí va todo lo que NO es la partida: el lienzo sobre el que se
 dibuja todo, y las pantallas de menú.
 
-> Referencia pendiente de subir a `docs/referencias/pantallas/`:
-> `seleccion-personaje.jpg`.
+**Referencias en el repo** (`docs/referencias/pantallas/`):
+
+| Archivo | Qué es | Para qué |
+|---|---|---|
+| `seleccion-escuadron.jpg` | Selección de agente de escuadrón | La ESTRUCTURA de tres columnas y el panel biselado |
+| `seleccion-agentes.webp` | Selección de agente competitiva | Las CARTAS, sus estados y el personaje saliéndose del marco |
+
+> ⚠️ **Siguen faltando tres**, que se pegaron en el chat sin adjuntar y no
+> llegaron al repo: el HUD de partida («Lime Street»), el menú de pausa y la
+> lista de misiones. Están descritas en `HUD.md` pero sin imagen.
 
 ---
 
@@ -20,6 +28,9 @@ construye todo lo demás**.
 > **El juego se dibuja siempre sobre un lienzo de 1920×1080, apaisado, y ese
 > lienzo se ESCALA entero para caber en la pantalla. Con bandas negras si
 > hace falta.**
+
+✅ **1920×1080 confirmado.** Es además lo que ya asume `--ui-scale` en los
+tokens, así que no hay que cambiar nada de lo que hay.
 
 Igual que un juego de Unity o Unreal: se diseña a una resolución y el motor
 lo escala. No hay diseño responsive, hay **un** diseño.
@@ -114,6 +125,53 @@ En vez de seis tamaños:
    contra un canvas fijo en vez de contra seis viewports).
 4. Que un clic en una esquina **llega a la esquina** — la trampa de §1.3.2.
 
+## 1.8 Los menús son PLANOS EN EL ESPACIO, no capas planas
+
+De `seleccion-escuadron.jpg`: el panel no es un rectángulo pegado a la
+pantalla. Está **sesgado**, con el filo izquierdo en diagonal, y se lee como
+una placa flotando delante del escenario. Eso es lo que hace que parezca un
+juego y no una web.
+
+**Decisión: los paneles de menú se construyen con CSS 3D**, no con formas
+dibujadas a mano. Un `perspective` en el `#stage` y un `rotateY` de pocos
+grados en cada panel.
+
+```css
+#stage        { perspective: 1600px; }
+.pantalla     { transform-style: preserve-3d; }
+.panel--izq   { transform: rotateY(3deg)  translateZ(20px); }
+.panel--der   { transform: rotateY(-3deg) translateZ(20px); }
+```
+
+Por qué así y no con `clip-path` o imágenes:
+
+- **Es un plano de verdad**, así que la perspectiva es coherente entre
+  paneles y se puede animar: entrar girando, apartarse al abrir otro.
+- **Sale de tokens** (`--persp`, `--tilt`), así que un tema puede tener sus
+  menús más o menos inclinados. Una imagen sesgada no.
+- Se combina con el bisel de `HUD.md` §4.6: el bisel es la SILUETA, la
+  inclinación es la POSTURA. Dos cosas distintas que suman.
+
+**Cuatro trampas de CSS 3D, que hay que saber antes:**
+
+1. **El texto sobre un plano girado se ve blando.** Con pocos grados (2–4°)
+   apenas se nota; a partir de 8° hay que rendirse o rasterizar más grande.
+   Es la razón de que la inclinación sea sutil, no una decisión tímida.
+2. **`backdrop-filter` y `transform: rotate3d` se llevan mal**: en varios
+   navegadores el desenfoque se calcula antes del giro y el vidrio queda
+   desalineado. Nuestros paneles usan `backdrop-filter`. Hay que probarlo
+   pieza por pieza y, si falla, elegir: o vidrio o inclinación.
+3. **Un `transform` en un ancestro rompe `position: fixed`** de los
+   descendientes. Con el `#stage` ya escalado, esto ya pasa — hay que
+   revisar TODO lo que hoy es `fixed` (la barra, los avisos, el diálogo).
+   Es trabajo real, no un detalle.
+4. **La perspectiva se mide desde el `#stage`**, que está escalado. El valor
+   de `perspective` hay que darlo en unidades del lienzo, no de pantalla, o
+   la inclinación cambia según el monitor.
+
+> Con `prefers-reduced-motion`, la inclinación se queda quieta pero NO se
+> quita: es composición, no movimiento.
+
 ---
 
 # §2 · SELECCIÓN DE PERSONAJE
@@ -124,7 +182,7 @@ En vez de seis tamaños:
 
 | Columna | Pregunta | Cómo |
 |---|---|---|
-| Izquierda | ¿A quién puedo elegir? | Rejilla de retratos 3×N |
+| Izquierda | ¿A quién puedo elegir? | Rejilla de retratos 3×N *(la cambiamos por una tira de cartas, ver §2.1bis)* |
 | Centro | ¿Cómo es? | El personaje en **3D, cuerpo entero**, iluminado |
 | Derecha | ¿Qué sabe hacer? | Nombre enorme, nivel, barras y habilidades |
 
@@ -145,6 +203,72 @@ Y siete decisiones que copiaría:
 6. **Una habilidad bloqueada se muestra igual**, con el requisito en rojo
    («Requires Agent Lv.10»). Otra vez: enseñar lo que no tienes.
 7. **Leyenda de mandos abajo**, como en la pausa.
+
+## 2.1bis Las CARTAS — la segunda referencia
+
+`seleccion-agentes.webp` resuelve mejor la parte que la otra deja floja: la
+rejilla de retratos pequeños es funcional pero fría. Aquí las cartas son el
+plato fuerte.
+
+**La tira de abajo**, carta a carta:
+
+- **Arte a sangre**: el personaje llena la carta hasta los bordes, sin
+  márgenes ni marco interior. Nombre en mayúsculas abajo, sobre el arte.
+- **La elegida lleva borde de acento** y —esto es lo importante— **el botón
+  de acción DENTRO de la carta**: «LOCK IN» va en la propia carta, no en una
+  barra aparte. Eliges y confirmas en el mismo sitio.
+- **La bloqueada va en gris con candado** y la palabra «LOCKED» escrita en
+  VERTICAL en el canto. Se lee como una carta que existe pero no es tuya.
+- **La que ya cogió otro** lleva borde verde y el nombre de quien la tiene.
+
+**Y el truco que más aporta: el personaje SE SALE DEL MARCO.** La coleta de
+la agente sobresale por encima del borde superior del panel. Eso rompe la
+caja y da profundidad de golpe — es lo que separa «una imagen dentro de un
+recuadro» de «un personaje que está ahí delante».
+
+Otras dos cosas de esta referencia:
+
+- **El ROL va encima del nombre**, en pequeño y espaciado («DUELIST»). Lo
+  tenemos: `role` en `modes.json` («Diseñador», «Diseñadora»).
+- **Fila de iconos de habilidad + tooltip debajo**: cuatro iconos, el
+  seleccionado con borde de acento, y el detalle en un panel bajo la fila.
+  Más compacto que la lista de la otra referencia.
+
+### Cómo lo montaría, juntando las dos
+
+De `seleccion-escuadron` la ESTRUCTURA; de `seleccion-agentes` las CARTAS.
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                                    DISEÑADORA            │
+│                                    GIULI                 │
+│           ██ el personaje 3D,      ─────────────────     │
+│           ██ cuerpo entero,        Aguante    ▓▓▓░░      │
+│           ██ SALIÉNDOSE            Discreción ▓░░░░      │
+│           ██ del marco             Coartada   ▓▓▓▓░      │
+│                                                          │
+│                                    ◆ FORTALEZAS          │
+│                                    [ico][ico][ico]       │
+│                                    ┌───────────────┐     │
+│                                    │ el detalle    │     │
+│                                    └───────────────┘     │
+│  ┌────┐┌────┐┌────┐┌────┐┌────┐┌────┐                    │
+│  │FRAN││GIU ││KIA ││MANU││GABO││ ?  │  ← cartas a sangre │
+│  │    ││FICHAR   ││ 🔒 ││ 🔒 ││🔒  │                     │
+│  └────┘└────┘└────┘└────┘└────┘└────┘                    │
+│   A Fichar    B Volver          X Ver fortalezas         │
+└──────────────────────────────────────────────────────────┘
+```
+
+**Cambio respecto a lo que escribí antes:** la rejilla 3×N de la izquierda se
+sustituye por **una tira horizontal de cartas abajo**, y el espacio de la
+izquierda se lo queda el personaje. Con cinco personajes (y no veinte) una
+tira cabe de sobra y se ve mucho mejor.
+
+**El botón «FICHAR» va dentro de la carta elegida.** Eso choca con la regla
+de `HUD.md` de «un primario por pantalla» — y creo que la regla gana matiz:
+sigue habiendo UNO, solo que vive dentro de la carta en vez de en una barra.
+Lo apunto para no descubrirlo al implementar.
 
 ## 2.2 El reencuadre: no es un selector, es TU EXPEDIENTE
 
@@ -247,11 +371,20 @@ puede ser sincero un segundo.
 # §4 · Preguntas para ti
 
 **El lienzo**
-- [ ] ¿1920×1080 como resolución de diseño, o prefieres 1600×900?
+- [x] ~~¿1920×1080 o 1600×900?~~ → **1920×1080** ✅
 - [ ] La cortina de «gira el teléfono»: ¿con chiste de empresa o seca?
 - [ ] ¿Empujamos la instalación como PWA desde el menú?
 
+**Menús 3D**
+- [ ] ¿Cuántos grados de inclinación? Propongo 3°, que es donde el texto
+      aguanta nítido.
+- [ ] Si `backdrop-filter` y la inclinación no se llevan bien: ¿vidrio o
+      inclinación?
+
 **Selección de personaje**
+- [ ] ¿Tira de cartas abajo (mi propuesta) o rejilla lateral?
+- [ ] ¿El personaje se sale del marco? Es el detalle que más aporta y el que
+      más puede pelearse con el recorte del panel.
 - [ ] ¿El reencuadre «Expediente de personal» te convence?
 - [ ] La tercera barra: ¿**Coartada** (`pretendAlways`), **Velocidad**, u otra?
 - [ ] ¿Etiquetas en jerga de RRHH o nombres directos (Sigilo, Aguante)?
@@ -268,7 +401,16 @@ después obligaría a rehacer cada pantalla.
 2. **Cortina de orientación** + pantalla completa + PWA.
 3. **Limpiar** las 19 media queries (cuidado con las de `creador/`).
 4. **`check:layout` nuevo** (§1.7).
-5. **Selección de personaje** con las tres columnas.
+5. **Menús 3D**
+- [ ] ¿Cuántos grados de inclinación? Propongo 3°, que es donde el texto
+      aguanta nítido.
+- [ ] Si `backdrop-filter` y la inclinación no se llevan bien: ¿vidrio o
+      inclinación?
+
+**Selección de personaje**
+- [ ] ¿Tira de cartas abajo (mi propuesta) o rejilla lateral?
+- [ ] ¿El personaje se sale del marco? Es el detalle que más aporta y el que
+      más puede pelearse con el recorte del panel. con las tres columnas.
 6. Las pantallas de `CAMPANA.md` (evaluación, RRHH, ascenso).
 
 Del 1 al 4 no cambia nada visible: es infraestructura. Conviene hacerlo de
