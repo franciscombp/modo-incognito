@@ -9,7 +9,7 @@ let stepTimer = null;
 // Layers que son "notas" (se leen del sequencer nota a nota). "perc" no está
 // aquí: es un golpe fijo de percusión que solo sube o baja de volumen, igual
 // que en el soundtrack real del juego (src/game/soundtrack.js).
-const NOTE_LAYERS = ["bass", "lead", "pad", "brass"];
+const NOTE_LAYERS = ["bass", "lead", "pad", "brass", "guitar", "string", "fx"];
 
 const THEMES = {
   // Progresión pop-rock bien conocida (I-V-vi-IV, "la de las cuatro
@@ -38,15 +38,34 @@ const THEMES = {
       ["A3", "C4", "E4"], null, null, null, null, null, null, null,
       ["F3", "A3", "C4"], null, null, null, null, null, null, null
     ],
-    // Trompetas de fanfarria en el contratiempo: el "¡pa-pa!" festivo de una
-    // banda de pop-rock rematando cada compás, no una melodía propia.
     brass: [
       ["C5", "E5", "G5"], null, null, "G5", null, null, null, null,
       ["G4", "B4", "D5"], null, null, "D5", null, null, null, null,
       ["A4", "C5", "E5"], null, null, "E5", null, null, null, null,
       ["F4", "A4", "C5"], null, null, "C5", null, null, null, null
     ],
-    mix: { bass: 0.85, lead: 0.8, pad: 0.35, perc: 0.6, brass: 0.65 },
+    guitar: [
+      null, "D4", null, "A3", null, "D4", null, "A3",
+      null, "G3", null, "B3", null, "G3", null, "B3"
+    ],
+    string: [
+      ["C3", "E3", "G3"], null, null, null, null, null, null, null,
+      ["G2", "B2", "D3"], null, null, null, null, null, null, null
+    ],
+    fx: [null, null, "C6", null, null, null, "E6", null],
+    mix: { bass: 0.85, lead: 0.8, pad: 0.35, perc: 0.6, brass: 0.65, guitar: 0.35, string: 0.2, fx: 0.25 },
+  },
+  festive: {
+    bpm: 152,
+    steps: 8,
+    bass: ["C2", null, "E2", null, "G2", null, "A2", null],
+    lead: ["C5", "E5", "G5", "A5", "G5", "E5", "D5", "C5"],
+    pad: [["C4", "E4", "G4"], null, ["A3", "C4", "E4"], null, ["F3", "A3", "C4"], null, ["G3", "B3", "D4"], null],
+    brass: [["C5", "E5", "G5"], null, null, "G5", null, "E5", null, null],
+    guitar: ["C4", null, "E4", null, "G4", null, "A4", null],
+    string: [["C3", "E3", "G3"], null, null, null, ["F3", "A3", "C4"], null, null, null],
+    fx: [null, null, "E6", null, null, null, "G6", null],
+    mix: { bass: 0.8, lead: 0.75, pad: 0.35, perc: 0.55, brass: 0.7, guitar: 0.4, string: 0.35, fx: 0.3 },
   },
   title: {
     bpm: 110,
@@ -150,10 +169,13 @@ function getAudioContext() {
 // trompetas usan diente de sierra con un ataque duro — lo que de verdad
 // distingue una fanfarria de un pitido.
 const TIMBRES = {
-  bass: { type: "triangle", attack: 0.005, decay: 0.15, gain: 0.22 },
-  lead: { type: "square", attack: 0.005, decay: 0.22, gain: 0.14 },
+  bass: { type: "triangle", attack: 0.005, decay: 0.15, gain: 0.24 },
+  lead: { type: "square", attack: 0.005, decay: 0.22, gain: 0.16 },
   pad: { type: "sine", attack: 0.08, decay: 0.5, gain: 0.1 },
   brass: { type: "sawtooth", attack: 0.008, decay: 0.28, gain: 0.16 },
+  guitar: { type: "triangle", attack: 0.003, decay: 0.12, gain: 0.12 },
+  string: { type: "square", attack: 0.04, decay: 0.35, gain: 0.1 },
+  fx: { type: "triangle", attack: 0.003, decay: 0.08, gain: 0.12 },
 };
 
 function playNote(freq, duration, layer, volume) {
@@ -391,7 +413,7 @@ function updateUI() {
   document.getElementById("bpm").disabled = !hasTheme;
   document.getElementById("steps").disabled = !hasTheme;
 
-  ["bass", "lead", "pad", "perc", "brass"].forEach((layer) => {
+  ["bass", "lead", "pad", "perc", "brass", "guitar", "string", "fx"].forEach((layer) => {
     document.getElementById(`layer-${layer}`).disabled = !hasTheme;
     document.getElementById(`mix-${layer}`).disabled = !hasTheme;
   });
@@ -400,7 +422,7 @@ function updateUI() {
     document.getElementById("bpm").value = currentTheme.bpm || 120;
     document.getElementById("steps").value = currentTheme.steps || 8;
 
-    ["bass", "lead", "pad", "perc", "brass"].forEach((layer) => {
+    ["bass", "lead", "pad", "perc", "brass", "guitar", "string", "fx"].forEach((layer) => {
       const val = currentTheme.mix?.[layer] || 0;
       document.getElementById(`mix-${layer}`).value = val;
       document.getElementById(`mix-${layer}-val`).textContent = val.toFixed(2);
@@ -432,17 +454,25 @@ function loadTheme(name) {
       theme.lead?.length ? "Lead" : null,
       theme.pad?.length ? "Pad" : null,
       theme.brass?.length ? "Brass" : null,
+      theme.guitar?.length ? "Guitar" : null,
+      theme.string?.length ? "String" : null,
+      theme.fx?.length ? "FX" : null,
+      Array.isArray(theme.bassEvents) || Array.isArray(theme.leadEvents) || Array.isArray(theme.padEvents) ? "Events" : null,
     ]
       .filter(Boolean)
       .join(", ")}<br/>
     <br/>
     Haz clic en los pasos para editar notas. Las flechitas ▲▼ suben o bajan
-    de semitono sin tener que reescribir la nota.
+    de semitono sin tener que reescribir la nota. También puedes importar
+    patrones con eventos por paso usando las capas extra Guitar/String/FX.
   `;
 
   updateUI();
-  if (wasPlaying) startLoop();
-  else stopPlayback();
+  if (wasPlaying || currentTheme?.bpm) {
+    startLoop();
+  } else {
+    stopPlayback();
+  }
 }
 
 function exportJSON() {
@@ -546,7 +576,7 @@ document.getElementById("clear-theme").addEventListener("click", () => {
   });
 });
 
-["bass", "lead", "pad", "perc", "brass"].forEach((layer) => {
+["bass", "lead", "pad", "perc", "brass", "guitar", "string", "fx"].forEach((layer) => {
   document.getElementById(`mix-${layer}`).addEventListener("input", (e) => {
     if (currentTheme?.mix) {
       currentTheme.mix[layer] = parseFloat(e.target.value);

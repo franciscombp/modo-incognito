@@ -27,7 +27,17 @@
     "activities[].riskRate: sospecha por segundo mientras la haces.",
     "activities[].icon: NOMBRE de icono, no un emoji — se dibuja en SVG (ver",
     "src/ui/icons.js). Un emoji lo pinta la fuente del sistema y sale distinto",
-    "en cada plataforma, que es justo lo que no se puede controlar desde aquí."
+    "en cada plataforma, que es justo lo que no se puede controlar desde aquí.",
+    "",
+    "activities[].pulso: el minijuego de tarea (game/activityGame.js).",
+    "  Mantener espacio la termina igual, lento — eso es el suelo. El",
+    "  pulso es el ATAJO: un marcador barre una tira y tocar espacio",
+    "  dentro de la zona buena avanza a saltos; fuera, resta y hace",
+    "  RUIDO (sube la sospecha). Campos: periodo (s en cruzar la tira),",
+    "  zona (0-1, ancho de la zona buena), aciertos, bonus, fallo,",
+    "  ruido. Todos opcionales: lo que falte usa el defecto del módulo.",
+    "  El CARÁCTER de cada tarea sale de aquí: el café es amable, el",
+    "  microondas va nervioso y estrecho, la película lenta y ancha."
   ],
   "footprint": [
     [
@@ -638,7 +648,12 @@
       "time": 3,
       "perk": "caffeine",
       "pose": "coffee",
-      "reward": 17
+      "reward": 17,
+      "pulso": {
+        "periodo": 1.7,
+        "zona": 0.3,
+        "aciertos": 3
+      }
     },
     {
       "id": "chat",
@@ -651,7 +666,12 @@
       "riskRate": 22,
       "time": 5,
       "pose": "shrug",
-      "reward": 27
+      "reward": 27,
+      "pulso": {
+        "periodo": 1.4,
+        "zona": 0.26,
+        "aciertos": 3
+      }
     },
     {
       "id": "movie",
@@ -664,7 +684,13 @@
       "riskRate": 32,
       "time": 6,
       "pose": "movie",
-      "reward": 43
+      "reward": 43,
+      "pulso": {
+        "periodo": 2.2,
+        "zona": 0.38,
+        "aciertos": 2,
+        "ruido": 4
+      }
     },
     {
       "id": "sleep",
@@ -677,7 +703,13 @@
       "riskRate": 36,
       "time": 2.5,
       "pose": "sleep",
-      "reward": 37
+      "reward": 37,
+      "pulso": {
+        "periodo": 2.4,
+        "zona": 0.34,
+        "aciertos": 2,
+        "ruido": 9
+      }
     },
     {
       "id": "snack",
@@ -690,7 +722,13 @@
       "riskRate": 24,
       "time": 4,
       "pose": "eat",
-      "reward": 32
+      "reward": 32,
+      "pulso": {
+        "periodo": 1.0,
+        "zona": 0.2,
+        "aciertos": 4,
+        "ruido": 9
+      }
     },
     {
       "id": "stretch",
@@ -703,7 +741,12 @@
       "riskRate": 20,
       "time": 3.5,
       "pose": "sleep",
-      "reward": 25
+      "reward": 25,
+      "pulso": {
+        "periodo": 1.8,
+        "zona": 0.32,
+        "aciertos": 3
+      }
     },
     {
       "id": "meeting",
@@ -716,7 +759,12 @@
       "riskRate": 30,
       "time": 5,
       "pose": "movie",
-      "reward": 38
+      "reward": 38,
+      "pulso": {
+        "periodo": 1.3,
+        "zona": 0.24,
+        "aciertos": 3
+      }
     },
     {
       "id": "window",
@@ -729,7 +777,13 @@
       "riskRate": 24,
       "time": 4,
       "pose": "coffee",
-      "reward": 28
+      "reward": 28,
+      "pulso": {
+        "periodo": 2.0,
+        "zona": 0.36,
+        "aciertos": 2,
+        "ruido": 4
+      }
     }
   ],
   "hidingSpots": [
@@ -740,7 +794,7 @@
     },
     {
       "x": 10.5,
-      "z": -9.0,
+      "z": -9,
       "r": 1.8
     }
   ],
@@ -1031,6 +1085,10 @@
         "z": 8.700000000000001
       },
       {
+        "x": 6,
+        "z": 8.4
+      },
+      {
         "x": 3.8000000000000003,
         "z": 3.2
       },
@@ -1045,6 +1103,10 @@
       {
         "x": 10.200000000000001,
         "z": 14.4
+      },
+      {
+        "x": 13.5,
+        "z": 14
       },
       {
         "x": 11,

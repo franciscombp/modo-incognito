@@ -25,8 +25,25 @@ function facingRotationY(dirX, dirZ) {
 // única, que se leía como una cuña de cartulina pegada al suelo; con el
 // degradado parece un haz de luz y además comunica mejor la mecánica — el
 // peligro real está cerca del vértice, no en la punta lejana.
-const CONE_ALPHA_CORE = 0.62; // en el vértice
+const CONE_ALPHA_CORE = 0.34; // en el vértice
 const CONE_ALPHA_EDGE = 0.0; // en el arco exterior
+
+// LA PRESENCIA DEL HALO: cuánto pesa en pantalla, aparte de su color.
+//
+// Estaba clavada al máximo, y con ~7 vigilantes en el piso el suelo acababa
+// cubierto de cuñas de color: el halo tapaba el escenario que se supone que
+// tienes que leer para esconderte. Y encima se comía su propia escalada —
+// si en ronda ya está a tope, la persecución solo puede cambiar de tono.
+//
+// Ahora el halo RESPIRA con la presión: en ronda es un susurro, y se va
+// haciendo presente según sube la sospecha. El contraste comunica más que
+// el brillo constante, y en el estado normal —que es donde pasas casi toda
+// la jornada— el piso vuelve a verse.
+const HALO_PRESENCE_CALM = 0.45; // en ronda, sin sospecha
+const HALO_PRESENCE_HOT = 1; // cazando o viéndote en falta
+// Velocidad a la que se funde entre esos dos. Saltar de golpe delata el
+// frame exacto en que cambió el estado interno y se lee como un parpadeo.
+const HALO_PRESENCE_EASE = 4;
 
 // Radianes por segundo a los que gira la mirada. Persiguiendo gira casi al
 // doble: está pendiente de ti, no paseando.
@@ -144,6 +161,9 @@ export class Boss {
     this.approachSpeedSlow = config?.approachSpeedSlow != null ? config.approachSpeedSlow * S : null;
     this.approachSpeedFast = config?.approachSpeedFast != null ? config.approachSpeedFast * S : null;
     this.suspicionThresholdFastApproach = config?.suspicionThresholdFastApproach ?? 90;
+    // Por debajo de esta sospecha no persigue: hace su ronda. Ver
+    // `_mayChase()`, que es donde de verdad se aplica.
+    this.chaseSuspicionFloor = config?.chaseSuspicionFloor ?? 40;
     this.suspicion = 0; // Game lo actualiza cada frame antes de update()
     this._graceTimer = 0; // grantGrace(): unos segundos ciego tras amonestar
     this.world = world;
@@ -157,6 +177,10 @@ export class Boss {
     // frame: antes el cono saltaba de golpe a la nueva dirección y se leía
     // como un parpadeo, sobre todo al girar hacia la jugadora de cerca.
     this.desiredFacing = { x: 0, z: -1 };
+    // Si el paso de este frame movió el cuerpo de verdad (ver _moveToward) —
+    // separado de "hacia dónde quiere ir", que sigue actualizándose aunque
+    // esté quieto girando hacia allá.
+    this._actuallyMoving = false;
     // Persecución comprometida: en cuanto te mete en el halo no te suelta
     // hasta alcanzarte. Solo un lugar seguro (game.js) lo cancela.
     this.lockedOn = false;
@@ -219,7 +243,10 @@ export class Boss {
     this.coneMaterial = new THREE.MeshBasicMaterial({
       color: coneColor,
       transparent: true,
-      opacity: 1, // el degradado vive en el alfa por vértice
+      // El degradado a lo largo del haz vive en el alfa POR VÉRTICE; esta
+      // opacidad es el mando global de PRESENCIA, y la mueve update() con la
+      // presión (ver HALO_PRESENCE_*). Arranca en el susurro de la ronda.
+      opacity: HALO_PRESENCE_CALM,
       vertexColors: true,
       side: THREE.DoubleSide,
       depthWrite: false,
@@ -272,11 +299,54 @@ export class Boss {
     return this.sprite.object;
   }
 
+  /** Un empujón de la jugadora: bamboleo corto. Ver game._updateBumps. */
+  stumble() {
+    this._stumbleLeft = 0.55;
+  }
+
   get isHunting() {
     return this.state === CHASE || this.state === SEARCH;
   }
 
+  /**
+   * ¿Le toca perseguir, o sigue a lo suyo?
+   *
+   * Con la sospecha baja el jefe hace su RONDA aunque te vea en falta. Antes
+   * bastaba una alerta roja para que se lanzara desde el primer minuto, y con
+   * Gabo además atado a la jugadora en el día 1 el resultado era que no
+   * dejaba hacer nada: te veía, venía, te alcanzaba, vuelta a empezar.
+   *
+   * El respiro es la parte del bucle que faltaba. La tensión tiene que
+   * SUBIR: primero te miran raro, luego te vigilan, y solo cuando ya has
+   * acumulado sospecha se convierte en persecución. Sin esa rampa no hay
+   * juego de sigilo, hay un pasillo con un perro suelto.
+   *
+   * Una vez comprometido (`lockedOn`) esto ya no aplica: bajar la sospecha
+   * en mitad de la carrera no lo despista — de eso se encargan el lugar
+   * seguro y el enfriamiento sostenido, en game.js.
+   */
+  _mayChase() {
+    if (this.lockedOn) return true;
+    if (this.chaseSuspicionFloor <= 0) return true;
+    return this.suspicion >= this.chaseSuspicionFloor;
+  }
+
   startChase() {
+    // La puerta está aquí, y no en cada uno de los sitios que la llaman,
+    // para que no se pueda colar una persecución nueva por una rama que
+    // alguien añada mañana y olvide comprobar el umbral.
+    if (!this._mayChase()) {
+      // Te ha visto, pero no le da para perseguirte: se acerca a mirar. Se
+      // nota que sospecha (viene hacia ti) sin que sea una cacería.
+      if (this.state !== INVESTIGATE) {
+        this.state = INVESTIGATE;
+        this.investigateTarget = this.lastSeenPlayerPos
+          ? { ...this.lastSeenPlayerPos }
+          : { ...this.position };
+        this.investigateTimer = 2.5;
+      }
+      return;
+    }
     this.state = CHASE;
     this.loseSightTimer = 0;
     this.lockedOn = true;
@@ -425,18 +495,57 @@ export class Boss {
     // El cuerpo gira con la misma dirección continua que el cono, así que el
     // jefe ya no puede mirar a un lado y alumbrar al contrario.
     this.sprite.setHeading(this.facingDir.x, this.facingDir.z);
-    this.sprite.setMoving(!!dir);
+    this.sprite.setMoving(this._actuallyMoving);
     this.sprite.setPosition(this.position.x, this.position.z);
+    if (this._stumbleLeft > 0) {
+      this._stumbleLeft -= dt;
+      const k = Math.max(0, this._stumbleLeft / 0.55);
+      this.sprite.object.rotation.z = Math.sin(this._stumbleLeft * 24) * 0.14 * k;
+      if (this._stumbleLeft <= 0) this.sprite.object.rotation.z = 0;
+    }
     this.sprite.update(dt);
 
     this.cone.position.set(this.position.x, 0.16, this.position.z);
     this.cone.rotation.y = facingRotationY(this.facingDir.x, this.facingDir.z);
 
     const hot = this.redAlert || this.state === CHASE;
-    this.coneMaterial.color.set(
-      hot ? 0xe6483f : this.state === SEARCH ? 0xe0a03c : this.baseConeColor
-    );
-    this._updateWaves(dt, hot);
+    // El halo es un TERMÓMETRO: con la sospecha baja conserva su color base
+    // tranquilo, y según sube se va tiñendo a ámbar y luego a rojo — el
+    // nivel se lee del suelo sin abrir el HUD. Cazando (o viéndote en falta)
+    // se planta en rojo pleno, y buscando en ámbar, pase lo que pase con el
+    // medidor.
+    const ratio = THREE.MathUtils.clamp(this.suspicionRatio ?? 0, 0, 1);
+    if (hot) {
+      this.coneMaterial.color.set(0xe6483f);
+    } else if (this.state === SEARCH) {
+      this.coneMaterial.color.set(0xe0a03c);
+    } else {
+      this._heatColor = this._heatColor ?? new THREE.Color();
+      this._heatColor.set(this.baseConeColor);
+      if (ratio > 0.35) {
+        // 35%→70% funde hacia ámbar; 70%→100% de ámbar a rojo.
+        const amber = this._amberColor ?? (this._amberColor = new THREE.Color(0xe0a03c));
+        const red = this._redColor ?? (this._redColor = new THREE.Color(0xe6483f));
+        if (ratio < 0.7) this._heatColor.lerp(amber, (ratio - 0.35) / 0.35);
+        else this._heatColor.copy(amber).lerp(red, (ratio - 0.7) / 0.3);
+      }
+      this.coneMaterial.color.copy(this._heatColor);
+    }
+
+    // Y además de teñirse, PESA más: en ronda es un susurro y en caza se
+    // planta. El color dice QUÉ pasa; la presencia dice CUÁNTO importa, y
+    // separarlos es lo que deja el piso visible el resto del tiempo.
+    // `SEARCH` sube sin llegar al tope: te está buscando, no te tiene.
+    const wanted = hot
+      ? HALO_PRESENCE_HOT
+      : this.state === SEARCH
+        ? THREE.MathUtils.lerp(HALO_PRESENCE_CALM, HALO_PRESENCE_HOT, 0.6)
+        : THREE.MathUtils.lerp(HALO_PRESENCE_CALM, HALO_PRESENCE_HOT, ratio);
+    this._presence = this._presence ?? HALO_PRESENCE_CALM;
+    this._presence += (wanted - this._presence) * Math.min(1, dt * HALO_PRESENCE_EASE);
+    this.coneMaterial.opacity = this._presence;
+
+    this._updateWaves(dt, hot, this._presence);
   }
 
   /**
@@ -459,7 +568,7 @@ export class Boss {
   }
 
   /** Ondas del radar de Washo: tres frentes que salen y se desvanecen. */
-  _updateWaves(dt, hot) {
+  _updateWaves(dt, hot, presence = 1) {
     if (!this._waves) return;
     this._waveTime += dt;
     const color = hot ? 0xe6483f : this.baseConeColor;
@@ -468,8 +577,10 @@ export class Boss {
       // Arranca pegado a él y se expande hasta el borde de su alcance.
       const radius = this.visionRange * (0.12 + t * 0.88);
       wave.mesh.scale.set(radius, 1, radius);
-      // Se apaga al llegar al borde; el frente joven es el más visible.
-      wave.material.opacity = 0.5 * (1 - t) * (1 - t);
+      // Se apaga al llegar al borde; el frente joven es el más visible. Y
+      // respira con la presión igual que el cono: el radar de Washo barre
+      // 360°, así que es el halo que más suelo tapa de los siete.
+      wave.material.opacity = 0.5 * (1 - t) * (1 - t) * presence;
       wave.material.color.set(color);
     }
   }
@@ -522,7 +633,17 @@ export class Boss {
         // "donde estes tu". Se acerca hasta la banda `near` y ahi la suelta,
         // para volver a la ronda de siempre hasta que te vuelvas a alejar.
         if (this.tether) {
-          const { target, near, far } = this.tether;
+          const { target, near: nearBase, far: farBase } = this.tether;
+          // Con la sospecha baja la correa se AFLOJA. No basta con no
+          // perseguir: si su ronda sigue siendo "donde estés tú", te lo
+          // encuentras encima igual y el piso se hace injugable — que es
+          // literalmente lo que pasaba el día 1. Al aflojarla se queda en la
+          // misma zona (sigue estando ahí, sigue dando miedo) pero te deja
+          // sitio para trabajar. En cuanto subes de sospecha vuelve a
+          // cerrarse sola.
+          const holgura = this._mayChase() ? 1 : 1.9;
+          const near = nearBase * holgura;
+          const far = farBase * holgura;
           const d = Math.hypot(target.x - this.position.x, target.z - this.position.z);
           if (d > far) {
             // Un punto sobre el anillo `near`, en la linea que los une: llega
@@ -689,6 +810,35 @@ export class Boss {
     ) {
       this._path.shift();
     }
+
+    // ── SUAVIZADO: tirar de la cuerda ──────────────────────────────────
+    // Un camino de A* sobre rejilla va en ESCALERA: nodo arriba, nodo a la
+    // derecha, nodo arriba… Caminarlo tal cual es lo que le hacía ir
+    // rebotando de esquina en esquina y rozar todos los muebles del pasillo,
+    // porque cada nodo lo manda contra el borde de la casilla siguiente en
+    // vez de hacia donde va de verdad.
+    //
+    // Aquí se busca el nodo MÁS LEJANO al que ya se puede ir en línea recta
+    // y se apunta directamente a él. La escalera se convierte en tramos
+    // rectos y el recorrido se lee como alguien que sabe por dónde va.
+    //
+    // Se mira desde el final hacia atrás y se corta en el primero que valga:
+    // el más lejano visible es siempre el mejor: cualquier nodo intermedio
+    // solo añadiría un quiebro inútil.
+    //
+    // El límite de 6 nodos es para no pagar una traza de línea por cada
+    // casilla de un camino largo, con veinte personajes a la vez. Más allá
+    // de seis el suavizado ya no se nota: lo que se ve es el quiebro de al
+    // lado, no el de dentro de diez metros.
+    if (this.world) {
+      const hasta = Math.min(this._path.length - 1, 6);
+      for (let i = hasta; i > 0; i--) {
+        if (!this.world.lineBlocked(this.position, this._path[i])) {
+          this._path.splice(0, i);
+          break;
+        }
+      }
+    }
     return this._path[0];
   }
 
@@ -715,6 +865,7 @@ export class Boss {
   }
 
   _moveToward(dt, target) {
+    this._actuallyMoving = false;
     if (!target) return null;
     const dx = target.x - this.position.x;
     const dz = target.z - this.position.z;
@@ -723,7 +874,16 @@ export class Boss {
 
     const nx = dx / dist;
     const nz = dz / dist;
-    const step = this._speed() * dt;
+
+    // No camina de lado ni de espaldas: si el objetivo le queda a la
+    // espalda, primero gira sobre sí mismo (a velocidad limitada, ver
+    // _turnToward) y solo acelera hacia delante según `facingDir` se va
+    // alineando con hacia dónde tiene que ir. `desiredFacing` se sigue
+    // fijando a `nx,nz` más abajo pase lo que pase, así que el giro avanza
+    // aunque el cuerpo se quede quieto este frame.
+    const align = this.facingDir.x * nx + this.facingDir.z * nz;
+    const step = this._speed() * dt * Math.max(0, align);
+    if (step < 1e-5) return { x: nx, z: nz };
 
     const before = { x: this.position.x, z: this.position.z };
     this.position.x += nx * step;
@@ -747,7 +907,7 @@ export class Boss {
 
     const rdx = this.position.x - before.x;
     const rdz = this.position.z - before.z;
-    if (Math.hypot(rdx, rdz) < 1e-4) return null;
+    this._actuallyMoving = Math.hypot(rdx, rdz) >= 1e-4;
     return { x: nx, z: nz };
   }
 

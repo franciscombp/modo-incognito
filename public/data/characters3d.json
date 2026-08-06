@@ -1,48 +1,48 @@
 {
   "$comment": [
     "RECETAS DE PERSONAJE 3D. Un personaje no es un modelo: es esta receta.",
-    "El motor (src/entities/character3d.js) monta el muñeco con primitivas a",
-    "partir de estos campos, así que añadir a alguien al reparto son ~10 líneas",
-    "aquí y nada de código. Para verlo mientras lo editas: builder/personajes.html.",
     "",
-    "Los colores se definieron a partir del arte original del equipo.",
+    "TODOS los personajes salen de un .glb. El suyo propio si `public/models/`",
+    "trae `<id>.glb` (lo indexa tools/index-models.mjs antes de cada build); si",
+    "no, uno de los DOS CUERPOS BASE desnudos: `base-chica.glb` o",
+    "`base-chico.glb`. Cuál de los dos lo decide el `gender` de la receta —",
+    "no hay que escribir `baseModel` a mano salvo para prestar un cuerpo",
+    "concreto por su nombre.",
     "",
     "CAMPOS",
-    "  baseModel NO SE ESCRIBE AQUÍ. Si dejas `<id>.glb` en public/models/, ese",
-    "            personaje usa ese cuerpo solo (lo indexa tools/index-models.mjs",
-    "            antes de cada build). Con cuerpo importado, el resto de campos",
-    "            de cuerpo (hair, top, bottom…) no se montan: ya viene esculpido.",
-    "            Escribirlo a mano solo sirve para apuntar a otro nombre.",
-    "  faces     igual: `<id>.faces.png` en public/models/ le da expresiones.",
-    "  skin      color de la piel",
-    "  eyes      color de los ojos",
-    "  hair      { color, style, streak }",
-    "            style: short | fade | spiky | wavy | long | afro | bun | bald",
-    "            streak: mechas de otro color (solo en wavy y long)",
-    "  beard     color de la barba, o null",
-    "  top       { color, style, print, printColor }",
-    "            style: tee | polo | sweater | hoodie  (sweater y hoodie llevan",
-    "            manga larga; hoodie añade capucha y bolsillo)",
-    "            print: texto estampado en el pecho (\"COSA 1\")",
-    "  bottom    { color, style }   style: pants | jeans | cargo | skirt",
-    "  shoes     { color }",
-    "  badge     color del cordón de la credencial (lo lleva todo el mundo en",
-    "            los pliegos; null se lo quita)",
-    "  accessories  glasses | sunglasses | hoops | cap",
-    "  build     { width, belly, bust }  1 = complexión normal. `bust` va",
-    "            de 0 a 1 y es SUTIL a propósito: el reparto lleva ropa de",
-    "            oficina y de abrigo, así que lo que se insinúa es la caída",
-    "            de la tela, no el pecho. Por encima de 0.5 empieza a",
-    "            leerse como escote, que aquí no lleva nadie.",
+    "  gender    \"f\" o \"m\". Decide el cuerpo base de quien no tiene .glb",
+    "            propio, y el motor de diálogos lo lee para concordar el",
+    "            texto (ocupado/ocupada). Puede faltar: un genérico sin",
+    "            género usa el cuerpo de chico y texto neutro.",
+    "  height    metros REALES del personaje (canon: fran 1.56, giuli y",
+    "            steven 1.62, crispo 1.75, gabo/manu/enriquetta/cesar 1.80,",
+    "            parce 1.85). Cada .glb se escala a esta altura; sin ella,",
+    "            heredaría la altura genérica de su ROL (characters.json).",
+    "  paint     SOLO para cuerpos sin textura (los dos base vienen desnudos",
+    "            a propósito): colores por región, pintados por vértice según",
+    "            el hueso que manda — { skin, hair, top, bottom, shoes }.",
+    "            En un .glb con su propia textura se ignora sin más.",
+    "  build     complexión, escalando huesos (ver applyBuild en",
+    "            baseModel.js). Nunca toca la altura:",
+    "              width  corpulencia general (1 = como viene, 1.1 = ancho)",
+    "              depth  lo mismo a lo hondo (por defecto = width)",
+    "              chest  torso y hombros solos (lo que hace ancho a Steven)",
+    "              belly  barriga, 0 = nada, 0.5 = notable",
+    "              head   cabeza uniforme, palanca de caricatura",
+    "  baseModel solo para apuntar a OTRO nombre de archivo a mano; el propio",
+    "            se indexa solo y el base sale del gender.",
+    "  faces     `<id>.faces.png` en public/models/ le da expresiones.",
+    "  $note     quién es, para quien escriba diálogo nuevo. No lo lee el",
+    "            motor.",
     "",
-    "aliases: nombres alternativos que apuntan a la misma receta. Están para",
-    "  que el motor pueda buscar por id de personaje (giu), por id de cast",
-    "  (fran_npc) o por nombre de pliego heredado (guili-camina) sin que haya",
-    "  que duplicar la receta.",
+    "aliases: nombres alternativos que apuntan a la misma receta, para que el",
+    "  motor pueda buscar por id de personaje (giu), por id de cast del",
+    "  diálogo (steven_el_daddy, jefe, fran_npc) o por nombre de pliego",
+    "  heredado (guili-camina) sin duplicar recetas.",
     "",
-    "extras: el relleno de la oficina. Los NPC sin nombre del plano van",
-    "  repartiéndose estas variantes en orden, para que el piso no parezca",
-    "  lleno de clones."
+    "extras: relleno de oficina sin nombre. Se reparten entre los dos cuerpos",
+    "  base por su gender y cada uno lleva su paint (y algún build) para que",
+    "  el piso no parezca lleno de clones."
   ],
   "aliases": {
     "giu": "giuli",
@@ -54,6 +54,8 @@
     "manu_npc": "manu",
     "manu-camina": "manu",
     "crispo-camina": "crispo",
+    "steven_el_daddy": "steven",
+    "enriqueta": "enriquetta",
     "npc-camina": "generic",
     "npc1": "generic",
     "npc2": "generic",
@@ -62,445 +64,111 @@
   },
   "characters": {
     "gabo": {
-      "$note": "El jefe. Gafas de sol dentro de la oficina, que es todo lo que hay que saber de él.",
-      "skin": "#e0a860",
-      "hair": {
-        "color": "#302828",
-        "style": "spiky"
-      },
-      "beard": "#2a221e",
-      "top": {
-        "color": "#2a2a30",
-        "style": "tee"
-      },
-      "bottom": {
-        "color": "#686040",
-        "style": "cargo"
-      },
-      "shoes": {
-        "color": "#2f2f34"
-      },
-      "accessories": [
-        "sunglasses"
-      ],
-      "build": {
-        "width": 1.14,
-        "belly": 0.26
-      }
+      "$note": "Jefe (1,80 m). Silueta moderadamente ancha, mandíbula suave cuadrada, pelo negro corto hacia arriba y atrás, barba corta, GAFAS DE SOL rectangulares dentro de la oficina. Camisa celeste con mangas recogidas, pantalón carbón, zapatos negros de suela clara. Villano TEATRAL: brazos cruzados, mirada de reojo — cómico y autoritario, jamás malvado de verdad.",
+      "gender": "m",
+      "height": 1.8
     },
     "giuli": {
-      "skin": "#e8a060",
-      "hair": {
-        "color": "#3a2c20",
-        "style": "wavy"
-      },
-      "top": {
-        "color": "#302820",
-        "style": "tee"
-      },
-      "bottom": {
-        "color": "#303038",
-        "style": "jeans"
-      },
-      "shoes": {
-        "color": "#302828"
-      },
-      "accessories": [
-        "hoops"
-      ],
-      "build": {
-        "width": 0.94,
-        "bust": 0.4
-      },
-      "$note": "Cintura estrecha y melena con volumen: la silueta la hace el contraste, no el tamaño."
+      "gender": "f",
+      "height": 1.62,
+      "$note": "Compañera de estatura media (1,62 m — la misma que Steven). Compacta y delgada, ojos grandes marrón oscuro, sin gafas. Melena casi negra lacia con raya lateral hasta bajo los hombros. Jumpsuit negro carbón de manga larga con cinturón, botas negras de plataforma, argollas doradas y scrunchie rojo en la muñeca."
     },
     "fran": {
-      "$note": "Melena larga y gafas redondas. La mecha azul sale de la referencia nueva.",
-      "skin": "#e8a060",
-      "hair": {
-        "color": "#302828",
-        "style": "long",
-        "streak": "#2a3fb8"
-      },
-      "top": {
-        "color": "#706868",
-        "style": "sweater"
-      },
-      "bottom": {
-        "color": "#303030",
-        "style": "pants"
-      },
-      "shoes": {
-        "color": "#302820"
-      },
-      "accessories": [
-        "glasses"
-      ],
-      "build": {
-        "width": 0.92,
-        "bust": 0.3
-      }
+      "$note": "El más bajito del reparto (1,56 m). Presentación masculina, rostro estrecho, gafas grandes redondas transparentes de marco claro, bob casi negro con raya al centro hasta la mandíbula. Cárdigan gris abierto sobre camiseta oscura, pantalón carbón, zapatos casi negros de suela clara. NUNCA con pelo rizado ni suéter cerrado.",
+      "gender": "m",
+      "height": 1.56
     },
     "manu": {
-      "skin": "#d09050",
-      "hair": {
-        "color": "#302828",
-        "style": "fade"
-      },
-      "beard": "#2a221e",
-      "top": {
-        "color": "#c02018",
-        "style": "hoodie",
-        "print": "COSA 1",
-        "printColor": "#f4efe6"
-      },
-      "bottom": {
-        "color": "#283040",
-        "style": "jeans"
-      },
-      "shoes": {
-        "color": "#f0e8e0"
-      },
-      "build": {
-        "width": 1.22,
-        "belly": 0.42
-      },
-      "$note": "Grande y algo gordito: el ancho y la barriga van juntos, si no queda hinchado y no corpulento."
+      "$note": "1,80 m — EXACTAMENTE la misma altura que Enriqueta y César. Compacto y moderadamente ancho, piel cálida morena, pelo negro corto con 4-6 mechones grandes levantados arriba, sin barba ni gafas. Sudadera roja lisa con «COSA 1» en blanco (sin bolsillo, cordones ni cremallera), pantalón azul marino recto, zapatillas blancas.",
+      "gender": "m",
+      "height": 1.8
     },
     "crispo": {
-      "$note": "El afro es su silueta: se le reconoce a tres mesas de distancia.",
-      "skin": "#f8e0d0",
-      "hair": {
-        "color": "#6b4526",
-        "style": "afro"
-      },
-      "top": {
-        "color": "#d89820",
-        "style": "polo"
-      },
-      "bottom": {
-        "color": "#383840",
-        "style": "jeans"
-      },
-      "shoes": {
-        "color": "#302828"
-      },
-      "accessories": [
-        "sunglasses"
-      ],
-      "build": {
-        "width": 0.95
-      }
+      "$note": "La OTRA jefa (1,75 m). Compacta y delgada, piel clara, halo de rizos cobrizos GRANDES (grupos redondeados, no cientos de rizos). Gafas de sol redondas de marco dorado, argollas doradas. Camiseta mostaza de manga corta sobre manga larga carbón, pantalón oscuro, zapatos claros. Libreta rectangular sencilla en mano; pose de sospecha reflexiva con la mano en el mentón, siempre en tono lúdico.",
+      "gender": "f",
+      "height": 1.75
     },
     "chispita": {
-      "$note": "Corre por todo el piso. Amarillo, como su cono de visión.",
-      "skin": "#d9a06a",
-      "hair": {
-        "color": "#4a2f1c",
-        "style": "bun"
-      },
-      "top": {
-        "color": "#f2c744",
-        "style": "tee"
-      },
-      "bottom": {
-        "color": "#3d4358",
-        "style": "pants"
-      },
-      "shoes": {
-        "color": "#e8e2d8"
-      },
-      "build": {
-        "width": 0.9,
-        "bust": 0.3
-      }
+      "$note": "Corre por todo el piso. Chico. Amarillo, como su cono de visión. Sin .glb propio: usa el cuerpo base de chico pintado.",
+      "gender": "m",
+      "height": 1.62,
+      "paint": {"skin":"#d9a06a","hair":"#4a2f1c","top":"#f2c744","bottom":"#3d4358","shoes":"#e8e2d8"}
     },
     "washo": {
-      "$note": "No mira: barre. Turquesa, como su radar.",
-      "skin": "#b57a4d",
-      "hair": {
-        "color": "#2c2c33",
-        "style": "short"
-      },
-      "top": {
-        "color": "#3fbfb2",
-        "style": "polo"
-      },
-      "bottom": {
-        "color": "#4a4f60",
-        "style": "pants"
-      },
-      "shoes": {
-        "color": "#d8d2c6"
-      },
-      "accessories": [
-        "cap"
-      ],
-      "capColor": "#2f7a72",
-      "build": {
-        "width": 1.04
-      }
+      "$note": "No mira: barre. Chico. Turquesa, como su radar. Sin .glb propio: usa el cuerpo base de chico pintado, con algo de barriga.",
+      "gender": "m",
+      "height": 1.73,
+      "build": {"width":1.05,"belly":0.4},
+      "paint": {"skin":"#b57a4d","hair":"#2c2c33","top":"#3fbfb2","bottom":"#4a4f60","shoes":"#d8d2c6"}
     },
     "cesar": {
-      "skin": "#c98d5c",
-      "hair": {
-        "color": "#2a2119",
-        "style": "short"
-      },
-      "beard": "#241c15",
-      "top": {
-        "color": "#4a6fa5",
-        "style": "sweater"
-      },
-      "bottom": {
-        "color": "#2f3440",
-        "style": "pants"
-      },
-      "shoes": {
-        "color": "#e2ded4"
-      },
-      "accessories": [
-        "glasses"
-      ],
-      "build": {
-        "width": 1.02
-      }
+      "gender": "m",
+      "height": 1.8,
+      "$note": "1,80 m — EXACTAMENTE la misma altura que Manu y Enriqueta. Moderadamente delgado, piel clara, pelo castaño claro con volumen arriba y atrás, barba corta del mismo tono. Su rasgo distintivo: nariz grande proyectada en cuña redondeada — reconocible y amigable, no caricatura. Gafas de sol rectangulares, camiseta azul carbón con un símbolo naranja pequeño, pantalón negro, zapatos oscuros."
     },
     "enriquetta": {
-      "skin": "#e8c49c",
-      "hair": {
-        "color": "#5a3a22",
-        "style": "bun"
-      },
-      "top": {
-        "color": "#c56b8a",
-        "style": "tee"
-      },
-      "bottom": {
-        "color": "#46506b",
-        "style": "skirt"
-      },
-      "shoes": {
-        "color": "#efe8de"
-      },
-      "accessories": [
-        "glasses"
-      ],
-      "build": {
-        "width": 0.96,
-        "bust": 0.42
-      }
+      "gender": "f",
+      "height": 1.8,
+      "$note": "1,80 m — EXACTAMENTE la misma altura que Manu y César. Compacta, rostro redondeado, gafas grandes de marco translúcido suavemente rectangular. Pelo casi negro recogido en grandes volúmenes con 3-5 mechones AZULES anchos visibles de frente. Sudadera roja igual a la de Manu pero con «COSA 2», pantalón azul marino, zapatillas blancas. Misma construcción simplificada que Manu."
     },
     "parce": {
-      "skin": "#a9714a",
-      "hair": {
-        "color": "#241c16",
-        "style": "spiky"
-      },
-      "top": {
-        "color": "#6fae62",
-        "style": "tee"
-      },
-      "bottom": {
-        "color": "#3a4152",
-        "style": "jeans"
-      },
-      "shoes": {
-        "color": "#dfd8cc"
-      },
-      "accessories": [
-        "cap"
-      ],
-      "capColor": "#3a4152",
-      "build": {
-        "width": 1.05
-      }
+      "gender": "m",
+      "height": 1.85,
+      "$note": "El más alto, pero SOLO apenas (1,85 m — no debe sobresalir desproporcionado). Moderadamente delgado, barba oscura completa, gafas rectangulares transparentes, melena castaña muy oscura hasta la cintura en secciones grandes simplificadas. Camiseta de fútbol FICTICIA en bloques azul oscuro/blanco cálido/dorado apagado (sin equipos ni marcas reales), jean negro liso, zapatillas negras de suela clara."
     },
     "kiara": {
-      "$note": "Ya renunció. Se le nota en la ropa.",
-      "skin": "#d2a173",
-      "hair": {
-        "color": "#2d2018",
-        "style": "long"
-      },
-      "top": {
-        "color": "#f2a65a",
-        "style": "tee"
-      },
-      "bottom": {
-        "color": "#e8ddc8",
-        "style": "pants"
-      },
-      "shoes": {
-        "color": "#f4efe6"
-      },
-      "badge": null,
-      "accessories": [
-        "hoops"
-      ],
-      "build": {
-        "width": 0.97,
-        "bust": 0.35
-      }
+      "$note": "Ya renunció, y por eso nada le afecta: es un genérico con nombre. Se le nota en la ropa. Usa el cuerpo base de chica pintado.",
+      "gender": "f",
+      "height": 1.69,
+      "paint": {"skin":"#d2a173","hair":"#2d2018","top":"#f2a65a","bottom":"#e8ddc8","shoes":"#f4efe6"}
     },
     "generic": {
-      "$note": "El compañero de fondo por defecto, para quien no traiga receta.",
-      "skin": "#e0ac82",
-      "hair": {
-        "color": "#3a2c26",
-        "style": "short"
-      },
-      "top": {
-        "color": "#8fa8bd",
-        "style": "tee"
-      },
-      "bottom": {
-        "color": "#3d4358",
-        "style": "pants"
-      },
-      "shoes": {
-        "color": "#e8e2d8"
-      }
+      "$note": "El compañero de fondo por defecto, para quien no traiga receta. Sin género a propósito: cuerpo de chico y texto neutro.",
+      "height": 1.67,
+      "paint": {"skin":"#e0ac82","hair":"#3a2c26","top":"#8fa8bd","bottom":"#3d4358","shoes":"#e8e2d8"}
+    },
+    "steven": {
+      "$note": "Steven el Daddy, el amigo del call center (1,62 m — MISMA altura que Giuli; se diferencia por el torso y los hombros más anchos, NUNCA por altura: de eso se encarga build.chest). Piel cálida morena, rostro amplio, pelo negro corto hacia atrás, sin barba. Gafas rectangulares oscuras y smartwatch sencillo. Camisa blanca cálida con mangas recogidas, pantalón azul carbón, zapatos oscuros de suela clara. Usa el cuerpo base de chico pintado.",
+      "gender": "m",
+      "height": 1.62,
+      "build": {"chest":1.16,"width":1.04},
+      "paint": {"skin":"#c98d5c","hair":"#1e1a18","top":"#f4f0e8","bottom":"#2e3a52","shoes":"#33333a"}
     }
   },
   "extras": [
     {
-      "skin": "#f2d3b0",
-      "hair": {
-        "color": "#8a5a2c",
-        "style": "wavy"
-      },
-      "top": {
-        "color": "#7fa9c9",
-        "style": "sweater"
-      },
-      "bottom": {
-        "color": "#3a4152",
-        "style": "jeans"
-      },
-      "shoes": {
-        "color": "#ded7cb"
-      },
-      "build": {
-        "width": 0.94,
-        "bust": 0.32
-      }
+      "gender": "f",
+      "height": 1.66,
+      "paint": {"skin":"#f2d3b0","hair":"#8a5a2c","top":"#7fa9c9","bottom":"#3a4152","shoes":"#ded7cb"}
     },
     {
-      "skin": "#8d5a38",
-      "hair": {
-        "color": "#1e1a18",
-        "style": "afro"
-      },
-      "top": {
-        "color": "#c9805f",
-        "style": "polo"
-      },
-      "bottom": {
-        "color": "#4b5262",
-        "style": "pants"
-      },
-      "shoes": {
-        "color": "#2f2f34"
-      },
-      "build": {
-        "width": 1.03
-      }
+      "gender": "m",
+      "height": 1.75,
+      "build": {"width":1.08,"belly":0.45},
+      "paint": {"skin":"#8d5a38","hair":"#1e1a18","top":"#c9805f","bottom":"#4b5262","shoes":"#2f2f34"}
     },
     {
-      "skin": "#e7bd93",
-      "hair": {
-        "color": "#4a4a52",
-        "style": "short"
-      },
-      "beard": "#43434b",
-      "top": {
-        "color": "#9db98a",
-        "style": "tee"
-      },
-      "bottom": {
-        "color": "#333a48",
-        "style": "pants"
-      },
-      "shoes": {
-        "color": "#e6e0d4"
-      },
-      "accessories": [
-        "glasses"
-      ],
-      "build": {
-        "width": 1.09,
-        "belly": 0.2
-      }
+      "gender": "f",
+      "height": 1.62,
+      "paint": {"skin":"#e7bd93","hair":"#4a4a52","top":"#9db98a","bottom":"#333a48","shoes":"#e6e0d4"}
     },
     {
-      "skin": "#c98f66",
-      "hair": {
-        "color": "#2b1f1a",
-        "style": "bun"
-      },
-      "top": {
-        "color": "#b48ac9",
-        "style": "tee"
-      },
-      "bottom": {
-        "color": "#404860",
-        "style": "skirt"
-      },
-      "shoes": {
-        "color": "#f0eae0"
-      },
-      "build": {
-        "width": 0.92,
-        "bust": 0.4
-      }
+      "gender": "f",
+      "height": 1.69,
+      "build": {"width":1.04},
+      "paint": {"skin":"#c98f66","hair":"#2b1f1a","top":"#b48ac9","bottom":"#404860","shoes":"#f0eae0"}
     },
     {
-      "skin": "#f0cfa8",
-      "hair": {
-        "color": "#c99a4a",
-        "style": "long"
-      },
-      "top": {
-        "color": "#6b7f9e",
-        "style": "hoodie"
-      },
-      "bottom": {
-        "color": "#2f3440",
-        "style": "jeans"
-      },
-      "shoes": {
-        "color": "#d5cec2"
-      },
-      "build": {
-        "width": 0.99,
-        "bust": 0.3
-      }
+      "gender": "m",
+      "height": 1.78,
+      "build": {"chest":1.1},
+      "paint": {"skin":"#f0cfa8","hair":"#c99a4a","top":"#6b7f9e","bottom":"#2f3440","shoes":"#d5cec2"}
     },
     {
-      "skin": "#a06a45",
-      "hair": {
-        "color": "#20191a",
-        "style": "fade"
-      },
-      "top": {
-        "color": "#e0a95c",
-        "style": "tee"
-      },
-      "bottom": {
-        "color": "#3d4358",
-        "style": "cargo"
-      },
-      "shoes": {
-        "color": "#33333a"
-      },
-      "accessories": [
-        "cap"
-      ],
-      "capColor": "#8a5a2c",
-      "build": {
-        "width": 1.06
-      }
+      "gender": "m",
+      "height": 1.62,
+      "build": {"belly":0.5},
+      "paint": {"skin":"#a06a45","hair":"#20191a","top":"#e0a95c","bottom":"#3d4358","shoes":"#33333a"}
     }
   ]
 }

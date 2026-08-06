@@ -15,6 +15,10 @@ const EMPTY = {
   bestSpare: {},
   characterId: null,
   hadWarningYesterday: false,
+  // La carrera (docs/CAMPANA.md): temporada, día dentro de ella y las
+  // misiones ÚNICAS ya hechas. El guardado es por progreso de TAREAS: una
+  // única se escribe aquí en el acto, no al cerrar el día.
+  campaign: { temporada: 1, dia: 1, unicas: [] },
 };
 
 function read() {
@@ -51,6 +55,13 @@ export function createSave() {
     },
     get characterId() {
       return state.characterId;
+    },
+    get campaign() {
+      return state.campaign ?? { temporada: 1, dia: 1, unicas: [] };
+    },
+    set campaign(c) {
+      state.campaign = c;
+      write(state);
     },
     setCharacter(id) {
       state.characterId = id;
@@ -103,8 +114,28 @@ export function createSave() {
     getFlag(name) {
       return state.flags[name];
     },
+    /**
+     * Borra el estado de CONVERSACIÓN (talk:/caught:), y solo ese. Se llama
+     * al arrancar cada día: las charlas vuelven a empezar — Gabo se
+     * PRESENTA en vez de saltar a una línea de seguimiento como si el
+     * reintento no hubiera pasado. Los flags de historia (elecciones,
+     * secretos) no se tocan.
+     */
+    resetTalkFlags() {
+      for (const key of Object.keys(state.flags)) {
+        if (key.startsWith("talk:") || key.startsWith("caught:")) delete state.flags[key];
+      }
+      write(state);
+    },
+    /**
+     * "Reiniciar progreso" de verdad: días completados, secretos, mejores
+     * tiempos, con quién ya hablaste y cuántas amonestaciones llevas — todo
+     * lo que hace que un día 1 nuevo no se sienta nuevo. El personaje
+     * elegido se conserva a propósito: es una preferencia, no progreso, y
+     * pedirlo de nuevo cada vez que reinicias es fricción sin motivo.
+     */
     reset() {
-      state = { ...EMPTY, completedDays: [], eggs: [], flags: {}, bestTimes: {}, bestSpare: {} };
+      state = { ...EMPTY, characterId: state.characterId, completedDays: [], eggs: [], flags: {}, bestTimes: {}, bestSpare: {} };
       write(state);
     },
   };

@@ -166,7 +166,7 @@
     <a data-target="narrator">Narrador · Teams</a>
 
     <h3>Otros</h3>
-    <a data-target="audio">Control de audio (vivo)</a>
+    <a data-target="audio">Barra de menú / HUD (vivo)</a>
     <a data-target="lobby">Ascensor</a>
   </aside>
 
@@ -360,9 +360,9 @@
 
     <!-- AUDIO -->
     <section id="audio" class="section">
-      <h1>Control de audio</h1>
-      <p class="desc">Componente real (src/ui/audioControl.js) — mute + volumen, empieza silenciado por defecto.</p>
-      <div id="stage-audio" class="component-box" style="width:fit-content;"></div>
+      <h1>HUD de partida</h1>
+      <p class="desc">Componente real (src/ui/gamehud.js) — el HUD de las cuatro esquinas: la placa con la cara viva, las amonestaciones y la presión arriba a la izquierda; la lista de misiones a la derecha, con su atajo, su distancia y su medalla; el reloj al centro; el nombre de zona abajo. Aquí se monta con un estado de ejemplo.</p>
+      <div id="stage-audio" class="component-box" style="height:340px; position:relative; overflow:hidden;"></div>
     </section>
 
     <!-- LOBBY -->
@@ -389,7 +389,7 @@
     import { createMenus } from "../../src/ui/menus.js";
     import { createHud } from "../../src/game/hud.js";
     import { createDialogue } from "../../src/game/dialogue.js";
-    import { createAudioControl } from "../../src/ui/audioControl.js";
+    import { createGameHud } from "../../src/ui/gamehud.js";
     import { icon as svgIcon, ICON_NAMES } from "../../src/ui/icons.js";
 
     // ---------------- Sidebar navigation ----------------
@@ -550,13 +550,34 @@
       });
     }
 
-    // ---------------- Audio control, standalone ----------------
-    // .audio-control es position:fixed a propósito (vive pegado a la
-    // esquina de la pantalla mientras se juega) — para verlo DENTRO de su
-    // ficha aquí se neutraliza esa regla solo en esta copia de muestra.
-    const audioWidget = createAudioControl();
-    audioWidget.style.position = "static";
-    document.getElementById("stage-audio").appendChild(audioWidget);
+    // ---------------- Barra de menú, con estado de ejemplo -------------
+    // .inc-bar es position:fixed (vive pegada al borde de la pantalla
+    // mientras se juega); dentro de su ficha se ancla al recuadro para
+    // El HUD de partida real (sustituyó a la barra de menú): se monta con
+    // un snapshot representativo para poder verlo sin salir del storybook.
+    {
+      const stage = document.getElementById("stage-audio");
+      const hud = createGameHud(stage, {});
+      hud.root.style.position = "absolute";
+      hud.setLive(true);
+      hud.render({
+        objectives: [
+          { id: "movie", label: "Ver película", icon: "movie", done: false, progress: 0.4, x: 4, z: 4 },
+          { id: "coffee", label: "Tomar café", icon: "coffee", done: false, progress: 0, x: 12, z: 2, kind: "como" },
+        ],
+        playerPos: { x: 0, z: 0 },
+        worldScale: 1.4,
+        suspicion: 42,
+        suspicionMax: 100,
+        warnings: 1,
+        maxWarnings: 3,
+        heat: 0,
+        timeLeft: 187,
+        currentTime: "11:24 a.m.",
+        area: { name: "Cafetería" },
+        bossState: "PATROL",
+      });
+    }
   </script>
 </body>
 </html>

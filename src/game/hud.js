@@ -1,6 +1,7 @@
 import { ACTIVITY_COLORS, AREA_KINDS } from "../scene/floorplan.js";
 import { sfxMove, sfxSelect } from "./sfx.js";
 import { icon as svgIcon, hasIcon } from "../ui/icons.js";
+import { characterShot } from "../ui/charshot.js";
 
 function fmtTime(s) {
   const m = Math.floor(s / 60);
@@ -159,12 +160,6 @@ export function createHud(root) {
   const actionFill = el("div", "inc-action-progress-fill", actionTrack);
   const actionLabel = el("div", "inc-action-label", actionScene);
 
-  // El "rig" de la jugadora ya no lo necesita este panel (la pose la anima
-  // el sprite del mundo), pero engine.js sigue llamando a setActionRig al
-  // cargar personaje — se mantiene como no-op para no tener que tocar esa
-  // costura.
-  function setActionRig() {}
-
   function setAction(action) {
     if (!action) {
       actionScene.classList.add("inc-hidden");
@@ -250,25 +245,47 @@ export function createHud(root) {
   /** Toggles the whole in-game HUD, e.g. while a menu is up. */
   function setVisible(visible) {
     hud.classList.toggle("inc-hidden", !visible);
+    // La barra NO se esconde con el HUD (está siempre), pero solo enseña
+    // estado cuando hay jornada que resumir.
+    menuBar?.setLive(visible);
   }
 
-  /** Shown between days; `actions` are [{ label, primary, onClick }]. */
-  function showResult({ icon, title, body, win, actions, timeLeft, timeGained }) {
-    overlayIcon.innerHTML = svgIcon(hasIcon(icon) ? icon : "diamond", { size: 56 });
+  /**
+   * Shown between days; `actions` are [{ label, primary, onClick }].
+   * `look`/`pose` (opcionales) ponen al PERSONAJE en la tarjeta — la
+   * jugadora celebrando o Gabo despidiéndote — que es lo que la convierte
+   * en pantalla de juego y no en un aviso del sistema.
+   */
+  function showResult({ icon, title, body, win, actions, timeLeft, timeGained, look, pose }) {
+    const shot = look ? characterShot(look, pose ?? null) : null;
+    if (shot) {
+      overlayIcon.innerHTML = `<img src="${shot}" alt="" class="inc-overlay-shot" />`;
+    } else {
+      overlayIcon.innerHTML = svgIcon(hasIcon(icon) ? icon : "diamond", { size: 56 });
+    }
     overlayTitle.textContent = title;
     overlayTitle.classList.toggle("win", !!win);
     overlayTitle.classList.toggle("lose", !win);
+    overlayCard.classList.toggle("win", !!win);
+    overlayCard.classList.toggle("lose", !win);
+    // Re-dispara la animación de entrada aunque la tarjeta ya existiera.
+    overlayCard.classList.remove("inc-overlay-pop");
+    void overlayCard.offsetWidth;
+    overlayCard.classList.add("inc-overlay-pop");
 
     // El resultado del día son dos cifras de reloj: lo que te regalaste
     // escaqueándote, y lo que te sobraba cuando acabó. Ni puntos ni rango.
     overlayScore.innerHTML = "";
     if (timeGained != null || timeLeft != null) {
+      // OJO: el `el()` de este archivo NO acepta texto como cuarto argumento
+      // (a diferencia del de menus.js) — pasárselo lo tiraba en silencio y
+      // los chips del reloj llevaban toda la vida saliendo VACÍOS.
       const box = el("div", "inc-overlay-score-box", overlayScore);
       if (timeGained != null) {
-        el("span", "inc-overlay-points", box, `+${Math.round(timeGained)}s ganados`);
+        el("span", "inc-overlay-points", box).textContent = `+${Math.round(timeGained)}s ganados`;
       }
       if (timeLeft != null) {
-        el("span", "inc-overlay-target", box, `${Math.max(0, Math.round(timeLeft))}s de sobra`);
+        el("span", "inc-overlay-target", box).textContent = `${Math.max(0, Math.round(timeLeft))}s de sobra`;
       }
     }
 
@@ -361,8 +378,19 @@ export function createHud(root) {
     });
   }
 
+  // El HUD de partida (ui/gamehud.js) se monta fuera de aquí pero lee el MISMO
+  // snapshot por frame: es la misma verdad enseñada de dos formas, no dos
+  // fuentes que se puedan desincronizar. El nombre `attachMenuBar` es de
+  // cuando lo que colgaba era la barra estilo macOS; el contrato no cambió al
+  // sustituirla, así que renombrarlo solo movería ruido.
+  let menuBar = null;
+  function attachMenuBar(bar) {
+    menuBar = bar;
+  }
+
   function render(state) {
     setAction(state.currentAction);
+    menuBar?.render(state);
 
     const heat = state.suspicionMax ? state.suspicion / state.suspicionMax : 0;
     danger.classList.toggle("on", heat >= DANGER_AT && !state.gameOver);
@@ -452,9 +480,12 @@ export function createHud(root) {
 
   return {
     render,
+    attachMenuBar,
+    get menuBar() {
+      return menuBar;
+    },
     setDay,
     setVisible,
-    setActionRig,
     showResult,
     hideResult,
     showIntroCard,

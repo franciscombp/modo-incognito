@@ -21,16 +21,16 @@ export const SETTINGS_SCHEMA = {
   pixelSize: {
     label: "Tamaño de píxel",
     type: "range",
-    min: 1,
+    min: 0,
     max: 6,
     step: 1,
-    hint: "1 = 3D nítido · 4+ = pixel art grueso",
+    hint: "0 = sin pixelar · 4+ = pixel art grueso",
   },
   colorLevels: {
     label: "Niveles de color",
     type: "range",
     min: 6,
-    max: 64,
+    max: 256,
     step: 2,
     hint: "64 = color continuo · menos niveles = paleta más marcada",
   },
@@ -44,8 +44,8 @@ export const SETTINGS_SCHEMA = {
 
 const DEFAULTS = Object.freeze({
   quality: "auto",
-  pixelSize: 1,
-  colorLevels: 64,
+  pixelSize: 0,
+  colorLevels: 256,
   showLabels: false,
   showMarkers: true,
   vibration: true,

@@ -63,6 +63,16 @@ export function onFirstUnmute(callback) {
   unmuteCallback = callback;
 }
 
+// El estado de audio se cambia desde varios sitios (el widget del HUD, la
+// tecla V, el mute automático al perder el foco) y todos tienen que verse
+// entre sí: sin esto, silenciar con V dejaba el icono del widget mintiendo
+// hasta el siguiente clic.
+const listeners = new Set();
+export function subscribeAudio(cb) {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
+
 /**
  * Actualiza las configuraciones de audio
  */
@@ -77,6 +87,7 @@ function updateAudioSettings() {
       musicVolume: volume
     });
   }
+  listeners.forEach((cb) => cb({ muted: isMuted, volume }));
 }
 
 // Sincroniza cambios externos de configuración

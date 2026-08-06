@@ -21,12 +21,7 @@
     "radius": 0.3,
     "visionRange": 7.5,
     "visionHalfAngleDeg": 30,
-    "speeds": {
-      "patrol": 2.4,
-      "investigate": 3.2,
-      "chase": 4.9,
-      "search": 3
-    },
+    "speeds": {"patrol":2.4,"investigate":3.2,"chase":4.9,"search":3},
     "actionSheet": "gabo-acciones",
     "rig": "gabo"
   },
@@ -44,12 +39,7 @@
       "radius": 0.28,
       "visionRange": 5.5,
       "visionHalfAngleDeg": 26,
-      "speeds": {
-        "patrol": 4.2,
-        "investigate": 4.8,
-        "chase": 5.2,
-        "search": 4.4
-      },
+      "speeds": {"patrol":4.2,"investigate":4.8,"chase":5.2,"search":4.4},
       "trait": "Corre por todo el piso. Cono corto, pero llega enseguida."
     },
     "washo": {
@@ -59,12 +49,7 @@
       "radius": 0.28,
       "visionRange": 7.5,
       "visionHalfAngleDeg": 22,
-      "speeds": {
-        "patrol": 1.5,
-        "investigate": 2.2,
-        "chase": 2.4,
-        "search": 2
-      },
+      "speeds": {"patrol":1.5,"investigate":2.2,"chase":2.4,"search":2},
       "trait": "No mira: barre. Su radar te alcanza en cualquier direccion y, dentro de el, te pesan las piernas.",
       "visionShape": "radar"
     },
@@ -75,55 +60,18 @@
       "radius": 0.28,
       "visionRange": 7,
       "visionHalfAngleDeg": 58,
-      "speeds": {
-        "patrol": 0.9,
-        "investigate": 1.6,
-        "chase": 1.8,
-        "search": 1.4
-      },
+      "speeds": {"patrol":0.9,"investigate":1.6,"chase":1.8,"search":1.4},
       "trait": "Casi no se mueve, pero abarca medio pasillo con la mirada. Y lo apunta todo.",
       "actionSheet": "crispo-acciones",
       "rig": "crispo"
     }
   },
   "npcs": {
-    "npc1": {
-      "sheet": "npc-camina",
-      "name": "Compañera",
-      "height": 1.4,
-      "radius": 0.28
-    },
-    "npc2": {
-      "sheet": "npc-camina",
-      "name": "Compañero",
-      "height": 1.4,
-      "radius": 0.28
-    },
-    "npc3": {
-      "sheet": "npc-camina",
-      "name": "Analista",
-      "height": 1.4,
-      "radius": 0.28
-    },
-    "npc4": {
-      "sheet": "npc-camina",
-      "name": "Becario",
-      "height": 1.4,
-      "radius": 0.28
-    },
-    "fran_npc": {
-      "sheet": "fran-camina",
-      "name": "Fran",
-      "height": 1.42,
-      "radius": 0.28,
-      "rig": "fran"
-    },
-    "manu_npc": {
-      "sheet": "manu-camina",
-      "name": "Manu",
-      "height": 1.4,
-      "radius": 0.28,
-      "rig": "manu"
-    }
+    "npc1": {"sheet":"npc-camina","name":"Compañera","height":1.4,"radius":0.28},
+    "npc2": {"sheet":"npc-camina","name":"Compañero","height":1.4,"radius":0.28},
+    "npc3": {"sheet":"npc-camina","name":"Analista","height":1.4,"radius":0.28},
+    "npc4": {"sheet":"npc-camina","name":"Becario","height":1.4,"radius":0.28},
+    "fran_npc": {"sheet":"fran-camina","name":"Fran","height":1.42,"radius":0.28,"rig":"fran"},
+    "manu_npc": {"sheet":"manu-camina","name":"Manu","height":1.4,"radius":0.28,"rig":"manu"}
   }
 }

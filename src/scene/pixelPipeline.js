@@ -58,7 +58,7 @@ const FRAG = /* glsl */ `
     // Es lo que hace que la escena parezca un diorama iluminado y no una
     // captura plana de un visor 3D.
     float d = distance(vUv, vec2(0.5));
-    float vignette = 1.0 - smoothstep(0.42, 0.95, d) * 0.22;
+    float vignette = 1.0 - smoothstep(0.34, 0.95, d) * 0.38;
     c *= vignette;
     c = mix(c, c * vec3(1.03, 0.995, 0.965), smoothstep(0.2, 0.9, d));
 
@@ -109,7 +109,10 @@ export class PixelPipeline {
   }
 
   setPixelSize(pixelSize) {
-    this.pixelSize = Math.max(1, Math.round(pixelSize));
+    // 0 = SIN pixelar: se renderiza a resolución nativa. El pase sigue
+    // corriendo porque además de pixelar es quien pone la viñeta y la
+    // calidez de los bordes — apagarlo entero deja la imagen plana.
+    this.pixelSize = Math.max(1, Math.round(pixelSize || 0) || 1);
     this._resizeTarget();
   }
 

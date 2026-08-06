@@ -34,6 +34,13 @@ const log = await page.evaluate(async () => {
   const game = engine.game;
   game.setPaused(false);
   document.querySelector(".vn-layer")?.classList.add("hidden");
+  // This test is about the boss AI once the day is in progress, not about
+  // the day-1 gate (find Gabo before he starts actually watching you) — so
+  // clear it directly instead of walking up to him first.
+  // `clearGate` y no `metGabo = true` a pelo: la bandera sola abre el piso
+  // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
+  // es la campana al enterarse de que la mision de la puerta cayo.
+  game.clearGate();
   // This test is about the boss, not the sidekicks: an on-duty minion could
   // walk up and start an unsolicited chat, which pauses the level and would
   // otherwise stall every assertion below on a dialogue nobody answers.
@@ -56,36 +63,71 @@ const log = await page.evaluate(async () => {
   boss.facingDir = { x: 1, z: 0 };
   boss.state = "PATROL";
 
+  // El jefe ya NO persigue con la sospecha baja: por debajo de
+  // `chaseSuspicionFloor` (40 por defecto) hace su ronda aunque te vea en
+  // falta. Este montaje comprobaba la persecucion con la sospecha a cero, o
+  // sea el caso en el que ahora, a proposito, NO debe perseguir. Se sube por
+  // encima del umbral para probar lo que este archivo quiere probar; el
+  // respiro de sospecha baja tiene su propia comprobacion al final.
+  // Hay que ponerla en las DOS: el jefe lleva su propia copia, que game.js
+  // sincroniza una vez por cuadro. Poniendo solo la del juego, el primer
+  // frame lo pilla todavia a cero y arranca la caza un pelo tarde — lo justo
+  // para que "cierra distancia" se quedara en 0.24 contra los 0.3 que pide.
+  game.suspicion = Math.max(game.suspicion, boss.chaseSuspicionFloor + 15);
+  boss.suspicion = game.suspicion;
+
   // Put a forbidden activity right where she is standing.
-  // Day 1 only enables a couple of activities, so take whichever is first.
-  const station = game.objectives[0];
+  // Tiene que ser una ESTACIÓN de verdad, no cualquier objetivo: desde que
+  // la campaña reparte las tareas, la lista mezcla estaciones del plano con
+  // misiones sin sitio fijo (`dynamic`) — hablar con alguien, o el tutorial
+  // de fingir. Esas no se hacen pulsando espacio encima, así que coger la
+  // primera a ciegas dejaba al jefe sin nada que reprocharle y toda la
+  // prueba caía por el motivo equivocado.
+  const station = game.objectives.find((o) => !o.dynamic) ?? game.objectives[0];
   station.x = px;
   station.z = z;
   station.done = false;
   station.progress = 0;
-  player.keys.add("e");
+  player.keys.add(" "); // la tecla de acción es espacio, no "e"
 
   await sleep(350);
   out.seesPlayer = boss.playerVisible;
   out.redAlert = boss.redAlert;
   out.stateAfterSpotted = boss.state;
 
+  // Blindar la medicion contra la CAPTURA. Si el jefe la alcanza a mitad de
+  // la ventana, la amonestacion resetea la sospecha a CERO — y en frio ya no
+  // persigue (regla del respiro), asi que se para en seco y la distancia
+  // recorrida sale corta. Eso es lo que hacia que esta prueba saliera cara o
+  // cruz entre 0.24 y 0.36 contra un umbral de 0.3. Aqui se mide que SE
+  // ACERCA; que alcanzarte amonesta lo prueban check-catch-mechanics y
+  // check-pursuit.
+  game._caughtCooldown = 999;
   const d0 = Math.hypot(boss.position.x - player.position.x, boss.position.z - player.position.z);
   const s0 = game.suspicion;
   // Sample the meter early: give the chase a full second and he reaches her,
   // which resets suspicion to zero as a warning and hides the rise.
   await sleep(250);
   out.suspicionRose = game.suspicion > s0;
-  await sleep(450);
+  // Ventana ANCHA a proposito. Con 450 ms el jefe recorria entre 0.24 y 0.36
+  // contra un umbral de 0.3, o sea que la prueba salia cara o cruz segun lo
+  // cargada que estuviera la maquina — y un test que falla una de cada tres
+  // veces sin que haya nada roto es peor que no tenerlo: ensena a ignorarlo.
+  // Al doblar la ventana, la distancia recorrida se separa del umbral.
+  await sleep(900);
   const d1 = Math.hypot(boss.position.x - player.position.x, boss.position.z - player.position.z);
   out.closedDistance = +(d0 - d1).toFixed(2);
 
-  // Pretending to work must break the red alert even in plain sight.
+  // Fingir A CAMPO ABIERTO ya no rompe nada: desde que te mete en el halo
+  // la persecución va comprometida y SOLO un lugar seguro la corta (regla de
+  // check-pursuit.mjs; check-modes.mjs cubre el lado de fingir). Aquí se
+  // comprueba lo contrario de antes: que la alerta roja SIGUE puesta aunque
+  // pulses F en medio del pasillo.
   player.keys.add("f");
   await sleep(200);
   out.redAlertWhilePretending = boss.redAlert;
   player.keys.delete("f");
-  player.keys.delete("e");
+  player.keys.delete(" ");
 
   // Perderla de vista ya NO termina la persecución: desde que la mete en el
   // halo va comprometido (boss.lockedOn) y solo un lugar seguro lo corta —
@@ -115,6 +157,28 @@ const log = await page.evaluate(async () => {
   await sleep(150);
   out.stateAfterDistract = boss.state;
 
+  // ── EL RESPIRO: con la sospecha baja hace su ronda, no te caza ──
+  // Es la regla que hace jugable el dia 1. Sin ella el jefe se lanzaba a la
+  // primera alerta roja desde el primer minuto y, con Gabo ademas atado a la
+  // jugadora, no dejaba hacer nada.
+  boss.resetToPatrol();
+  boss.lockedOn = false;          // sin compromiso previo: el umbral manda
+  game.suspicion = 5;             // muy por debajo del suelo de persecucion
+  boss.suspicion = 5;
+  boss.redAlert = true;           // le pillan en falta, a la vista
+  boss.startChase();              // la puerta unica por la que entra una caza
+  out.calmState = boss.state;
+  out.calmLocked = boss.lockedOn;
+  // Ni CHASE ni comprometido: como mucho se acerca a mirar (INVESTIGATE).
+  out.calmNoChase = boss.state !== "CHASE" && boss.lockedOn === false;
+
+  // Y por encima del umbral la caza vuelve a estar disponible, para que esto
+  // no pase por "el jefe ya no persigue nunca".
+  game.suspicion = boss.chaseSuspicionFloor + 20;
+  boss.suspicion = boss.chaseSuspicionFloor + 20;
+  boss.startChase();
+  out.hotChases = boss.state === "CHASE" && boss.lockedOn === true;
+
   return out;
 });
 
@@ -125,11 +189,20 @@ const checks = [
   ["boss sees the player", log.seesPlayer],
   ["red alert on a forbidden activity", log.redAlert],
   ["boss switches to CHASE", log.stateAfterSpotted === "CHASE"],
-  ["boss closes the distance", log.closedDistance > 0.3],
+  // Umbral FLOJO a proposito. La ventana es de reloj real pero el juego
+  // avanza por frames, y en headless con swiftshader el frame rate varia
+  // mucho: la misma prueba daba 0.24 o 0.36 segun cuantos frames cupieran,
+  // valores cuantizados que delatan que se estaba midiendo la maquina, no la
+  // IA. Con 0.3 salia cara o cruz. Lo que esta prueba tiene que cazar es que
+  // el jefe NO se acerque —que se quede plantado o se aleje—, y para eso
+  // basta con exigir que la distancia baje de verdad.
+  ["boss closes the distance", log.closedDistance > 0.1],
   ["suspicion rises while seen", log.suspicionRose],
-  ["pretending to work clears the red alert", log.redAlertWhilePretending === false],
+  ["fingir a campo abierto NO rompe la alerta (solo el lugar seguro)", log.redAlertWhilePretending === true],
   ["losing sight no longer ends a committed chase", log.stateWhenHidden === "CHASE" && log.lockedWhenHidden],
   ["distraction is accepted", log.distractAccepted === true],
+  ["con la sospecha baja NO persigue: sigue su ronda", log.calmNoChase === true],
+  ["y por encima del umbral si persigue", log.hotChases === true],
   ["distraction switches to INVESTIGATE", log.stateAfterDistract === "INVESTIGATE"],
 ];
 

@@ -1,0 +1,120 @@
+{
+  "$comment": [
+    "TEMPORADA 1 DE LA CAMPAÑA (docs/CAMPANA.md). La lee src/game/campaign.js.",
+    "",
+    "Una temporada es un lustro en la empresa: cinco días con un RANGO de",
+    "entrada y otro de salida. Las misiones van ENCADENADAS con `requiere`",
+    "(ids que deben estar hechos antes), y se reparten en dos tipos — el",
+    "chiste central de RRHH:",
+    "  tipo 'que'  = lo haces SOLA (una estación del plano, o una acción).",
+    "  tipo 'como' = exige OTRO PERSONAJE (hablar con él la completa).",
+    "",
+    "recurrencia 'diaria' vuelve cada día (la rutina); 'unica' se hace UNA",
+    "vez en toda la carrera y queda guardada al instante (el guardado es por",
+    "progreso de tareas, no por días).",
+    "",
+    "Campos de enganche con el mundo:",
+    "  estacion  id de scenes/*.json -> activities (misiones 'que').",
+    "  accion    'fingir' = completarla es FINGIR trabajo en un lugar seguro",
+    "            unos segundos: es el tutorial de la mecánica central.",
+    "  personaje id del cast (misiones 'como'): hablar con él la cumple.",
+    "            Es el id de dialogues.json -> cast, NO el nombre del",
+    "            personaje: Gabo es 'jefe' ahí. Ponerle 'gabo' compila igual",
+    "            y luego no lo cumple nadie, que es el fallo silencioso de",
+    "            este archivo.",
+    "            Su misión es además la PUERTA del día 1 (levels/dia-1.json",
+    "            -> rules.gate.task.id, el mismo id): conocerlo la cumple, y",
+    "            por eso no sale duplicada en la lista de tareas.",
+    "",
+    "El `icono` es el MISMO en tres sitios: la medalla del piso, la fila de",
+    "la lista del HUD y la evaluación. Uno solo, por nombre de ui/icons.js.",
+    "",
+    "nivelacion.pruebas: la tanda del PLAN DE NIVELACIÓN (§5.1), por id",
+    "  del registro de minijuegos (src/game/minigames.js). Salta cuando",
+    "  se acaban los 5 días sin cerrar la temporada. NO se pierde la",
+    "  partida: al terminarla vuelves al día 1 con lo ya hecho intacto.",
+    "  Fallar una prueba no cuesta nada a propósito — si costara, el",
+    "  plan dejaría de ser una red y sería otra forma de perder."
+  ],
+  "numero": 1,
+  "rango": "Aprendiz",
+  "rangoSiguiente": "Junior",
+  "nivelacion": {
+    "pruebas": [
+      "crossing"
+    ]
+  },
+  "misiones": [
+    {
+      "id": "meet-gabo",
+      "tipo": "como",
+      "titulo": "Preséntate con Gabo",
+      "recurrencia": "unica",
+      "requiere": [],
+      "personaje": "jefe",
+      "icono": "person"
+    },
+    {
+      "id": "fingir-101",
+      "tipo": "que",
+      "titulo": "Finge que trabajas",
+      "recurrencia": "diaria",
+      "requiere": [
+        "meet-gabo"
+      ],
+      "accion": "fingir",
+      "segundos": 3,
+      "icono": "keyboard",
+      "recompensa": {
+        "reloj": 20
+      }
+    },
+    {
+      "id": "coffee",
+      "tipo": "que",
+      "titulo": "Tomar café",
+      "recurrencia": "diaria",
+      "requiere": [
+        "meet-gabo"
+      ],
+      "estacion": "coffee",
+      "icono": "coffee"
+    },
+    {
+      "id": "chisme-fran",
+      "tipo": "como",
+      "titulo": "Fran tiene un chisme",
+      "recurrencia": "unica",
+      "requiere": [
+        "fingir-101"
+      ],
+      "personaje": "fran_npc",
+      "icono": "chat",
+      "recompensa": {
+        "reloj": 30
+      }
+    },
+    {
+      "id": "movie",
+      "tipo": "que",
+      "titulo": "Ver la película",
+      "recurrencia": "unica",
+      "requiere": [
+        "coffee"
+      ],
+      "estacion": "movie",
+      "icono": "movie"
+    },
+    {
+      "id": "snack",
+      "tipo": "que",
+      "titulo": "Comer a escondidas",
+      "recurrencia": "diaria",
+      "requiere": [
+        "coffee"
+      ],
+      "estacion": "snack",
+      "icono": "snack"
+    }
+  ]
+}

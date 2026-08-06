@@ -9,6 +9,7 @@
 
 import { sfxMove, sfxSelect, sfxAdvance, sfxType } from "./sfx.js";
 import { createPortrait3D } from "../ui/portrait3d.js";
+import { characterShot } from "../ui/charshot.js";
 import { icon as svgIcon } from "../ui/icons.js";
 
 const ADVANCE_KEYS = new Set([" ", "enter", "e"]);
@@ -97,6 +98,15 @@ export function createDialogue(root, { looks = null } = {}) {
   /** Retrato: el muñeco 3D del hablante; si no se puede, su pliego. */
   function setPortrait(node) {
     portraitMood = node.mood ?? "neutral";
+    // Un nodo SIN hablante (la pregunta del ascensor, un prompt del
+    // sistema) no tiene cara que enseñar: caía al muñeco genérico y salía
+    // un desconocido flotando sobre las puertas, presentando tu decisión.
+    if (!node.speaker && !node.lookId && !node.look) {
+      portrait3d.stop?.();
+      portrait.classList.remove("inc-dialogue-portrait-3d");
+      portrait.classList.add("inc-dialogue-portrait-off");
+      return;
+    }
     const look = node.look ?? lookFor(node);
     if (look && portrait3d.show(look, portraitMood)) {
       portrait3d.start();
@@ -123,9 +133,32 @@ export function createDialogue(root, { looks = null } = {}) {
    * en blanco. `vn-narrating` es lo que la aparta.
    */
   function showNarrator(text) {
+    // Un mensaje de Steven es una NOTIFICACIÓN de chat: él vive dentro de
+    // la burbuja (su avatar en el título), no como retrato gigante detrás —
+    // el muñeco del hablante anterior se quedaba plantado presentando el
+    // Teams de otro.
+    portrait3d.stop?.();
+    portrait.classList.remove("inc-dialogue-portrait-3d");
+    portrait.classList.add("inc-dialogue-portrait-off");
+    ensureNarratorAvatar();
     narratorText.textContent = text;
     narratorEl.classList.remove("inc-hidden");
     layer.classList.add("inc-dialogue-narrating");
+  }
+
+  // El avatar de Steven dentro de la burbuja. characterShot devuelve null
+  // hasta que su cuerpo está en memoria, así que se reintenta en cada
+  // mensaje hasta conseguir la foto (y de ahí en adelante queda puesta).
+  let narratorAvatarSet = false;
+  function ensureNarratorAvatar() {
+    if (narratorAvatarSet || !looks) return;
+    const shot = characterShot(looks.get("steven"));
+    if (!shot) return;
+    const icon = narratorEl.querySelector(".inc-dialogue-narrator-icon");
+    if (icon) {
+      icon.innerHTML = `<img src="${shot}" alt="" class="inc-dialogue-narrator-avatar" />`;
+      narratorAvatarSet = true;
+    }
   }
 
   /** Ocultar narrador. */
@@ -229,6 +262,13 @@ export function createDialogue(root, { looks = null } = {}) {
       }
       if (ADVANCE_KEYS.has(key)) {
         e.preventDefault();
+        // Espacio es también la tecla de las actividades: si te interrumpen
+        // (el jefe te aborda) a media pulsación, el navegador sigue
+        // repitiendo el keydown mientras el dedo no se levanta, y eso
+        // pasaba las opciones sin que nadie las leyera. `repeat` marca
+        // justo esas repeticiones automáticas — se ignoran hasta que la
+        // tecla se suelta y se vuelve a pulsar de verdad.
+        if (e.repeat) return;
         optionButtons[optionIndex]?.click();
         return;
       }
@@ -241,6 +281,10 @@ export function createDialogue(root, { looks = null } = {}) {
     }
     if (ADVANCE_KEYS.has(key)) {
       e.preventDefault();
+      // Ver la nota de arriba: una tecla ya sostenida al abrirse el diálogo
+      // (por ejemplo, espacio de una actividad interrumpida) no debe avanzar
+      // nada hasta que se suelte y se vuelva a pulsar.
+      if (e.repeat) return;
       advance();
     }
   };
@@ -331,7 +375,23 @@ export function createDialogue(root, { looks = null } = {}) {
   }
 
   function resolve(value, ctx) {
-    return typeof value === "function" ? value(ctx) : value;
+    const text = typeof value === "function" ? value(ctx) : value;
+    return genderize(text, ctx);
+  }
+
+  /**
+   * Concuerda el texto con quien JUEGA. Una línea puede escribir
+   * `{ocupado|ocupada}` (masculino|femenino) y aquí se elige la mitad que
+   * toca según el personaje elegido — Fran es chico, Giuli y Kiara son
+   * chicas, y "hazte la ocupada" fijo delataba que el texto no te miraba.
+   * Sin género conocido gana la primera mitad, que en español hace de
+   * genérico. El género de quien HABLA ya viaja en su receta
+   * (`looks.get(cast).gender`) para quien escriba con él.
+   */
+  function genderize(text, ctx) {
+    if (typeof text !== "string" || text.indexOf("{") === -1) return text;
+    const fem = ctx?.getPlayerGender?.() === "f";
+    return text.replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (_, m, f) => (fem ? f : m));
   }
 
   async function playNodes(nodes, ctx) {

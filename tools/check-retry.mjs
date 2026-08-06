@@ -32,8 +32,8 @@ await page.evaluate(() => {
 });
 await page.waitForTimeout(1200);
 const opensAtLift = await page.evaluate(() => {
-  const lobby = document.querySelector(".lobby-scene");
-  return !!lobby && !lobby.classList.contains("hidden") && !window.__game.engine.crossingActive;
+  const lobby = document.querySelector(".inc-lobby-scene");
+  return !!lobby && !lobby.classList.contains("inc-hidden") && !window.__game.engine.crossingActive;
 });
 
 // A partir de aquí, con el cruce puesto a mano: el ciclo de derrota y
@@ -59,7 +59,7 @@ const visible = (sel) =>
     const el = document.querySelector(s);
     if (!el) return false;
     const r = el.getBoundingClientRect();
-    return !el.classList.contains("hidden") && r.width > 0 && r.height > 0;
+    return !el.classList.contains("inc-hidden") && r.width > 0 && r.height > 0;
   }, sel);
 
 /** Salta los diálogos hasta que la avenida esté jugable. */
@@ -86,18 +86,18 @@ await page.waitForFunction(
   { timeout: 40000 }
 );
 // El diálogo de "eso se avisa con tiempo" va antes de la tarjeta.
-for (let i = 0; i < 10 && !(await visible(".hud-overlay")); i++) {
+for (let i = 0; i < 10 && !(await visible(".inc-modal")); i++) {
   await page.keyboard.press("Enter");
   await page.waitForTimeout(350);
 }
-out.lostShowsResult = await visible(".hud-overlay");
-out.lostShowsLobby = await visible(".lobby-scene");
+out.lostShowsResult = await visible(".inc-modal");
+out.lostShowsLobby = await visible(".inc-lobby-scene");
 
 // Reintentar, tal cual lo haría la jugadora: el botón de la tarjeta.
-await page.locator(".hud-overlay button", { hasText: "Reintentar" }).first().click();
+await page.locator(".inc-modal button", { hasText: "Reintentar" }).first().click();
 out.secondRun = await reachCrossing();
-out.lobbyGone = !(await visible(".lobby-scene"));
-out.resultGone = !(await visible(".hud-overlay"));
+out.lobbyGone = !(await visible(".inc-lobby-scene"));
+out.resultGone = !(await visible(".inc-modal"));
 
 await browser.close();
 

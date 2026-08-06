@@ -4,6 +4,7 @@ import { sfxMove, sfxSelect, sfxBack, sfxOpen } from "../game/sfx.js";
 import { createCameraPanel } from "./cameraPanel.js";
 import { characterShot } from "./charshot.js";
 import { icon as svgIcon } from "./icons.js";
+import { buildControlsLegend } from "./controls.js";
 
 // Every full-screen menu the game has: title, day select, settings (game +
 // camera), how-to-play and pause. They all live in one overlay that swaps
@@ -103,10 +104,21 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     icon: "play",
     onClick: () => actions.play(save.dayIndex),
   });
-  button(titleMenu, "Nueva semana", {
+  button(titleMenu, "Reiniciar progreso", {
     icon: "star",
     onClick: () => {
-      save.setDayIndex(0);
+      // Antes esto solo saltaba al día 0 sin tocar el resto del save: los
+      // flags de diálogo (con quién ya hablaste, cuántas amonestaciones
+      // llevas) seguían puestos, así que "empezar de nuevo" en realidad
+      // seguía a medio camino de la partida anterior — Gabo, por ejemplo,
+      // saltaba directo a una de sus líneas de seguimiento en vez de
+      // presentarse. Es irreversible (borra días completados, secretos y
+      // mejores tiempos), así que primero se confirma.
+      const ok = window.confirm(
+        "Esto borra TODO tu progreso (días completados, secretos, mejores tiempos) y empieza desde cero. ¿Seguro?"
+      );
+      if (!ok) return;
+      save.reset();
       actions.play(0);
     },
   });
@@ -122,6 +134,20 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   button(titleMenu, "Cómo se juega", { icon: "help", onClick: () => show("help") });
   const charBadge = el("div", "inc-menu-title-char", titleScreen);
   const titleFoot = el("div", "inc-menu-title-foot", titleScreen);
+
+  // Función para actualizar footer con timestamp
+  function updateTitleFoot(summary) {
+    const buildId = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
+    const buildTime = new Date(parseInt(buildId) || Date.now()).toLocaleString("es-ES", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    const timestamp = `v${buildId} · ${buildTime}`;
+    titleFoot.innerHTML = summary ? `${summary} <span style="opacity:0.6"> · ${timestamp}</span>` : `<span>${timestamp}</span>`;
+  }
 
   // ---------------- Day select ----------------
   const daysScreen = makeScreen("days");
@@ -151,61 +177,122 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     });
   }
 
-  // ---------------- Character select ----------------
-  const charScreen = makeScreen("characters");
-  const charTitle = el("h2", "inc-menu-screen-title-text", charScreen, "Elige tu personaje");
-  const charGrid = el("div", "inc-menu-day-grid inc-menu-char-grid", charScreen);
+  // ---------------- Character select: PANTALLA DE LOGIN ----------------
+  // La primera pantalla del "sistema operativo" de mentira: elegir personaje
+  // es INICIAR SESIÓN. Un usuario grande con su avatar en círculo, carrusel
+  // con flechas/teclado/swipe, y abajo el muelle con todos los usuarios,
+  // como la pantalla de entrada de un Mac. Los bloqueados aparecen con
+  // candado y su motivo — se desbloquean jugando.
+  const charScreen = makeScreen("characters", "inc-login");
+  const charTitle = el("h2", "inc-login-greeting", charScreen, "Elige tu usuario");
+  const loginStage = el("div", "inc-login-stage", charScreen);
+  const prevBtn = el("button", "inc-login-arrow", loginStage);
+  prevBtn.type = "button";
+  prevBtn.innerHTML = svgIcon("back", { size: 28 });
+  prevBtn.setAttribute("aria-label", "Usuario anterior");
+  const loginUser = el("div", "inc-login-user", loginStage);
+  const nextBtn = el("button", "inc-login-arrow", loginStage);
+  nextBtn.type = "button";
+  nextBtn.innerHTML = svgIcon("next", { size: 28 });
+  nextBtn.setAttribute("aria-label", "Usuario siguiente");
+  const loginDock = el("div", "inc-login-dock", charScreen);
   const charBackBtn = button(el("div", "inc-menu-screen-foot", charScreen), "Volver", {
     back: true,
     onClick: () => show(previousScreen ?? "title"),
   });
 
+  const loginEntries = Object.entries(modes);
+  let loginAt = Math.max(
+    0,
+    loginEntries.findIndex(([id]) => id === (save.characterId ?? "giu"))
+  );
+
+  function moveLogin(delta) {
+    if (!loginEntries.length) return;
+    loginAt = ((loginAt + delta) % loginEntries.length + loginEntries.length) % loginEntries.length;
+    sfxMove();
+    buzz(6);
+    renderCharacters();
+  }
+  prevBtn.addEventListener("click", () => moveLogin(-1));
+  nextBtn.addEventListener("click", () => moveLogin(1));
+
+  // Swipe: el carrusel también se hojea con el dedo.
+  let touchX = null;
+  loginStage.addEventListener("touchstart", (e) => (touchX = e.touches[0]?.clientX ?? null), { passive: true });
+  loginStage.addEventListener(
+    "touchend",
+    (e) => {
+      if (touchX == null) return;
+      const dx = (e.changedTouches[0]?.clientX ?? touchX) - touchX;
+      touchX = null;
+      if (Math.abs(dx) > 40) moveLogin(dx < 0 ? 1 : -1);
+    },
+    { passive: true }
+  );
+
+  function loginSelect(id) {
+    buzz(10);
+    sfxSelect();
+    actions.selectCharacter(id);
+    renderCharBadge();
+    renderCharacters();
+    show(previousScreen ?? "title");
+  }
+
   function renderCharacters() {
-    charGrid.innerHTML = "";
-    // Sin personaje elegido todavía: no hay a dónde "volver" — hay que elegir
-    // para poder jugar. Una vez elegido, la pantalla vuelve a ser opcional.
+    // Sin personaje elegido todavía: no hay a dónde "volver" — hay que
+    // iniciar sesión para poder jugar. Una vez dentro, la pantalla vuelve a
+    // ser opcional.
     const forced = !save.characterId;
-    charTitle.textContent = forced ? "Elige tu personaje para empezar" : "Elige tu personaje";
+    charTitle.textContent = forced ? "¿Quién entra a fingir hoy?" : "Cambiar de usuario";
     charBackBtn.classList.toggle("inc-hidden", forced);
-    Object.entries(modes).forEach(([id, mode]) => {
-      const locked = mode.playable === false;
-      // Giuli va marcada por defecto: es quien narra el día 1 en femenino y
-      // la única con pliego de acciones propio (café, peli, comer).
-      const active = save.characterId === id || (!save.characterId && id === "giu");
-      const card = el(
-        "button",
-        `inc-menu-day inc-menu-char${locked ? " inc-menu-day--locked" : ""}${active ? " inc-menu-day--done" : ""}`,
-        charGrid
-      );
-      card.type = "button";
-      card.disabled = locked;
-      // SIEMPRE el muñeco 3D, el mismo que vas a mover por el piso. Antes
-      // caía al pliego de píxeles y, si tampoco había, a un emoji: elegías un
-      // dibujo pixelado para entrar a un juego 3D. `looks.get` nunca devuelve
-      // vacío, así que quien no tenga receta propia sale con la genérica.
-      const shot = looks ? characterShot(looks.get(id) ?? looks.get(mode.sheet), CARD_POSE[id]) : null;
-      if (shot) {
-        const thumb = el("span", "inc-menu-char-shot", card);
-        thumb.style.backgroundImage = `url(${shot})`;
-      }
-      el(
-        "span",
-        "inc-menu-day-name",
-        card,
-        mode.alias ? `${mode.name} · "${mode.alias}"` : mode.name
-      );
-      el("span", "inc-menu-day-sub", card, locked ? mode.lockedReason ?? "Bloqueado" : mode.blurb ?? "");
-      if (!locked && mode.difficulty) {
-        el("span", "inc-menu-day-best", card, `Modo ${mode.difficulty}`);
-      }
-      card.addEventListener("click", () => {
-        if (locked) return;
-        buzz(10);
-        sfxSelect();
-        actions.selectCharacter(id);
-        renderCharBadge();
+
+    const [id, mode] = loginEntries[loginAt] ?? [];
+    if (!mode) return;
+    const locked = mode.playable === false;
+    loginUser.innerHTML = "";
+    const avatar = el("div", `inc-login-avatar${locked ? " locked" : ""}`, loginUser);
+    // SIEMPRE el muñeco 3D, el mismo que vas a mover por el piso. `looks.get`
+    // nunca devuelve vacío: quien no tenga receta propia sale con la
+    // genérica. Si el cuerpo aún no llegó, refreshCharacters() redibuja al
+    // terminar la precarga.
+    const shot = looks ? characterShot(looks.get(id) ?? looks.get(mode.sheet), CARD_POSE[id]) : null;
+    if (shot) avatar.style.backgroundImage = `url(${shot})`;
+    if (locked) {
+      const lockBadge = el("span", "inc-login-lock", avatar);
+      lockBadge.innerHTML = svgIcon("lock", { size: 22 });
+    }
+    el("div", "inc-login-name", loginUser, mode.alias ? `${mode.name} "${mode.alias}"` : mode.name);
+    const metaBits = [mode.role, !locked && mode.difficulty ? `modo ${mode.difficulty}` : null].filter(Boolean);
+    el("div", "inc-login-role", loginUser, metaBits.join(" · "));
+    el("p", "inc-login-blurb", loginUser, locked ? mode.lockedReason ?? "Bloqueado" : mode.blurb ?? "");
+    const enter = el("button", "inc-btn inc-btn--primary inc-login-enter", loginUser);
+    enter.type = "button";
+    if (locked) {
+      enter.disabled = true;
+      enter.innerHTML = `<span class="inc-menu-btn-icon">${svgIcon("lock")}</span><span>Cuenta bloqueada</span>`;
+    } else {
+      enter.innerHTML = `<span class="inc-menu-btn-icon">${svgIcon("play")}</span><span>Iniciar sesión</span>`;
+      enter.addEventListener("click", () => loginSelect(id));
+    }
+
+    // El muelle de usuarios: un circulito por cuenta, como en un Mac.
+    loginDock.innerHTML = "";
+    loginEntries.forEach(([uid, m], i) => {
+      const dot = el("button", "inc-login-mini", loginDock);
+      dot.type = "button";
+      dot.classList.toggle("active", i === loginAt);
+      dot.classList.toggle("locked", m.playable === false);
+      dot.setAttribute("aria-label", m.name);
+      const miniShot = looks ? characterShot(looks.get(uid) ?? looks.get(m.sheet), CARD_POSE[uid]) : null;
+      if (miniShot) dot.style.backgroundImage = `url(${miniShot})`;
+      el("span", "inc-login-mini-name", dot, m.name);
+      dot.addEventListener("click", () => {
+        if (i === loginAt) return;
+        loginAt = i;
+        sfxMove();
         renderCharacters();
-        show(previousScreen ?? "title");
       });
     });
   }
@@ -334,6 +421,12 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   const helpScreen = makeScreen("help");
   el("h2", "inc-menu-screen-title-text", helpScreen, "Cómo se juega");
   const helpBody = el("div", "inc-menu-help", helpScreen);
+  // OJO: los mandos NO se escriben aquí. Salen de ui/controls.js, que es la
+  // única lista. Esta pantalla llegó a enseñar `E` para usar y `F` para
+  // fingir mucho después de que la acción se unificara en ESPACIO — quien
+  // leía la ayuda pulsaba E, no pasaba nada, y concluía que el juego estaba
+  // roto. También hablaba de multiplicador y de puntuación, que se
+  // eliminaron hace tiempo: la única moneda es el RELOJ.
   helpBody.innerHTML = `
     <p>Eres diseñadora en el Piso 10. Tu trabajo de mentira es
     <b>no trabajar</b>: café, película, comer. El jefe patrulla la
@@ -341,22 +434,32 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     hay quien dice que fingir es, en realidad, la única forma de seguir
     diseñando algo con vida propia aquí dentro.)</p>
     <ul>
-      <li><b>Mover</b> — WASD o flechas · joystick en móvil</li>
-      <li><b>Usar / distraer</b> — <kbd>E</kbd> · botón USAR</li>
-      <li><b>Fingir que trabajas</b> — <kbd>F</kbd> · botón FINGIR. Baja la sospecha aunque te vean,
-      pero <b>solo funciona en un lugar seguro</b>: una sala de reuniones o tu propio puesto.</li>
-      <li><b>Salas de reuniones</b> — con entrar basta (se supone que estás reunida), pero cada una
-      tiene un cupo de segundos al día y cada tanto llega gente de verdad y la ocupa.</li>
-      <li><b>Tu puesto</b> — nunca se gasta ni se ocupa, pero solo te cubre mientras finges.</li>
+      <li><b>La moneda es el RELOJ.</b> No hay puntos: todo lo que haces bien
+      te alarga la jornada, y la jornada es lo único que se acaba.</li>
+      <li><b>Fingir que trabajas</b> baja la sospecha aunque te vean, pero
+      <b>solo en un lugar seguro</b>: una sala de reuniones o tu propio puesto.</li>
+      <li><b>Salas de reuniones</b> — con entrar basta (se supone que estás reunida),
+      pero cada una tiene un cupo de segundos al día y cada tanto llega gente de
+      verdad y la ocupa.</li>
+      <li><b>Tu puesto</b> — nunca se gasta ni se ocupa, pero solo te cubre
+      mientras finges de verdad.</li>
+      <li><b>Las tareas te exponen.</b> Mantener la acción las termina despacio;
+      tocar al ritmo de la tira las termina antes — y fallar hace ruido, que
+      sube la sospecha.</li>
       <li><b>Esconderse</b> — pisa un círculo verde: dejas de ser visible.</li>
       <li><b>Distracciones</b> — las estrellas amarillas se llevan al jefe a otro sitio.</li>
-      <li><b>Inspeccionar el plano</b> — <kbd>M</kbd> · botón MAPA</li>
-      <li><b>Pausa</b> — <kbd>Esc</kbd></li>
+      <li><b>Tres amonestaciones</b> no te despiden: te mandan a un curso de
+      RRHH del que se sale cazando un botón que huye.</li>
       <li><b>Orbitar la cámara</b> — botón derecho o dos dedos</li>
     </ul>
-    <p>Encadena actividades sin que te vean para subir el <b>multiplicador</b>.
-    Hacerlas con el jefe cerca puntúa más. Al final del día recibes un rango.</p>
+    <p>Al cerrar el día te evalúan por dos ejes: los <b>Qués</b> (lo que
+    entregaste, a solas) y los <b>Cómos</b> (con quién hablaste). Puedes
+    cumplir todo tu trabajo y suspender por no hablar con nadie. Eso no es un
+    bug.</p>
   `;
+  el("h3", "inc-menu-help-sub", helpScreen, "Mandos");
+  buildControlsLegend(helpScreen, { touch: matchMedia("(pointer: coarse)").matches });
+
   button(el("div", "inc-menu-screen-foot", helpScreen), "Volver", {
     back: true,
     onClick: () => show(previousScreen ?? "title"),
@@ -371,6 +474,11 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   button(pauseMenu, "Reiniciar día", { icon: "back", onClick: () => actions.restart() });
   button(pauseMenu, "Ajustes", { icon: "gear", onClick: () => show("settings") });
   button(pauseMenu, "Menú principal", { icon: "grid", onClick: () => actions.toTitle() });
+  // LA LEYENDA DE MANDOS, aquí y permanente (HUD.md §4.5). La píldora de
+  // bienvenida se apaga en cuanto te mueves, así que a los diez segundos de
+  // partida no había DÓNDE consultar un atajo. Sale de ui/controls.js, la
+  // misma lista que lee la ayuda y la píldora: imposible que se separen.
+  buildControlsLegend(pauseScreen, { touch: matchMedia("(pointer: coarse)").matches });
 
   // ---------------- Plumbing ----------------
   function show(name) {
@@ -434,6 +542,19 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     const key = e.key.toLowerCase();
     const onSlider = document.activeElement?.tagName === "INPUT";
 
+    // En el login, izquierda/derecha hojean el carrusel de usuarios (como en
+    // la pantalla de entrada de un sistema de verdad); arriba/abajo siguen
+    // moviendo el foco para llegar al botón de entrar y al muelle.
+    if (!onSlider && currentScreen === "characters" && (key === "arrowright" || key === "d")) {
+      e.preventDefault();
+      moveLogin(1);
+      return;
+    }
+    if (!onSlider && currentScreen === "characters" && (key === "arrowleft" || key === "a")) {
+      e.preventDefault();
+      moveLogin(-1);
+      return;
+    }
     if (!onSlider && (key === "arrowdown" || key === "s" || key === "arrowright" || key === "d")) {
       e.preventDefault();
       moveFocus(1);
@@ -465,7 +586,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
       renderDays();
       renderCharBadge();
       continueBtn.classList.toggle("inc-hidden", !progress.hasProgress);
-      titleFoot.textContent = progress.summary;
+      updateTitleFoot(progress.summary);
       // Primera vez (o localStorage limpio): elegir personaje no es opcional.
       if (!save.characterId) {
         renderCharacters();

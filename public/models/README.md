@@ -12,10 +12,10 @@ escribir una línea de código.
 ```
 
 `<id>` es el del personaje en
-[`public/data/characters3d.json`](../data/characters3d.json) — hoy: `giuli`,
-`gabo`, `fran`, `manu`, `crispo`, `chispita`, `washo`, `cesar`, `enriquetta`,
-`parce`, `kiara`. Quien no tenga `.glb` se sigue montando con primitivas, así
-que se puede ir uno a uno sin romper nada.
+[`public/data/characters3d.json`](../data/characters3d.json) — hoy tienen
+cuerpo propio: `giuli`, `gabo`, `fran`, `manu`, `crispo`, `cesar`,
+`enriquetta`, `parce`. Quien no tenga `.glb` usa uno de los dos cuerpos base
+pintados (ver abajo), así que se puede ir uno a uno sin romper nada.
 
 Lo indexa `tools/index-models.mjs`, que corre **solo antes de cada build**
 (también en CI). Para verlo sin compilar: `npm run index:models`.
@@ -92,9 +92,18 @@ de reposo y que el ciclo de andar toma y suelta el mando cuando toca.
 
 ---
 
-## `base.gltf` — cuerpo base genérico (heredado)
+## Los cuerpos base — `base-chica.glb` y `base-chico.glb`
 
-"P2u Base Modifiers", de **Shedletsky_2**, bajo **CC BY 4.0**. Atribución
-completa en [`CREDITS.md`](../../../CREDITS.md). Le falta su `scene.bin`, así
-que hoy no carga, y no lo usa ningún personaje. Se queda como base neutra por
-si alguna vez hace falta una.
+Dos cuerpos desnudos A PROPÓSITO (sin material ni textura), esculpidos por el
+equipo. Quien no tiene `.glb` propio usa uno de los dos: lo elige el `gender`
+de su receta en `characters3d.json` (`"f"` → chica, el resto → chico). El
+motor los viste solo:
+
+- **`paint`** pinta por vértice cada región (piel, pelo, prenda, pantalón,
+  zapatos) mirando qué hueso manda en cada una. La melena esculpida aparte se
+  detecta por componente conexa y se pinta entera; el cráneo se ancla al hueso
+  `headfront`, que por eso NO es opcional en un cuerpo base.
+- **`build`** da complexión escalando huesos (ancho, torso, barriga, cabeza)
+  sin tocar jamás la altura.
+- La **cara** se genera en canvas y se pega delante de la cabeza (misma
+  mecánica que `<id>.faces.png`, sin archivo).

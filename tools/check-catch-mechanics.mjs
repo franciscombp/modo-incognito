@@ -26,9 +26,9 @@ async function clearDialogue(page, maxSteps = 40) {
     const open = await page.evaluate(() => window.__game.engine.dialogue.isOpen);
     if (!open) return true;
     const hasOptions = await page.evaluate(
-      () => !document.querySelector(".vn-options")?.classList.contains("hidden")
+      () => !document.querySelector(".inc-dialogue-options")?.classList.contains("hidden")
     );
-    if (hasOptions) await page.evaluate(() => document.querySelector(".vn-option")?.click());
+    if (hasOptions) await page.evaluate(() => document.querySelector(".inc-dialogue-option")?.click());
     else await page.keyboard.press("Space");
     await page.waitForTimeout(120);
   }
@@ -48,6 +48,13 @@ const out = await page.evaluate(() => {
   const game = engine.game;
   game.setPaused(false);
   game.minions.forEach((m) => m.setActive(false));
+  // Este test es sobre el interrogatorio de los secuaces y del jefe, no
+  // sobre la puerta del día 1 (encontrar a Gabo primero) — se salta directo
+  // a la vigilancia ya activada.
+  // `clearGate` y no `metGabo = true` a pelo: la bandera sola abre el piso
+  // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
+  // es la campana al enterarse de que la mision de la puerta cayo.
+  game.clearGate();
   return { dialogueOpenBefore: engine.dialogue.isOpen };
 });
 
@@ -100,6 +107,10 @@ const bossSetup = await page.evaluate(() => {
   game.setPaused(false);
   game.rules.explore = false;
   game.warnings = 0;
+  // Igual que arriba: sin sospecha por encima del suelo no hay caza que
+  // medir, y lo que se prueba aqui es la AMONESTACION al alcanzarte.
+  game.suspicion = Math.max(game.suspicion, game.boss.chaseSuspicionFloor + 10);
+  game.boss.suspicion = game.suspicion;
   game.boss.startChase();
   game.boss.position.x = game.player.position.x;
   game.boss.position.z = game.player.position.z;

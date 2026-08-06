@@ -59,7 +59,35 @@ export const THEMES = {
       ["A2", "C3", "E3"], null, null, null, null, null, null, null,
       ["F2", "A2", "C3"], null, null, null, null, null, null, null
     ],
-    mix: { bass: 0.9, lead: 0.85, pad: 0.4, perc: 0.7, brass: 0.7, string: 0.25 },
+    guitar: [
+      null, "D4", null, "A3", null, "D4", null, "A3",
+      null, "G3", null, "B3", null, "G3", null, "B3"
+    ],
+    fx: [null, null, "C6", null, null, null, "E6", null],
+    piano: [
+      ["C5", "E5", "G5"], null, ["E5", "G5", "B5"], null, ["F5", "A5", "C6"], null, ["G5", "B5", "D6"], null
+    ],
+    organ: [
+      null, "C4", null, "E4", null, "G4", null, "A4"
+    ],
+    choir: [["C5", "E5", "G5"], null, null, null, ["F5", "A5", "C6"], null, null, null],
+    mix: { bass: 0.9, lead: 0.85, pad: 0.4, perc: 0.7, brass: 0.7, string: 0.25, guitar: 0.3, fx: 0.2, piano: 0.28, organ: 0.24, choir: 0.16 },
+  },
+
+  festive: {
+    bpm: 152,
+    steps: 8,
+    bass: ["C2", null, "E2", null, "G2", null, "A2", null],
+    lead: ["C5", "E5", "G5", "A5", "G5", "E5", "D5", "C5"],
+    pad: [["C4", "E4", "G4"], null, ["A3", "C4", "E4"], null, ["F3", "A3", "C4"], null, ["G3", "B3", "D4"], null],
+    brass: [["C5", "E5", "G5"], null, null, "G5", null, "E5", null, null],
+    guitar: ["C4", null, "E4", null, "G4", null, "A4", null],
+    string: [["C3", "E3", "G3"], null, null, null, ["F3", "A3", "C4"], null, null, null],
+    fx: [null, null, "E6", null, null, null, "G6", null],
+    piano: [["C4", "E4", "G4"], null, ["F4", "A4", "C5"], null, ["G4", "B4", "D5"], null, ["A4", "C5", "E5"], null],
+    organ: ["C3", null, "E3", null, "G3", null, "A3", null],
+    choir: [["C4", "E4", "G4"], null, null, null, ["F4", "A4", "C5"], null, null, null],
+    mix: { bass: 0.8, lead: 0.75, pad: 0.35, perc: 0.55, brass: 0.7, string: 0.35, guitar: 0.4, fx: 0.3, piano: 0.34, organ: 0.22, choir: 0.18 },
   },
 
   // Menú de título: relajado, de sobremesa, pero con más calidez armónica.

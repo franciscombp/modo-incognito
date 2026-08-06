@@ -8,12 +8,7 @@
   "rules": {
     "duration": 240,
     "maxWarnings": 3,
-    "objectives": [
-      "coffee",
-      "stretch",
-      "sleep",
-      "scroll"
-    ],
+    "objectives": ["coffee","stretch","sleep","scroll"],
     "bossSpeedMul": 1,
     "visionMul": 1,
     "targetScore": 1100
@@ -26,31 +21,16 @@
     {
       "prompt": "¿Aceptas el consejo?",
       "options": [
-        {
-          "label": "«Anotado.»",
-          "reply": "Anotado. Laptop como escudo.",
-          "flag": "escudo"
-        },
-        {
-          "label": "«Prefiero improvisar.»",
-          "reply": "Prefiero improvisar.",
-          "flag": "improvisa"
-        }
+        {"label":"«Anotado.»","reply":"Anotado. Laptop como escudo.","flag":"escudo"},
+        {"label":"«Prefiero improvisar.»","reply":"Prefiero improvisar.","flag":"improvisa"}
       ]
     }
   ],
   "outroWin": [
-    {
-      "speaker": "Tú",
-      "text": "Dormir en el escritorio es una habilidad. Y yo estoy escalando."
-    }
+    {"speaker":"Tú","text":"Dormir en el escritorio es una habilidad. Y yo estoy escalando."}
   ],
   "outroLose": [
-    {
-      "speaker": "Gabo",
-      "mood": "angry",
-      "text": "Segundo día, segunda charla. Vamos mal."
-    }
+    {"speaker":"Gabo","mood":"angry","text":"Segundo día, segunda charla. Vamos mal."}
   ],
   "prologue": {
     "kind": "elevator",
@@ -64,21 +44,9 @@
     "choice": {
       "prompt": "El ascensor está lleno. ¿Te metes igual?",
       "options": [
-        {
-          "label": "Esperar el siguiente",
-          "reply": "Espero el siguiente.",
-          "effect": "wait"
-        },
-        {
-          "label": "Escaleras, otra vez",
-          "reply": "Escaleras. Otra vez.",
-          "effect": "stairs"
-        },
-        {
-          "label": "Meterte a presión",
-          "reply": "Cabe uno más. Yo.",
-          "effect": "cut"
-        }
+        {"label":"Esperar el siguiente","reply":"Espero el siguiente.","effect":"wait"},
+        {"label":"Escaleras, otra vez","reply":"Escaleras. Otra vez.","effect":"stairs"},
+        {"label":"Meterte a presión","reply":"Cabe uno más. Yo.","effect":"cut"}
       ]
     }
   }

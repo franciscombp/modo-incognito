@@ -36,14 +36,39 @@ const result = await page.evaluate(async () => {
   const player = window.__game.player;
   game.setPaused(false);
   document.querySelector(".vn-layer")?.classList.add("hidden");
+  // Este test es sobre las poses de actividad, no sobre la puerta del día 1
+  // (encontrar a Gabo primero) — se salta directo a tareas desbloqueadas.
+  // `clearGate` y no `metGabo = true` a pelo: la bandera sola abre el piso
+  // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
+  // es la campana al enterarse de que la mision de la puerta cayo.
+  game.clearGate();
 
   const out = { hasPoses: player.sprite.hasPoses, activities: [] };
 
-  for (const station of game.objectives) {
+  // LAS ACTIVIDADES DEL DÍA, no la lista de tareas del momento.
+  //
+  // Desde que la campaña reparte las misiones (docs/CAMPANA.md), `objectives`
+  // ya no trae las tres actividades del día 1 de golpe: llegan encadenadas,
+  // y al arrancar solo hay una estación activa — las otras dos se desbloquean
+  // al hacerla. Iterando esa lista, la prueba medía el RITMO de la campaña en
+  // vez de las poses, y decía que faltaban dos actividades que están ahí.
+  //
+  // `rules.objectives` es lo que el JSON del día declara como sus actividades,
+  // y no depende de por dónde vaya la cadena; `_allStations` las resuelve a
+  // estaciones del plano con su pose. Eso es lo que este archivo quiere.
+  const delDia = game.rules.objectives ?? null;
+  const stations = (game._allStations ?? [])
+    .filter((s) => !delDia || delDia.includes(s.id))
+    .map((s) => ({ ...s, progress: 0, done: false }));
+  // Y se ponen TODAS en la lista de tareas: `nearStation` solo mira ahí, así
+  // que plantarse encima de una estación que la cadena aún no ha desbloqueado
+  // no dispara ninguna pose. Aquí se prueban las poses, no la cadena.
+  game.objectives = stations;
+  for (const station of stations) {
     player.keys.clear();
     player.position.x = station.x;
     player.position.z = station.z;
-    player.keys.add("e");
+    player.keys.add(" "); // la tecla de acción es espacio, no "e"
     await sleep(500);
 
     // La huella del rig ES la postura del momento. Se muestrea durante un

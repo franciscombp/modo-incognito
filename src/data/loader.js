@@ -7,7 +7,9 @@
 
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { loadBaseModel, modelUrlFor } from "../entities/baseModel.js";
+import { baseFileFor } from "../entities/character3d.js";
 import { siteRoot } from "./siteRoot.js";
+import { applyCharacterModels } from "./characterRecipes.js";
 
 const BASE = siteRoot();
 // Sello del build (ver vite.config.js). El contenido vive en `public/` y se
@@ -124,6 +126,7 @@ export async function loadGameData(onProgress) {
     dialoguesRaw,
     modesRaw,
     bossConfigRaw,
+    campaignRaw,
     sceneList,
     levelList,
     rigList,
@@ -138,6 +141,9 @@ export async function loadGameData(onProgress) {
     getJSON(manifest.dialogues ?? "dialogues.json").catch(() => ({ cast: {}, encounters: {}, barks: {} })),
     getJSON(manifest.modes ?? "modes.json").catch(() => ({ characters: {} })),
     getJSON(manifest.bossConfig ?? "boss-config.json").catch(() => null),
+    // La temporada de campaña (docs/CAMPANA.md). Sin archivo, el juego cae
+    // al modelo de días sueltos de siempre: la campaña es opt-in por datos.
+    getJSON(manifest.campaign ?? "campaign/temporada-1.json").catch(() => null),
     Promise.all((manifest.scenes ?? []).map((id) => getJSON(`scenes/${id}.json`))),
     Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
     // Rigs de personaje: qué poses usa cada uno y cómo se queda esperando.
@@ -177,6 +183,7 @@ export async function loadGameData(onProgress) {
     characters: prepareCharacters(charactersRaw),
     modes: modesRaw.characters ?? {},
     bossConfig: bossConfigRaw,
+    campaign: campaignRaw,
     scenes,
     levels,
     rigs: new Map(rigList.map((r) => [r.id, r])),
@@ -195,22 +202,34 @@ export async function loadGameData(onProgress) {
  * antes dejaba la tarjeta en blanco.
  */
 export function preloadBaseModels(looks, onProgress) {
+  // `baseFileFor` y no `recipe.baseModel` a secas: quien no tiene .glb propio
+  // usa un cuerpo base según su género, y ese archivo también hay que
+  // precargarlo o los retratos de esos personajes salen en blanco.
   const files = new Set();
   for (const recipe of Object.values(looks?.characters ?? {})) {
-    if (recipe?.baseModel) files.add(recipe.baseModel);
+    if (recipe) files.add(baseFileFor(recipe));
+  }
+  for (const recipe of looks?.extras ?? []) {
+    if (recipe) files.add(baseFileFor(recipe));
   }
   const fileArray = [...files];
+  // El progreso cuenta COMPLETADOS, no índices: con `(i+1)/N` el valor final
+  // era el del archivo que terminara último — si ese era el índice 0, el
+  // progreso se quedaba clavado en 10% con todo ya cargado, y el ascensor
+  // esperaba su techo de 30 segundos mirando a la nada.
+  let done = 0;
   return Promise.all(
-    fileArray.map((f, i) =>
+    fileArray.map((f) =>
       loadBaseModel(modelUrlFor(f))
-        .then(() => {
-          if (onProgress) {
-            const progress = Math.round(((i + 1) / fileArray.length) * 100);
-            onProgress({ phase: "models", progress, message: `Cargando modelos 3D...` });
-          }
-        })
         .catch((e) => {
           console.error(`No se pudo precargar ${f}:`, e);
+        })
+        .finally(() => {
+          done += 1;
+          if (onProgress) {
+            const progress = Math.round((done / fileArray.length) * 100);
+            onProgress({ phase: "models", progress, message: `Cargando modelos 3D...` });
+          }
         })
     )
   );
@@ -224,24 +243,27 @@ export function preloadCharacterLooks(characterIds, looks, onProgress) {
   const files = new Set();
   for (const id of characterIds) {
     const recipe = looks?.characters?.[id];
-    if (recipe?.baseModel) files.add(recipe.baseModel);
+    if (recipe) files.add(baseFileFor(recipe));
   }
   const fileArray = [...files];
   if (fileArray.length === 0) {
     if (onProgress) onProgress({ phase: "selected-models", progress: 100, message: "Personaje listo" });
     return Promise.resolve();
   }
+  // Mismo arreglo que preloadBaseModels: el progreso cuenta completados.
+  let done = 0;
   return Promise.all(
-    fileArray.map((f, i) =>
+    fileArray.map((f) =>
       loadBaseModel(modelUrlFor(f))
-        .then(() => {
-          if (onProgress) {
-            const progress = Math.round(((i + 1) / fileArray.length) * 100);
-            onProgress({ phase: "selected-models", progress, message: "Cargando personaje..." });
-          }
-        })
         .catch((e) => {
           console.error(`No se pudo precargar ${f}:`, e);
+        })
+        .finally(() => {
+          done += 1;
+          if (onProgress) {
+            const progress = Math.round((done / fileArray.length) * 100);
+            onProgress({ phase: "selected-models", progress, message: "Cargando personaje..." });
+          }
         })
     )
   );
@@ -264,13 +286,7 @@ export function prepareLooks(raw, models = { bodies: {}, faces: {} }) {
   // usa ese cuerpo — no hace falta declararlo en characters3d.json, que es lo
   // que hace que meter un personaje sea dejar el archivo y nada más. Un
   // `baseModel` escrito a mano sigue valiendo, para apuntar a otro nombre.
-  for (const [id, recipe] of Object.entries(characters)) {
-    if (recipe.baseModel) continue;
-    const file = models.bodies?.[id];
-    if (file) recipe.baseModel = file;
-    const face = models.faces?.[id];
-    if (face) recipe.faces = face;
-  }
+  applyCharacterModels(characters, models);
 
   const get = (name) => {
     if (!name) return characters.generic ?? null;

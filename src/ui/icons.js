@@ -26,6 +26,8 @@ import grid from "@phosphor-icons/core/assets/regular/squares-four.svg?raw";
 import gear from "@phosphor-icons/core/assets/regular/gear.svg?raw";
 import help from "@phosphor-icons/core/assets/regular/question.svg?raw";
 import back from "@phosphor-icons/core/assets/regular/caret-left.svg?raw";
+import next from "@phosphor-icons/core/assets/regular/caret-right.svg?raw";
+import lock from "@phosphor-icons/core/assets/regular/lock-key.svg?raw";
 // Antifaz de sol: el juego va de pasar desapercibida.
 import incognito from "@phosphor-icons/core/assets/regular/sunglasses.svg?raw";
 import diamond from "@phosphor-icons/core/assets/regular/diamond.svg?raw";
@@ -64,6 +66,9 @@ import restroom from "@phosphor-icons/core/assets/regular/toilet.svg?raw";
 import volumeX from "@phosphor-icons/core/assets/regular/speaker-x.svg?raw";
 import volume1 from "@phosphor-icons/core/assets/regular/speaker-low.svg?raw";
 import volume2 from "@phosphor-icons/core/assets/regular/speaker-high.svg?raw";
+import plus from "@phosphor-icons/core/assets/regular/plus.svg?raw";
+import minus from "@phosphor-icons/core/assets/regular/minus.svg?raw";
+import pause from "@phosphor-icons/core/assets/regular/pause.svg?raw";
 
 const S = 24;
 
@@ -79,6 +84,8 @@ const RAW = {
   gear,
   help,
   back,
+  next,
+  lock,
   incognito,
 
   // --- HUD ---
@@ -107,6 +114,9 @@ const RAW = {
   // --- estados y avisos ---
   siren,
   boss,
+  plus,
+  minus,
+  pause,
   search,
   question,
   hide,

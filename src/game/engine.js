@@ -4,11 +4,18 @@ import { buzz } from "./settings.js";
 import { setMood, playStinger, updateMoodFromSnapshot } from "./soundtrack.js";
 import { createDialogue } from "./dialogue.js";
 import { createSave } from "./save.js";
-import { applyTheme, getThemeByTime } from "./themes.js";
+import { applyTheme, createThemeBlender } from "./themes.js";
 import { createMenus } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
+import { createMinimap } from "../ui/minimap.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
+import { createGameHud } from "../ui/gamehud.js";
+import { createCampaign } from "./campaign.js";
+import { createHrCourse } from "../ui/hrCourse.js";
+import { createReview } from "../ui/review.js";
+import { createLevelling } from "../ui/levelling.js";
+import { createEggReveal } from "../ui/eggReveal.js";
 import { createMinigameRegistry } from "./minigames.js";
 import {
   spawn,
@@ -51,6 +58,7 @@ export function createEngine({
   looks = null,
   modes = {},
   bossConfig = null,
+  campaignData = null,
   playerSheet = "npc-camina",
   playerName = "Tú",
   minions = new Map(),
@@ -58,15 +66,45 @@ export function createEngine({
   minigames = createMinigameRegistry(),
   pixels = null,
   onCharacter = null,
+  baseModelsReady = Promise.resolve(),
+  getModelsProgress = () => 100,
 }) {
   const hud = createHud(app);
   const guides = createGuides(app, camera.camera);
+  const minimap = createMinimap(app);
   const worldPrompt = createWorldPrompt(app, camera.camera, {
     isTouch: matchMedia("(pointer: coarse)").matches,
   });
   const dialogue = createDialogue(app, { looks });
   const lobby = createLobby(app);
+  const eggReveal = createEggReveal(app);
+  // El HUD de partida (ui/gamehud.js): la placa con la cara viva, la lista
+  // de misiones, el reloj centrado y el nombre de zona. Sustituye a la barra
+  // de menú tipo macOS — el equipo creativo fue por un HUD de juego (ver
+  // docs/HUD.md). Mantiene la interfaz de la barra (render/notify/...), así
+  // que hud.js no cambia de contrato.
+  const menuBar = createGameHud(app, {
+    onOpenPause: () => openPause(),
+    playerLook: null, // la pone setPlayerLook en cuanto exista `save` (abajo)
+  });
+  hud.attachMenuBar(menuBar);
   const save = createSave();
+  // El director de campaña (docs/CAMPANA.md): misiones encadenadas, Qués y
+  // Cómos, la nota de RRHH. Sin datos de temporada, `active` es false y el
+  // juego se comporta como siempre — la campaña es opt-in por datos.
+  const campaign = createCampaign({ save, data: campaignData });
+  const hrCourse = createHrCourse(app);
+  const review = createReview(app);
+  const levelling = createLevelling(app, {
+    minigames,
+    render: (s, c) => pixels?.render(s, c),
+    setBusy: (v) => {
+      crossingActive = v;
+    },
+  });
+  // Con el guardado ya leído se sabe qué personaje es la jugadora: la placa
+  // del HUD enseña SU cara desde el primer frame, no la del por defecto.
+  menuBar.setPlayerLook?.(save.characterId ? looks?.get?.(save.characterId) : null);
   let crossingActive = false;
 
   const eggIds = [...locationEggs.map((e) => e.id), ...codeEggs.map((e) => e.id)];
@@ -102,12 +140,27 @@ export function createEngine({
   let bossSpeedBonus = 1;
   let menuPaused = false;
   let inLevel = false;
+  // El scrim de los menús es sólido antes de que exista una jornada que
+  // enseñar detrás (título, elegir personaje) y translúcido una vez que sí
+  // la hay (pausa, y cualquier pantalla a la que se llegue desde pausa,
+  // como ajustes) — de ahí esta clase en vez de mirar solo qué pantalla
+  // está activa.
+  function setInLevel(value) {
+    inLevel = value;
+    document.body.classList.toggle("inc-game-active", value);
+  }
   let teamsTimer = null;
+  let stevenTimer = null;
   let lastTeamsMessage = null;
 
   const ctx = {
     setFlag: (name, value) => save.setFlag(name, value),
     getFlag: (name) => save.getFlag(name),
+    // "m" | "f" | null del personaje elegido AHORA MISMO, para que el texto
+    // concuerde con quien juega: los tokens {masculino|femenino} de las
+    // líneas se resuelven con esto (ver `resolve` en dialogue.js). Función y
+    // no valor: el personaje puede cambiar entre partidas sin recrear el ctx.
+    getPlayerGender: () => looks?.get?.(save.character)?.gender ?? null,
     // El sprite del personaje elegido AHORA MISMO — nameToSheet.get(playerName)
     // ya se actualiza en selectCharacter, pero se resuelve como función (no
     // un valor guardado) para que las réplicas de diálogo escritas a mano en
@@ -226,18 +279,20 @@ export function createEngine({
         const sheet = modes[id]?.sheet ?? playerSheet;
         nameToSheet.set(playerName, sheet);
         nameToSheet.set("Tú", sheet);
+        // La placa del HUD enseña la CARA del personaje elegido: cambia con él.
+        menuBar.setPlayerLook?.(looks?.get?.(id) ?? null);
         onCharacter?.(id);
       },
     },
   });
 
   function openTitle() {
-    inLevel = false;
+    setInLevel(false);
     menuPaused = false;
     game?.setPaused(true);
     hud.setVisible(false);
     hud.hideResult();
-    setMood("main");
+    setMood("title");
     const done = save.state.completedDays.length;
     menus.openTitle({
       hasProgress: done > 0 || save.dayIndex > 0,
@@ -249,6 +304,7 @@ export function createEngine({
     if (!inLevel || dialogue.isOpen || game?.gameOver) return;
     menuPaused = true;
     game?.setPaused(true);
+    setMood("calm");
     menus.openPause(`Día ${levels[dayIndex].number} · ${levels[dayIndex].title}`);
   }
 
@@ -295,19 +351,11 @@ export function createEngine({
   async function triggerEgg(egg) {
     if (!save.findEgg(egg.id)) return;
     if (egg.perk) PERKS[egg.perk]?.();
-    await withPause(() =>
-      dialogue.play(
-        withSprites([
-          ...(egg.scene ?? []),
-          {
-            speaker: "Secreto encontrado",
-            portrait: null,
-            text: `Llevas ${save.state.eggs.length} de ${eggIds.length}. +250 puntos.`,
-          },
-        ]),
-        ctx
-      )
-    );
+    // El bono de reloj ya lo enseña el popup flotante de game._grantTime();
+    // esta tarjeta es solo la celebración del hallazgo, no una repetición
+    // del número. Si el secreto trae su propia escena, se juega primero.
+    if (egg.scene?.length) await withPause(() => dialogue.play(withSprites(egg.scene), ctx));
+    eggReveal.show(save.state.eggs.length, eggIds.length);
   }
 
   /** Freeze the level while a story beat plays, then hand control back. */
@@ -350,6 +398,47 @@ export function createEngine({
     boss.position.z = patrolRoute[pick].z;
     boss.routeIndex = pick;
     boss.resetToPatrol();
+  }
+
+  // Cuánto dura, como mínimo, la subida del ascensor una vez elegido cómo
+  // llegar. Los modelos 3D pueden estar cargados de sobra para entonces (si
+  // la jugadora se entretuvo en el menú), y sin un mínimo el marcador
+  // saltaría de PB a 10 de golpe — la idea es que la subida SE VEA, no solo
+  // que exista.
+  const ELEVATOR_MIN_RIDE_MS = 1800;
+  // Techo de espera en el ascensor: con red lenta los .glb pueden tardar
+  // una eternidad, y quedarse mirando "SUBIENDO" no es un juego. Pasado
+  // esto se abre igual: cada personaje ya se monta asíncrono y aparece
+  // solo en cuanto llega su cuerpo — mejor un piso a medio vestir que un
+  // ascensor eterno.
+  const ELEVATOR_MAX_WAIT_MS = 30000;
+
+  /**
+   * Anima el cartel de piso del ascensor entre 0 y 100 combinando dos
+   * fuentes: el progreso REAL de los modelos 3D (getModelsProgress) y un
+   * mínimo por tiempo (ELEVATOR_MIN_RIDE_MS), y no resuelve hasta que las
+   * dos llegan al 100% — así ni se congela esperando datos que ya llegaron
+   * hace rato, ni salta de golpe si los modelos tardan menos que el paseo.
+   */
+  function rideElevator() {
+    return new Promise((resolve) => {
+      const start = performance.now();
+      function tick() {
+        const elapsed = performance.now() - start;
+        const timeFrac = Math.min(1, elapsed / ELEVATOR_MIN_RIDE_MS);
+        // Pasado el techo, el progreso real deja de mandar: se fuerza el 100
+        // y se abre con lo que haya llegado.
+        const models = elapsed > ELEVATOR_MAX_WAIT_MS ? 100 : getModelsProgress();
+        const shown = Math.min(models, timeFrac * 100);
+        lobby.updateProgress(shown);
+        if (shown >= 100) {
+          resolve();
+          return;
+        }
+        requestAnimationFrame(tick);
+      }
+      tick();
+    });
   }
 
   /**
@@ -410,21 +499,35 @@ export function createEngine({
     // que el lobby esté completamente oculto, así evitamos que el piso aparezca
     // y se superponga durante los diálogos del ascensor.
 
+    // Día nuevo (o reintento): las conversaciones empiezan de cero. Sin esto,
+    // Gabo saludaba el reintento con una línea de seguimiento en vez de
+    // presentarse, y el gate del día se sentía roto.
+    save.resetTalkFlags();
+
     prologueChoice = null;
     if (day.prologue && !skipPrologue) {
       lobby.show();
       const nodes = [...(day.prologue.intro ?? [])];
       if (save.hadWarningYesterday) {
         // Una amonestación se nota al día siguiente: nunca te toca el
-        // ascensor vacío.
+        // ascensor vacío. "Recepción" ya no existe como personaje (era
+        // confuso, se quitó del reparto); el comentario ahora es de Steven,
+        // que es quien narra el resto del día.
         nodes.unshift({
-          speaker: "Recepción",
-          sheet: "reception",
-          text: "El ascensor viene lleno otra vez. Después de lo de ayer, ya ni te guardan hueco.",
+          speaker: "Steven el Daddy",
+          narrator: true,
+          text: "Oye, el ascensor viene lleno otra vez. Después de lo de ayer, ya ni te guardan hueco.",
         });
       }
       if (day.prologue.choice) nodes.push(day.prologue.choice);
       await dialogue.play(withSprites(nodes), ctx);
+      // El cartel se queda en PB mientras dura la elección de cómo llegar;
+      // solo empieza a subir una vez que la jugadora ya decidió. Y la subida
+      // se VISTE según la elección: pantalla de ascensor con "SUBIENDO"
+      // titilando, o el hueco de la escalera con el cartel de cada rellano
+      // si subes por las gradas (ver lobby.setMode).
+      lobby.setMode(prologueChoice);
+      await rideElevator();
     }
 
     // EL PISO SE PREPARA CON LAS PUERTAS AÚN CERRADAS.
@@ -434,6 +537,14 @@ export function createEngine({
     // enseñaba el piso TAL COMO QUEDÓ del intento anterior — con la jugadora
     // ya plantada en el 10 antes de haber llegado. Ahora se abren sobre el
     // día que empieza.
+    // Esperar a que los modelos 3D estén listos antes de crear el piso, así
+    // los personajes aparecen visibles y no huecos. rideElevator() ya
+    // esperó a que llegaran al 100%, así que en el camino normal esto
+    // resuelve al instante; se deja como red de seguridad para cuando no
+    // hay prólogo (rideElevator no corrió). CON TECHO: si en 30s no han
+    // llegado, el día empieza igual — cada personaje se monta asíncrono y
+    // aparece en cuanto llega su cuerpo.
+    await Promise.race([baseModelsReady, wait(30000)]);
     const onDuty = prepareFloor(day);
     // Y la elección del ascensor se aplica aquí, no antes: `applyPrologue`
     // arranca con `if (!game) return`, así que mientras se llamaba antes de
@@ -457,13 +568,17 @@ export function createEngine({
    * puertas descubren tiene que ser ya el día que empieza.
    */
   function prepareFloor(day) {
-    inLevel = true;
+    setInLevel(true);
     bossSpeedBonus = 1;
     applyTheme(day.theme, { renderer, scene, ...lights });
     hud.setDay(day);
     hud.hideResult();
-    setMood("calm");
+    // Día nuevo: las alertas de "una sola vez" (media hora de nada, etc.)
+    // vuelven a contar, y no arrastramos las de ayer en pantalla.
+    menuBar.resetNotices();
+    setMood("main");
     teamsTimer = null;
+    stevenTimer = null;
     lastTeamsMessage = null;
     resetEntities();
     applyBossTuning();
@@ -484,7 +599,40 @@ export function createEngine({
       onPopup,
       onTalk: (npc, opts) => talkTo(npc, opts),
       onWarn: (info) => handleWarn(info),
+      onHeatAlert: () => showHeatAlert(),
     });
+
+    // ── LA CAMPAÑA TOMA EL DÍA (docs/CAMPANA.md) ──
+    // El plan de hoy sustituye a las tareas sueltas del JSON del día: las
+    // misiones elegibles (cadena `requiere` satisfecha, únicas no hechas)
+    // entran como objetivos; el resto se desbloquea EN CALIENTE al caer sus
+    // requisitos, con su aviso — la zanahoria de la cadena.
+    if (campaign.active && !game.rules.explore) {
+      const plan = campaign.startDay();
+      game.objectives.length = 0;
+      game.addCampaignObjectives(plan);
+      game.onMissionDone = (id) => {
+        // El objetivo en pantalla también se marca: algunas misiones se
+        // cumplen fuera de la lista (la puerta del día) y sin esto quedaba
+        // la fila como pendiente para siempre.
+        const obj = game.objectives.find((o) => o.id === id);
+        if (obj && !obj.done) {
+          obj.done = true;
+          obj.progress = obj.time ?? 1;
+        }
+        const nuevas = campaign.complete(id);
+        if (!nuevas.length) return;
+        game.addCampaignObjectives(nuevas);
+        for (const n of nuevas) {
+          hud.menuBar?.notify?.({
+            icon: n.icono ?? "star",
+            text: `Nueva misión: ${n.titulo}`,
+            tone: "info",
+          });
+        }
+      };
+    }
+
     // Pausado: el reloj no puede correr mientras se abren las puertas ni
     // durante la presentación de los secuaces.
     game.setPaused(true);
@@ -493,6 +641,37 @@ export function createEngine({
 
   function wait(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Nivel de búsqueda 3: el mundo se congela (game.setPaused, lo hizo ya
+   * game.js antes de llamar aquí) y cae un aviso A PANTALLA COMPLETA con la
+   * misma tarjeta de juego del fin de día — Gabo enorme, título de alarma y
+   * un único botón. Nada avanza hasta pulsar "¡Entendido, a correr!", y al
+   * soltar sí que toca correr: el nivel 3 sigue activo y el jefe viene.
+   */
+  function showHeatAlert() {
+    hud.showResult({
+      look: looks?.get?.("gabo") ?? null,
+      pose: "phone",
+      icon: "siren",
+      title: "¡ALARMA EN EL PISO!",
+      win: false,
+      body:
+        "Nivel de búsqueda 3: Gabo dio la orden y todo el mundo te está " +
+        "buscando. Escóndete o finge que trabajas hasta que se enfríe — " +
+        "si te alcanzan, amonestación directa.",
+      actions: [
+        {
+          label: "¡Entendido, a correr!",
+          primary: true,
+          onClick: () => {
+            hud.hideResult();
+            game?.setPaused(false);
+          },
+        },
+      ],
+    });
   }
 
   /** Turns the lift-queue choice into a real handicap for the day. */
@@ -536,9 +715,32 @@ export function createEngine({
     return onDuty;
   }
 
+  /**
+   * Al arrancar una conversación, jugadora y NPC/jefe se giran de frente:
+   * hablar mirando a un lado o de espaldas se veía raro. El movimiento está
+   * en pausa mientras dura el diálogo (ver withPause), así que esto se
+   * mantiene solo con fijarlo una vez — nada más lo vuelve a tocar hasta que
+   * termine. `facingDir` (jefe/secuaces) se actualiza además del sprite: si
+   * solo se gira el muñeco, el primer frame tras cerrar el diálogo el jefe
+   * vuelve a llamar a sprite.setHeading() con su `facingDir` viejo y se ve un
+   * salto instantáneo antes de que retome el giro suave hacia donde toque.
+   */
+  function faceEachOther(npc) {
+    const dx = npc.position.x - player.position.x;
+    const dz = npc.position.z - player.position.z;
+    const len = Math.hypot(dx, dz);
+    if (len < 0.001) return;
+    const toNpc = { x: dx / len, z: dz / len };
+    const toPlayer = { x: -toNpc.x, z: -toNpc.z };
+    player.sprite.setHeading(toNpc.x, toNpc.z);
+    npc.sprite.setHeading(toPlayer.x, toPlayer.z);
+    if (npc.facingDir) npc.facingDir = toPlayer;
+  }
+
   /** A colleague you walked up to (or a sidekick who caught you) talking. */
   async function talkTo(npc, opts) {
-    // Minions won't talk until the player has met Gabo and he's introduced them
+    // Minions won't talk until the day's gate is cleared and Gabo has
+    // introduced them.
     if (game && !game.metGabo && ["crispo", "chispita", "washo"].includes(npc.cast)) {
       return;
     }
@@ -548,13 +750,46 @@ export function createEngine({
     const seen = save.getFlag(`talk:${npc.cast}`) ?? 0;
     save.setFlag(`talk:${npc.cast}`, seen + 1);
 
-    // First encounter with the boss unlocks activities for the day
-    if (npc.cast === "jefe" && seen === 0 && game) {
-      game.metGabo = true;
+    // Conocer al guardián de la puerta del día (ver rules.gate en el JSON del
+    // día) desbloquea las tareas y activa la vigilancia del jefe y sus
+    // secuaces. Un día sin `gate` ya empieza desbloqueado (game.metGabo lo
+    // arranca en true), así que esto no hace nada en esos días.
+    if (game?.gate && !game.metGabo && npc.cast === game.gate.guard) {
+      game.clearGate();
+      game.toast?.("Actividades desbloqueadas");
     }
 
-    const scene = encounter.scenes[seen % encounter.scenes.length];
+    faceEachOther(npc);
     const persona = dialogues.cast[npc.cast];
+    // Las escenas escritas NO se reciclan en bucle: agotadas, el personaje
+    // corta con una despedida en personaje (dialogues.exhausted, o una
+    // genérica) — "me encanta el chisme, pero Gabo me encargó algo". Volver
+    // a la primera escena hacía que la cuarta charla repitiera la primera
+    // palabra por palabra, que rompe la ilusión más que cualquier bug.
+    // Un interrogatorio (te atraparon) sí rota sus escenas para siempre: es
+    // castigo, no charla, y quedarse mudo sería peor.
+    let scene;
+    if (opts?.caught && encounter.caughtScenes?.length) {
+      // Te ATRAPARON: el interrogatorio tiene su propio pozo, que rota para
+      // siempre (es castigo, no charla). Antes reciclaba las escenas de
+      // conversación y Chispita te "capturaba" contándote sus pasos diarios.
+      const c = save.getFlag(`caught:${npc.cast}`) ?? 0;
+      save.setFlag(`caught:${npc.cast}`, c + 1);
+      scene = encounter.caughtScenes[c % encounter.caughtScenes.length];
+    } else if (seen < encounter.scenes.length || opts?.caught) {
+      scene = encounter.scenes[seen % encounter.scenes.length];
+    } else {
+      const pool = encounter.exhausted ??
+        dialogues.exhausted ?? [
+          [{ text: "Me encanta el chisme, de verdad, pero Gabo me encargó una cosa y me está mirando. Luego hablamos." }],
+          [{ text: "Ahora no puedo, tengo una entrega. Bueno, \"tengo una entrega\". Ya sabes cómo es esto." }],
+          [{ text: "Shhh. Ahí viene alguien. Hazte {el ocupado|la ocupada} y luego seguimos." }],
+        ];
+      scene = pool[(seen - encounter.scenes.length) % pool.length].map((n) => ({
+        speaker: persona?.name ?? npc.displayName,
+        ...n,
+      }));
+    }
     await withPause(() =>
       dialogue.play(
         withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
@@ -562,6 +797,9 @@ export function createEngine({
       )
     );
     if (opts?.caught) buzz([15, 30, 15]);
+    // Hablar con un colega puede SER la misión (un "cómo" de la campaña):
+    // se cumple al cerrar la charla, no al abrirla — interrumpirla no vale.
+    if (!opts?.caught) game?.completeTalk?.(npc.cast);
   }
 
   // Segundos que el jefe pasa sin observar justo después de amonestar, para
@@ -590,12 +828,23 @@ export function createEngine({
       const idx = Math.floor(Math.random() * encounter.softWarnings.length);
       scene = encounter.softWarnings[idx];
     } else {
-      // Formal amonestación scene
+      // La amonestación FORMAL sale de su propio pozo (`warnScenes`): las
+      // `scenes` son charla de pasillo, y regañarte con un "te ves
+      // concentrada, sigue así" era el bug más desconcertante del juego.
+      // Sin pozo propio (contenido viejo), se cae a las scenes saltando la
+      // bienvenida, como antes.
+      const warnScenes =
+        encounter.warnScenes?.length
+          ? encounter.warnScenes
+          : encounter.scenes.length > 1
+            ? encounter.scenes.slice(1)
+            : encounter.scenes;
       const seen = save.getFlag("talk:jefe_warn") ?? 0;
       save.setFlag("talk:jefe_warn", seen + 1);
-      scene = encounter.scenes[seen % encounter.scenes.length];
+      scene = warnScenes[seen % warnScenes.length];
     }
 
+    faceEachOther(boss);
     await withPause(() =>
       dialogue.play(
         withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
@@ -617,18 +866,46 @@ export function createEngine({
     if (onFail.dialogue) await dialogue.play(withSprites(onFail.dialogue), ctx);
     hud.showResult({
       icon: onFail.icon ?? "door",
+      look: looks?.get?.("gabo"),
+      pose: "phone",
       title: onFail.title ?? "Te ascendieron a cliente",
       body: onFail.body ?? "No llegaste a empezar la jornada.",
       win: false,
       actions: [
-        { label: "Reintentar", primary: true, onClick: () => startDay(dayIndex) },
+        { label: "Reintentar", primary: true, onClick: () => startDay(dayIndex, { skipPrologue: true }) },
         { label: "Menú", onClick: () => openTitle() },
       ],
     });
   }
 
   async function finishDay(day, result) {
-    inLevel = false;
+    // TRES AMONESTACIONES YA NO DESPIDEN: te mandan a RRHH (docs/CAMPANA.md
+    // §7). El curso del botón-que-huye es el castigo; al terminarlo, el DÍA
+    // se reinicia — pierdes el progreso de HOY, pero las misiones únicas ya
+    // completadas quedaron guardadas en el acto (guardado por tareas). El
+    // alcance es el DÍA a propósito: la temporada entera sería brutal y la
+    // carrera lo volvería un roguelike.
+    const fired = !result.win && result.warnings >= (day.rules?.maxWarnings ?? 3);
+    if (fired && campaign.active) {
+      setInLevel(false);
+      playStinger("defeat");
+      const strikes = save.getFlag("rrhh") ?? 0;
+      save.setFlag("rrhh", strikes + 1);
+      await dialogue.play(
+        withSprites([
+          {
+            speaker: "Gabo (Barbie Malibú)",
+            text: "Tres amonestaciones. No te despido porque el proceso es LARGUÍSIMO: te mando al curso de cumplimiento. Otra vez.",
+          },
+        ]),
+        ctx
+      );
+      await hrCourse.play({ strikes });
+      startDay(dayIndex, { skipPrologue: true });
+      return;
+    }
+
+    setInLevel(false);
     playStinger(result.win ? "victory" : "defeat");
     save.setHadWarningYesterday(result.warnings > 0);
     const spare = Math.max(0, Math.round(result.timeLeft));
@@ -639,6 +916,29 @@ export function createEngine({
 
     const isLast = dayIndex >= levels.length - 1;
     const done = result.objectives.filter((o) => o.done).length;
+    // La EVALUACIÓN de RRHH: nota por los dos ejes (Qués y Cómos) y avance
+    // de calendario — AAA salta la temporada, A asciende por antigüedad.
+    const evalRes = campaign.active ? campaign.endDay({ win: result.win }) : null;
+    // La EVALUACIÓN va ANTES del panel de resultado, y en su propia pantalla.
+    // Estaba como una línea dentro del cuerpo del panel: el chiste central
+    // del juego —los dos ejes por separado, «cumples pero no eres de
+    // equipo»— pasaba de largo en letra pequeña.
+    if (evalRes) await review.show(evalRes);
+
+    // PLAN DE NIVELACIÓN: cinco días sin cerrar la temporada. No se pierde
+    // la partida — es la red de seguridad (CAMPANA §5.1). La tanda sale del
+    // JSON de la temporada, así que el motor no sabe qué pruebas son.
+    if (evalRes?.nota === "Nivelación") {
+      setInLevel(false);
+      await levelling.run({
+        pruebas: campaignData?.nivelacion?.pruebas ?? [],
+        temporada: evalRes.temporada,
+      });
+      campaign.afterLevelling();
+      startDay(dayIndex, { skipPrologue: true });
+      return;
+    }
+
     const actions = [];
 
     if (result.win && !isLast) {
@@ -651,22 +951,33 @@ export function createEngine({
     actions.push({
       label: result.win ? "Repetir" : "Reintentar",
       primary: !result.win,
-      onClick: () => startDay(dayIndex),
+      // REINTENTAR cae DIRECTO al piso: el ascensor y su elección ya los
+      // viviste hoy, y repetirlos en cada despido convertía el castigo en
+      // trámite. La intro completa queda para quien empieza de cero
+      // ("Reiniciar progreso" del menú) o entra al día por primera vez.
+      onClick: () => startDay(dayIndex, { skipPrologue: true }),
     });
     actions.push({ label: "Menú", onClick: () => openTitle() });
 
     hud.showResult({
       icon: result.win ? (isLast ? "trophy" : "party") : "door",
+      // La pantalla la protagoniza un PERSONAJE, como en un juego de
+      // verdad: tú celebrando con tu café, o Gabo llamando a RRHH.
+      look: result.win ? looks?.get?.(save.character) : looks?.get?.("gabo"),
+      pose: result.win ? "coffee" : "phone",
       title: result.win
         ? day.winTitle ?? (isLast ? "Semana completada" : `${day.title}: superado`)
         : "Te ascendieron a cliente",
       timeLeft: result.timeLeft,
       timeGained: result.timeGained,
-      body: result.win
-        ? `${done}/${result.objectives.length} actividades · ${result.eggsFound} secretos hoy`
+      body: (result.win
+        ? `${done}/${result.objectives.length} misiones · ${result.eggsFound} secretos hoy`
         : result.warnings >= (day.rules?.maxWarnings ?? 3)
         ? "Sin advertencias de sobra: te ascienden a cliente."
-        : "Se acabó la jornada con objetivos pendientes.",
+        : "Se acabó la jornada con objetivos pendientes.") +
+        // Solo la LETRA: el detalle ya lo contó la pantalla de evaluación, y
+        // repetirlo aquí entero lo convertía en ruido.
+        (evalRes ? `\nEvaluación del ciclo: ${evalRes.nota}` : ""),
       win: result.win,
       actions,
     });
@@ -677,6 +988,7 @@ export function createEngine({
     // Reuse the frame state the HUD just rendered instead of rebuilding it.
     const live = game && !menus.isOpen ? game.lastSnapshot : null;
     guides.update(live);
+    minimap.update(live);
     worldPrompt.update(dialogue.isOpen ? null : live);
     if (live && !dialogue.isOpen) {
       updateMoodFromSnapshot(live);
@@ -689,13 +1001,13 @@ export function createEngine({
     }
   }
 
-  let lastTheme = null;
+  // La luz del día ya no salta por tramos: se funde de forma continua entre
+  // los temas de la jornada, como el fondo dinámico de un Mac. Ver
+  // createThemeBlender en themes.js.
+  let themeBlender = null;
   function updateDynamicTheme(live) {
-    const currentTheme = getThemeByTime(live.timeLeft, live.rules.duration);
-    if (currentTheme !== lastTheme) {
-      lastTheme = currentTheme;
-      applyTheme(currentTheme, { renderer, scene, ...lights });
-    }
+    themeBlender ??= createThemeBlender({ renderer, scene, ...lights });
+    themeBlender.update(live.timeLeft, live.levelDuration);
   }
 
   // Hide boss/minion vision cones until player meets them
@@ -710,21 +1022,45 @@ export function createEngine({
     });
   }
 
-  /** Gabo's Teams messages: fire on a timer, independent of his position. */
+  /**
+   * Los Teams que te llegan durante la jornada, cada uno con su reloj:
+   * Gabo escribe al canal del equipo y Steven te escribe A TI. Los dos son
+   * NOTIFICACIONES (la burbuja de chat, que se va sola y nunca roba el
+   * foco): lo importante de Steven ya sale en primer plano como tarjeta de
+   * narrador dentro de las escenas del día — un mensaje de pasillo jamás
+   * debe interrumpir la partida.
+   */
   function updateGabo(dt, live) {
     if (live.gameOver || game.rules.explore) return;
     if (teamsTimer == null) teamsTimer = randomTeamsDelay();
     teamsTimer -= dt;
-    if (teamsTimer > 0) return;
-    teamsTimer = randomTeamsDelay();
-    const pool = dialogues.teamsMessages?.gabo ?? [];
-    if (!pool.length) return;
+    if (teamsTimer <= 0) {
+      teamsTimer = randomTeamsDelay();
+      const text = pickTeams(dialogues.teamsMessages?.gabo);
+      if (text) hud.showTeamsMessage(text);
+    }
+    // Steven escribe menos que Gabo (un amigo no microgestiona) y arranca
+    // desfasado, para que los dos relojes no suenen a la vez.
+    if (stevenTimer == null) stevenTimer = randomTeamsDelay() * 1.6;
+    stevenTimer -= dt;
+    if (stevenTimer <= 0) {
+      stevenTimer = randomTeamsDelay() * 2.2;
+      const text = pickTeams(dialogues.teamsMessages?.steven);
+      if (text) hud.showTeamsMessage(text, "Steven el Daddy");
+    }
+  }
+
+  function pickTeams(pool) {
+    if (!pool?.length) return null;
     let text = pool[Math.floor(Math.random() * pool.length)];
     if (pool.length > 1) {
       while (text === lastTeamsMessage) text = pool[Math.floor(Math.random() * pool.length)];
     }
     lastTeamsMessage = text;
-    hud.showTeamsMessage(text);
+    // La burbuja no pasa por el visor de diálogo, así que los tokens
+    // {masculino|femenino} se concuerdan aquí con la misma regla.
+    const fem = ctx.getPlayerGender?.() === "f";
+    return text.replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (_, m, f) => (fem ? f : m));
   }
 
   function randomTeamsDelay() {
@@ -737,7 +1073,11 @@ export function createEngine({
     dialogue,
     menus,
     guides,
+    minimap,
     save,
+    // La campaña se expone para las comprobaciones de tools/: la nota y el
+    // calendario se pueden verificar sin jugar cinco días seguidos.
+    campaign,
     start: () => openTitle(),
     startDay,
     openPause,
