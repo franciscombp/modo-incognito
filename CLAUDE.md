@@ -849,8 +849,35 @@ Si añades un tool nuevo en `tools/`, añádele también su script `check:*` en
 `package.json` y súmalo a la cadena del script `check` agregado — si no,
 queda invisible y nadie lo vuelve a correr.
 
+## Dos frentes a la vez: lee `docs/ARTE.md` antes de tocar nada
+
+Ahora mismo se trabaja en **paralelo** en dos cosas: el motor y el juego por
+un lado, el aspecto del escenario por otro.
+[`docs/ARTE.md`](docs/ARTE.md) reparte qué archivo abre cada frente, y es lo
+primero que hay que mirar para no pisar trabajo ajeno.
+
+Lo que hay que saber sin abrirlo:
+
+- **La luz del mundo NO está en `main.js`**, está en `src/scene/lighting.js`.
+  No la vuelvas a declarar allí. `createWorldLighting()` devuelve el objeto
+  que el motor derrama en `applyTheme`, así que una luz nueva llega sola a
+  `game/themes.js` sin tocar el arranque.
+- **El color del edificio son los `--w-*` de `design-system.css`**, que
+  `src/scene/palette.js` lee del documento. Es la única costura donde los dos
+  frentes escriben en el mismo archivo: si tocas ese bloque, que sea solo ese
+  bloque.
+- **Pull antes de CADA commit**, no antes de cada día. Y commits de un solo
+  tema, que son los que se resuelven solos al mezclar.
+- Si un conflicto no está claro, **gana lo que respete lo definido** —los
+  invariantes de aquí abajo primero, luego la tabla de `ARTE.md`—, no el
+  último que llegó.
+
 ## Flujo de git
 
 Una sola rama: `main`. No hay ramas de feature ni PRs internos — se hace
 commit y push directo a `main`. No hace falta build local ni sincronizar
 nada antes de pushear: el workflow de GitHub Actions compila y publica solo.
+
+> Con dos frentes vivos eso último se queda corto: **sí hace falta
+> sincronizar**. `git fetch origin main` y, si hay algo nuevo, `git pull
+> --rebase` y volver a compilar ANTES de commitear. Ver `docs/ARTE.md`.
