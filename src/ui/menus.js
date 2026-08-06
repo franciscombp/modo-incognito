@@ -190,7 +190,14 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   prevBtn.type = "button";
   prevBtn.innerHTML = svgIcon("back", { size: 28 });
   prevBtn.setAttribute("aria-label", "Usuario anterior");
+  // Tres columnas con PERSPECTIVA, como las referencias de selección de
+  // agente (docs/referencias/pantallas/): los datos van en paneles girados
+  // a los lados y el personaje manda en el centro, en medio plano. El giro
+  // es CSS 3D de verdad — no un degradado que lo imite— así que los paneles
+  // tienen profundidad real respecto al muñeco.
+  const panelLeft = el("div", "inc-login-panel inc-login-panel--left", loginStage);
   const loginUser = el("div", "inc-login-user", loginStage);
+  const panelRight = el("div", "inc-login-panel inc-login-panel--right", loginStage);
   const nextBtn = el("button", "inc-login-arrow", loginStage);
   nextBtn.type = "button";
   nextBtn.innerHTML = svgIcon("next", { size: 28 });
@@ -267,10 +274,48 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
       const lockBadge = el("span", "inc-login-lock", avatar);
       lockBadge.innerHTML = svgIcon("lock", { size: 22 });
     }
-    el("div", "inc-login-name", loginUser, mode.alias ? `${mode.name} "${mode.alias}"` : mode.name);
+    // ── PANEL IZQUIERDO: quién es ────────────────────────────────────
+    panelLeft.innerHTML = "";
+    el("div", "inc-login-panel-tag", panelLeft, "Expediente");
+    el("div", "inc-login-name", panelLeft, mode.alias ? `${mode.name} "${mode.alias}"` : mode.name);
     const metaBits = [mode.role, !locked && mode.difficulty ? `modo ${mode.difficulty}` : null].filter(Boolean);
-    el("div", "inc-login-role", loginUser, metaBits.join(" · "));
-    el("p", "inc-login-blurb", loginUser, locked ? mode.lockedReason ?? "Bloqueado" : mode.blurb ?? "");
+    el("div", "inc-login-role", panelLeft, metaBits.join(" · "));
+    el("p", "inc-login-blurb", panelLeft, locked ? mode.lockedReason ?? "Bloqueado" : mode.blurb ?? "");
+
+    // ── PANEL DERECHO: cómo se juega ─────────────────────────────────
+    // Las barras de la referencia (RANGO / DAÑO / DUREZA), traducidas a lo
+    // que de verdad distingue a un personaje aquí. Salen de `rules`, así
+    // que un personaje nuevo trae sus barras sin tocar esto.
+    panelRight.innerHTML = "";
+    el("div", "inc-login-panel-tag", panelRight, "Perfil");
+    const rules = mode.rules ?? {};
+    // Margen: cuántas amonestaciones aguantas. Discreto, en rombos, igual
+    // que en la placa del HUD — se cuenta de reojo, no se lee.
+    const warns = rules.maxWarnings ?? 3;
+    const marginRow = el("div", "inc-login-stat", panelRight);
+    el("span", "inc-login-stat-name", marginRow, "Margen");
+    const pipHost = el("span", "inc-login-stat-pips", marginRow);
+    for (let i = 0; i < 4; i++) {
+      el("i", `inc-login-pip${i < warns ? " on" : ""}`, pipHost);
+    }
+    // Y dos barras, con el valor NORMALIZADO a lo que se considera el
+    // máximo jugable: una barra sin tope no dice nada.
+    const bar = (label, value, max, invert = false) => {
+      const row = el("div", "inc-login-stat", panelRight);
+      el("span", "inc-login-stat-name", row, label);
+      const track = el("span", "inc-login-stat-track", row);
+      const fill = el("i", null, track);
+      const pct = Math.max(6, Math.min(100, Math.round((value / max) * 100)));
+      fill.style.width = `${pct}%`;
+      if (invert) fill.classList.add("hot");
+    };
+    // Cuánto te aprietan los secuaces. Por encima de 1 va en caliente.
+    const acoso = rules.minionSuspicionMul ?? 1;
+    bar("Acoso", acoso, 2, acoso > 1.1);
+    // Y la dificultad declarada, que es texto en el JSON: se traduce a
+    // barra aquí para que se compare de un vistazo con la de al lado.
+    const DIFF = { fácil: 1, facil: 1, normal: 2, difícil: 3, dificil: 3 };
+    bar("Exigencia", DIFF[(mode.difficulty ?? "normal").toLowerCase()] ?? 2, 3);
     // Ya NO hay botón de «iniciar sesión». Sobraba: se cambia de cuenta con
     // las flechas o pasando por encima de su ficha, y se entra con clic,
     // Enter o espacio — un botón aparte era un paso de más para algo que ya
