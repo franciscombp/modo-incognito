@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { skyTexture } from "../scene/cozy.js";
+import { setSunAngles } from "../scene/lighting.js";
 
 // Per-day atmosphere. Each day names a theme and the engine re-tints the
 // lights and background, so "miércoles nublado" and "viernes al atardecer"
@@ -20,91 +21,132 @@ import { skyTexture } from "../scene/cozy.js";
 // Esto es el eje TIEMPO, distinto del eje TEMA (design-system.css). El tema
 // dice de que color es el edificio; esto, que hora es. Por eso no sale de
 // los tokens: un tema nuevo re-tinta las superficies, no el reloj.
+// ── EL SOL SE MUEVE, Y ESA ES LA MITAD DEL TRABAJO ────────────────────
+//
+// Cada tema trae ahora `sun: { azimuth, elevation }` en radianes, y la luz
+// con sombra se coloca con esos angulos (ver scene/lighting.js). Antes
+// estaba clavada en una esquina de las 7am a las 7pm: lo unico que cambiaba
+// era el TINTE, y un tinte sin sombra que lo acompane no se lee como que ha
+// pasado el dia, se lee como que le han puesto un filtro encima. Con el sol
+// girando, la sombra de cada mesa barre el suelo y la hora se ve sin mirar
+// el reloj.
+//
+// `azimuth` gira alrededor del piso (crece de este a oeste) y `elevation`
+// es la altura sobre el horizonte (0 = rasante, ~1.57 = cenit).
+//
+// ── Y EL RELLENO BAJA, QUE ES LA OTRA MITAD ───────────────────────────
+//
+// El ambiente iba a 0.66-0.80 y el hemisferico a 0.64-0.78: sumados,
+// pisaban a la key. Con el relleno casi tan fuerte como la luz principal no
+// hay sombra que se vea, y por eso todo se leia de un solo color. Ahora el
+// relleno esta en torno a un tercio, que deja la sombra visible sin que las
+// zonas oscuras se traguen a los personajes.
+//
+// El hemisferico ademas separa por ORIENTACION: cielo frio arriba, rebote
+// calido abajo. Es lo que hace que el suelo y la cara de arriba de una mesa
+// no sean el mismo color que la pared, sin tocar un solo token del edificio.
 export const themes = {
   earlyMorning: {
-    // 7am - amanece en marino frio, con una brasa fria en el horizonte
+    // 7am - amanece en marino frio, con una brasa fria en el horizonte.
+    // Sol rasante por el este: sombras largisimas cruzando el piso entero.
     sky: ["#20303f", "#33485c"],
     fog: "#243444",
-    ambient: { color: 0xc2d8e8, intensity: 0.66 },
-    hemi: { sky: 0x9fbcd6, ground: 0x6e5a48, intensity: 0.64 },
-    key: { color: 0xffd9a0, intensity: 1.53 },
-    exposure: 1.0,
+    ambient: { color: 0xc2d8e8, intensity: 0.26 },
+    hemi: { sky: 0x9fbcd6, ground: 0x7a5f42, intensity: 0.34 },
+    key: { color: 0xffcf92, intensity: 2.1 },
+    sun: { azimuth: 0.38, elevation: 0.16 },
+    exposure: 1.02,
   },
   morning: {
-    // 9am-12pm - vacío verde oliva y lámparas cálidas, la cabaña de la referencia
+    // 9am-12pm - la manana abre: el sol sube y la sombra se acorta
     sky: ["#2a4054", "#3d5a70"],
     fog: "#2f4557",
-    ambient: { color: 0xc8dcea, intensity: 0.74 },
-    hemi: { sky: 0xa6c3da, ground: 0x8a7458, intensity: 0.74 },
-    key: { color: 0xffdca4, intensity: 1.77 },
+    ambient: { color: 0xc8dcea, intensity: 0.3 },
+    hemi: { sky: 0xa6c3da, ground: 0x8a7458, intensity: 0.4 },
+    key: { color: 0xffdca4, intensity: 2.25 },
+    sun: { azimuth: 0.95, elevation: 0.62 },
     exposure: 1.06,
   },
   midday: {
-    // 1pm - luz de calle suave sobre acero apagado
+    // 1pm - lo mas alto del dia: sombra corta y dura, justo debajo
     sky: ["#3c5c74", "#5b8095"],
     fog: "#456579",
-    ambient: { color: 0xd2e4f0, intensity: 0.8 },
-    hemi: { sky: 0xb0cbe0, ground: 0x93866e, intensity: 0.78 },
-    key: { color: 0xffe9c0, intensity: 1.77 },
+    ambient: { color: 0xd2e4f0, intensity: 0.34 },
+    hemi: { sky: 0xb0cbe0, ground: 0x93866e, intensity: 0.44 },
+    key: { color: 0xffe9c0, intensity: 2.35 },
+    sun: { azimuth: 1.62, elevation: 1.18 },
     exposure: 1.08,
   },
   afternoon: {
-    // 3pm - interior sepia: todo vira a ámbar de lámpara
+    // 3pm - el sol cruza al oeste y la sombra empieza a tumbarse al otro lado
     sky: ["#33506a", "#4d7189"],
     fog: "#3a586f",
-    ambient: { color: 0xbdd4e6, intensity: 0.7 },
-    hemi: { sky: 0x9cbad4, ground: 0x77604c, intensity: 0.72 },
-    key: { color: 0xffc987, intensity: 1.83 },
+    ambient: { color: 0xbdd4e6, intensity: 0.3 },
+    hemi: { sky: 0x9cbad4, ground: 0x77604c, intensity: 0.4 },
+    key: { color: 0xffc987, intensity: 2.3 },
+    sun: { azimuth: 2.25, elevation: 0.78 },
     exposure: 1.06,
   },
   latAfternoon: {
-    // 5pm - la brasa: sepia hundiéndose
+    // 5pm - la brasa: sol bajo por el oeste, sombras largas otra vez
     sky: ["#293f55", "#3f5c74"],
     fog: "#2e4459",
-    ambient: { color: 0xafc9de, intensity: 0.62 },
-    hemi: { sky: 0x8aa8c6, ground: 0x54443a, intensity: 0.62 },
-    key: { color: 0xffb877, intensity: 1.65 },
+    ambient: { color: 0xafc9de, intensity: 0.27 },
+    hemi: { sky: 0x8aa8c6, ground: 0x6b4f38, intensity: 0.36 },
+    key: { color: 0xffb877, intensity: 2.15 },
+    sun: { azimuth: 2.7, elevation: 0.34 },
     exposure: 1.0,
   },
   dusk: {
-    // 6pm - la bisagra: el ámbar cede al acero
+    // 6pm - la bisagra: el ambar cede al acero y el sol toca el horizonte
     sky: ["#22354a", "#354e64"],
     fog: "#273a4f",
-    ambient: { color: 0xb8bcc8, intensity: 0.58 },
-    hemi: { sky: 0x7f9dbe, ground: 0x45414a, intensity: 0.56 },
-    key: { color: 0xd8bda0, intensity: 1.36 },
-    exposure: 0.98,
+    ambient: { color: 0xb8bcc8, intensity: 0.3 },
+    hemi: { sky: 0x7f9dbe, ground: 0x45414a, intensity: 0.34 },
+    key: { color: 0xd8bda0, intensity: 1.6 },
+    sun: { azimuth: 2.95, elevation: 0.15 },
+    exposure: 0.99,
   },
   duskDark: {
-    // 7pm - anochece en azul acero
+    // 7pm - se ha puesto. Ya no hay sol: manda la luz fria del cielo, y la
+    // "key" es en realidad el resplandor de la ciudad rebotando por la
+    // fachada. Por eso vuelve a subir de altura: no proyecta desde el
+    // horizonte, cae del cielo entero.
     sky: ["#1b2c3e", "#2b4256"],
     fog: "#1f3143",
-    ambient: { color: 0x9aa8c0, intensity: 0.5 },
-    hemi: { sky: 0x6f8fb4, ground: 0x2f3542, intensity: 0.46 },
-    key: { color: 0xbcd0e8, intensity: 1.36 },
+    ambient: { color: 0x9aa8c0, intensity: 0.3 },
+    hemi: { sky: 0x6f8fb4, ground: 0x2f3542, intensity: 0.4 },
+    key: { color: 0xbcd0e8, intensity: 1.25 },
+    sun: { azimuth: 3.25, elevation: 0.62 },
     exposure: 0.95,
   },
   twilight: {
-    // 8pm-9pm - noche de luna por las ventanas, como la referencia azul
+    // 8pm-9pm - noche de luna por las ventanas, como la referencia azul.
+    // La luna entra alta y por el otro lado: es lo que dibuja los charcos
+    // de luz en el suelo de ref-noche-azul.png.
     sky: ["#121e2b", "#1e3040"],
     fog: "#152331",
-    ambient: { color: 0x6b7a94, intensity: 0.4 },
-    hemi: { sky: 0x556f92, ground: 0x1f242e, intensity: 0.36 },
-    key: { color: 0xa8c4e8, intensity: 1.18 },
-    exposure: 0.88,
+    ambient: { color: 0x6b7a94, intensity: 0.24 },
+    hemi: { sky: 0x556f92, ground: 0x1f242e, intensity: 0.3 },
+    key: { color: 0xa8c4e8, intensity: 1.35 },
+    sun: { azimuth: 3.9, elevation: 0.85 },
+    exposure: 0.9,
   },
   overcast: {
-    // fallback: gris verdoso neutro, maduro
+    // fallback: gris verdoso neutro. Nublado = sin sol marcado, asi que
+    // aqui SI manda el relleno y la key va floja y muy alta. Es el unico
+    // tema donde la sombra debe ser casi plana, y es a proposito.
     sky: ["#6e7570", "#969a90"],
     fog: "#7d837c",
-    ambient: { color: 0xe4e2d8, intensity: 0.76 },
-    hemi: { sky: 0xbcc2ba, ground: 0x7c7466, intensity: 0.72 },
-    key: { color: 0xf0e8d8, intensity: 1.3 },
+    ambient: { color: 0xe4e2d8, intensity: 0.62 },
+    hemi: { sky: 0xbcc2ba, ground: 0x7c7466, intensity: 0.66 },
+    key: { color: 0xf0e8d8, intensity: 0.85 },
+    sun: { azimuth: 1.5, elevation: 1.3 },
     exposure: 1.0,
   },
 };
 
-export function applyTheme(name, { renderer, scene, ambient, hemi, key }) {
+export function applyTheme(name, { renderer, scene, ambient, hemi, key, worldScale = 1 }) {
   const theme = themes[name] ?? themes.morning;
   scene.background?.dispose?.();
   scene.background = skyTexture(theme.sky[0], theme.sky[1]);
@@ -118,6 +160,7 @@ export function applyTheme(name, { renderer, scene, ambient, hemi, key }) {
   hemi.intensity = theme.hemi.intensity;
   key.color.set(theme.key.color);
   key.intensity = theme.key.intensity;
+  if (theme.sun) setSunAngles(key, theme.sun, worldScale);
   renderer.toneMappingExposure = theme.exposure;
   return theme;
 }
@@ -168,7 +211,7 @@ function lerpColorInto(target, colorA, colorB, t) {
   target.copy(_c1).lerp(_c2, t);
 }
 
-export function createThemeBlender({ renderer, scene, ambient, hemi, key }) {
+export function createThemeBlender({ renderer, scene, ambient, hemi, key, worldScale = 1 }) {
   let skyKey = null;
   return {
     /** timeLeft/maxTime en las mismas unidades que getThemeByTime. */
@@ -195,6 +238,20 @@ export function createThemeBlender({ renderer, scene, ambient, hemi, key }) {
       hemi.intensity = THREE.MathUtils.lerp(a.hemi.intensity, b.hemi.intensity, mix);
       lerpColorInto(key.color, a.key.color, b.key.color, mix);
       key.intensity = THREE.MathUtils.lerp(a.key.intensity, b.key.intensity, mix);
+      // El sol viaja con el fundido, no a saltos: es lo que hace que la
+      // sombra barra el suelo en vez de dar un brinco al cambiar de tramo.
+      // Los angulos se interpolan crudos a proposito — el arco esta escrito
+      // de menor a mayor azimut, asi que nunca hay que dar la vuelta corta.
+      if (a.sun && b.sun) {
+        setSunAngles(
+          key,
+          {
+            azimuth: THREE.MathUtils.lerp(a.sun.azimuth, b.sun.azimuth, mix),
+            elevation: THREE.MathUtils.lerp(a.sun.elevation, b.sun.elevation, mix),
+          },
+          worldScale
+        );
+      }
       renderer.toneMappingExposure = THREE.MathUtils.lerp(a.exposure, b.exposure, mix);
 
       if (scene.fog) {
