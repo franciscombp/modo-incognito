@@ -66,7 +66,12 @@ export class Player {
     if (magnitude > 0.001) {
       const { dx, dz } = screenToGround(right, up);
       const len = Math.hypot(dx, dz) || 1;
-      const speedMul = (this.isPretending ? 0.45 : 1) * this.speedMul;
+      // Shift = correr. El sprite no necesita que se lo digan: mide su propio
+      // desplazamiento y cambia solo al ciclo de correr del .glb (ver
+      // character3d.js). Correr NO es gratis: llamas más la atención — eso ya
+      // lo cubre que te muevas más rápido por delante de más conos.
+      const sprint = this.keys.has("shift") && !this.isPretending ? 1.55 : 1;
+      const speedMul = (this.isPretending ? 0.45 : 1) * this.speedMul * sprint;
       const step = this.speed * speedMul * magnitude * dt;
       this.position.x += (dx / len) * step;
       this.position.z += (dz / len) * step;
@@ -83,7 +88,12 @@ export class Player {
     // Standing still while "working" still shows the idle pose, not a walk.
     // Moverse cancela la pose: no puedes tomar café mientras caminas.
     this.sprite.setPose(moving ? null : this.pose);
-    if (!moving) this.sprite.setFacing(this.facing);
+    // Quieto, el muñeco CONSERVA el rumbo que le haya puesto el juego
+    // (sentarse de cara a la mesa, encarar a quien te habla). Antes aquí se
+    // re-imponía la cardinal de pantalla cada frame, y pisaba cualquier
+    // orientación de mundo un frame después de fijarla. La cardinal
+    // `facing` que lee el resto del juego se sincroniza DESDE el sprite.
+    if (!moving) this.facing = this.sprite.facing;
     this.sprite.setMoving(moving && !this.isPretending);
     this.sprite.setPosition(this.position.x, this.position.z);
     this.sprite.setTint(this.isHiding ? 0.6 : 1);

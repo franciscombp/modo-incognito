@@ -11,6 +11,9 @@
     "  boss.approachSpeedSlow / approachSpeedFast / suspicionThresholdFastApproach:",
     "    aproximación en dos fases — con sospecha baja el jefe tantea despacio",
     "    (approachSpeedSlow), al cruzar el umbral va con todo (approachSpeedFast).",
+    "  boss.chaseSuspicionFloor: por debajo de esta sospecha el jefe NO te",
+    "    persigue — sigue su ronda de siempre aunque te pille en falta. Es el",
+    "    respiro del principio del dia: sin el, el dia 1 no dejaba jugar.",
     "  boss.reportingCooldown: cada cuánto puede un secuaz volver a delatarte.",
     "  gameplay.dayStartHour / dayEndHour: reloj del HUD (9:00 a.m. -> ...).",
     "",
@@ -38,7 +41,8 @@
     "suspicionThresholdFastApproach": 90,
     "reportingCooldown": 6.5,
     "alertDistance": 8,
-    "alertDuration": 3
+    "alertDuration": 3,
+    "chaseSuspicionFloor": 40
   },
   "gameplay": {
     "dayStartHour": 9,

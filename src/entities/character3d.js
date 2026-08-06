@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { screenToGround, facingFromGround } from "../scene/iso.js";
-import { faceTexture } from "./face.js";
-import { loadBaseModel, peekBaseModel, instantiateBase, modelUrlFor, loadFaceSheet } from "./baseModel.js";
+import { faceTexture, faceStripTexture } from "./face.js";
+import { loadBaseModel, peekBaseModel, instantiateBase, modelUrlFor, loadFaceSheet, applyBuild } from "./baseModel.js";
 import { attachFaceSheet } from "./faceSheet.js";
 import { getProp, clearPropCache } from "../game/propModels.js";
 import { getFurniture, clearFurnitureCache } from "../game/furnitureModels.js";
@@ -24,6 +24,9 @@ import { getFurniture, clearFurnitureCache } from "../game/furnitureModels.js";
  *   setTint · update · setRecipe · setRig · hasPoses · height · facing
  */
 
+// Reutilizado para leer escalas de hueso sin alojar un vector por frame.
+const _v3 = new THREE.Vector3();
+
 /** Las cuatro direcciones de siempre, ahora solo como puntos de referencia. */
 export const ROW_BY_FACING = { south: 0, west: 1, east: 2, north: 3 };
 
@@ -41,9 +44,11 @@ export const POSES = {
   sitWork: 9,
 };
 
+// Lo que queda de un "rig" (public/data/sprites/<id>.json): el ritmo del paso
+// procedural y la animación de espera. Todo lo demás que había aquí —filas y
+// celdas de un pliego de sprites— murió con el sistema de pliegos.
 export const DEFAULT_RIG = {
-  walk: { fps: 8, rows: ROW_BY_FACING },
-  actions: { fps: 3, poses: POSES },
+  walkFps: 8,
   idle: null,
 };
 
@@ -102,12 +107,27 @@ function pickClip(clips, words) {
  */
 const _poseEuler = new THREE.Euler();
 const _poseQuat = new THREE.Quaternion();
+const _poseConj = new THREE.Quaternion();
 function setBoneRotation(bone, x, y, z) {
   const rest = bone.userData?.restQuat;
   _poseEuler.set(x, y, z);
   _poseQuat.setFromEuler(_poseEuler);
   if (!rest) {
     bone.quaternion.copy(_poseQuat);
+    return;
+  }
+  // Los ángulos de POSE_LIBRARY están escritos en ejes de PERSONAJE (los del
+  // esqueleto procedural, donde hueso y personaje compartían ejes). Un rig
+  // importado trae los suyos propios, y aplicar el euler en local hacía que
+  // "brazo adelante" saliera "brazo en cruz" según el exportador. Con la
+  // orientación de reposo del hueso EN MUNDO (`restWorldQuat`) se conjuga el
+  // giro al espacio local: mismo resultado visual en cualquier rig. Para un
+  // rig de ejes alineados la conjugación es la identidad — por eso los
+  // cuerpos que ya posaban bien posan exactamente igual.
+  const world = bone.userData?.restWorldQuat;
+  if (world) {
+    _poseConj.copy(world).invert().multiply(_poseQuat).multiply(world);
+    bone.quaternion.copy(rest).multiply(_poseConj);
     return;
   }
   bone.quaternion.copy(rest).multiply(_poseQuat);
@@ -163,12 +183,18 @@ const REST = {
 };
 
 const POSE_LIBRARY = {
+  // TECLEAR: aquí NO hay que subir la amplitud del brazo — un mecanógrafo
+  // mueve las manos, no los hombros, y un brazo que sube y baja se lee como
+  // dirigir una orquesta. Lo que faltaba era ALTERNANCIA: los dos codos se
+  // movían casi al unísono, y dos manos que suben y bajan a la vez no
+  // teclean. Ahora van en oposición clara, y sin `hold` — teclear es
+  // continuo, no tiene acento.
   work: {
-    speed: 2.6,
+    speed: 3.1,
     prop: null,
     hands: "open",
-    a: { torso: [0.14, 0, 0], head: [0.2, 0, 0], armL: [-1.35, 0, 0.25], armR: [-1.4, 0, -0.25], elbowL: [-0.75, 0, 0], elbowR: [-0.68, 0, 0] },
-    b: { torso: [0.14, 0, 0], head: [0.22, 0, 0], armL: [-1.42, 0, 0.25], armR: [-1.32, 0, -0.25], elbowL: [-0.62, 0, 0], elbowR: [-0.82, 0, 0] },
+    a: { torso: [0.14, 0, 0], head: [0.2, 0, 0], armL: [-1.35, 0, 0.25], armR: [-1.4, 0, -0.25], elbowL: [-0.94, 0, 0], elbowR: [-0.52, 0, 0] },
+    b: { torso: [0.15, 0, 0], head: [0.22, 0, 0], armL: [-1.4, 0, 0.25], armR: [-1.35, 0, -0.25], elbowL: [-0.5, 0, 0], elbowR: [-0.96, 0, 0] },
     context: {
       props: [{ name: "documents", bone: "LeftHand", offset: [0.02, -0.02, 0], rotation: [0, 0, 0] }],
       furniture: [],
@@ -184,22 +210,33 @@ const POSE_LIBRARY = {
       furniture: [{ name: "bed", position: [0, 0, 0.2], rotation: [0, 0, 0] }],
     },
   },
+  // BEBER: la taza baja al pecho y SUBE HASTA LA BOCA, donde se queda el
+  // sorbo. Antes el brazo recorría 0.43 rad (unos 25°) — a la distancia a la
+  // que se juega, dos píxeles: se veía a alguien quieto con una taza, no
+  // bebiendo. Ahora recorre el triple y la cabeza baja a encontrarse con
+  // ella, que es el gesto que de verdad delata que estás bebiendo.
   coffee: {
     speed: 1.5,
+    hold: 0.45,
     prop: "cup",
     hands: "grip",
-    a: { head: [0.06, -0.1, 0], armR: [-1.15, 0, -0.2], elbowR: [-1.5, 0, 0], armL: [0, 0, 0.22] },
-    b: { head: [-0.04, -0.1, 0], armR: [-0.72, 0, -0.3], elbowR: [-1.05, 0, 0], armL: [0, 0, 0.22] },
+    a: { head: [0.02, -0.1, 0], armR: [-0.62, 0, -0.26], elbowR: [-0.78, 0, 0], armL: [0, 0, 0.22] },
+    b: { head: [0.2, -0.1, 0], armR: [-1.42, 0, -0.16], elbowR: [-1.92, 0, 0], armL: [0, 0, 0.22] },
     context: {
       props: [{ name: "coffee", bone: "RightHand", offset: [0, -0.08, 0], rotation: [0, 0, 0] }],
       furniture: [],
     },
   },
+  // COMER: la izquierda SOSTIENE el plato quieto (es el ancla que dice
+  // "plato") y la derecha hace el viaje entero plato -> boca. Antes la
+  // derecha se movía 0.3 rad, menos aún que el café, y las dos manos
+  // quedaban a la misma altura: se leía como alguien aplaudiendo despacio.
   eat: {
-    speed: 1.9,
+    speed: 1.7,
+    hold: 0.4,
     prop: "plate",
-    a: { head: [0.12, 0, 0], armL: [-1.0, 0, 0.3], elbowL: [-1.15, 0, 0], armR: [-1.1, 0, -0.2], elbowR: [-1.5, 0, 0] },
-    b: { head: [0.0, 0, 0], armL: [-1.0, 0, 0.3], elbowL: [-1.15, 0, 0], armR: [-0.8, 0, -0.3], elbowR: [-0.95, 0, 0] },
+    a: { head: [0.16, 0, 0], armL: [-1.02, 0, 0.3], elbowL: [-1.15, 0, 0], armR: [-0.5, 0, -0.28], elbowR: [-0.72, 0, 0] },
+    b: { head: [0.08, 0, 0], armL: [-1.02, 0, 0.3], elbowL: [-1.15, 0, 0], armR: [-1.34, 0, -0.14], elbowR: [-1.95, 0, 0] },
     context: {
       props: [{ name: "food", bone: "LeftHand", offset: [0.02, -0.05, 0], rotation: [0, 0, 0] }],
       furniture: [],
@@ -208,13 +245,19 @@ const POSE_LIBRARY = {
   movie: {
     speed: 0.9,
     prop: null,
-    a: { head: [-0.14, 0.06, 0], armL: [-0.95, 0, 0.55], elbowL: [-1.75, 0, -0.6], armR: [-0.88, 0, -0.55], elbowR: [-1.8, 0, 0.6] },
-    b: { head: [-0.12, -0.06, 0], armL: [-0.98, 0, 0.55], elbowL: [-1.7, 0, -0.6], armR: [-0.91, 0, -0.55], elbowR: [-1.85, 0, 0.6] },
+    hands: "grip",
+    // SENTADA en el puff con el bucket de palomitas en el regazo: la mano
+    // derecha va y viene del bucket a la boca. Antes la pose se quedaba de
+    // pie ENCIMA del puf, que era exactamente lo contrario de ver una peli.
+    a: { head: [-0.1, 0.04, 0], torso: [0.1, 0, 0], legL: [-1.5, 0, 0.08], legR: [-1.5, 0, -0.08], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], armL: [-1.1, 0, 0.35], elbowL: [-0.95, 0, 0], armR: [-1.05, 0, -0.25], elbowR: [-1.0, 0, 0], lift: -0.088 },
+    b: { head: [-0.16, -0.04, 0], torso: [0.1, 0, 0], legL: [-1.5, 0, 0.08], legR: [-1.5, 0, -0.08], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], armL: [-1.12, 0, 0.35], elbowL: [-0.92, 0, 0], armR: [-1.75, 0, -0.12], elbowR: [-1.95, 0, 0], lift: -0.088 },
     context: {
       props: [{ name: "popcorn", bone: "LeftHand", offset: [0, -0.08, 0], rotation: [0, 0, 0] }],
       furniture: [
-        { name: "puff", position: [0, 0, 0.15], rotation: [0, 0, 0] },
-        { name: "tv", position: [0.35, 0.3, -0.5], rotation: [0, 0, 0] },
+        { name: "puff", position: [0, 0, -0.05], rotation: [0, 0, 0] },
+        // La tele es escenario: se queda donde está aunque el personaje se
+        // levante a media película.
+        { name: "tv", position: [0, 0.3, 0.9], rotation: [0, Math.PI, 0], anchor: "world" },
       ],
     },
   },
@@ -265,8 +308,12 @@ const POSE_LIBRARY = {
     context: {
       props: [],
       furniture: [
-        { name: "office_chair", position: [0.2, 0, 0], rotation: [0, 0, 0] },
-        { name: "desk", position: [-0.3, 0.3, -0.3], rotation: [0, 0, 0] },
+        // SOLO la silla, que viaja CON el personaje (es hija suya): si lo
+        // empujan, la silla de rueditas se lo lleva rodando. La mesa y la
+        // computadora NO se crean aquí: son las del escenario — el personaje
+        // se sienta FRENTE a la mesa blanca que ya existe, y su monitor se
+        // queda en ella pase lo que pase.
+        { name: "office_chair", position: [0, 0, -0.08], rotation: [0, 0, 0] },
       ],
     },
   },
@@ -282,6 +329,30 @@ const POSE_LIBRARY = {
   },
 };
 
+/**
+ * Colores por región para un cuerpo sin textura. El .glb base de Kiara viene
+ * sin material: se pinta POR VÉRTICE según qué hueso manda en cada uno, así
+ * que cada personaje que lo preste puede ir de sus propios colores solo con
+ * un bloque `paint` en su receta.
+ */
+export const DEFAULT_PAINT = {
+  skin: "#e8b088",
+  hair: "#3a2c26",
+  top: "#7f96ab",
+  bottom: "#3d4358",
+  shoes: "#e8e2d8",
+};
+
+/**
+ * Qué .glb le toca a una receta. `baseModel` explícito manda (personajes con
+ * cuerpo propio, o indexado desde public/models por characterRecipes.js); sin
+ * él, el GÉNERO de la receta elige entre los dos cuerpos base desnudos.
+ * Es la única regla: no hay más fallbacks escondidos por ahí.
+ */
+export function baseFileFor(r) {
+  return r?.baseModel ?? (r?.gender === "f" ? "base-chica.glb" : "base-chico.glb");
+}
+
 export const DEFAULT_RECIPE = {
   skin: "#f0c9a8",
   hair: { color: "#3a2c26", style: "short" },
@@ -293,7 +364,7 @@ export const DEFAULT_RECIPE = {
   badge: "#7a5cc4",
   blush: "#e8a0a0",
   accessories: [],
-  build: { width: 1, belly: 0, bust: 0 },
+  build: { width: 1, depth: null, chest: 1, belly: 0, head: 1 },
 };
 
 function mergeRecipe(recipe) {
@@ -309,6 +380,24 @@ function mergeRecipe(recipe) {
     // se pierde en silencio. `baseModel` faltaba, y por eso el camino del .glb
     // no llegó a ejecutarse nunca: llegaba siempre como undefined.
     baseModel: r.baseModel ?? null,
+    // "m" | "f". Sin baseModel propio decide el cuerpo base (ver baseFileFor)
+    // y el motor de diálogos lo lee para concordar el texto. Puede faltar:
+    // un genérico sin género usa el cuerpo de chico y texto neutro.
+    gender: r.gender ?? null,
+    // Pintura por regiones para cuerpos SIN textura (ver _paintByBones):
+    // { skin, hair, top, bottom, shoes }. En un .glb con textura se ignora.
+    paint: r.paint ?? null,
+    // La tira de gestos (`<id>.faces.png`, la indexa characterRecipes.js) y
+    // su ajuste fino de colocación. Faltaban de esta lista-filtro y la rama
+    // entera de las caras pegadas era código muerto — la misma trampa que ya
+    // se pagó con baseModel.
+    faces: r.faces ?? null,
+    face: r.face ?? null,
+    // Altura propia de la receta, si trae una — ver setRecipe(). Sin esto,
+    // todo cuerpo importado se escala a la altura que le pasó quien lo creó
+    // (characters.json por rol: jefe, secuaz, jugadora…), la misma para
+    // cualquier personaje que herede ese rol.
+    height: r.height ?? null,
     skin: r.skin ?? DEFAULT_RECIPE.skin,
     eyes: r.eyes ?? DEFAULT_RECIPE.eyes,
     blush: r.blush === undefined ? DEFAULT_RECIPE.blush : r.blush,
@@ -395,6 +484,10 @@ export class Character3D {
     this._dispose();
     const r = mergeRecipe(recipe);
     this.recipe = r;
+    // La receta puede pedir su propia altura (personajes con cuerpo
+    // importado, de proporciones distintas entre sí); si no trae una, se
+    // queda con la que fijó quien construyó este Character3D.
+    if (r.height != null) this.height = r.height;
 
     // Un cuerpo importado tarda en llegar, y `setRecipe` se llama más de una
     // vez seguida al elegir personaje. Sin este testigo, la carga vieja aún
@@ -402,8 +495,8 @@ export class Character3D {
     // cuerpos superpuestos, con `_built` apuntando solo a uno.
     const token = (this._buildToken = (this._buildToken ?? 0) + 1);
 
-    // Usar modelo específico si existe, sino usar kiara como base
-    const modelToLoad = r.baseModel ?? "kiara.glb";
+    // Su .glb propio si lo tiene; si no, el cuerpo base que diga su género.
+    const modelToLoad = baseFileFor(r);
 
     // Si ya está en memoria se monta AHORA, sin ceder el turno: los menús
     // montan un personaje y le sacan la foto en la misma vuelta, y con una
@@ -439,6 +532,295 @@ export class Character3D {
     this._assembleGLB(gltf, r, modelName);
   }
 
+  /**
+   * Pinta un cuerpo sin textura POR VÉRTICE, mirando qué hueso pesa más en
+   * cada uno: manos y cabeza son piel, torso y brazos la prenda, caderas y
+   * piernas el pantalón, pies zapatos. Dentro de la cabeza, la mitad de
+   * arriba (y la nuca) es pelo — no hay hueso de pelo, así que se corta por
+   * altura sobre la propia caja de los vértices de cabeza.
+   */
+  _paintByBones(mesh, paint) {
+    const colors = { ...DEFAULT_PAINT, ...(paint ?? {}) };
+    // cloneSkinned COMPARTE la geometría entre instancias (es lo barato);
+    // pintar colores por vértice sobre la compartida repintaba a TODO el
+    // reparto del color del último en montarse. Cada muñeco pinta su copia.
+    mesh.geometry = mesh.geometry.clone();
+    const geo = mesh.geometry;
+    const pos = geo.getAttribute("position");
+    const skinIndex = geo.getAttribute("skinIndex");
+    const skinWeight = geo.getAttribute("skinWeight");
+    if (!pos || !skinIndex || !skinWeight || !mesh.skeleton) return;
+
+    const boneNames = mesh.skeleton.bones.map((b) => b.name);
+    const REGION_OF = (name) => {
+      if (/hand/i.test(name)) return "skin";
+      if (/head|neck/i.test(name)) return "head"; // se decide piel/pelo abajo
+      if (/foot|toe/i.test(name)) return "shoes";
+      if (/upleg|leg/i.test(name)) return "bottom";
+      if (/hips/i.test(name)) return "bottom";
+      return "top"; // spine, chest, shoulder, arm, forearm
+    };
+
+    // La caja de la cabeza, para los cortes piel/pelo. Los umbrales son
+    // RELATIVOS a esa caja (fracción de su alto y de su fondo), nunca
+    // absolutos: cada export centra la cabeza donde quiere, y un corte en
+    // metros que funcionaba en un cuerpo pintaba de pelo media cara del
+    // siguiente — que es como cuatro personajes salieron "de espaldas".
+    let headMinY = Infinity;
+    let headMaxY = -Infinity;
+    let headMinZ = Infinity;
+    let headMaxZ = -Infinity;
+    let allMinY = Infinity;
+    let allMaxY = -Infinity;
+    const domOf = new Array(pos.count);
+    for (let i = 0; i < pos.count; i++) {
+      let best = 0;
+      let bestW = -1;
+      for (let k = 0; k < 4; k++) {
+        const w = skinWeight.getComponent(i, k);
+        if (w > bestW) {
+          bestW = w;
+          best = skinIndex.getComponent(i, k);
+        }
+      }
+      const region = REGION_OF(boneNames[best] ?? "");
+      domOf[i] = region;
+      const y = pos.getY(i);
+      if (y < allMinY) allMinY = y;
+      if (y > allMaxY) allMaxY = y;
+      if (region === "head") {
+        const z = pos.getZ(i);
+        if (y < headMinY) headMinY = y;
+        if (y > headMaxY) headMaxY = y;
+        if (z < headMinZ) headMinZ = z;
+        if (z > headMaxZ) headMaxZ = z;
+      }
+    }
+    // Línea PROVISIONAL, solo para clasificar componentes: la caja de cabeza
+    // de arriba aún mezcla cráneo y melena. La definitiva se recalcula abajo,
+    // ya sin el pelo.
+    let hairline = headMinY + (headMaxY - headMinY) * 0.55;
+
+    // EL FARO DE LA CARA. El rig trae un hueso `headfront` clavado en el
+    // centro de la cara; el vértice más cercano a él marca qué componente es
+    // el CRÁNEO. Sin este ancla no hay forma fiable de distinguirlo de la
+    // melena: una melena larga abraza el cráneo, lo desborda por todos lados
+    // y hasta lleva pesos de hombros — todos los umbrales de caja que se
+    // probaron acababan pintando de pelo la cara de alguien.
+    const facePoint = new THREE.Vector3(0, headMinY + (headMaxY - headMinY) * 0.45, headMaxZ * 0.9);
+    const hfIdx = mesh.skeleton.bones.findIndex((b) => /headfront/i.test(b.name));
+    if (hfIdx >= 0 && mesh.skeleton.boneInverses[hfIdx]) {
+      const bind = new THREE.Matrix4().copy(mesh.skeleton.boneInverses[hfIdx]).invert();
+      facePoint.setFromMatrixPosition(bind);
+    }
+    let nearestIdx = 0;
+    let nearestD = Infinity;
+    for (let i = 0; i < pos.count; i++) {
+      const dx = pos.getX(i) - facePoint.x;
+      const dy = pos.getY(i) - facePoint.y;
+      const dz = pos.getZ(i) - facePoint.z;
+      const d = dx * dx + dy * dy + dz * dz;
+      if (d < nearestD) {
+        nearestD = d;
+        nearestIdx = i;
+      }
+    }
+
+    // EL PELO ES SU PROPIA CARCASA. Estos cuerpos traen la melena esculpida
+    // como pieza aparte (sin soldar al cráneo), y pintarla por hueso dominante
+    // la degradaba: una melena larga cae hasta el pecho, donde mandan los
+    // huesos del torso, y esos mechones salían color camiseta. Se separan las
+    // componentes conexas de la malla (soldando por posición, que las costuras
+    // de UV parten los shells) y toda componente que no sea el cuerpo, llegue
+    // por encima de la línea del pelo y tenga vértices de cabeza, ES PELO
+    // entero, de la raíz a las puntas.
+    const hairComp = new Uint8Array(pos.count);
+    const index = geo.getIndex();
+    if (index) {
+      const keyOf = new Map();
+      const parent = new Int32Array(pos.count);
+      for (let i = 0; i < pos.count; i++) {
+        const k = `${pos.getX(i).toFixed(4)},${pos.getY(i).toFixed(4)},${pos.getZ(i).toFixed(4)}`;
+        const first = keyOf.get(k);
+        parent[i] = first === undefined ? i : first;
+        if (first === undefined) keyOf.set(k, i);
+      }
+      const find = (i) => {
+        let r = i;
+        while (parent[r] !== r) r = parent[r];
+        while (parent[i] !== r) {
+          const next = parent[i];
+          parent[i] = r;
+          i = next;
+        }
+        return r;
+      };
+      const union = (a, b) => {
+        const ra = find(a);
+        const rb = find(b);
+        if (ra !== rb) parent[rb] = ra;
+      };
+      for (let t = 0; t < index.count; t += 3) {
+        union(index.getX(t), index.getX(t + 1));
+        union(index.getX(t), index.getX(t + 2));
+      }
+      const comps = new Map(); // raíz -> { n, headN, maxY }
+      for (let i = 0; i < pos.count; i++) {
+        const r = find(i);
+        let s = comps.get(r);
+        if (!s) comps.set(r, (s = { n: 0, headN: 0, maxY: -Infinity }));
+        s.n++;
+        if (domOf[i] === "head") s.headN++;
+        const y = pos.getY(i);
+        if (y > s.maxY) s.maxY = y;
+      }
+      let bodyRoot = -1;
+      let bodyN = 0;
+      for (const [r, s] of comps) {
+        if (s.n > bodyN) {
+          bodyN = s.n;
+          bodyRoot = r;
+        }
+      }
+      // La componente del vértice más cercano a `headfront` ES el cráneo:
+      // jamás se marca de pelo, aunque cumpla todo lo demás.
+      const skullRoot = find(nearestIdx);
+      for (const [r, s] of comps) {
+        if (r === bodyRoot || r === skullRoot) continue;
+        if (s.maxY > hairline && s.headN / s.n > 0.15) {
+          for (let i = 0; i < pos.count; i++) if (find(i) === r) hairComp[i] = 1;
+        }
+      }
+    }
+
+    // La caja DEFINITIVA de la cabeza: solo el cráneo, sin la melena. Con la
+    // melena dentro, una cabellera larga corría la línea de la nuca hasta
+    // delante de la cara y la cara entera salía color pelo.
+    headMinY = Infinity;
+    headMaxY = -Infinity;
+    headMinZ = Infinity;
+    headMaxZ = -Infinity;
+    for (let i = 0; i < pos.count; i++) {
+      if (domOf[i] !== "head" || hairComp[i]) continue;
+      const y = pos.getY(i);
+      const z = pos.getZ(i);
+      if (y < headMinY) headMinY = y;
+      if (y > headMaxY) headMaxY = y;
+      if (z < headMinZ) headMinZ = z;
+      if (z > headMaxZ) headMaxZ = z;
+    }
+    hairline = headMinY + (headMaxY - headMinY) * 0.55;
+    // La cara mira a +Z: el 40% trasero del cráneo es nuca, o sea pelo.
+    const napeline = headMinZ + (headMaxZ - headMinZ) * 0.4;
+    // La caja (en espacio de la malla), para colocar después la cara
+    // sintética — ver _attachSyntheticFace.
+    this._bindFace =
+      headMaxY > -Infinity
+        ? { headMinY, headMaxY, headMinZ, headMaxZ, bindMinY: allMinY, bindHeight: allMaxY - allMinY }
+        : null;
+
+    const c = new THREE.Color();
+    const out = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+      let region = domOf[i];
+      if (hairComp[i]) {
+        region = "hair";
+      } else if (region === "head") {
+        // Arriba de la línea, o detrás de la cabeza (nuca), es pelo.
+        region = pos.getY(i) > hairline || pos.getZ(i) < napeline ? "hair" : "skin";
+      }
+      c.set(colors[region] ?? colors.top);
+      out[i * 3] = c.r;
+      out[i * 3 + 1] = c.g;
+      out[i * 3 + 2] = c.b;
+    }
+    geo.setAttribute("color", new THREE.BufferAttribute(out, 3));
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const m of mats) {
+      m.vertexColors = true;
+      m.color?.set("#ffffff");
+      m.needsUpdate = true;
+    }
+  }
+
+  /**
+   * Si el rig reposa con los brazos EN CRUZ (T-pose), los baja a los lados.
+   * Se mide en mundo — la dirección hombro→codo casi horizontal delata la
+   * T-pose — y se corrige también en mundo, con un giro que lleva esa
+   * dirección a "colgando con una gota de holgura", convertido al espacio
+   * local del hueso. Así funciona igual venga el rig orientado como venga.
+   */
+  _relaxTPose(model, bones) {
+    model.updateMatrixWorld(true);
+    const a = new THREE.Vector3();
+    const b = new THREE.Vector3();
+    const pq = new THREE.Quaternion();
+    for (const side of ["Left", "Right"]) {
+      const arm = bones.get(`${side}Arm`);
+      const fore = bones.get(`${side}ForeArm`);
+      if (!arm || !fore || !arm.parent) continue;
+      arm.getWorldPosition(a);
+      fore.getWorldPosition(b);
+      const dir = b.sub(a).normalize();
+      if (dir.y < -0.5) continue; // ya cuelga: rig relajado, no tocar
+      // Abajo con una pizca hacia fuera, para no hundir la mano en la cadera
+      // (menos aún en un cuerpo ensanchado por `build`).
+      const target = new THREE.Vector3(side === "Left" ? 0.25 : -0.25, -0.96, 0.04).normalize();
+      const swing = new THREE.Quaternion().setFromUnitVectors(dir, target);
+      arm.parent.getWorldQuaternion(pq);
+      arm.quaternion.premultiply(pq.clone().invert().multiply(swing).multiply(pq));
+      arm.updateMatrixWorld(true);
+    }
+  }
+
+  /**
+   * La cara de un cuerpo base, dibujada y pegada delante (ver faceSheet.js).
+   *
+   * El plano NO se cuelga del hueso a pelo: los ejes locales del hueso de la
+   * cabeza son los que quiera el exportador, y la posición heredaría además
+   * su escala (~0.01 por el armature). Se cuelga de un grupo NORMALIZADOR que
+   * anula la orientación y la escala del hueso, de modo que dentro de él se
+   * trabaja en ejes de personaje y metros — y ahí las cuentas son las obvias:
+   * la cara va centrada en la caja de la cabeza, un pelo por delante.
+   */
+  _attachSyntheticFace(bones, r, H) {
+    const head = bones.get("Head");
+    const fb = this._bindFace;
+    if (!head || !fb || !(fb.bindHeight > 0)) return;
+    const k = H / fb.bindHeight; // malla (bind) → mundo
+
+    const carrier = new THREE.Group();
+    head.add(carrier);
+    head.updateWorldMatrix(true, false);
+    const objQ = new THREE.Quaternion();
+    this.object.getWorldQuaternion(objQ);
+    const headQ = new THREE.Quaternion();
+    head.getWorldQuaternion(headQ);
+    carrier.quaternion.copy(headQ).invert().multiply(objQ);
+    const ws = new THREE.Vector3();
+    head.getWorldScale(ws);
+    carrier.scale.set(1 / (ws.x || 1), 1 / (ws.y || 1), 1 / (ws.z || 1));
+
+    // Todo en espacio del PERSONAJE (pies en y=0, cara mirando a +z).
+    const headPos = this.object.worldToLocal(head.getWorldPosition(new THREE.Vector3()));
+    const faceY = (fb.headMinY - fb.bindMinY + (fb.headMaxY - fb.headMinY) * 0.52) * k;
+    const faceZ = fb.headMaxZ * k + 0.012;
+    const size = (fb.headMaxY - fb.headMinY) * k * 0.62;
+
+    const colors = { ...DEFAULT_PAINT, ...(r.paint ?? {}) };
+    const tex = faceStripTexture({
+      skin: colors.skin,
+      hair: { color: colors.hair },
+      eyes: r.eyes,
+      blush: r.blush,
+    });
+    this._face = attachFaceSheet(carrier, tex, {
+      height: H,
+      tune: { y: (faceY - headPos.y) / H, z: (faceZ - headPos.z) / H, size: size / H, ...(r.face ?? {}) },
+    });
+    this._face?.set(this._expression ?? "neutral");
+  }
+
   /** El montaje en sí, sin nada que esperar. Ver `_buildFromGLB`. */
   _assembleGLB(gltf, r, modelName) {
     const H = this.height;
@@ -451,6 +833,37 @@ export class Character3D {
       if (!mesh && o.isSkinnedMesh) mesh = o;
     });
     if (!mesh) throw new Error(`El modelo ${modelName} no trae ningún SkinnedMesh`);
+
+    // La caja de la cabeza se mide al PINTAR (solo cuerpos sin textura); un
+    // montaje anterior no debe dejar la suya colgando para este.
+    this._bindFace = null;
+
+    // Un cuerpo SIN textura (el .glb base viene desnudo a propósito) se
+    // pinta aquí por vértice: cada hueso dominante decide la región (piel,
+    // pelo, prenda, pantalón, zapatos) y la receta pone los colores.
+    let untextured = true;
+    model.traverse((o) => {
+      if (!o.isMesh && !o.isSkinnedMesh) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      if (mats.some((m) => m?.map)) untextured = false;
+    });
+    if (untextured) this._paintByBones(mesh, r.paint);
+
+    // Cada exportador deja su propio metalness/roughness en el material —
+    // varios cuerpos importados traen metalness:1 con un roughness bajo, que
+    // sin un mapa de entorno que reflejar se ve como una bola de metal gris
+    // en vez de piel o tela. El color y la textura del artista se quedan
+    // igual; solo se pisa cómo reacciona a la luz.
+    model.traverse((o) => {
+      if (!o.isMesh && !o.isSkinnedMesh) return;
+      const mats = Array.isArray(o.material) ? o.material : [o.material];
+      for (const m of mats) {
+        if (m && "metalness" in m) {
+          m.metalness = 0;
+          m.roughness = 0.85;
+        }
+      }
+    });
 
     // Rig convencional pero no idéntico al nuestro: las poses hablan de
     // "Chest" y "Neck", y un export típico encadena Spine → Spine01 →
@@ -465,13 +878,33 @@ export class Character3D {
       if (neck) bones.set("Neck", neck);
     }
 
+    // Un rig que reposa en T-POSE (los dos cuerpos base vienen así) se relaja
+    // aquí ANTES de nada: brazos abajo. Tiene que pasar antes de capturar
+    // `restQuat` (para que las poses partan de brazos caídos, no en cruz) y
+    // antes de crear el mixer (que guarda como estado "original" lo que
+    // encuentre al enlazar, y es a lo que vuelve al parar de andar). Un rig
+    // que ya viene relajado (los esculpidos) se detecta y no se toca.
+    this._relaxTPose(model, bones);
+
     // La postura de reposo del rig, que es lo que lo mantiene de pie y con los
     // brazos donde toca. Las poses se aplican COMO GIRO RELATIVO a esto (ver
     // `setBoneRotation`); escribiendo el ángulo directamente, el personaje
-    // salía tumbado y en cruz.
+    // salía tumbado y en cruz. Se guarda también la orientación de reposo EN
+    // MUNDO (aún sin colgar de `object`, o sea relativa al personaje), que es
+    // lo que permite conjugar las poses a los ejes de cualquier rig.
+    model.updateMatrixWorld(true);
+    const _wq = new THREE.Quaternion();
     for (const bone of bones.values()) {
       bone.userData.restQuat = bone.quaternion.clone();
+      bone.getWorldQuaternion(_wq);
+      bone.userData.restWorldQuat = _wq.clone();
     }
+
+    // La complexión de la receta: ancho/peso (width/depth), torso (chest),
+    // barriga (belly), cabeza (head). Va DESPUÉS de los alias (usa "Chest")
+    // y antes de medir la sombra, que así sale del cuerpo ya engordado.
+    // Nunca toca la altura — esa es de `height` y de nadie más.
+    applyBuild(bones, r.build);
 
     this.object.add(root);
 
@@ -535,6 +968,11 @@ export class Character3D {
       const tex = loadFaceSheet(r.faces);
       if (tex.then) tex.then(build).catch(() => {});
       else build(tex);
+    } else if (untextured && this._bindFace) {
+      // Un cuerpo base pintado no trae cara en su textura (no TIENE textura):
+      // sin esto era un maniquí. Se le pega la tira SINTÉTICA (ver
+      // faceStripTexture) delante de la cabeza, con la caja medida al pintar.
+      this._attachSyntheticFace(bones, r, H);
     }
 
     // LA CAMINATA VIENE EN EL ARCHIVO. Nuestro paso procedural está calibrado
@@ -543,13 +981,22 @@ export class Character3D {
     // ese: para eso lo exportó quien modeló el personaje.
     this._mixer = null;
     this._walkAction = null;
+    this._runAction = null;
     const clips = gltf.animations ?? [];
     const walkClip = pickClip(clips, ["walk", "walking", "caminar", "andar"]);
-    if (walkClip) {
+    const runClip = pickClip(clips, ["run", "running", "correr", "sprint"]);
+    if (walkClip || runClip) {
       this._mixer = new THREE.AnimationMixer(model);
-      this._walkAction = this._mixer.clipAction(walkClip);
-      this._walkAction.play();
-      this._walkAction.setEffectiveWeight(0);
+      if (walkClip) {
+        this._walkAction = this._mixer.clipAction(walkClip);
+        this._walkAction.play();
+        this._walkAction.setEffectiveWeight(0);
+      }
+      if (runClip) {
+        this._runAction = this._mixer.clipAction(runClip);
+        this._runAction.play();
+        this._runAction.setEffectiveWeight(0);
+      }
     }
 
     // El T-pose del archivo es SAGRADO: todas las rotaciones se aplican de forma
@@ -583,8 +1030,7 @@ export class Character3D {
 
   setRig(rig) {
     this.rig = {
-      walk: { ...DEFAULT_RIG.walk, ...(rig?.walk ?? {}) },
-      actions: { ...DEFAULT_RIG.actions, ...(rig?.actions ?? {}) },
+      walkFps: rig?.walkFps ?? DEFAULT_RIG.walkFps,
       idle: rig?.idle ?? null,
     };
     this._stillFor = 0;
@@ -612,7 +1058,9 @@ export class Character3D {
     this._activePropsByBone.clear();
 
     for (const furniture of this._activeFurniture) {
-      this.object.remove(furniture);
+      // Puede colgar del personaje (silla) o de la escena (escritorio
+      // anclado al mundo): se le pregunta a su padre real.
+      furniture.parent?.remove(furniture);
       furniture.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose();
         if (obj.material) {
@@ -644,10 +1092,22 @@ export class Character3D {
         const bone = byName.get(propDef.bone);
         if (!bone) continue;
 
+        // La taza, el plato, el teléfono… están medidos EN METROS, como el
+        // personaje. Pero un hueso de un cuerpo importado no vive a escala
+        // 1: el .glb está modelado ~110 veces más grande y se encoge entero
+        // al montarlo (ver instantiateBase), así que todo lo que cuelgue de
+        // un hueso hereda ese encogimiento. La taza acababa midiendo 1,7 mm
+        // en una persona de metro y medio — colgada de la mano, pero
+        // literalmente invisible. Aquí se deshace esa escala para que el
+        // objeto mida lo que dice medir, y el offset se convierte al espacio
+        // local del hueso por lo mismo.
+        const boneScale = bone.getWorldScale(_v3).x || 1;
+        const inv = 1 / boneScale;
+        prop.scale.setScalar(inv);
         prop.position.set(
-          propDef.offset[0],
-          propDef.offset[1],
-          propDef.offset[2]
+          propDef.offset[0] * inv,
+          propDef.offset[1] * inv,
+          propDef.offset[2] * inv
         );
         prop.rotation.set(
           propDef.rotation[0],
@@ -665,10 +1125,14 @@ export class Character3D {
         const furniture = getFurniture(furnDef.name);
         if (!furniture) continue;
 
+        // Se cuelga de `this.object`, así que la posición ya es RELATIVA al
+        // personaje: sumarle además su posición de mundo la contaba dos
+        // veces y mandaba la silla al otro lado del piso (y con el
+        // personaje moviéndose, a perseguirlo desde lejos).
         furniture.position.set(
-          this.object.position.x + furnDef.position[0],
-          this.object.position.y + furnDef.position[1],
-          this.object.position.z + furnDef.position[2]
+          furnDef.position[0],
+          furnDef.position[1],
+          furnDef.position[2]
         );
         furniture.rotation.set(
           furnDef.rotation[0],
@@ -676,7 +1140,17 @@ export class Character3D {
           furnDef.rotation[2]
         );
 
-        this.object.add(furniture);
+        if (furnDef.anchor === "world" && this.object.parent) {
+          // Anclado al MUNDO: el escritorio y su computadora se quedan
+          // clavados donde estaban al sentarse, aunque a su dueño se lo
+          // lleve la silla rodando (ver npc.rollAway). Se hornea la
+          // transformación del personaje y se cuelga de la escena.
+          this.object.updateMatrixWorld(true);
+          furniture.applyMatrix4(this.object.matrixWorld);
+          this.object.parent.add(furniture);
+        } else {
+          this.object.add(furniture);
+        }
         this._activeFurniture.push(furniture);
       }
     }
@@ -718,18 +1192,13 @@ export class Character3D {
   }
 
   _updateFurniturePositions() {
-    if (!this._pose || !this._pose.context?.furniture) return;
-    const context = this._pose.context;
-    for (let i = 0; i < this._activeFurniture.length; i++) {
-      const furniture = this._activeFurniture[i];
-      const furnDef = context.furniture[i];
-      if (!furnDef) continue;
-      furniture.position.set(
-        this.object.position.x + furnDef.position[0],
-        this.object.position.y + furnDef.position[1],
-        this.object.position.z + furnDef.position[2]
-      );
-    }
+    // Los muebles de pose son HIJOS del grupo del personaje con offset
+    // LOCAL: se mueven con él sin ayuda (así es como la silla RUEDA con su
+    // dueño al empujarlo). Aquí se escribía encima la posición de MUNDO en
+    // coordenadas locales — el doble — y al primer setPosition (un
+    // empujón) la silla saltaba al otro lado del piso: "desaparecía". Los
+    // anclados al mundo (escritorio, computadora) cuelgan de la escena y
+    // tampoco necesitan nada. No hay nada que hacer, y eso es lo correcto.
   }
 
   /** Atenúa el muñeco a cubierto. El color va por vértice, así que el del
@@ -775,22 +1244,57 @@ export class Character3D {
     this._blend += (wantBlend - this._blend) * Math.min(1, dt * 9);
 
     if (this._pose) this._poseT += dt * (this._pose.speed ?? 1.5);
-    if (this._moving && this._blend < 0.5) this._walkPhase += dt * (this.rig.walk.fps || 8) * 0.78;
+    if (this._moving && this._blend < 0.5) this._walkPhase += dt * (this.rig.walkFps || 8) * 0.78;
 
     // Quién manda sobre los huesos. El clip del archivo y nuestras poses
     // escriben LOS MISMOS huesos, así que no pueden correr a la vez: el último
     // en escribir gana y sale un temblor. Mientras camina manda el clip; en
     // cuanto hay una pose (café, dormir, susto) vuelven las nuestras, que son
     // las que el juego necesita y ningún .glb trae.
-    if (this._walkAction) {
-      const want = this._moving && this._blend < 0.5 ? 1 : 0;
-      const w = this._walkAction.getEffectiveWeight();
-      const next = w + (want - w) * Math.min(1, dt * 10);
-      this._walkAction.setEffectiveWeight(next);
+    if (this._mixer) {
+      // La velocidad no se pide a quien mueve al personaje: se MIDE del propio
+      // desplazamiento entre frames. Así jugadora, jefe, secuaces y NPCs
+      // quedan sincronizados sin que ninguno tenga que avisar de nada.
+      const px = this.object.position.x;
+      const pz = this.object.position.z;
+      let speed = 0;
+      if (this._lastPos) {
+        speed = Math.hypot(px - this._lastPos.x, pz - this._lastPos.z) / Math.max(dt, 1e-4);
+      }
+      this._lastPos = { x: px, z: pz };
+      this._speedSmooth = (this._speedSmooth ?? 0) * 0.8 + speed * 0.2;
+
+      // Los clips vienen calibrados para un cuerpo de 1.7 unidades: paso
+      // ~1.25 u/s andando y ~3.1 u/s corriendo. Se reescalan a la altura de
+      // ESTE muñeco y el reloj del clip sigue a la velocidad real — es lo que
+      // mata el patinaje de pies, que era andar a 5 u/s con un ciclo de 1.25.
+      const bodyScale = this.height / 1.7;
+      const runThreshold = 2.1 * bodyScale;
+      const running = this._runAction && this._speedSmooth > runThreshold;
+
+      const moving = this._moving && this._blend < 0.5;
+      const wantWalk = moving && !running ? 1 : 0;
+      const wantRun = moving && running ? 1 : 0;
+      let top = 0;
+      for (const [action, want, ref] of [
+        [this._walkAction, wantWalk, 1.25],
+        [this._runAction, wantRun, 3.1],
+      ]) {
+        if (!action) continue;
+        const w = action.getEffectiveWeight();
+        const next = w + (want - w) * Math.min(1, dt * 10);
+        action.setEffectiveWeight(next);
+        if (want) {
+          action.timeScale = THREE.MathUtils.clamp(
+            this._speedSmooth / (ref * bodyScale) || 1, 0.55, 2.4
+          );
+        }
+        top = Math.max(top, next);
+      }
       this._mixer.update(dt);
       // A pleno peso no se toca nada más: pisar el clip con `_applyPose` es
       // justo lo que devolvía la marcha militar.
-      if (next > 0.99) return;
+      if (top > 0.99) return;
     }
 
     this._applyPose();
@@ -845,7 +1349,26 @@ export class Character3D {
     const blend = this._blend;
     const pose = this._pose;
 
-    const wave = pose ? (1 - Math.cos(this._poseT)) / 2 : 0;
+    // ── EL RITMO DE LA POSE ─────────────────────────────────────────────
+    //
+    // Era `(1 - cos t) / 2` a secas: un vaivén PERFECTAMENTE SIMÉTRICO y sin
+    // pausa. Subir tardaba lo mismo que bajar y nunca se detenía en ningún
+    // extremo, así que todas las poses se leían igual — "respirar con los
+    // brazos en otra postura" — y no se entendía qué estaba haciendo nadie.
+    //
+    // Una acción se reconoce por su ACENTO: llegar, PARARSE un momento, y
+    // volver. `hold` es cuánto se queda quieta en cada extremo (0 = como
+    // antes, 0.5 = media vuelta parada). Recortar y reescalar la onda es lo
+    // que crea esa pausa: los tramos que se salen del rango se aplastan
+    // contra 0 y 1, que es precisamente el tiempo que la mano pasa en la
+    // boca o el dedo sobre la tecla.
+    //
+    // Por defecto es 0, así que una pose que no lo pida se mueve exactamente
+    // igual que antes.
+    const hold = pose?.hold ?? 0;
+    const raw = pose ? (1 - Math.cos(this._poseT)) / 2 : 0;
+    const h = Math.min(Math.max(hold, 0), 0.9) / 2;
+    const wave = h > 0 ? Math.min(Math.max((raw - h) / (1 - 2 * h), 0), 1) : raw;
     const angles = (name) => {
       if (!pose) return REST[name];
       const a = pose.a[name] ?? REST[name];
@@ -976,6 +1499,8 @@ export class Character3D {
     this._mixer?.stopAllAction();
     this._mixer = null;
     this._walkAction = null;
+    this._runAction = null;
+    this._lastPos = null;
     this._face?.dispose();
     this._face = null;
     this._extras.forEach((m) => {

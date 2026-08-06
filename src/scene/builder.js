@@ -16,13 +16,21 @@ import {
 } from "./floorplan.js";
 import { WORLD_SCALE as S } from "./config.js";
 import { createLabel } from "./labels.js";
+import { createBeacon } from "./beacons.js";
 import { texturedMaterial, getTexture } from "./textures.js";
+import { createSunPools } from "./sunlight.js";
+import { setSunPools } from "./lighting.js";
 import { cozyMaterial, SURFACES } from "./cozy.js";
 import { createFurnitureRegistry, placeSeatedTable, placeBistroTable } from "./furniture.js";
 
-const GLASS_WALL_H = 1.9 * S;
-const PERIMETER_WALL_H = 2.2 * S;
-const CORE_H = 2.6 * S;
+// ESCALA HUMANA: los personajes miden 1.56–1.85 unidades (≈ metros) y el
+// TECHO manda a 2.50 — nada construido lo supera (2.5 / S ≈ 2.08·S). Las
+// mamparas interiores van justo por encima de la cabeza (1.92): con las
+// paredes de antes (2.3–3.1) el piso parecía un búnker y los muñecos, enanos.
+const CEILING_H = 2.08 * S; // ≈ 2.50 en unidades-persona
+const GLASS_WALL_H = 1.6 * S;
+const PERIMETER_WALL_H = CEILING_H;
+const CORE_H = CEILING_H; // los núcleos (baños/ascensores) llegan al techo
 
 /**
  * Builds the whole floor from the `areas` table. Every solid piece registers
@@ -51,6 +59,14 @@ export function buildOffice(scene, world) {
   group.add(buildPerimeterWalls(world));
   group.add(buildBarriers(world));
 
+  // Los charcos de luz de ventana. Se montan AQUÍ porque este es el único
+  // sitio que tiene a la vez el contorno del piso y el alto de la fachada;
+  // quien los mueve es `game/themes.js`, que sabe dónde está el sol. Los dos
+  // se encuentran a través del registro de `lighting.js`. Ver `sunlight.js`.
+  const pools = createSunPools(footprint, PERIMETER_WALL_H);
+  setSunPools(pools);
+  group.add(pools.group);
+
   areas.forEach((area) => {
     const label = buildArea(area, world, { registry, carpets, glassPanes, coreParts, extras });
     if (label) {
@@ -65,7 +81,15 @@ export function buildOffice(scene, world) {
     const merged = mergeGeometries(carpets, false);
     const mesh = new THREE.Mesh(
       merged,
-      texturedMaterial("carpetPurple", { vertexColors: true, roughness: 0.95 })
+      texturedMaterial("carpetPurple", {
+        vertexColors: true,
+        roughness: 0.95,
+        // Va pegada al suelo: sin esto los dos planos se pelean por el mismo
+        // píxel y la moqueta parpadea en franjas al mover la cámara.
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
+      })
     );
     mesh.receiveShadow = true;
     group.add(mesh);
@@ -136,11 +160,28 @@ function applyPlanarUV(geometry, scale) {
  * salían chillones, así que se llevan al pastel aquí — en un solo sitio, sin
  * tener que reescribir el plano ni perder qué zona es cuál.
  */
+/**
+ * El tinte de zona que se pinta sobre la moqueta.
+ *
+ * OJO CON LO QUE ES ESTE COLOR: no es el color final, es un MULTIPLICADOR.
+ * La moqueta lleva `vertexColors`, y Three multiplica el color de vértice
+ * por el del material (`--w-rug`, que ya es oscuro). Así que aquí hay que
+ * devolver algo CLARO: un valor medio no "oscurece un poco", parte el
+ * material por la mitad y deja la zona casi negra — con un borde recto que
+ * parece un agujero en el suelo, que es justo lo que pasó al intentar
+ * apagarlo por aquí.
+ *
+ * Lo que sí se hace es bajarle la SATURACIÓN: los colores de zona vienen de
+ * `scenes/*.json` en pasteles pensados para el plano visto desde arriba, y a
+ * plena saturación compiten con los personajes, que es de quien tiene que
+ * ser el color vivo. La oscuridad de la moqueta la pone el tema, en
+ * `--w-rug`.
+ */
 function pastel(hexColor) {
   const color = new THREE.Color(hexColor);
   const hsl = { h: 0, s: 0, l: 0 };
   color.getHSL(hsl);
-  color.setHSL(hsl.h, Math.min(hsl.s, 0.32), Math.max(hsl.l, 0.78));
+  color.setHSL(hsl.h, Math.min(hsl.s, 0.22), Math.max(hsl.l, 0.86));
   return color;
 }
 
@@ -176,15 +217,21 @@ function buildCorridors() {
 }
 
 function interiorGlassMaterial() {
+  // Vidrio HOLOGRÁFICO: sigue siendo mampara transparente, pero con un
+  // rescoldo cian propio (emissive) — de noche y a contraluz se lee como un
+  // panel de luz proyectada, no como acrílico muerto. La opacidad se queda
+  // baja: el juego exige ver a través de las salas.
   return new THREE.MeshLambertMaterial({
     color: new THREE.Color(SURFACES.glass),
+    emissive: new THREE.Color("#4fb3a8"),
+    emissiveIntensity: 0.22,
     transparent: true,
-    opacity: 0.2,
+    opacity: 0.22,
     side: THREE.DoubleSide,
   });
 }
 
-const BARRIER_H = 2.2 * S;
+const BARRIER_H = 1.7 * S;
 const BARRIER_THICK = 0.34 * S;
 
 /**
@@ -414,12 +461,25 @@ function iconFor(area) {
   }
 }
 
-/** The colour "moqueta" patch that identifies each zone from above. */
+/**
+ * La moqueta de color que identifica cada zona vista desde arriba.
+ *
+ * Es un PLANO a ras de suelo, no un bloque. Era una caja de 10 cm de alto
+ * con la cara superior por encima del pie del personaje: le tapaba los pies
+ * y la zona se leía como una TARIMA sobre la que la gente estaba subida, que
+ * es exactamente lo que no es. Un milímetro por encima del suelo basta para
+ * que no pelee con él por el mismo plano (y el material lleva además
+ * polygonOffset, ver más abajo).
+ */
 function buildCarpet(area) {
-  const geo = new THREE.BoxGeometry(area.w, 0.1 * S, area.d);
+  const geo = new THREE.PlaneGeometry(area.w, area.d);
+  geo.rotateX(-Math.PI / 2);
   applyPlanarUV(geo, 0.5 / S);
+  // El tinte de zona lo apaga `pastel()`, que lo lleva a la luminosidad del
+  // suelo del tema: se distingue una zona de otra sin que la moqueta compita
+  // con la gente, que es de quien tiene que ser el color saturado.
   paintGeometry(geo, area.color);
-  geo.translate(area.x, 0.05 * S, area.z);
+  geo.translate(area.x, 0.012 * S, area.z);
   return geo;
 }
 
@@ -517,7 +577,7 @@ function addCoreBlock(area, world, parts) {
   const n = DOOR_NORMALS[side] ?? DOOR_NORMALS.frente;
   const leaf = 0.9 * S;
   const thin = 0.08 * S;
-  const door = new THREE.BoxGeometry(wall.horizontal ? leaf : thin, 1.9 * S, wall.horizontal ? thin : leaf);
+  const door = new THREE.BoxGeometry(wall.horizontal ? leaf : thin, 1.75 * S, wall.horizontal ? thin : leaf);
   door.translate(
     area.x + wall.x + n.x * 0.05 * S,
     0.95 * S,
@@ -594,39 +654,74 @@ function addCafeteria(area, world, ctx) {
   });
 }
 
-/** Small auditorium: raised stage, screen, rows of chairs facing it. */
+/**
+ * Auditorio SIN tarima: una pantalla grande colgada de la pared norte y
+ * "pods" — sillones de dos plazas — en dos arcos mirándola, como un cine de
+ * oficina moderna. La tarima de antes ocupaba un cuarto de la sala y nadie
+ * se subía nunca.
+ */
 function addAuditorium(area, world, ctx) {
-  const stageD = area.d * 0.26;
-  const stageZ = area.z - area.d / 2 + stageD / 2 + 0.3 * S;
+  // ── LA PANTALLA VA AL NORTE, O SEA A +X ──────────────────────────────
+  //
+  // Estaba en el borde -z, que es el "fondo" en la convención del proyecto
+  // (ver `doorSide` en CLAUDE.md: norte = +x, sur = -x, frente = +z, fondo
+  // = -z). El comentario de antes decía "pared norte" usando otra
+  // convención, y ahí es donde se coló: ese borde es la MEDIANERA CON LA
+  // CAFETERÍA (auditorio z 6.9-14.9, cafetería z 1.9-6.7, mismo tramo de
+  // x), así que una pantalla de metro y medio plantada justo encima tapaba
+  // la cafetería entera.
+  //
+  // Contra la pared +x no estorba a nadie: al otro lado hay oficina
+  // abierta, que ya está separada por el vidrio.
+  const screenX = area.x + area.w / 2 - 0.18 * S;
 
-  const stage = new THREE.BoxGeometry(area.w * 0.82, 0.28 * S, stageD);
-  stage.translate(area.x, 0.19 * S, stageZ);
-  ctx.coreParts.body.push(stage);
-  if (world) world.addBox(area.x, stageZ, area.w * 0.82, stageD, { sight: false });
-
-  // The lit screen is a one-off landmark, so it stays its own small mesh.
+  // Iba a 0.9 de emisión con un cian claro, y a esa intensidad una superficie
+  // de este tamaño deja de leerse como pantalla y se vuelve un PANEL DE LUZ:
+  // desde la cámara isométrica parecía un rectángulo azul plano flotando en
+  // mitad del piso — el efecto "piscina" que no encajaba con nada. Una
+  // pantalla encendida en una sala iluminada apenas ilumina; lo que la
+  // delata es el contraste con su marco oscuro, no el brillo.
+  //
+  // Al girarla de pared, la geometría gira con ella: fina en x, ancha en z.
   const screen = new THREE.Mesh(
-    new THREE.BoxGeometry(area.w * 0.5, 1.3 * S, 0.12 * S),
+    new THREE.BoxGeometry(0.1 * S, 1.5 * S, area.d * 0.62),
     new THREE.MeshLambertMaterial({
       color: new THREE.Color(SURFACES.screen),
-      emissive: new THREE.Color("#7fb4c9"),
-      emissiveIntensity: 0.9,
+      emissive: new THREE.Color(SURFACES.screenGlow),
+      emissiveIntensity: 0.22,
     })
   );
-  screen.position.set(area.x, 1.25 * S, area.z - area.d / 2 + 0.2 * S);
+  screen.position.set(screenX, 1.35 * S, area.z);
   ctx.extras.push(screen);
 
-  const rows = 3;
-  const perRow = 6;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < perRow; c++) {
-      ctx.registry.addStool(
-        area.x + (c / (perRow - 1) - 0.5) * area.w * 0.66,
-        area.z + area.d * (0.04 + r * 0.16)
-      );
+  // ── Y LOS PODS SE REPARTEN DE VERDAD ────────────────────────────────
+  //
+  // El reparto anterior no repartía: usaba `cos(a - PI/2)` para la x y
+  // `sin(a)` para la z, que con `a = PI/2 + t*span` son LA MISMA función
+  // (cos de t*span). Al ser par, los pods simétricos caían en el MISMO
+  // punto: siete sillones ocupaban cuatro sitios, apilados de dos en dos y
+  // amontonados en diagonal en vez de en filas mirando a la pantalla.
+  //
+  // Ahora es un arco de verdad: el ángulo abre a lo largo de z y el radio
+  // separa en -x, que es donde se sienta el público.
+  const focus = { x: screenX, z: area.z };
+  const arcs = [
+    { radius: area.w * 0.42, count: 3, span: 0.85 },
+    { radius: area.w * 0.68, count: 4, span: 1.15 },
+  ];
+  for (const arc of arcs) {
+    for (let i = 0; i < arc.count; i++) {
+      const t = arc.count === 1 ? 0 : i / (arc.count - 1) - 0.5;
+      const theta = t * arc.span;
+      const px = focus.x - Math.cos(theta) * arc.radius;
+      const pz = focus.z + Math.sin(theta) * arc.radius;
+      // rotY para que el FRENTE del pod apunte a la pantalla. Es relativo al
+      // foco, así que sigue valiendo con la pantalla en cualquier pared.
+      const rotY = Math.atan2(focus.x - px, focus.z - pz) + Math.PI;
+      ctx.registry.addPod(px, pz, rotY);
+      if (world) world.addBox(px, pz, 1.4 * S, 0.7 * S, { sight: false });
     }
   }
-
 }
 
 // ---------- Cover props ----------
@@ -679,37 +774,36 @@ function buildGameplayMarkers() {
 
   // One mesh per hiding spot rather than a merged batch: each has to be able
   // to grey out on its own while it is recharging.
-  const hidingMarkers = hidingSpots.map(({ x, z, r }, i) => {
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0x4caf6a,
-      transparent: true,
-      opacity: 0.9,
-      toneMapped: false,
-    });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(r * 0.72, r * 0.9, 22), mat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(x, 0.16 * S, z);
-    ring.userData.spotIndex = i;
-    group.add(ring);
-    return ring;
+  // MEDALLAS, no aros de suelo. Un anillo pintado en el suelo se pierde en
+  // cuanto hay una mesa delante o la camara se acerca, y no dice QUE es ese
+  // sitio: habia que aprenderselo. La medalla flota sobre el punto, lleva el
+  // icono de lo que ahi se hace y se lee desde el otro lado del piso.
+  const hidingMarkers = hidingSpots.map(({ x, z }, i) => {
+    const m = createBeacon("hide", { x, z, size: 0.44 * S });
+    m.userData.spotIndex = i;
+    group.add(m);
+    return m;
   });
 
-  // Lugares seguros: mismo trato que los escondites (un anillo cada uno, no
-  // fusionado) porque cada uno se agota por su cuenta y hay que poder atenuar
-  // el suyo sin tocar los demás. Azul para no confundirlos con los verdes.
-  const safeSpotMarkers = safeSpots.map(({ x, z, radius }, i) => {
-    const mat = new THREE.MeshBasicMaterial({
-      color: 0x4a9de0,
-      transparent: true,
-      opacity: 0.85,
-      toneMapped: false,
+  // Lugares seguros: una ETIQUETA flotante con su nombre e icono, no un
+  // anillo — los aros azules en el suelo no decían qué eran y ensuciaban el
+  // piso. Sigue siendo un mesh por sitio para poder atenuar el agotado sin
+  // tocar los demás (se baja la opacidad de su etiqueta).
+  // Ahora TODOS los lugares seguros llevan medalla, tambien las salas.
+  // Antes solo el puesto propio llevaba etiqueta —para no doblar el rotulo
+  // de la sala— pero al quitar los rotulos las salas se quedaban sin decir
+  // que ahi se puede fingir, que es justo la informacion que hace falta con
+  // el jefe detras.
+  const safeSpotMarkers = safeSpots.map((spot, i) => {
+    const m = createBeacon("safe", {
+      x: spot.x,
+      z: spot.z,
+      icon: spot.icon || undefined,
+      size: 0.5 * S,
     });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(radius * 0.72, radius * 0.9, 22), mat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(x, 0.16 * S, z);
-    ring.userData.spotIndex = i;
-    group.add(ring);
-    return ring;
+    m.userData.spotIndex = i;
+    group.add(m);
+    return m;
   });
 
   const starMat = new THREE.MeshBasicMaterial({ color: 0xf2c744, toneMapped: false });
@@ -721,26 +815,23 @@ function buildGameplayMarkers() {
     return star;
   });
 
+  // Actividades: SIN anillo en el suelo. Queda solo el rombo flotante que
+  // bota sobre la estación, y main.js lo enciende únicamente para las
+  // tareas ACTIVAS del día — antes los aros marcaban hasta lo que no se
+  // podía hacer, que es lo contrario de guiar.
+  // La medalla de una tarea lleva SU icono (cafe, pelicula, comer...), que
+  // sale del JSON de la escena. El diamante generico de antes no distinguia
+  // una tarea de otra: habia que acercarse a leer el rotulo.
   const activityMarkers = activityStations.map((station) => {
-    const color = ACTIVITY_COLORS[station.type] ?? 0xffffff;
-    const mat = new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      opacity: 0.85,
-      toneMapped: false,
+    const m = createBeacon("activity", {
+      x: station.x,
+      z: station.z,
+      icon: station.icon || station.type || undefined,
+      size: 0.56 * S,
     });
-    const ring = new THREE.Mesh(new THREE.RingGeometry(0.6 * S, 0.78 * S, 24), mat);
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.set(station.x, 0.16 * S, station.z);
-    ring.userData.stationId = station.id;
-    group.add(ring);
-
-    const icon = new THREE.Mesh(new THREE.OctahedronGeometry(0.16 * S, 0), mat);
-    icon.position.set(station.x, 0.85 * S, station.z);
-    icon.userData.bob = { base: 0.85 * S, speed: 1.8, amp: 0.07 * S, offset: Math.random() * Math.PI * 2 };
-    icon.userData.stationId = station.id;
-    group.add(icon);
-    return ring;
+    m.userData.stationId = station.id;
+    group.add(m);
+    return m;
   });
 
   return { group, distractionMarkers, activityMarkers, hidingMarkers, safeSpotMarkers };

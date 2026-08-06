@@ -8,8 +8,11 @@
     "  animación de espera)",
     "- characters3d: recetas con las que el motor monta los muñecos 3D",
     "  (data/characters3d.json). Se edita con builder/personajes.html.",
+    "- campaign: LA TEMPORADA en curso (data/campaign/temporada-<n>.json):",
+    "  qué misiones te piden, encadenadas. Ver docs/CAMPANA.md. Si el archivo",
+    "  no está, el juego cae solo al modelo de días sueltos de siempre.",
     "",
-    "MVP: la campaña es SOLO el día 1. Los archivos dia-2..dia-5 siguen en",
+    "MVP: la TEMPORADA 1 sobre el día 1. Los archivos dia-2..dia-5 siguen en",
     "data/levels/ pero están fuera de la lista a propósito — para reactivarlos",
     "basta con volver a nombrarlos aquí, no hay nada más que tocar."
   ],
@@ -19,19 +22,10 @@
   "characters3d": "characters3d.json",
   "modes": "modes.json",
   "bossConfig": "boss-config.json",
-  "scenes": [
-    "piso7"
-  ],
-  "sprites": [
-    "giuli",
-    "gabo",
-    "crispo",
-    "fran",
-    "manu"
-  ],
-  "levels": [
-    "dia-1"
-  ],
+  "campaign": "campaign/temporada-1.json",
+  "scenes": ["piso7"],
+  "sprites": ["giuli","gabo","crispo","fran","manu"],
+  "levels": ["dia-1"],
   "codeEggs": [
     {
       "id": "egg_konami",
@@ -57,14 +51,7 @@
     },
     {
       "id": "egg_nomina",
-      "keys": [
-        "n",
-        "o",
-        "m",
-        "i",
-        "n",
-        "a"
-      ],
+      "keys": ["n","o","m","i","n","a"],
       "scene": [
         {
           "speaker": "Sistema",
@@ -74,17 +61,7 @@
     },
     {
       "id": "egg_incognito",
-      "keys": [
-        "i",
-        "n",
-        "c",
-        "o",
-        "g",
-        "n",
-        "i",
-        "t",
-        "o"
-      ],
+      "keys": ["i","n","c","o","g","n","i","t","o"],
       "scene": [
         {
           "speaker": "Giuli",
@@ -115,10 +92,7 @@
           "sheet": "guili-camina",
           "text": "Con ayuda, eso sí. Fran no programa solo — programa con Claude Code al lado, fingiendo que es una reunión de arquitectura."
         },
-        {
-          "speaker": "Tú",
-          "text": "Así que hasta la IA está fingiendo que trabaja aquí."
-        }
+        {"speaker":"Tú","text":"Así que hasta la IA está fingiendo que trabaja aquí."}
       ]
     }
   ],

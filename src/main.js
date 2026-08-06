@@ -1,9 +1,11 @@
 import * as THREE from "three";
 import { DioramaCamera } from "./scene/camera.js";
+import { updateBeacons } from "./scene/beacons.js";
 import { buildOffice } from "./scene/builder.js";
 import { createCollisionWorld } from "./scene/collision.js";
 import { buildNavmesh } from "./scene/navmesh.js";
 import { PixelPipeline } from "./scene/pixelPipeline.js";
+import { createWorldLighting } from "./scene/lighting.js";
 import { createCrossing3D } from "./scene/crossing3d.js";
 import { createMinigameRegistry } from "./game/minigames.js";
 import { WORLD_SCALE as S } from "./scene/config.js";
@@ -23,7 +25,8 @@ import { createSave } from "./game/save.js";
 import { createTouchControls } from "./game/touchControls.js";
 import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./game/settings.js";
 import { createPopups } from "./ui/popups.js";
-import { createAudioControl } from "./ui/audioControl.js";
+import { createStage, applyStageScale, stageScale, STAGE_W, STAGE_H } from "./ui/stage.js";
+import { controlsLine } from "./ui/controls.js";
 import { isMutedState, setMuted, getVolume, unmute } from "./game/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
 import { initTheme } from "./game/theme.js";
@@ -39,17 +42,62 @@ const BUILD = typeof __BUILD_ID__ === "string" ? __BUILD_ID__ : "dev";
 
 const canvas = document.getElementById("scene");
 const app = document.getElementById("app");
+// La escala del lienzo, ANTES del primer frame: sin esto el arranque se ve
+// un instante sin escalar (o recortado) hasta que corre el resto del setup.
+applyStageScale();
 const boot0 = document.getElementById("boot");
+
+// El arranque es el BOOT de una computadora (la interfaz ES un sistema
+// operativo de mentira): un log en monoespaciada que va soltando líneas con
+// su estado, como el de maldonado.pro. Es teatro — no mide la carga real,
+// que la barra ya insinúa — pero convierte la espera en el primer chiste.
+const bootLog = document.getElementById("boot-log");
+if (bootLog) {
+  const LINES = [
+    ["> iniciando INCÓGNITO//OS", "ok"],
+    ["> conectando con el Piso 10", "ok"],
+    ["> contratando al reparto", "sin sueldo"],
+    ["> abriendo hoja de cálculo de coartada", "ok"],
+    ["> localizando a GABO", "mejor no"],
+  ];
+  LINES.forEach(([text, status], i) => {
+    setTimeout(() => {
+      if (!bootLog.isConnected) return;
+      const row = document.createElement("div");
+      row.className = "boot-line";
+      const t = document.createElement("span");
+      t.className = "boot-line-t";
+      t.textContent = text;
+      const dots = document.createElement("span");
+      dots.className = "boot-line-dots";
+      const s = document.createElement("em");
+      s.className = "boot-line-s";
+      s.textContent = status;
+      row.append(t, dots, s);
+      bootLog.appendChild(row);
+    }, 140 + i * 340);
+  });
+}
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: "high-performance" });
 const quality0 = resolveQuality();
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, quality0.maxPixelRatio));
+/**
+ * EL LIENZO FIJO: el canvas mide 1920×1080 en coordenadas de lienzo y el
+ * CSS lo escala entero. Para que el 3D no salga borroso, el BUFFER se
+ * dimensiona a resolución real: pixelRatio = dpr × escala del lienzo (con
+ * el tope de calidad de siempre). setSize va con updateStyle=false — el
+ * tamaño CSS lo manda el design system, no Three.
+ */
+function stagePixelRatio(maxPR) {
+  return Math.min(window.devicePixelRatio, maxPR) * Math.min(stageScale(), 2);
+}
+renderer.setPixelRatio(stagePixelRatio(quality0.maxPixelRatio));
 renderer.shadowMap.enabled = quality0.shadows;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.05;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(STAGE_W, STAGE_H, false);
 
 const scene = new THREE.Scene();
 // Cielo y niebla cálidos desde el primer frame: el tema del día los reajusta
@@ -57,39 +105,39 @@ const scene = new THREE.Scene();
 scene.background = skyTexture();
 scene.fog = new THREE.Fog(new THREE.Color(ATMOSPHERE.fog), 60, 190);
 
-// -------- Luz cozy: mucho relleno suave y cálido, y una key floja que apenas
-// marca sombras. Un contraste fuerte endurece los muñecos de color plano y
-// rompe justo la sensación que buscamos. El tema del día la re-tinta. -----
-const ambient = new THREE.AmbientLight(0xfff6ea, 1.15);
-scene.add(ambient);
-const hemi = new THREE.HemisphereLight(0xf0e6ff, 0xd8c4a8, 0.95);
-scene.add(hemi);
-
-const key = new THREE.DirectionalLight(0xfff0d4, 1.1);
-key.position.set(26 * S, 40 * S, 20 * S);
-key.castShadow = true;
-key.shadow.mapSize.set(quality0.shadowMap, quality0.shadowMap);
-const shadowSpan = 44 * S;
-key.shadow.camera.left = -shadowSpan;
-key.shadow.camera.right = shadowSpan;
-key.shadow.camera.top = shadowSpan;
-key.shadow.camera.bottom = -shadowSpan;
-key.shadow.camera.far = 220 * S;
-key.shadow.bias = -0.0018;
-scene.add(key);
+// La luz del piso se monta en scene/lighting.js — es ARTE, y se calibra en
+// muchas pasadas seguidas, así que tenerla aquí hacía chocar cada ajuste de
+// luz con cualquier cambio de arranque. Ver docs/ARTE.md.
+// El objeto que devuelve es el mismo que el motor derrama en applyTheme, así
+// que añadir una luz allí llega sola a game/themes.js sin tocar este archivo.
+const lights = createWorldLighting(scene, quality0, S);
+// Solo el sol se vuelve a tocar desde aquí, y solo para el mapa de sombras
+// cuando cambia la calidad. El color y el ángulo los manda game/themes.js.
+const { key } = lights;
 
 async function boot() {
+  // PWA a la carta: el service worker cachea SOLO los .glb (una descarga de
+  // los cuerpos y listos) y deja el motor y los datos siempre en red — ver
+  // public/sw.js. Si el navegador no lo soporta, no pasa nada.
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register(`${BASE}sw.js`).catch(() => {});
+  }
+
   // ---- Content: everything the game is made of comes from public/data ----
   const data = await loadGameData();
 
   // Los cuerpos esculpidos van por su cuenta: pesan, y el juego tiene que
-  // poder arrancar mientras llegan. Ver `preloadBaseModels`.
-  const baseModelsReady = preloadBaseModels(data.looks);
+  // poder arrancar mientras llegan. Ver `preloadBaseModels`. El ascensor
+  // (ui/lobby.js) enseña este progreso como los pisos que va marcando.
+  let modelsProgress = 0;
+  const baseModelsReady = preloadBaseModels(data.looks, ({ progress }) => {
+    modelsProgress = progress;
+  });
   const firstLevel = data.levels[0];
   setActiveScene(data.scenes.get(firstLevel.scene));
 
   const world = createCollisionWorld();
-  const { roomLabels, markerGroup, hidingMarkers, safeSpotMarkers } = buildOffice(scene, world);
+  const { roomLabels, markerGroup, hidingMarkers, safeSpotMarkers, activityMarkers } = buildOffice(scene, world);
   const navmesh = buildNavmesh(world, { radius: 0.3 * S });
 
   // Pull every authored point onto walkable floor. A waypoint buried in a
@@ -108,15 +156,16 @@ async function boot() {
   snapInPlace(floorplan.hidingSpots);
   snapInPlace(floorplan.safeSpots);
 
-  const aspect = window.innerWidth / window.innerHeight;
-  const view = new DioramaCamera(aspect);
+  // El encuadre es SIEMPRE 16:9: forma parte del contrato del lienzo. Lo
+  // que cambia con la pantalla son las bandas negras, nunca lo que se ve.
+  const view = new DioramaCamera(STAGE_W / STAGE_H);
   const camera = view.camera;
 
   const pixels = new PixelPipeline(renderer, {
     pixelSize: getSettings().pixelSize,
     levels: getSettings().colorLevels,
   });
-  pixels.setSize(window.innerWidth, window.innerHeight);
+  pixels.setSize(STAGE_W, STAGE_H);
 
   // ---- Characters, straight from data/characters.json ----
   const chars = data.characters;
@@ -152,10 +201,6 @@ async function boot() {
     player.sprite.setRig(rig);
     crossing3D.setPlayerLook(look, rig);
     hideOwnDouble(id);
-    // El panel grande de acción dibuja la misma pose animada que el sprite.
-    hudRef?.setActionRig(
-      rig?.actions ? { sheet: rig.actions.sheet, poses: rig.actions.poses } : null
-    );
   }
 
   // Cruzar la avenida es una escena 3D aparte, con cámara propia (por detrás
@@ -167,7 +212,7 @@ async function boot() {
     // piso, así que la calle y la oficina parecen la misma ciudad.
     crowd: [0, 1, 2, 3, 4, 5].map((i) => looks.extra(i)),
   });
-  crossing3D.resize(window.innerWidth / window.innerHeight);
+  crossing3D.resize(STAGE_W / STAGE_H);
 
   // Los minijuegos se registran aquí; el motor solo los busca por el id que
   // pida el JSON del día (ver game/minigames.js). Añadir otro es una línea
@@ -201,7 +246,7 @@ async function boot() {
       // entre las variantes de `extras` para que el piso no salga clonado
       // (en el plano, nueve de los diez NPC compartían el mismo pliego gris).
       const look = def.cast ? looks.get(def.cast) : looks.extra(i);
-      const npc = new NPC(look, { ...def, radius: stats.radius, height: stats.height });
+      const npc = new NPC(look, { ...def, radius: stats.radius, height: stats.height, navmesh });
       // Named colleagues can be talked to; the rest are set dressing.
       npc.cast = def.cast ?? null;
       npc.displayName = persona?.name ?? stats.name ?? "Compañero";
@@ -233,6 +278,8 @@ async function boot() {
     visionHalfAngleDeg: chars.boss.visionHalfAngleDeg,
     config: data.bossConfig?.boss,
   });
+  boss.cast = "jefe"; // Identificador para diálogos/encuentros
+  boss.displayName = "Gabo";
   boss.sprite.setRig(rigOf(chars.boss));
   scene.add(boss.object3D);
   scene.add(boss.cone);
@@ -272,16 +319,16 @@ async function boot() {
 
   const popups = createPopups(app, camera);
 
-  // Audio control: muted by default until user interaction
-  const audioControl = createAudioControl();
-  app.appendChild(audioControl);
+  // El control de sonido ya no es un widget suelto en la esquina: vive en la
+  // pausa (ver ui/gamehud.js y su atajo `V`). Flotando aparte chocaba con los
+  // paneles y duplicaba su función.
 
   const engine = createEngine({
     app,
     canvas,
     renderer,
     scene,
-    lights: { ambient, hemi, key },
+    lights,
     player,
     boss,
     npcs,
@@ -293,6 +340,7 @@ async function boot() {
     looks: data.looks,
     modes: data.modes,
     bossConfig: data.bossConfig,
+    campaignData: data.campaign,
     playerSheet: modeOf(save.characterId)?.sheet ?? chars.player.sheet,
     onCharacter: (id) => applyCharacterSprite(id),
     playerName: chars.player.name ?? "Tú",
@@ -300,6 +348,8 @@ async function boot() {
     onPopup: (p) => popups.spawn(p),
     minigames,
     pixels,
+    baseModelsReady,
+    getModelsProgress: () => modelsProgress,
   });
 
   // El primer applyCharacterSprite() corrió antes de que existiera el motor
@@ -308,10 +358,13 @@ async function boot() {
   applyCharacterSprite(save.characterId);
 
   // -------- Labels: three tiers, so the diorama never drowns in signage ----
+  // La tecla M ("plano") abre el MAPA de terminal (ui/minimap.js) y a la vez
+  // enciende los rótulos del piso: el modo consulta completo, de un golpe.
   let inspectMode = false;
   function toggleInspect() {
     inspectMode = !inspectMode;
     document.body.classList.toggle("inspect-mode", inspectMode);
+    if (engine.minimap.isOpen !== inspectMode) engine.minimap.toggle();
   }
 
   createTouchControls(player, app, {
@@ -341,7 +394,8 @@ async function boot() {
   });
   canvas.addEventListener("pointermove", (e) => {
     if (e.pointerId !== orbitPointer) return;
-    view.orbitBy((e.clientX - orbitLast.x) * 0.25, -(e.clientY - orbitLast.y) * 0.2);
+    const k = 1 / Math.max(stageScale(), 0.001);
+    view.orbitBy((e.clientX - orbitLast.x) * 0.25 * k, -(e.clientY - orbitLast.y) * 0.2 * k);
     orbitLast = { x: e.clientX, y: e.clientY };
   });
   const endOrbit = (e) => {
@@ -398,14 +452,25 @@ async function boot() {
   );
 
   function resize() {
-    const w = window.innerWidth;
-    const h = window.innerHeight;
-    renderer.setSize(w, h);
-    pixels.setSize(w, h);
-    view.setAspect(w / h);
-    crossing3D.resize(w / h);
+    // Con el lienzo fijo, el resize ya no cambia el LAYOUT (siempre
+    // 1920×1080): solo la densidad del buffer, que sigue a la escala.
+    const q = resolveQuality(getSettings().quality);
+    renderer.setPixelRatio(stagePixelRatio(q.maxPixelRatio));
+    renderer.setSize(STAGE_W, STAGE_H, false);
+    pixels.setSize(STAGE_W, STAGE_H);
+    view.setAspect(STAGE_W / STAGE_H);
+    crossing3D.resize(STAGE_W / STAGE_H);
   }
   window.addEventListener("resize", resize);
+
+  // La cortina de orientación pausa el juego mientras el teléfono esté en
+  // vertical, y lo suelta al girar. Fuera del lienzo a propósito.
+  createStage({
+    onCover(covered) {
+      if (covered) engine.game?.setPaused(true);
+      else if (!engine.menus.isOpen && !engine.dialogue.isOpen) engine.game?.setPaused(false);
+    },
+  });
 
   window.addEventListener("keydown", (e) => {
     if (e.key.toLowerCase() === "m" && !engine.dialogue.isOpen && !engine.menus.isOpen) {
@@ -437,7 +502,7 @@ async function boot() {
     if (markerGroup) markerGroup.visible = s.showMarkers;
 
     const q = resolveQuality(s.quality);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.maxPixelRatio));
+    renderer.setPixelRatio(stagePixelRatio(q.maxPixelRatio));
     renderer.shadowMap.enabled = q.shadows;
     if (key.shadow.mapSize.x !== q.shadowMap) {
       key.shadow.mapSize.set(q.shadowMap, q.shadowMap);
@@ -447,8 +512,8 @@ async function boot() {
     scene.traverse((obj) => {
       if (obj.isMesh || obj.isInstancedMesh) obj.castShadow = obj.castShadow && q.shadows;
     });
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    pixels.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(STAGE_W, STAGE_H, false);
+    pixels.setSize(STAGE_W, STAGE_H);
   });
 
   // Frame-rate watchdog. On "auto" a device that cannot hold ~30fps for a
@@ -476,18 +541,24 @@ async function boot() {
 
   function updateLabels() {
     const overview = !view.isFollowing;
-    // Por defecto solo quedan los hitos de navegación (salas, baños,
-    // ascensores, cafetería): la barra de tarea activa ya dice en qué mesa
-    // estás, así que repetirlo flotando sobre cada una era ruido. El ajuste
-    // "Rótulos de zona" reactiva también las mesas de trabajo.
+    // POR DEFECTO NO HAY RÓTULOS. Eran cajas de texto flotando por todo el
+    // piso: tapaban el escenario, se solapaban entre ellas y obligaban a
+    // LEER justo cuando no se puede leer, con el jefe detrás. Lo que hace
+    // falta saber —dónde fingir, dónde hay café, dónde esconderse— lo dicen
+    // ahora las medallas (ver scene/beacons.js), que se entienden de un
+    // vistazo y desde lejos.
+    //
+    // Siguen existiendo para dos casos: el ajuste "Rótulos de zona", y el
+    // modo inspección (la vista de plano), donde sí estás leyendo el piso a
+    // propósito y un nombre ayuda.
     const labelsOn = getSettings().showLabels;
     roomLabels.forEach((label) => {
       const priority = label.userData.priority ?? 2;
       let t;
       if (inspectMode) t = 1;
+      else if (!labelsOn) t = 0;
       else if (priority === 1) t = 1;
       else if (priority >= 3) t = 0;
-      else if (!labelsOn) t = 0;
       else if (overview) t = 1;
       else {
         const d = Math.hypot(
@@ -519,26 +590,40 @@ async function boot() {
   function updateHidingMarkers() {
     const game = engine.game;
     if (!game || !hidingMarkers) return;
-    hidingMarkers.forEach((ring, i) => {
+    // Ahora son MEDALLAS (sprites), no anillos de suelo: la recarga se lee
+    // en la opacidad. Teñir el material tiraría el color del icono, que va
+    // dentro de la textura.
+    hidingMarkers.forEach((medal, i) => {
       const charge = game.hidingCharge(i);
-      ring.material.color.copy(HIDE_SPENT).lerp(HIDE_READY, charge);
-      ring.material.opacity = 0.28 + charge * 0.62;
-      ring.scale.setScalar(0.82 + charge * 0.18);
+      medal.material.opacity = 0.3 + charge * 0.7;
     });
   }
 
-  // Los lugares seguros gastan su carga del día y no se recuperan hasta
-  // mañana: cuando se acaban se quedan grises, sin parpadeo de "ya vuelve".
-  const SAFE_READY = new THREE.Color(0x4a9de0);
-  const SAFE_SPENT = new THREE.Color(0x555f6e);
+  // Los lugares seguros son ahora MEDALLAS flotantes (ver beacons.js): la
+  // sala gastada u ocupada se apaga bajando su opacidad, pero NO desaparece
+  // — que se siga sabiendo que ahí había un sitio donde fingir.
   function updateSafeSpotMarkers() {
     const game = engine.game;
     if (!game || !safeSpotMarkers) return;
-    safeSpotMarkers.forEach((ring, i) => {
+    safeSpotMarkers.forEach((label, i) => {
       const charge = game.safeSpotCharge(i);
-      ring.material.color.copy(SAFE_SPENT).lerp(SAFE_READY, charge);
-      ring.material.opacity = 0.22 + charge * 0.63;
-      ring.scale.setScalar(0.82 + charge * 0.18);
+      const mats = Array.isArray(label.material) ? label.material : [label.material];
+      for (const m of mats) {
+        if (!m) continue;
+        m.transparent = true;
+        m.opacity = 0.35 + charge * 0.65;
+      }
+    });
+  }
+
+  // Las medallas de tarea solo se encienden para las ACTIVAS del día: marcar
+  // lo que no toca era ruido, no guía.
+  function updateActivityMarkers() {
+    if (!activityMarkers) return;
+    const game = engine.game;
+    activityMarkers.forEach((icon) => {
+      const objective = game?.objectives?.find((o) => o.id === icon.userData.stationId);
+      icon.visible = !!objective && !objective.done && !game.gameOver;
     });
   }
 
@@ -554,6 +639,12 @@ async function boot() {
   // de selección, pero si no, esas tarjetas están enseñando el pliego: en
   // cuanto están, se vuelven a dibujar con el muñeco 3D.
   baseModelsReady.then(() => engine.menus.refreshCharacters());
+
+  // La píldora se RELLENA desde la lista única de mandos (ui/controls.js).
+  // Estaba escrita a mano en index.html y por eso podía decir una tecla
+  // mientras el juego escuchaba otra.
+  const hintEl = document.getElementById("hint");
+  if (hintEl) hintEl.textContent = controlsLine();
 
   // Los controles de abajo son una nota de bienvenida: se apagan en cuanto la
   // jugadora se mueve por su cuenta (o tras un rato, si se queda mirando), y
@@ -593,13 +684,25 @@ async function boot() {
         m.position.y = b.base + Math.sin(t * b.speed + b.offset) * b.amp;
         m.rotation.y = t * 0.6 + b.offset;
       });
+      // Las medallas flotan y "respiran" aparte: son sprites y no giran (un
+      // sprite ya mira siempre a la cámara), así que no entran en el bucle
+      // de arriba.
+      updateBeacons(markerGroup, t);
 
       watchPerformance(dt);
       updateHints(dt);
       updateHidingMarkers();
       updateSafeSpotMarkers();
+      updateActivityMarkers();
       updateLabels();
-      view.setActionZoom(!!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending));
+      // Durante una acción la cámara SOLO SE ACERCA (setActionZoom, un lerp
+      // suave); ya no orbita. El giro automático era el latigazo que se veía
+      // cuando un abordaje interrumpía la acción a mitad del tween — la
+      // vuelta y la ida se peleaban por el yaw. Ahora quien gira es el
+      // PERSONAJE, que se pone de cara a la cámara con su giro normal de
+      // andar (ver game.js), así que la pose se ve de frente igual.
+      const acting = !!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending);
+      view.setActionZoom(acting);
       view.update(dt, player.position);
       popups.update(dt);
       pixels.render(scene, camera);
@@ -627,32 +730,37 @@ async function boot() {
     }
   });
 
-  // Mute toggle with 'V' key (Volume control)
+  // Mute toggle with 'V' key (Volume control).
+  //
+  // Funciona SIEMPRE, también con un menú o un diálogo abiertos: silenciar es
+  // un control global (el chiste del juego es que alguien puede estar
+  // mirando tu pantalla), y bloquearlo en los menús lo hacía inservible
+  // justo donde más se usa — el título, que es donde arranca la música.
+  // Ninguna pantalla acepta texto libre, así que la V no le hace falta a
+  // nadie más; el diálogo solo escucha espacio/enter/E.
   window.addEventListener("keydown", (e) => {
-    if (e.key.toLowerCase() === "v" && !engine?.dialogue?.isOpen && !engine?.menus?.isOpen) {
-      e.preventDefault();
-      const wasMuted = isMutedState();
-      if (wasMuted) {
-        unmute(getVolume());
-      } else {
-        setMuted(true);
-      }
-    }
+    if (e.key.toLowerCase() !== "v" || e.metaKey || e.ctrlKey || e.altKey) return;
+    e.preventDefault();
+    if (isMutedState()) unmute(getVolume());
+    else setMuted(true);
   });
 
   // Modo Incógnito: pause music when window loses focus
   // (someone else might see the screen, keep it quiet)
-  let hadFocus = true;
-  window.addEventListener("focus", () => {
-    hadFocus = true;
-    // Resume music if needed
+  window.addEventListener("blur", () => {
+    // Pause music - stealth mode: silently mute without affecting user's volume preference
+    const wasMuted = isMutedState();
+    if (!wasMuted) {
+      setMuted(true);
+      window.__audioMutedByFocus = true; // Flag to restore when focus returns
+    }
   });
 
-  window.addEventListener("blur", () => {
-    hadFocus = false;
-    // Pause music - stealth mode
-    if (soundtrackState?.synth) {
-      soundtrackState.synth.muted = true;
+  window.addEventListener("focus", () => {
+    // Restore audio if we muted it due to blur
+    if (window.__audioMutedByFocus) {
+      unmute(getVolume());
+      window.__audioMutedByFocus = false;
     }
   });
 

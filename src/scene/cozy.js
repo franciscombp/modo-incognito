@@ -1,64 +1,56 @@
 import * as THREE from "three";
+import { loadWorldPalette } from "./palette.js";
 
 /**
- * LA PALETA COZY DEL SET.
+ * LA PALETA DEL SET: TECH RETROFUTURISTA, SOBRIA.
  *
- * El escenario está a propósito en tonos cálidos, apagados y sin textura: es
- * el fondo, no el protagonista. Todo el color saturado se reserva para los
- * personajes (que traen el de su pliego original), y así la gente se lee
- * siempre por encima de los muebles — que es justo lo que hacen las
- * referencias: decorado en pastel, reparto en color.
+ * Dirección de arte nueva (adiós a los cafés/cremas de la etapa cozy): la
+ * oficina es fría y tecnológica — porcelana, grafito, azules de acero — y
+ * TODO el color saturado se reserva para los personajes y los acentos
+ * puntuales (sillas, pantallas), como en Animal Crossing u Overcooked: el
+ * decorado es legible y contenido, la gente es la que brilla.
  *
- * Antes cada superficie llevaba una textura de píxeles generada en un lienzo
- * (el juego imitaba pixel art visto en ángulo). Con personajes 3D esa trama
- * pelea con ellos y ensucia la imagen, así que ahora son colores planos.
+ * Sigue siendo color plano sin textura: con muñecos 3D encima, cualquier
+ * trama pelea con ellos y ensucia la imagen.
  */
 
-/** Superficies del edificio. Los nombres los usan builder.js y furniture.js. */
-export const SURFACES = {
-  // Suelos
-  tileLight: "#ece2d2", // el suelo general, arena cálida
-  tileLobby: "#f5efe4", // los pasillos, un punto más claros
-  woodFloor: "#d9b48f", // la alfombra de la entrada
-  carpetPurple: "#e2d7c6", // base de las moquetas de zona (el color va por vértice)
-
-  // Paredes y volúmenes
-  wallPanel: "#e0d3bf",
-  panelLight: "#e8dccb",
-
-  // Mobiliario
-  deskTop: "#f2e7d5",
-  deskEdge: "#dcc9ad",
-  deskLeg: "#c4a88c",
-  fabricDark: "#8fa9b8", // la tapicería de las sillas ya no es gris oscuro
-  screen: "#3c4550",
-  screenGlow: "#bfd8e0",
-
-  // Vegetación
-  woodPot: "#c98b6b",
-  leaves: "#7fa86b",
-
-  // Cristal y metal, mucho menos fríos que antes
-  glass: "#d8e8ea",
-  frame: "#c0b09a",
-  metal: "#cbbba6",
-};
-
-/** El cielo y la luz. */
-export const ATMOSPHERE = {
-  skyTop: "#e4dbef", // lavanda suave, como la referencia del camión
-  skyBottom: "#f7eee2", // crema cálido a la altura del horizonte
-  fog: "#f2e8dc",
-};
+/**
+ * Superficies del edificio. Los nombres los usan builder.js y furniture.js.
+ *
+ * Ya NO llevan sus colores escritos aquí: los rellena `loadWorldPalette()`
+ * desde los tokens `--w-*` del tema (ver src/scene/palette.js). El objeto se
+ * MUTA en vez de reasignarse, porque medio motor lo tiene ya importado.
+ */
+export const SURFACES = {};
 
 /**
  * Sillas y detalles se reparten estos acentos en vez de ser todos iguales.
  * Son pocos y emparentados: una silla granate junto a una verde salvia se
  * lee como una oficina con gusto, doce colores distintos se leen como ruido.
  */
-export const ACCENTS = ["#8fa9b8", "#c98b7a", "#9dbfa4", "#d9b384", "#a89bc4"];
+export const ACCENTS = [];
+
+/** El cielo y la luz de reserva. Durante la partida manda el tema del día
+ *  (`src/game/themes.js`), que interpola su propio cielo y su niebla. */
+export const ATMOSPHERE = {
+  skyTop: "#1b2a38",
+  skyBottom: "#22323f",
+  fog: "#1d2c3a",
+};
+
+/**
+ * Recarga la paleta del set desde el tema activo y tira los materiales
+ * cacheados, que llevan el color dentro. Lo llama `theme.js` al cambiar de
+ * tema; hay que reconstruir el piso después para que se vea.
+ */
+export function refreshWorldPalette() {
+  loadWorldPalette(SURFACES, ACCENTS);
+  materialCache.clear();
+}
 
 const materialCache = new Map();
+
+loadWorldPalette(SURFACES, ACCENTS);
 
 /**
  * Un material plano del set.
@@ -70,11 +62,24 @@ const materialCache = new Map();
  * avisaría por consola por cada propiedad que no conoce.
  */
 export function cozyMaterial(name, opts = {}) {
-  const { color, vertexColors = false, transparent, opacity, side, ...rest } = opts;
+  const {
+    color,
+    vertexColors = false,
+    transparent,
+    opacity,
+    side,
+    // Para superficies pegadas a otra (la moqueta sobre el suelo): sin esto
+    // los dos planos se pelean por el mismo pixel y aparecen franjas que
+    // parpadean al mover la camara.
+    polygonOffset,
+    polygonOffsetFactor,
+    polygonOffsetUnits,
+    ...rest
+  } = opts;
   void rest; // roughness/metalness de la etapa anterior: ya no aplican
 
   const hex = color ?? SURFACES[name] ?? "#ded3c2";
-  const key = `${hex}|${vertexColors}|${transparent}|${opacity}|${side}`;
+  const key = `${hex}|${vertexColors}|${transparent}|${opacity}|${side}|${polygonOffset}|${polygonOffsetFactor}`;
   if (materialCache.has(key)) return materialCache.get(key);
 
   const material = new THREE.MeshLambertMaterial({
@@ -83,6 +88,9 @@ export function cozyMaterial(name, opts = {}) {
     ...(transparent != null ? { transparent } : {}),
     ...(opacity != null ? { opacity } : {}),
     ...(side != null ? { side } : {}),
+    ...(polygonOffset != null ? { polygonOffset } : {}),
+    ...(polygonOffsetFactor != null ? { polygonOffsetFactor } : {}),
+    ...(polygonOffsetUnits != null ? { polygonOffsetUnits } : {}),
   });
   materialCache.set(key, material);
   return material;

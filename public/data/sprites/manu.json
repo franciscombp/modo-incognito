@@ -1,20 +1,17 @@
 {
   "$comment": [
-    "RIG DE UN PERSONAJE: qué pliego usa y qué hay en cada celda.",
-    "Antes esto vivía repartido entre characters.json (`sheet`) y unas",
-    "constantes dentro de src/entities/sprite.js. Ahora está aquí, junto,",
-    "y se puede cambiar sin tocar código.",
+    "RIG DE UN PERSONAJE: hoy, SOLO su animación de espera.",
     "",
-    "Los dos pliegos son rejillas 4x4 de 128x176 px (ver tools/pack-sprites.py).",
+    "Esto era la hoja de datos del sistema de pliegos (qué fila del sprite",
+    "sheet era cada dirección, qué celda cada pose, a cuántos fps). De eso ya",
+    "no queda nada: los personajes son modelos 3D y las poses son rotaciones",
+    "de huesos comunes a todo el reparto (POSE_LIBRARY en character3d.js).",
+    "Los bloques `walk.sheet`/`walk.rows`/`actions` se quitaron por eso —",
+    "llevaban tiempo sin hacer nada y hacían creer que aquí se controlaba algo.",
     "",
-    "walk.rows  · qué FILA del pliego de caminar corresponde a cada dirección.",
-    "             Las 4 columnas de la fila son el ciclo de paso.",
-    "walk.fps   · fotogramas por segundo del ciclo de caminar.",
-    "",
-    "actions.poses · nombre de pose -> índice 0..7. La pose `p` ocupa la fila",
-    "             `p>>1` y las columnas `(p%2)*2` y `(p%2)*2+1`: DOS fotogramas,",
-    "             que el motor alterna para que la pose esté viva.",
-    "actions.fps · a qué ritmo se alternan esos dos fotogramas.",
+    "walkFps · a qué ritmo bate el paso procedural. Lo único que sobrevive del",
+    "          bloque `walk`, y solo importa si el .glb NO trae su propio clip",
+    "          de caminar (si lo trae, manda el archivo — ver baseModel.js).",
     "",
     "idle · la animación de espera, al estilo del Sonic que se cansa de que no",
     "       pulses nada. `after` son los segundos quieta antes de que arranque,",
@@ -24,37 +21,11 @@
   ],
   "id": "manu",
   "name": "Manu",
-  "walk": {
-    "sheet": "manu-camina",
-    "fps": 8,
-    "rows": {
-      "south": 0,
-      "west": 1,
-      "east": 2,
-      "north": 3
-    }
-  },
-  "actions": {
-    "sheet": "manu-acciones",
-    "fps": 3,
-    "poses": {
-      "work": 0,
-      "sleep": 1,
-      "coffee": 2,
-      "eat": 3,
-      "movie": 4,
-      "phone": 5,
-      "scared": 6,
-      "shrug": 7
-    }
-  },
+  "walkFps": 8,
   "idle": {
     "after": 4.5,
     "hold": 2.2,
     "every": 9,
-    "poses": [
-      "phone",
-      "shrug"
-    ]
+    "poses": ["phone","shrug"]
   }
 }

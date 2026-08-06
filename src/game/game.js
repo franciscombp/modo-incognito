@@ -8,10 +8,12 @@ import {
   areaAt,
 } from "../scene/floorplan.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
+import { getCameraSettings } from "../scene/cameraSettings.js";
 import { BOSS_STATES } from "../entities/boss.js";
 import { buzz } from "./settings.js";
 import { sfxComplete, sfxWarn, sfxDistraction } from "./sfx.js";
 import { runEffect } from "./effects.js";
+import { createActivityPulse } from "./activityGame.js";
 
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
@@ -128,6 +130,7 @@ export class Game {
     onPopup = null,
     onTalk = null,
     onWarn = null,
+    onHeatAlert = null,
   }) {
     this.player = player;
     this.boss = boss;
@@ -135,6 +138,7 @@ export class Game {
     this.minions = minions;
     this.onTalk = onTalk;
     this.onWarn = onWarn;
+    this.onHeatAlert = onHeatAlert;
     this.hud = hud;
     this.canvas = canvas;
     this.rules = { ...DEFAULT_RULES, ...rules };
@@ -180,9 +184,31 @@ export class Game {
     this.inSafeSpot = false;
     this.currentSafeSpot = null; // el lugar seguro utilizable en el que estás
     this._huntTimer = 0;
-    this.metGabo = false; // ha conocido a Gabo (el jefe) — desbloquea actividades
+    // La "puerta" del día: mientras no esté superada, ni las tareas ni la
+    // vigilancia del jefe/secuaces están activas — solo existe la tarea de
+    // conocerlo. Es un bloque del `rules` del día (`gate.guard` + `gate.task`),
+    // así que un día sin `gate` arranca desbloqueado del todo (el
+    // comportamiento de siempre). Ver dia-1.json para el único caso real hoy.
+    this.gate = rules.gate ?? null;
+    this.metGabo = !this.gate; // ha conocido al guardián de la puerta (el jefe)
+    this._gateObjectives = this.gate
+      ? [
+          {
+            id: this.gate.task?.id ?? "gate",
+            label: this.gate.task?.label ?? "Buscar al jefe",
+            icon: this.gate.task?.icon ?? "person",
+            type: "meet",
+            done: false,
+            progress: 0,
+            time: 1,
+          },
+        ]
+      : null;
 
     const wanted = this.rules.objectives;
+    // Todas las estaciones del plano, para que la campaña pueda añadir una
+    // que el día no traía (una misión desbloqueada en caliente).
+    this._allStations = activityStations;
     this.objectives = activityStations
       .filter((s) => !wanted || wanted.includes(s.id))
       .map((s) => ({ ...s, progress: 0, done: false }));
@@ -195,6 +221,9 @@ export class Game {
     this.nearDistraction = null;
     this.nearNpc = null;
     this.focusStation = null;
+    // La misión SEGUIDA a mano (teclas 1–3 en el HUD): si está pendiente,
+    // gana a la más cercana. null = automático de siempre.
+    this.preferredObjectiveId = null;
     this.message = null;
     this._actionFlash = null;
     this.currentArea = null;
@@ -211,6 +240,22 @@ export class Game {
       nextBusy: spot.busyEvery ? spot.busyEvery * (0.5 + Math.random()) : Infinity,
     }));
     this._safeSpotCharge = (i) => this.safeSpotCharge(i);
+
+    // El pulso de la actividad (game/activityGame.js). Corre SIN pausar el
+    // mundo a propósito: una tarea tiene que exponerte, y un minijuego que
+    // congela al jefe convertiría las estaciones en el sitio más seguro del
+    // piso. Un fallo hace ruido, y el ruido entra por la misma puerta que
+    // todo lo demás: la sospecha.
+    this.pulse = createActivityPulse({
+      onNoise: (n) => {
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
+        buzz(30);
+      },
+      onFeedback: (tipo) => {
+        if (tipo === "acierto") sfxComplete();
+        else sfxWarn();
+      },
+    });
 
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
@@ -231,6 +276,11 @@ export class Game {
 
   update(dt) {
     if (this.gameOver || this.paused) {
+      // El pulso se apaga al pausar. Sin esto la tira se quedaba encendida
+      // ENCIMA del menú de pausa y del aviso de alarma —`update` sale por
+      // aquí antes de llegar a apagarla— y además dejaba al motor creyendo
+      // que sigues en la actividad después de reanudar desde otro sitio.
+      this.pulse.end();
       this.hud.render(this._snapshot());
       return;
     }
@@ -274,28 +324,50 @@ export class Game {
     // persecución tiene que morir igual — con detección de flanco, ese caso
     // se quedaba perseguido para siempre.
     if (this.inSafeSpot) this._breakAllPursuits();
+    this._updateCampaignObjectives(dt);
 
     // "Tu sitio" ya no es media planta: es exactamente el lugar seguro en el
     // que estás. Fuera de ahí, estás fuera de tu puesto.
     this.inWorkspace = !!this.currentSafeSpot;
 
-    this.nearStation =
-      this.objectives.find(
-        (s) => !s.done && Math.hypot(s.x - pos.x, s.z - pos.z) < INTERACT_RADIUS
-      ) ?? null;
+    // Con la puerta sin superar no hay estación que valga: las tareas reales
+    // ni existen todavía para la jugadora (ver `_snapshot`, que en su lugar
+    // enseña la tarea de conocer al jefe).
+    this.nearStation = this.metGabo
+      ? this.objectives.find(
+          (s) => !s.done && Math.hypot(s.x - pos.x, s.z - pos.z) < INTERACT_RADIUS
+        ) ?? null
+      : null;
 
     // The compass always points at the closest thing still to do, so you are
     // never left wondering where the next task is. Un `for` sencillo en vez
     // de filter+reduce+Object.assign: eso corría cada frame y de paso
     // mutaba los objetivos con un campo `_d` que nadie leía después.
     this.focusStation = null;
-    let focusDist = Infinity;
-    for (const s of this.objectives) {
-      if (s.done) continue;
-      const d = Math.hypot(s.x - pos.x, s.z - pos.z);
-      if (d < focusDist) {
-        focusDist = d;
-        this.focusStation = s;
+    if (!this.metGabo && this.gate) {
+      // Antes de conocerlo, la flecha apunta al propio jefe: es la única
+      // "tarea" que existe.
+      const t = this._gateObjectives[0];
+      this.focusStation = { x: this.boss.position.x, z: this.boss.position.z, label: t.label, icon: t.icon };
+    } else {
+      // Si la jugadora eligió una misión con las teclas 1–3, la brújula la
+      // respeta mientras siga pendiente; si no (o ya está hecha), vuelve al
+      // automático: la pendiente más cercana.
+      const preferred = this.preferredObjectiveId
+        ? this.objectives.find((s) => s.id === this.preferredObjectiveId && !s.done)
+        : null;
+      if (preferred) {
+        this.focusStation = preferred;
+      } else {
+        let focusDist = Infinity;
+        for (const s of this.objectives) {
+          if (s.done) continue;
+          const d = Math.hypot(s.x - pos.x, s.z - pos.z);
+          if (d < focusDist) {
+            focusDist = d;
+            this.focusStation = s;
+          }
+        }
       }
     }
 
@@ -305,15 +377,51 @@ export class Game {
       // La pose sale del JSON de la actividad (`pose`, ver scenes/*.json); si
       // el personaje no tiene hoja de acciones, sprite.js la ignora.
       this.player.pose = this.nearStation.pose ?? null;
+      // DE CARA A LA CÁMARA, con su giro normal de andar (setHeading hace
+      // el tween — nada se teletransporta). La cámara ya NO orbita durante
+      // las acciones (solo se acerca): el que se mueve para que la pose se
+      // vea de frente es el personaje, que es más barato y nunca marea.
+      const camYaw = (getCameraSettings().yawDeg * Math.PI) / 180;
+      this.player.sprite.setHeading(Math.sin(camYaw), Math.cos(camYaw));
+
+      // EL SUELO, y no se toca: mantener pulsado termina la tarea igual, solo
+      // que lento. Quien no quiera jugar al pulso —o esté a la vez huyendo del
+      // jefe— la acaba de todas formas. El pulso es un ATAJO con riesgo, no un
+      // peaje: si fuera obligatorio, un mal jugador se quedaría encallado en la
+      // primera tarea del día 1.
+      this.pulse.begin(this.nearStation);
+      this.pulse.update(dt);
       this.nearStation.progress = Math.min(this.nearStation.time, this.nearStation.progress + dt);
       if (this.nearStation.progress >= this.nearStation.time && !this.nearStation.done) {
         this.nearStation.done = true;
+        // Lo limpio que fuiste paga en RELOJ, que es la única moneda. Se cobra
+        // ANTES de soltar el pulso, que es quien lleva la cuenta.
+        const bonus = this.pulse.bonusReloj();
         this._completeActivity(this.nearStation);
+        if (bonus > 0) {
+          this._grantTime(bonus, {
+            at: this.player.position,
+            sub: "sin que se note",
+            kind: "nerve",
+          });
+        }
+        this.pulse.end();
+        // La campaña escucha: una estación cumplida puede desbloquear la
+        // siguiente misión de la cadena (ver engine.js -> campaign).
+        this.onMissionDone?.(this.nearStation.id);
       }
     } else {
+      this.pulse.end();
       this.player.isDoingActivity = false;
       // Fingir que trabajas es, literalmente, la pose de estar en el portátil.
       this.player.pose = this.player.isPretending ? "work" : null;
+      // Y fingiendo, también de cara a la cámara: mismo criterio que las
+      // actividades — el gesto es el premio y se ve de frente, sin que la
+      // cámara tenga que girar a buscarlo.
+      if (this.player.isPretending) {
+        const camYaw = (getCameraSettings().yawDeg * Math.PI) / 180;
+        this.player.sprite.setHeading(Math.sin(camYaw), Math.cos(camYaw));
+      }
     }
 
     this.distractionState.forEach((d) => {
@@ -328,6 +436,19 @@ export class Game {
       if (left > 0) this.talkCooldowns.set(id, Math.max(0, left - dt));
     });
     // A los amigos les hablas tú; los secuaces te abordan solos (más abajo).
+    // Mientras la puerta del día siga sin superar, el guardián (el jefe) es
+    // la ÚNICA excepción: se le puede abordar como a un amigo, porque
+    // "encontrarlo" es literalmente la tarea. Una vez conocido, vuelve a su
+    // trato normal (solo habla si te amonesta).
+    const guardApproachable =
+      this.gate &&
+      !this.metGabo &&
+      this.boss.cast === this.gate.guard &&
+      !this.boss.isHunting &&
+      (this.talkCooldowns.get(this.boss.id ?? this.boss.cast) ?? 0) <= 0 &&
+      Math.hypot(this.boss.position.x - pos.x, this.boss.position.z - pos.z) < INTERACT_RADIUS * 1.3
+        ? this.boss
+        : null;
     this.nearNpc =
       this.npcs.find(
         (n) =>
@@ -335,7 +456,7 @@ export class Game {
           n.cast &&
           (this.talkCooldowns.get(n.id) ?? 0) <= 0 &&
           Math.hypot(n.position.x - pos.x, n.position.z - pos.z) < INTERACT_RADIUS * 1.3
-      ) ?? null;
+      ) ?? guardApproachable;
 
     if (holdingSpace && !this._prevInteractKey && this.nearNpc && !this.nearStation) {
       this.canvas?.focus?.();
@@ -352,12 +473,24 @@ export class Game {
       } else {
         this.toast("¡Ya te vio! Una distracción no lo detiene ahora.");
       }
+    } else if (holdingSpace && !this._prevInteractKey && this.nearStation && this.pulse.active) {
+      // EL TOQUE DEL PULSO. Es un flanco de subida sobre la MISMA tecla que
+      // mantiene la actividad: mantener pulsado avanza lento, y soltar y
+      // volver a pulsar al ritmo avanza rápido. Una tecla, dos niveles de
+      // implicación — y quien no se entere de que existe termina la tarea
+      // igual, que era la condición para poder meter esto.
+      this.pulse.hit();
     }
     this._prevInteractKey = holdingSpace;
 
     // El jefe necesita saber cuánta sospecha hay YA para decidir si tantea
     // (fase lenta) o va con todo (fase rápida, ver boss.js/_speed()).
     this.boss.suspicion = this.suspicion;
+    // Y en qué FRACCIÓN del medidor va: el halo se tiñe con ella (verdoso
+    // tranquilo → ámbar → rojo) para que el nivel de sospecha se lea del
+    // suelo, sin mirar el HUD.
+    this.boss.suspicionRatio = this.suspicion / (this.suspicionConfig.max || 100);
+    this.minions.forEach((m) => (m.suspicionRatio = this.boss.suspicionRatio));
 
     // Un NPC apagado (el doble del personaje elegido) tampoco tapa la vista
     // del jefe: no está ahí para nadie. Se reutiliza el mismo array entre
@@ -379,11 +512,16 @@ export class Game {
     this._updateMinionCatch();
     this._updateMinionApproach();
     this._updateEggs(dt);
+    this._updateBumps(dt);
     this._updateSpeedMul();
 
     // ---- Suspicion ----
     const susCfg = this.suspicionConfig;
-    if (this.rules.explore) {
+    if (this.gate && !this.metGabo) {
+      // Antes de conocer al guardián de la puerta del día no hay nada que
+      // reprochar todavía: ni tareas que hacer mal, ni vigilancia activa.
+      this.suspicion = 0;
+    } else if (this.rules.explore) {
       // Kiara ya renunció: nada de esto le afecta.
       this.suspicion = 0;
     } else if (this.inSafeSpot) {
@@ -436,6 +574,25 @@ export class Game {
       // un lugar seguro o hablar con quien corresponda).
     }
 
+    // CON EL MEDIDOR EN CERO (SOSTENIDO) LA CAZA SE ACABA. Si lograste
+    // enfriar la sospecha del todo, el jefe ya no tiene nada que reprocharte
+    // y quedarse plantado a tu lado bloqueaba el resto de tareas: suelta la
+    // presa, respira (gracia) y vuelve a su ronda. El sostenido (1.5 s en
+    // cero seguidos) evita que un lockedOn recién ganado con el medidor aún
+    // frío se esfume en un frame — esconderse sigue sin salvarte en caliente.
+    // No aplica si te está viendo EN FALTA ahora mismo (redAlert).
+    if (this.suspicion <= 0 && this.boss.isHunting && !this.boss.redAlert) {
+      this._coldFor = (this._coldFor ?? 0) + dt;
+      if (this._coldFor >= 1.5) {
+        this._coldFor = 0;
+        this.boss.breakPursuit();
+        this.boss.grantGrace(3);
+        this.toast("Gabo se aburrió: vuelve a su ronda.");
+      }
+    } else {
+      this._coldFor = 0;
+    }
+
     this._updateHeat(dt);
 
     // Fingiendo con poca sospecha eres intocable, y un escondite o un lugar
@@ -459,8 +616,15 @@ export class Game {
     // encuentro el que cuenta.
     if (caught) this._warn();
 
+    // LA AMONESTACIÓN ES FÍSICA, SIEMPRE: solo cae cuando el jefe te TOCA
+    // (boss.catches, arriba). Hubo un atajo que la disparaba sola tras unos
+    // segundos con el medidor clavado en 100 ("te vieron desde la otra
+    // punta"), y en la práctica se sentía arbitrario: te caía el castigo sin
+    // que nadie llegara. Al 100% el jefe ya viene a por ti con el nivel de
+    // búsqueda al máximo; que tenga que alcanzarte ES el juego.
+
     if (!this.gameOver && !this.rules.explore) {
-      if (this.objectives.every((o) => o.done)) this._finish(true);
+      if (this.objectives.length > 0 && this.objectives.every((o) => o.done)) this._finish(true);
       else if (this.timeLeft <= 0) this._finish(false);
     }
 
@@ -591,9 +755,20 @@ export class Game {
       if (level > this.heat) {
         buzz([20, 30, 20]);
         this.toast(`Nivel de búsqueda ${level}`);
+        // NIVEL 3 = ALARMA GENERAL, y eso no cabe en un toast que nadie ve
+        // mientras esquiva mesas: el juego se PAUSA con un aviso a pantalla
+        // completa (lo pinta el engine, ver onHeatAlert) y no sigue hasta
+        // que pulses "Entendido" — y entonces, a correr. Solo salta una vez
+        // por subida: se rearma al enfriarte por debajo del nivel 3.
+        if (level >= 3 && !this._heatAlertShown && !this.gameOver) {
+          this._heatAlertShown = true;
+          this.setPaused(true);
+          this.onHeatAlert?.(level);
+        }
       }
       this.heat = level;
     }
+    if (this.heat < 3) this._heatAlertShown = false;
 
     const tuning = HEAT_TUNING[this.heat];
     const base = this.boss.dayTuning ?? { vision: this.boss.baseVisionRange, speedMul: 1 };
@@ -644,6 +819,64 @@ export class Game {
       // rato con un empujón aleatorio (ver _updateStuck en boss.js).
       m.resetToPatrol();
       return;
+    }
+  }
+
+  /**
+   * CHOQUES ENTRE PERSONAJES, al estilo Overcooked: los cuerpos ocupan sitio.
+   * Si te metes en un compañero (o en el jefe), los dos se empujan, salta un
+   * "¡!" sobre cada uno y el arrollado se tambalea un instante. Es puro
+   * feedback — no sube sospecha por sí mismo — pero hace físico un piso que
+   * antes se atravesaba como niebla.
+   */
+  _updateBumps(dt) {
+    this._bumpCooldowns ??= new Map();
+    for (const [k, left] of this._bumpCooldowns) {
+      if (left > 0) this._bumpCooldowns.set(k, left - dt);
+    }
+    const p = this.player;
+    const others = [];
+    for (const n of this.npcs) if (n.active !== false) others.push(n);
+    for (const m of this.minions) if (m.active !== false) others.push(m);
+    others.push(this.boss);
+
+    for (const o of others) {
+      const dx = o.position.x - p.position.x;
+      const dz = o.position.z - p.position.z;
+      const dist = Math.hypot(dx, dz);
+      const minDist = (o.radius ?? 0.3) + p.radius;
+      if (dist >= minDist || dist < 1e-4) continue;
+
+      // Separación: la mitad del solape cada uno. Al NPC se le mueve la casa
+      // NO — solo la posición actual; su ciclo de paseo ya sabe volver.
+      const push = (minDist - dist) / 2;
+      const nx = dx / dist;
+      const nz = dz / dist;
+      p.position.x -= nx * push;
+      p.position.z -= nz * push;
+      o.position.x += nx * push;
+      o.position.z += nz * push;
+      // El empujón TAMBIÉN respeta las paredes: sin esto, un choque metía
+      // al jefe (o a un NPC) dentro de un mueble o al otro lado de un
+      // tabique — era la forma más fácil de verlo "atravesar" sitios.
+      const world = this.boss?.world;
+      if (world) {
+        world.resolveCircle(p.position, p.radius);
+        world.resolveCircle(o.position, o.radius ?? 0.3);
+      }
+      o.sprite?.setPosition(o.position.x, o.position.z);
+
+      const key = o.id ?? o.cast ?? "boss";
+      if ((this._bumpCooldowns.get(key) ?? 0) > 0) continue;
+      this._bumpCooldowns.set(key, 1.4);
+      // "¡!" sobre los dos y un toque de vibración. A uno SENTADO el golpe
+      // no lo tambalea: la silla de rueditas se lo LLEVA rodando en la
+      // dirección del empujón (y su computadora se queda trabajando sola).
+      this.onPopup?.({ text: "!", x: o.position.x, z: o.position.z, kind: "bump" });
+      this.onPopup?.({ text: "!", x: p.position.x, z: p.position.z, kind: "bump" });
+      if (o.isSeated && o.rollAway) o.rollAway(nx, nz);
+      else o.stumble?.();
+      buzz(12);
     }
   }
 
@@ -771,6 +1004,22 @@ export class Game {
 
   _insideSafeSpot(spot, pos) {
     return Math.hypot(spot.x - pos.x, spot.z - pos.z) < spot.radius;
+  }
+
+  /** El lugar seguro USABLE más cercano, o null. Para la guía de refugio. */
+  _nearestUsableSafeSpot(pos) {
+    let best = null;
+    let bestD = Infinity;
+    safeSpots.forEach((spot, i) => {
+      const state = this.safeSpotState[i];
+      if (state.spent || state.busyLeft > 0) return;
+      const d = Math.hypot(spot.x - pos.x, spot.z - pos.z);
+      if (d < bestD) {
+        bestD = d;
+        best = { x: spot.x, z: spot.z, label: spot.label ?? "Lugar seguro", icon: spot.icon };
+      }
+    });
+    return best;
   }
 
   /** Per-spot readout for the floor markers: 0 = agotado u ocupado, 1 = intacto. */
@@ -944,6 +1193,114 @@ export class Game {
     return null;
   }
 
+  /**
+   * Objetivos de CAMPAÑA que no son estaciones del plano (docs/CAMPANA.md):
+   *
+   * · "como" (personaje): hablar con ese NPC lo cumple. Su posición en la
+   *   lista y en la brújula es LA DEL NPC, que se mueve — se refresca por
+   *   frame en `_updateCampaignObjectives`.
+   * · "que" con accion "fingir": el tutorial de la mecánica central. Se
+   *   cumple acumulando unos segundos fingiendo en un lugar seguro; su
+   *   posición apunta al lugar seguro usable más cercano.
+   *
+   * Entran por `addCampaignObjectives` (al arrancar el día o al
+   * desbloquearse en caliente) y comparten lista con las estaciones: el
+   * HUD, el tracker y las medallas no saben de dónde vino cada uno.
+   */
+  addCampaignObjectives(missions) {
+    for (const m of missions) {
+      // La misión de la PUERTA del día (meet-gabo) ya la enseña el gate con
+      // su propia tarea: duplicarla dejaba una fila fantasma sin cumplir.
+      // Se compara por ID DE TAREA — comparar por guard fallaba porque el
+      // guard es el cast del jefe ("jefe"), no el personaje de la misión.
+      if (m.id === (this.gate?.task?.id ?? null)) continue;
+      if (this.objectives.some((o) => o.id === m.id)) continue;
+      if (m.estacion) {
+        // Estación del plano: si el día no la traía (wanted), se añade.
+        const st = this._allStations?.find((s) => s.id === m.estacion);
+        if (st && !this.objectives.some((o) => o.id === st.id)) {
+          this.objectives.push({ ...st, id: m.id, label: m.titulo ?? st.label, icon: m.icono ?? st.icon, kind: m.tipo, progress: 0, done: false });
+        }
+        continue;
+      }
+      this.objectives.push({
+        id: m.id,
+        label: m.titulo,
+        icon: m.icono ?? (m.tipo === "como" ? "chat" : "star"),
+        kind: m.tipo,
+        npcId: m.personaje ?? null,
+        accion: m.accion ?? null,
+        segundosNeeded: m.segundos ?? 3,
+        reward: m.recompensa?.reloj ?? 20,
+        // sin x/z todavia: los pone _updateCampaignObjectives
+        x: this.player.position.x,
+        z: this.player.position.z,
+        time: m.segundos ?? 3,
+        progress: 0,
+        done: false,
+        dynamic: true,
+      });
+    }
+  }
+
+  _updateCampaignObjectives(dt) {
+    for (const o of this.objectives) {
+      if (o.done || !o.dynamic) continue;
+      if (o.npcId) {
+        const npc = this.npcs.find((n) => n.cast === o.npcId && n.active !== false);
+        if (npc) {
+          o.x = npc.position.x;
+          o.z = npc.position.z;
+        }
+      } else if (o.accion === "fingir") {
+        const spot = this._nearestUsableSafeSpot(this.player.position);
+        if (spot) {
+          o.x = spot.x;
+          o.z = spot.z;
+        }
+        if (this.player.isPretending && this.inSafeSpot) {
+          o.progress = Math.min(o.time, o.progress + dt);
+          if (o.progress >= o.time) {
+            o.done = true;
+            this._grantTime(o.reward, { at: this.player.position, kind: "score" });
+            this.toast?.(`${o.label}: hecho`);
+            this.onMissionDone?.(o.id);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * SUPERAR LA PUERTA DEL DÍA (rules.gate: encontrar a Gabo el día 1).
+   *
+   * Son DOS cosas, y hay que hacer las dos: levantar la bandera —que abre las
+   * tareas, la vigilancia del jefe y la de los secuaces— y avisar de que la
+   * misión de la puerta cayó, que es lo que hace a la campaña soltar el plan
+   * del día. Poner solo `metGabo = true` deja el piso desbloqueado y la lista
+   * de tareas VACÍA: el día se gana solo o no se puede jugar, según por dónde
+   * caiga. Es exactamente lo que le pasó a media suite de `tools/` cuando
+   * entró la campaña, así que el paso doble vive aquí y no repetido en cada
+   * sitio que necesita abrir la puerta.
+   */
+  clearGate() {
+    if (this.metGabo) return false;
+    this.metGabo = true;
+    this.onMissionDone?.(this.gate?.task?.id ?? "meet-gabo");
+    return true;
+  }
+
+  /** El diálogo con un NPC cumple su misión "como", si estaba pendiente. */
+  completeTalk(npcId) {
+    const o = this.objectives.find((x) => x.npcId === npcId && !x.done);
+    if (!o) return false;
+    o.done = true;
+    o.progress = o.time;
+    this._grantTime(o.reward ?? 20, { at: this.player.position, kind: "score" });
+    this.onMissionDone?.(o.id);
+    return true;
+  }
+
   _snapshot() {
     this.lastSnapshot = {
       suspicion: this.suspicion,
@@ -954,8 +1311,14 @@ export class Game {
       levelDuration: this.rules.duration,
       currentHour: this.getCurrentHour(),
       currentTime: this.formatTime(),
-      objectives: this.objectives,
+      // Mientras la puerta del día no esté superada, el HUD no enseña tareas
+      // que todavía no se pueden hacer: solo la de encontrar al guardián.
+      objectives: this.metGabo ? this.objectives : this._gateObjectives,
       nearStation: this.nearStation,
+      // El pulso de la actividad en marcha, o null. Va por el MISMO snapshot
+      // por frame que todo lo demás: no hay una segunda verdad que se pueda
+      // desincronizar del motor.
+      pulse: this.pulse.snapshot(),
       nearDistraction: this.nearDistraction,
       nearNpc: this.nearNpc,
       focusStation: this.focusStation,
@@ -977,6 +1340,9 @@ export class Game {
       revealBoss: this.revealBossUntil > 0,
       isPretending: this.player.isPretending,
       isHiding: this.player.isHiding,
+      // El lugar seguro usable más cercano: con la sospecha alta, la guía
+      // de tarea redirige ahí — "ve a fingir que trabajas" ES la tarea.
+      refugeSpot: this._nearestUsableSafeSpot(this.player.position),
       currentAction: this._currentAction(),
       redAlert: this.boss.redAlert,
       bossState: this.boss.state,

@@ -4,59 +4,32 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 import { siteRoot } from "../data/siteRoot.js";
 
 /**
- * CUERPO BASE IMPORTADO.
+ * CUERPOS IMPORTADOS (.glb de public/models/).
  *
- * Carga el cuerpo humanoide de `public/models/base.glb` y lo deja listo para
- * que `character3d.js` le monte encima el pelo, la ropa, la cara y los
- * complementos de la receta. El cuerpo viene de fuera; todo lo que distingue a
- * un personaje de otro sigue siendo nuestro y sigue saliendo del JSON.
+ * Todo el reparto sale de aquí: o de su `.glb` propio esculpido fuera
+ * (giuli, gabo, fran…) o de uno de los DOS CUERPOS BASE desnudos —
+ * `base-chica.glb` y `base-chico.glb` — que vienen SIN textura a propósito
+ * para que `character3d.js` los pinte por vértice con los colores de la
+ * receta (`paint`) y les dé complexión escalando huesos (`applyBuild`).
+ * Qué cuerpo usa cada quien lo decide su receta: `baseModel` explícito si
+ * lo trae, y si no el `gender` (`"f"` → chica, el resto → chico).
  *
- * El modelo es "P2u Base Modifiers", de Shedletsky_2, bajo CC BY 4.0.
- * La atribución vive en CREDITS.md y es obligatoria: no la quites mientras el
- * modelo siga aquí.
+ * Los modelos son del equipo (esculpidos para este juego); no hay
+ * atribución externa que mantener.
  *
- * TRES COSAS QUE EL MODELO NO TRAE, y que conviene saber antes de pelearse
- * con él:
- *  · No tiene morph targets. Se llama "Modifiers", pero los modificadores se
- *    quedaron en Blender y no sobrevivieron a la exportación. Gordo, flaco y
- *    alto se hacen ESCALANDO HUESOS (ver `applyBuild`), no con deslizadores.
- *  · No tiene huesos de pie: la pierna acaba en el tobillo. Los zapatos
- *    cuelgan de ahí.
- *  · No tiene cara. Los ojos, el rubor y la boca los seguimos poniendo
- *    nosotros, que además es lo que les da el aire de las referencias.
+ * Los clips de los archivos traen pista de POSICIÓN+ROTACIÓN+ESCALA por
+ * hueso. La de escala es constante a 1 y no aporta nada, pero pisaría cada
+ * frame la complexión de `applyBuild` — por eso se quita al cargar
+ * (`stripScaleTracks`).
  */
 
 /**
  * MAPEO FLEXIBLE DE HUESOS.
  *
  * Mapeos para diferentes rigs. El motor detecta el rig al cargar y aplica
- * el mapeo correcto automáticamente. Los mapeos heredados se quedan para
- * compatibilidad hacia atrás, pero el defecto es ahora el rig estándar
+ * el mapeo correcto automáticamente, con el rig estándar como defecto
  * (Mixamo/Rigify: Hips, Spine, Chest, etc.).
  */
-
-// Rig heredado de base.gltf (para compatibilidad)
-const BONE_MAP_BASE_LEGACY = {
-  hips_40: "Hips",
-  spine_33: "Spine",
-  chest_32: "Chest",
-  neck_16: "Neck",
-  head_15: "Head",
-  "shoulder L_14": "LeftShoulder",
-  "upper_arm L_13": "LeftArm",
-  "lower_arm L_12": "LeftForeArm",
-  "wrist L_11": "LeftHand",
-  "shoulder R_31": "RightShoulder",
-  "upper_arm R_30": "RightArm",
-  "lower_arm R_29": "RightForeArm",
-  "wrist R_28": "RightHand",
-  "upper_Leg L_36": "LeftUpLeg",
-  "lower_leg L_35": "LeftLeg",
-  "lower_leg L.001_34": "LeftFoot",
-  "upper_Leg R_39": "RightUpLeg",
-  "lower_leg R_38": "RightLeg",
-  "lower_leg R.001_37": "RightFoot",
-};
 
 // Mapeo estándar (Mixamo, Rigify, rigs convencionales)
 // Estos ya tienen los nombres correctos, pero los alias ayudan con variantes
@@ -72,16 +45,6 @@ const BONE_MAP_STANDARD = {
   "Armature": "", // Nodo padre, ignorar
 };
 
-/** Qué parte del cuerpo es cada malla, para poder darles color distinto. */
-export const MESH_ROLES = {
-  Object_7: "arms",
-  Object_9: "body",
-  Object_11: "head",
-  Object_13: "neck",
-};
-
-let loading = null;
-
 /**
  * Cache de modelos por URL. Permite cargar múltiples bases (giuli.glb, gabo.glb, etc.)
  * sin recargar desde la red.
@@ -96,13 +59,27 @@ export function loadBaseModel(url) {
   if (!modelCache.has(url)) {
     const loading = new GLTFLoader().loadAsync(url).then((gltf) => {
       gltf.scene.updateMatrixWorld(true);
-      renameBones(gltf.scene);
+      const renames = renameBones(gltf.scene);
+      retargetTracks(gltf.animations, renames);
+      stripScaleTracks(gltf.animations);
       ready.set(url, gltf);
       return gltf;
     });
     modelCache.set(url, loading);
   }
   return modelCache.get(url);
+}
+
+/**
+ * Quita las pistas de ESCALA de los clips importados. Son constantes a 1
+ * (nadie anima la escala de un hueso en un ciclo de andar), pero el mixer
+ * las escribiría cada frame y desharían la complexión que pone `applyBuild`
+ * (ancho, torso, barriga) en cuanto el personaje diera un paso.
+ */
+function stripScaleTracks(animations = []) {
+  for (const clip of animations) {
+    clip.tracks = clip.tracks.filter((t) => !t.name.endsWith(".scale"));
+  }
 }
 
 /** Los que YA están en memoria, para poder montarlos sin esperar. */
@@ -184,11 +161,6 @@ function detectRigAndGetMapping(root) {
     if (obj.isBone) boneNames.add(sanitize(obj.name));
   });
 
-  // Si tiene los huesos legacy de base.gltf
-  if (boneNames.has("hips_40")) {
-    return new Map(Object.entries(BONE_MAP_BASE_LEGACY).map(([k, v]) => [sanitize(k), v]));
-  }
-
   // Si ya tiene nombres estándar (Hips, Spine, etc.), solo aplicar alias
   // Crear mapeo de alias para variantes
   const mapping = new Map(
@@ -249,6 +221,10 @@ function renameBones(root) {
   ]);
   const missing = new Set(required);
 
+  // Qué se renombró (nombre ORIGINAL → nuevo): los clips traen sus pistas
+  // con los nombres originales y hay que reetiquetarlas igual (ver
+  // `retargetTracks` en loadBaseModel).
+  const renames = new Map();
   root.traverse((obj) => {
     if (!obj.isBone) return;
     const sanitized = sanitize(obj.name);
@@ -256,6 +232,7 @@ function renameBones(root) {
 
     if (newName) {
       if (newName !== "") {
+        renames.set(obj.name, newName);
         obj.name = newName;
         missing.delete(newName);
       }
@@ -271,6 +248,25 @@ function renameBones(root) {
     console.warn(
       `baseModel: no se encontraron estos huesos en el modelo: ${[...missing].join(", ")}`
     );
+  }
+  return renames;
+}
+
+/**
+ * Reetiqueta las pistas de los clips con los nombres NUEVOS de los huesos.
+ * Sin esto, el mixer buscaba "Spine02.quaternion" en un rig donde ese hueso
+ * ya se llama "Chest": un aviso de consola por pista y por instancia
+ * (cientos), y ese hueso quieto durante la caminata.
+ */
+function retargetTracks(animations = [], renames) {
+  if (!renames?.size) return;
+  for (const clip of animations) {
+    for (const t of clip.tracks) {
+      const dot = t.name.lastIndexOf(".");
+      if (dot < 0) continue;
+      const renamed = renames.get(t.name.slice(0, dot));
+      if (renamed) t.name = renamed + t.name.slice(dot);
+    }
   }
 }
 
@@ -306,8 +302,7 @@ export function instantiateBase(gltf, { height = 1.5 } = {}) {
     if (obj.isBone) bones.set(obj.name, obj);
     if (obj.isSkinnedMesh) {
       obj.frustumCulled = false; // su caja es la de reposo; ver character3d.js
-      const role = MESH_ROLES[obj.name] ?? obj.name;
-      meshes.set(role, obj);
+      meshes.set(obj.name, obj);
     }
   });
 
@@ -315,45 +310,35 @@ export function instantiateBase(gltf, { height = 1.5 } = {}) {
 }
 
 /**
- * Chibifica y da complexión, escalando huesos.
+ * Complexión por receta (`build` en characters3d.json), escalando huesos.
+ * Sin morph targets es el único camino, y a esta cámara y con este low-poly
+ * se lee de sobra. NUNCA toca el eje Y: la altura es sagrada (canon del
+ * reparto) y la pone `height`, no esto.
  *
- * Es el único camino que queda sin morph targets, y tiene un límite honesto:
- * una cabeza pensada para medir un sexto del cuerpo, agrandada al triple, no
- * se lee igual que una diseñada para ser grande. Por eso esto sale de una
- * comparativa contra el muñeco procedural y no de un número elegido a ojo.
+ *  · `width` corpulencia general: escala las caderas a lo ancho, y como TODO
+ *    el esqueleto cuelga de ellas, engorda el cuerpo entero sin subirlo.
+ *  · `depth` lo mismo a lo hondo (por defecto, el mismo valor que width).
+ *  · `chest` solo el torso de pecho para arriba: hombros y espalda anchos
+ *    sin tocar caderas ni piernas (es lo que diferencia a Steven de Giuli).
+ *  · `belly` barriga: el espinazo bajo, sobre todo hacia delante. 0 = nada.
+ *  · `head` la cabeza, uniforme — palanca de caricatura.
  *
- *  · `head`  1 = como venía · 2.4 ≈ las proporciones de nuestras referencias
- *  · `width` engorda torso y extremidades sin tocar la altura
- *  · `limbs` acorta brazos y piernas, que es lo que de verdad "achaparra"
+ * Las escalas SOBREVIVEN a la caminata porque los clips llegan sin pistas de
+ * escala (ver `stripScaleTracks`). Si un clip volviera a traerlas, esto se
+ * desharía en el primer paso sin que nada avise.
  */
-export function applyBuild(bones, { head = 1, width = 1, limbs = 1, belly = 0 } = {}) {
+export function applyBuild(bones, { width = 1, depth = null, chest = 1, belly = 0, head = 1 } = {}) {
+  const d = depth ?? width;
+  if (width === 1 && d === 1 && chest === 1 && belly === 0 && head === 1) return;
+
   const set = (name, x, y, z) => {
     const bone = bones.get(name);
     if (bone) bone.scale.set(x, y, z);
   };
 
+  set("Hips", width, 1, d);
+  set("Chest", chest, 1, 1 + (chest - 1) * 0.7);
+  if (belly) set("Spine", 1 + belly * 0.35, 1, 1 + belly * 0.8);
   set("Head", head, head, head);
-  // El torso engorda a lo ancho y a lo hondo, nunca a lo alto: estirarlo en Y
-  // le sube la cabeza y descoloca todo lo que cuelga de ella.
-  set("Spine", width + belly * 0.5, 1, width + belly * 0.8);
-  set("Chest", width, 1, width);
-
-  for (const side of ["Left", "Right"]) {
-    set(`${side}Arm`, width, limbs, width);
-    set(`${side}UpLeg`, width, limbs, width);
-  }
 }
 
-/**
- * Tiñe el cuerpo por partes. El modelo trae UN material para todo, así que
- * cada malla (brazos, cuerpo, cabeza, cuello) recibe el suyo — es la única
- * división de color que da el archivo sin pintar una textura.
- */
-export function paintBase(meshes, { skin, body }) {
-  const skinMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(skin) });
-  const bodyMat = new THREE.MeshLambertMaterial({ color: new THREE.Color(body ?? skin) });
-  for (const [role, mesh] of meshes) {
-    mesh.material = role === "body" ? bodyMat : skinMat;
-  }
-  return { skinMat, bodyMat };
-}

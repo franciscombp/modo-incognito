@@ -18,8 +18,8 @@ async function clearDialogue(page, maxSteps = 40) {
   for (let i = 0; i < maxSteps; i++) {
     const open = await page.evaluate(() => window.__game.engine.dialogue.isOpen);
     if (!open) return;
-    const hasOptions = await page.evaluate(() => !document.querySelector(".vn-options")?.classList.contains("hidden"));
-    if (hasOptions) await page.evaluate(() => document.querySelector(".vn-option")?.click());
+    const hasOptions = await page.evaluate(() => !document.querySelector(".inc-dialogue-options")?.classList.contains("hidden"));
+    if (hasOptions) await page.evaluate(() => document.querySelector(".inc-dialogue-option")?.click());
     else await page.keyboard.press("Space");
     await page.waitForTimeout(120);
   }
@@ -38,6 +38,13 @@ const out = await page.evaluate(() => {
   const S = window.__floorplan.WORLD_SCALE;
   game.setPaused(false);
   game.minions.forEach((m) => m.setActive(false));
+  // Este test es sobre la proximidad de los secuaces, no sobre la puerta del
+  // día 1 (encontrar a Gabo primero) — se salta directo a la vigilancia ya
+  // activada, o los secuaces no hablan aunque te toquen.
+  // `clearGate` y no `metGabo = true` a pelo: la bandera sola abre el piso
+  // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
+  // es la campana al enterarse de que la mision de la puerta cayo.
+  game.clearGate();
 
   const crispo = game.minions.find((m) => m.cast === "crispo");
   if (!crispo) return { error: "no crispo on duty today" };

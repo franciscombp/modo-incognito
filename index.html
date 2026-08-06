@@ -7,6 +7,7 @@
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, orientation=landscape"
     />
     <link rel="icon" type="image/png" href="./public/favicon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
     <meta name="theme-color" content="#0a0a0d" />
     <meta
       name="description"
@@ -19,11 +20,16 @@
     <div id="app">
       <canvas id="scene"></canvas>
       <div id="boot">
-        <div class="boot-mark">MODO<br />INCÓGNITO</div>
-        <div class="boot-bar"><span></span></div>
-        <div class="boot-note">Cargando el Piso 10…</div>
+        <div class="boot-shell">
+          <div class="boot-head"><span>INCÓGNITO&nbsp;//&nbsp;OS</span><span>V1.0</span></div>
+          <div class="boot-log" id="boot-log"></div>
+          <div class="boot-bar"><span></span></div>
+        </div>
       </div>
-      <div id="hint">WASD mover · Espacio usar/fingir · M plano · V sonido · Esc pausa · Q tareas</div>
+      <!-- El texto lo rellena JS desde src/ui/controls.js, que es la ÚNICA
+           lista de mandos. Escrito a mano aquí, se separaba de las teclas que
+           el juego escucha de verdad y de lo que decía "Cómo se juega". -->
+      <div id="hint"></div>
     </div>
     <script type="module" src="/src/main.js"></script>
   </body>
