@@ -32,18 +32,12 @@ Las que fijan el rumbo NUEVO. Ver [`../PANTALLAS.md`](../PANTALLAS.md) y
 
 | Archivo | Qué es | Qué copiar |
 | --- | --- | --- |
+| `hud/partida.jpeg` | HUD de partida | La **placa fundida** retrato+vida arriba-izq, la vida en rombos DISCRETOS, el nombre de zona en texto pelado abajo-der, y el centro completamente libre |
+| `hud/pausa.jpeg` | Menú de pausa | Pestañas con los gatillos dibujados, la **colita** que ata la activa al contenido, un solo acento, leyenda de mandos abajo, y el juego visible por detrás |
+| `hud/tareas.jpeg` | Lista de misiones | Filas **sin caja** separadas por líneas, atajo por tarea (`Alt + 1`), distancia y progreso alineados a la derecha, insignia por categoría, y el lavado suave en la fila activa |
 | `pantallas/seleccion-escuadron.jpg` | Selección de agente de escuadrón | La estructura de tres columnas, el personaje 3D como protagonista, lo bloqueado en silueta, y los paneles **sesgados** que inspiran los menús 3D |
 | `pantallas/seleccion-agentes.webp` | Selección de agente competitiva | Las **cartas a sangre** y sus estados (elegida / bloqueada / de otro), el botón de acción DENTRO de la carta, y el personaje **saliéndose del marco** |
 
-### Faltan tres
-
-Se pegaron en el chat sin adjuntar y no llegaron al repo. Están descritas en
-`HUD.md` pero sin imagen, así que dentro de unos meses nadie va a saber de
-qué se hablaba:
-
-- **HUD de partida** («Lime Street») — placa retrato+vida arriba-izq, moneda
-  arriba-der, prompt de botón abajo-izq, nombre de zona abajo-der.
-- **Menú de pausa** — pestañas con gatillos, acento único, leyenda de mandos
-  abajo, el juego visible por detrás.
-- **Lista de misiones** — filas sin caja, atajo por tarea, distancia y
-  progreso alineados a la derecha, insignia por categoría.
+Las cinco están completas. Si añades una más, súmala a esta tabla con **qué
+copiar de ella** — una captura sin esa columna no sirve de nada dentro de
+seis meses.

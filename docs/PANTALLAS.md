@@ -12,9 +12,8 @@ dibuja todo, y las pantallas de menú.
 | `seleccion-escuadron.jpg` | Selección de agente de escuadrón | La ESTRUCTURA de tres columnas y el panel biselado |
 | `seleccion-agentes.webp` | Selección de agente competitiva | Las CARTAS, sus estados y el personaje saliéndose del marco |
 
-> ⚠️ **Siguen faltando tres**, que se pegaron en el chat sin adjuntar y no
-> llegaron al repo: el HUD de partida («Lime Street»), el menú de pausa y la
-> lista de misiones. Están descritas en `HUD.md` pero sin imagen.
+Las tres del HUD (partida, pausa y lista de misiones) están en
+`docs/referencias/hud/` y se desmontan en [`HUD.md`](HUD.md).
 
 ---
 
