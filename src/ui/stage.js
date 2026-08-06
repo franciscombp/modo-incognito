@@ -24,8 +24,48 @@ import { iconEl } from "./icons.js";
  *    silencio y manda la cortina.
  */
 
-export const STAGE_W = 1920;
-export const STAGE_H = 1080;
+/**
+ * DOS LIENZOS, NO UNO.
+ *
+ * El lienzo fijo resolvió el responsive, pero con un solo tamaño creó otro
+ * problema: en un teléfono, 1920 lógicos entran en ~844 físicos, o sea una
+ * escala de 0.36 — un botón de 40 px acababa midiendo 14 px de verdad, por
+ * debajo de lo que un dedo puede acertar. Todo se veía DIMINUTO.
+ *
+ * La solución NO es un diseño aparte para móvil (volveríamos al responsive
+ * que costó tanto quitar): es el MISMO diseño sobre un lienzo más pequeño.
+ * Los dos son 16:9, así que nada se recoloca — simplemente cada elemento
+ * ocupa más fracción de pantalla. El mismo botón de 40 px pasa de 14 a 22
+ * físicos sin tocar una regla de CSS.
+ *
+ * En 1280×720 además todo el contenido sigue cabiendo por construcción: es
+ * exactamente 2/3 del grande, y el HUD se diseñó con margen de sobra.
+ */
+const STAGE_WIDE = { w: 1920, h: 1080 };
+const STAGE_COMPACT = { w: 1280, h: 720 };
+
+/**
+ * SE ELIGE UNA VEZ, AL ARRANCAR, y ya no cambia.
+ *
+ * Cambiarlo en caliente obligaría a redimensionar el renderer, la cámara y
+ * el pase de píxeles a mitad de partida, y a que todo el CSS se recalculara
+ * — por un caso (girar una tablet muy grande) que no lo justifica. Girar el
+ * teléfono NO cruza el umbral: `pointer: coarse` no depende de la
+ * orientación.
+ */
+function pickStage() {
+  const coarse = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+  // Y una ventana pequeña de escritorio también: ahí el lienzo grande deja
+  // el texto por debajo de lo legible aunque el puntero sea fino.
+  const small = Math.max(window.innerWidth, window.innerHeight) < 1100;
+  return coarse || small ? STAGE_COMPACT : STAGE_WIDE;
+}
+
+const CHOSEN = pickStage();
+export const STAGE_W = CHOSEN.w;
+export const STAGE_H = CHOSEN.h;
+/** ¿Estamos en el lienzo pequeño? Lo usan las comprobaciones y el CSS. */
+export const STAGE_IS_COMPACT = CHOSEN === STAGE_COMPACT;
 
 /** La escala actual del lienzo (0–n). La lee quien mide en px de pantalla. */
 export function stageScale() {
@@ -41,7 +81,15 @@ export function stageScale() {
  * pone JS y el CSS solo lo consume.
  */
 export function applyStageScale() {
-  document.documentElement.style.setProperty("--ui-scale", String(stageScale()));
+  const root = document.documentElement;
+  root.style.setProperty("--ui-scale", String(stageScale()));
+  // El TAMAÑO del lienzo también sale de aquí: el CSS ya no puede llevarlo
+  // escrito, porque ahora hay dos y lo elige el dispositivo.
+  root.style.setProperty("--stage-w", `${STAGE_W}px`);
+  root.style.setProperty("--stage-h", `${STAGE_H}px`);
+  // Marca para quien necesite afinar algo en el pequeño (y para las
+  // comprobaciones, que así no tienen que adivinar qué lienzo tocó).
+  root.dataset.stage = STAGE_IS_COMPACT ? "compact" : "wide";
 }
 
 /**
