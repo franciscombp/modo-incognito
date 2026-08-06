@@ -156,20 +156,46 @@ export function createHud(root) {
   // progreso para no tapar a la jugadora justo cuando la cámara se acerca a
   // ella.
   const actionScene = el("div", "inc-action-scene inc-hidden", hud);
+  const actionLabel = el("div", "inc-action-label", actionScene);
   const actionTrack = el("div", "inc-action-progress-track", actionScene);
   const actionFill = el("div", "inc-action-progress-fill", actionTrack);
-  const actionLabel = el("div", "inc-action-label", actionScene);
+  // El PORCENTAJE, en cifra. Una barra que avanza despacio parece parada;
+  // un número que sube deja claro que sí está pasando algo. Es la queja
+  // exacta que arregla esto: "no se ve que se está avanzando".
+  const actionPct = el("div", "inc-action-pct", actionScene);
 
+  let lastActionPct = -1;
   function setAction(action) {
     if (!action) {
       actionScene.classList.add("inc-hidden");
+      actionScene.classList.remove("advancing", "done");
+      lastActionPct = -1;
       return;
     }
     actionScene.classList.remove("inc-hidden");
     actionLabel.innerHTML = action.done ? `${action.label} ${svgIcon("check", { size: 15 })}` : action.label ?? "";
     actionTrack.classList.toggle("inc-hidden", action.progress == null);
+    actionScene.classList.toggle("done", !!action.done);
     if (action.progress != null) {
-      actionFill.style.width = `${Math.round(Math.min(1, Math.max(0, action.progress)) * 100)}%`;
+      const pct = Math.round(Math.min(1, Math.max(0, action.progress)) * 100);
+      actionFill.style.width = `${pct}%`;
+      actionPct.textContent = `${pct}%`;
+      actionPct.classList.remove("inc-hidden");
+      // Micro-interacción: cada vez que el progreso AVANZA de verdad, el
+      // panel da un latido. Sin esto, con una tarea larga la barra se
+      // mueve tan despacio que parece congelada y da la sensación de que
+      // el juego no registró la acción.
+      if (pct > lastActionPct && lastActionPct >= 0) {
+        actionScene.classList.remove("advancing");
+        // Reiniciar la animación: sin forzar el reflujo, quitar y poner la
+        // clase en el mismo frame no la vuelve a disparar.
+        void actionScene.offsetWidth;
+        actionScene.classList.add("advancing");
+      }
+      lastActionPct = pct;
+    } else {
+      actionPct.classList.add("inc-hidden");
+      lastActionPct = -1;
     }
   }
 
