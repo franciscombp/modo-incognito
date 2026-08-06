@@ -10367,3 +10367,187 @@ body {
   outline: 2px solid hsl(var(--p-accent-bright));
   outline-offset: 3px;
 }
+
+/* =====================================================================
+   EL EXPEDIENTE EN 3D: paneles girados a los lados del personaje
+   =====================================================================
+
+   Sale de `docs/referencias/pantallas/`: en las dos referencias de
+   selección el personaje manda el centro en MEDIO PLANO —de la cintura
+   para arriba, grande— y los datos viven en paneles a los lados, no
+   apilados debajo. Aquí además los paneles se giran de verdad con CSS 3D
+   (`perspective` + `rotateY`), así que tienen profundidad real respecto
+   al muñeco en vez de un degradado que la imite.
+
+   La perspectiva va en el CONTENEDOR y el giro en cada panel: es la única
+   forma de que los dos lados compartan el mismo punto de fuga. Poniendo
+   `perspective` en cada panel, cada uno se fuga por su cuenta y el
+   conjunto se lee torcido en vez de en volumen.
+   ===================================================================== */
+
+.inc-login-stage {
+  display: grid;
+  /* Cinco columnas: flecha · panel · PERSONAJE · panel · flecha. El
+     centro se lleva la parte del león, que es de lo que va la pantalla. */
+  grid-template-columns: auto 300px minmax(320px, 1fr) 300px auto;
+  align-items: center;
+  gap: 20px;
+  width: 100%;
+  perspective: 1400px;
+  perspective-origin: 50% 45%;
+}
+
+.inc-login-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 22px;
+  text-align: left;
+  background: linear-gradient(180deg, hsl(var(--p-accent-bright) / 0.07), hsl(var(--p-bg-900) / 0.35));
+  border: 1px solid hsl(var(--p-accent-bright) / 0.28);
+  border-radius: 16px;
+  box-shadow: 0 0 30px hsl(var(--p-accent-bright) / 0.12), inset 0 0 40px hsl(var(--p-accent-bright) / 0.05);
+  /* El giro. `transform-style: preserve-3d` no hace falta: los paneles no
+     tienen hijos en 3D, solo se inclinan ellos. */
+  backface-visibility: hidden;
+}
+
+/* Se abren en V hacia la jugadora, como las alas de un tríptico. */
+.inc-login-panel--left {
+  transform: rotateY(16deg) translateZ(-30px);
+  transform-origin: right center;
+}
+.inc-login-panel--right {
+  transform: rotateY(-16deg) translateZ(-30px);
+  transform-origin: left center;
+  align-items: stretch;
+}
+
+/* La etiqueta de cada panel, como el rótulo de una ficha de sistema. */
+.inc-login-panel-tag {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: hsl(var(--p-accent-bright) / 0.75);
+  padding-bottom: 8px;
+  border-bottom: 1px solid hsl(var(--p-accent-bright) / 0.22);
+}
+
+/* Dentro de los paneles el texto ya no va centrado. */
+.inc-login-panel .inc-login-name,
+.inc-login-panel .inc-login-role,
+.inc-login-panel .inc-login-blurb {
+  text-align: left;
+  margin: 0;
+  max-width: none;
+}
+
+/* ── LAS BARRAS DE PERFIL ─────────────────────────────────────────── */
+.inc-login-stat {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+.inc-login-stat-name {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.inc-login-stat-track {
+  height: 9px;
+  border-radius: 999px;
+  background: hsl(var(--p-ink-900) / 0.55);
+  border: 1px solid hsl(var(--p-accent-bright) / 0.22);
+  overflow: hidden;
+}
+.inc-login-stat-track > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: hsl(var(--p-accent-bright));
+  box-shadow: 0 0 10px hsl(var(--p-accent-bright) / 0.6);
+}
+/* Lo que te complica la vida va en caliente, no en el acento tranquilo. */
+.inc-login-stat-track > i.hot {
+  background: hsl(var(--p-warn));
+  box-shadow: 0 0 10px hsl(var(--p-warn) / 0.6);
+}
+
+/* Los rombos del margen: el MISMO recurso que las amonestaciones de la
+   placa del HUD, para que se reconozcan antes de jugar. */
+.inc-login-stat-pips {
+  display: flex;
+  gap: 7px;
+}
+.inc-login-pip {
+  width: 13px;
+  height: 13px;
+  background: hsl(var(--p-ink-700) / 0.4);
+  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
+}
+.inc-login-pip.on {
+  background: hsl(var(--p-warn));
+  box-shadow: 0 0 9px hsl(var(--p-warn) / 0.55);
+}
+
+/* ── EL PERSONAJE, EN MEDIO PLANO ─────────────────────────────────── */
+.inc-login-user {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* El disco baja a ser una PEANA de luz: elipse a los pies, no un marco
+   alrededor de la cara. El muñeco ya no está contenido por él. */
+.inc-login-avatar {
+  width: clamp(180px, 34vh, 260px);
+  aspect-ratio: 1;
+  align-self: center;
+}
+
+/* MEDIO PLANO: la foto es de CUERPO ENTERO, así que se amplía y se ancla
+   por ARRIBA — la cabeza cerca del borde superior del disco y las piernas
+   cayendo fuera por abajo, donde el degradado las disuelve. Es el encuadre
+   de las dos referencias: de cerca se le ve la cara, que es lo que se está
+   eligiendo.
+
+   OJO al anclaje: esto estuvo con `bottom: -6%` y alto 260%, y el muñeco
+   DESAPARECÍA — con la caja creciendo hacia arriba desde el pie del disco,
+   la imagen quedaba dos alturas por encima, fuera de la pantalla. Se ancla
+   con `top`, que es el borde que de verdad manda aquí. */
+.inc-login-avatar::after {
+  width: 200%;
+  height: 200%;
+  top: -14%;
+  bottom: auto;
+  background-position: center top;
+  background-size: contain;
+  /* Se desvanece por abajo en vez de cortarse a cuchillo: el medio plano se
+     lee como un holograma que se disuelve, no como una foto recortada. */
+  -webkit-mask-image: linear-gradient(180deg, #000 42%, transparent 66%);
+  mask-image: linear-gradient(180deg, #000 42%, transparent 66%);
+}
+
+
+/* La pantalla de personaje es la ÚNICA que se sale del ancho de menú.
+   Las referencias la usan a pantalla completa, y con tres columnas no hay
+   otra: encajada en el ancho normal, cada panel se quedaba en 90px y el
+   texto salía a una palabra por línea.
+
+   El ancho lo impone el CONTENEDOR de pantallas (`.inc-menu-menu-stage`,
+   720px), no la pantalla: ensanchar solo `.inc-login` no servía de nada
+   porque es su hija. Se ensancha el contenedor SOLO cuando la pantalla
+   visible es esta, con `:has()`, para no tocar el resto de menús. */
+.inc-menu-menu-stage:has(> .inc-login:not(.inc-hidden)) {
+  width: min(1180px, 100%);
+}
+.inc-login {
+  max-width: none;
+  width: 100%;
+}
