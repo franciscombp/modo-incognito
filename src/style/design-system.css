@@ -1828,18 +1828,27 @@ body.inc-dialogue-open .inc-world-prompt {
 }
 
 .inc-dialogue-speaker-text {
-  font-weight: 700;
-  font-size: 14px;
+  font-weight: 800;
+  font-size: 19px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--inc-dialogue-accent, hsl(var(--accent-main)));
 }
 
+/* ── EL DIÁLOGO SE LEE ───────────────────────────────────────────────
+   Iba a 16px. Dentro del lienzo de 1280 eso son ~11 reales en una ventana
+   de 900 de alto: por debajo de lo cómodo para el texto que MÁS se lee del
+   juego, porque toda la comedia pasa por aquí.
+
+   Y se mide en px de LIENZO, nunca en vw: dentro de `#app`, que ya se
+   escala entero con `--ui-scale`, un `vw` cuenta el viewport dos veces y el
+   tamaño acaba dependiendo de la ventana — que es justo lo que el LIENZO
+   FIJO existe para evitar (docs/PANTALLAS.md §1). */
 .inc-dialogue-text {
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 26px;
+  line-height: 1.55;
   color: hsl(var(--text-000));
-  min-height: 60px;
+  min-height: 84px;
   display: flex;
   align-items: center;
 }
@@ -1850,10 +1859,17 @@ body.inc-dialogue-open .inc-world-prompt {
   gap: var(--space-sm);
 }
 
+/* Las opciones son LA DECISIÓN de la escena, así que tienen cuerpo de
+   botón: alto de dedo, tipo grande y relleno propio. A 500 de peso y
+   altura de fila se leían como una lista. */
 .inc-dialogue-option {
   text-align: left;
   justify-content: flex-start;
-  font-weight: 500;
+  font-weight: 700;
+  font-size: 21px;
+  min-height: 68px;
+  padding: 16px 24px;
+  gap: 12px;
 }
 
 .inc-dialogue-option.focused {
@@ -1864,7 +1880,7 @@ body.inc-dialogue-open .inc-world-prompt {
 
 .inc-dialogue-hint {
   text-align: center;
-  font-size: 18px;
+  font-size: 20px;
   color: hsl(var(--text-200));
   margin-top: var(--space-sm);
   animation: inc-pulse 1.5s ease-in-out infinite;
@@ -3117,8 +3133,11 @@ body.touch-device #hint {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 12px;
-  padding: 10px 18px 10px 12px;
+  gap: 16px;
+  /* Más cuerpo: este cartel es el que dice QUÉ se puede hacer aquí, y es
+     lo primero que se busca al acercarse a un sitio. A 10px de relleno
+     con letra de 16 competía en tamaño con un rótulo de fondo. */
+  padding: 14px 24px 14px 16px;
   font-family: var(--mono);
   background: linear-gradient(180deg, rgba(16, 24, 40, 0.97), rgba(7, 10, 18, 0.97));
   border: 2px solid var(--cyan);
@@ -3671,7 +3690,9 @@ body.touch-device #hint {
      .vn-box: si cada uno calcula su propio clamp() por separado, en
      cualquier resolución donde no coincidan exactamente el texto arranca
      TAPADO por el retrato en vez de justo a su derecha. */
-  --vn-portrait-w: clamp(260px, 34vw, 460px);
+  /* Ancho del retrato en px de LIENZO, no en vw: dentro de `#app` el vw
+     se cuenta dos veces (ver la nota de .vn-text). */
+  --vn-portrait-w: 400px;
   position: absolute;
   inset: 0;
   z-index: 40;
@@ -3770,7 +3791,7 @@ body.touch-device #hint {
      1): antes se encogía al hueco a la derecha del retrato, dejando la caja
      de texto angosta pese a que la escena entera es "pantalla completa". El
      padding-izquierdo reserva el sitio justo para no tapar la cara. */
-  padding: 40px clamp(24px, 4vw, 56px) 24px calc(var(--vn-portrait-w) + 24px);
+  padding: 44px 56px 28px calc(var(--vn-portrait-w) + 28px);
   border: 2px solid var(--vn-accent);
   border-radius: 14px;
   background: var(--scan), linear-gradient(180deg, hsl(var(--p-bg-700) / 0.98), hsl(var(--p-bg-800) / 0.98));
@@ -3792,11 +3813,11 @@ body.touch-device #hint {
   top: -1px;
   left: calc(var(--vn-portrait-w) + 24px);
   transform: translateY(-100%);
-  padding: 8px 20px 6px;
+  padding: 10px 24px 8px;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 900;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--ink);
   background: var(--vn-accent);
@@ -3812,13 +3833,24 @@ body.touch-device #hint {
   color: var(--on-accent);
 }
 
+/* ── EL TEXTO SE MIDE EN PX DE LIENZO, NUNCA EN vw ──────────────────
+   Iba en `clamp(18px, 1.7vw, 24px)`, y ahí estaba el fallo: `vw` mide el
+   VIEWPORT, pero todo esto vive dentro de `#app`, que ya se escala entero
+   con `--ui-scale`. O sea que el viewport se contaba DOS VECES — en una
+   ventana de 1440 con lienzo de 1920 la escala es 0.75, así que esos 24px
+   acababan siendo 18 reales en pantalla. Por eso se leía pequeño.
+
+   Un px de lienzo, en cambio, escala igual que el resto de la interfaz y
+   es predecible: 28 aquí son 28 en el diseño, midan lo que midan en el
+   monitor de cada cual. Es toda la promesa del LIENZO FIJO
+   (docs/PANTALLAS.md §1), y `vw` es justo lo que la rompe. */
 .vn-text {
   font-family: var(--mono);
-  font-size: clamp(18px, 1.7vw, 24px);
-  line-height: 1.7;
+  font-size: 28px;
+  line-height: 1.65;
   min-height: 4em;
   color: var(--ink);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.2px;
 }
 
 .vn-options {
@@ -3832,38 +3864,58 @@ body.touch-device #hint {
   display: none;
 }
 
+/* ⚠️ PIEL MUERTA: el diálogo en juego NO usa `.vn-*`, usa `.inc-dialogue-*`
+   (ver game/dialogue.js). Estas reglas se quedan porque el bloque entero
+   sigue en el archivo, pero lo que se ve al jugar se ajusta abajo, en
+   «EL DIÁLOGO SE LEE». No pierdas el tiempo afinando aquí. */
 .vn-option {
   pointer-events: auto;
-  min-height: 56px;
-  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  padding: 18px 26px;
   text-align: left;
   font: inherit;
   font-family: var(--mono);
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
   color: var(--ink);
   cursor: pointer;
-  background: rgba(var(--cyan-rgb), 0.12);
+  background: rgba(var(--cyan-rgb), 0.14);
   border: 2px solid var(--vn-accent);
-  border-radius: 10px;
-  transition: background 0.12s, transform 0.06s;
+  border-radius: 14px;
+  box-shadow: 0 4px 0 0 var(--vn-accent), 0 8px 18px rgba(var(--ink-rgb), 0.28);
+  transition: background 0.12s, transform 0.07s, box-shadow 0.07s;
 }
 
 .vn-option::before {
-  content: "▸ ";
+  content: "▸";
   color: var(--vn-accent);
+  font-size: 24px;
+  line-height: 1;
+  flex: 0 0 auto;
 }
 
 .vn-option:hover,
-.vn-option:active,
 .vn-option.focused {
-  background: rgba(var(--cyan-rgb), 0.28);
-  transform: translateX(3px);
+  background: rgba(var(--cyan-rgb), 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 0 var(--vn-accent), 0 12px 22px rgba(var(--ink-rgb), 0.32);
+}
+
+/* Al pulsar se HUNDE: el zócalo desaparece y el botón baja a ocupar su
+   sitio. Es el mismo gesto de una tecla de verdad. */
+.vn-option:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 0 var(--vn-accent), 0 3px 8px rgba(var(--ink-rgb), 0.3);
 }
 
 .vn-option.focused {
   border-color: var(--vn-accent);
-  box-shadow: 0 0 0 3px rgba(var(--cyan-rgb), 0.28);
+  outline: 3px solid rgba(var(--cyan-rgb), 0.35);
+  outline-offset: 2px;
 }
 
 .vn-hint {
@@ -4601,14 +4653,14 @@ body:not(.touch-device) .touch-controls {
 .touch-btn {
   pointer-events: auto;
   touch-action: none;
-  width: 84px;
-  height: 84px;
+  width: 104px;
+  height: 104px;
   border-radius: 50%;
-  border: 2px solid var(--line);
+  border: 3px solid var(--line);
   color: var(--on-accent);
   font-family: var(--mono);
   font-weight: 900;
-  font-size: 13px;
+  font-size: 15px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4619,7 +4671,7 @@ body:not(.touch-device) .touch-controls {
 }
 
 .touch-btn-icon {
-  font-size: 27px;
+  font-size: 34px;
   line-height: 1;
 }
 
@@ -6717,8 +6769,11 @@ body.inc-game-active .inc-menu-scrim {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: center;
-  gap: 12px;
-  padding: 10px 18px 10px 12px;
+  gap: 16px;
+  /* Más cuerpo: este cartel es el que dice QUÉ se puede hacer aquí, y es
+     lo primero que se busca al acercarse a un sitio. A 10px de relleno
+     con letra de 16 competía en tamaño con un rótulo de fondo. */
+  padding: 14px 24px 14px 16px;
   font-family: var(--mono);
   background: linear-gradient(180deg, rgba(16, 24, 40, 0.97), rgba(7, 10, 18, 0.97));
   border: 2px solid var(--cyan);
@@ -6742,9 +6797,19 @@ body.inc-game-active .inc-menu-scrim {
   box-shadow: 0 0 26px rgba(242, 199, 68, 0.4), 0 6px 0 rgba(var(--ink-rgb), 0.45);
 }
 
+/* La TECLA, en su propia losa. Antes era el glifo suelto y se leía como
+   parte del texto; enmarcado se lee como "esto es lo que se pulsa". */
 .inc-world-prompt-key {
-  font-size: 30px;
+  font-size: 34px;
   line-height: 1;
+  min-width: 46px;
+  display: grid;
+  place-items: center;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(var(--cyan-rgb), 0.16);
+  border: 2px solid rgba(var(--cyan-rgb), 0.55);
+  box-shadow: 0 3px 0 0 rgba(var(--cyan-rgb), 0.45);
 }
 
 .inc-world-prompt-body {
@@ -6754,7 +6819,7 @@ body.inc-game-active .inc-menu-scrim {
 }
 
 .inc-world-prompt-label {
-  font-size: 16px;
+  font-size: 22px;
   font-weight: 900;
   color: var(--on-accent);
   white-space: nowrap;
@@ -6762,7 +6827,7 @@ body.inc-game-active .inc-menu-scrim {
 }
 
 .inc-world-prompt-hint {
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.18em;
   color: var(--cyan);
@@ -8302,13 +8367,16 @@ body.inc-game-active .inc-menu-scrim {
   background-image: linear-gradient(180deg, hsl(var(--p-bg-700) / 0.35), transparent 45%);
 }
 
-/* --- Opciones de diálogo: botones de juego de verdad --- */
+/* --- Opciones de diálogo: botones de juego de verdad ---
+   El ZÓCALO (la sombra dura de abajo) es lo que separa "botón" de "caja de
+   texto": un rectángulo plano se lee como un campo, uno con canto se lee
+   como una tecla. Al pulsar se hunde, que es el gesto de una tecla real. */
 .inc-dialogue-option {
   border-radius: 14px;
   border: 2px solid var(--line);
   background: var(--glass);
   font-weight: 700;
-  box-shadow: 0 3px 0 0 var(--line);
+  box-shadow: 0 5px 0 0 var(--line), 0 8px 16px rgba(var(--ink-rgb), 0.22);
   transition: transform 0.08s ease, box-shadow 0.08s ease, background 0.15s ease,
     border-color 0.15s ease, color 0.15s ease;
 }

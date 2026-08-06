@@ -12,6 +12,12 @@ export const QUALITY_LEVELS = {
 };
 
 export const SETTINGS_SCHEMA = {
+  stageSize: {
+    label: "Tamaño de la interfaz",
+    type: "choice",
+    options: ["1280", "1920", "auto"],
+    hint: "1280 = todo más grande · 1920 = más piso a la vista · se aplica al recargar",
+  },
   quality: {
     label: "Calidad gráfica",
     type: "choice",
@@ -43,6 +49,14 @@ export const SETTINGS_SCHEMA = {
 };
 
 const DEFAULTS = Object.freeze({
+  // 1280 POR DEFECTO, no "auto".
+  //
+  // El lienzo pequeño no es un modo degradado: es el MISMO diseño sobre una
+  // rejilla menor, así que cada elemento ocupa más fracción de pantalla y
+  // todo —HUD, diálogo, botones— se lee más grande. En el grande el texto
+  // acababa por debajo de lo cómodo en cuanto la ventana no era enorme.
+  // Quien quiera ver más piso a la vez tiene 1920 en Ajustes.
+  stageSize: "1280",
   quality: "auto",
   pixelSize: 0,
   colorLevels: 256,
