@@ -122,22 +122,47 @@ function sharedAssets() {
     shared = {
       chairBody: chairBodyGeometry(),
       chairStand: chairStandGeometry(),
-      // Monitor CON pie: base plana sobre la mesa, cuello y pantalla un
-      // pelín reclinada. El origen está en la BASE (y=0 = superficie de la
-      // mesa) — la losa flotante de antes era justo lo que se veía falso.
-      monitor: (() => {
-        const foot = new THREE.BoxGeometry(0.16 * S, 0.018 * S, 0.11 * S);
-        foot.translate(0, 0.009 * S, 0);
-        const neck = new THREE.CylinderGeometry(0.016 * S, 0.02 * S, 0.1 * S, 6);
+      // ── EL MONITOR VA EN DOS PIEZAS, Y ESA ES TODA LA DIFERENCIA ──────
+      //
+      // Antes era UNA geometría fundida (pie + cuello + pantalla) pintada
+      // entera con el material EMISIVO de la pantalla: el pie y el cuello
+      // brillaban igual que el panel, así que el conjunto se leía como una
+      // paleta luminosa clavada en la mesa, no como una computadora.
+      //
+      // Ahora el chasis va con material de mueble y solo la CARA del panel
+      // emite. Es lo que hace que se lea encendida: el contraste del panel
+      // claro contra su propio marco oscuro, que es exactamente como se
+      // reconoce un monitor de un vistazo.
+      //
+      // Las dos piezas se instancian con la MISMA lista de transformaciones,
+      // así que no hay forma de que se desalineen.
+      monitorBody: (() => {
+        // Pie con peso: base ancha y poco alta, como la de un monitor real.
+        const foot = new THREE.BoxGeometry(0.17 * S, 0.012 * S, 0.115 * S);
+        foot.translate(0, 0.006 * S, 0);
+        // Cuello en columna plana, no en cilindro: un tubo redondo se lee a
+        // lápiz desde la cámara oblicua.
+        const neck = new THREE.BoxGeometry(0.045 * S, 0.11 * S, 0.03 * S);
         neck.translate(0, 0.06 * S, 0);
-        const screen = new THREE.BoxGeometry(0.34 * S, 0.22 * S, 0.024 * S);
-        screen.rotateX(0.08);
-        screen.translate(0, 0.22 * S, 0.01 * S);
-        return mergeGeometries([foot, neck, screen], false);
+        // Carcasa: un pelín más grande que el panel por los cuatro lados,
+        // que es el marco que hace de contraste.
+        const shell = new THREE.BoxGeometry(0.36 * S, 0.235 * S, 0.022 * S);
+        shell.rotateX(0.08);
+        shell.translate(0, 0.225 * S, 0.006 * S);
+        return mergeGeometries([foot, neck, shell], false);
+      })(),
+      // La cara encendida: un plano fino por DELANTE de la carcasa. Va algo
+      // más pequeño que ella para que quede marco visible por los cuatro
+      // lados, y mira a -z (hacia quien se sienta).
+      monitorScreen: (() => {
+        const panel = new THREE.BoxGeometry(0.315 * S, 0.19 * S, 0.004 * S);
+        panel.rotateX(0.08);
+        panel.translate(0, 0.2275 * S, -0.0075 * S);
+        return panel;
       })(),
       // Laptop abierta: base fina + pantalla abatida hacia atrás. Origen en
-      // la bisagra, apoyada sobre la mesa.
-      laptop: (() => {
+      // la bisagra, apoyada sobre la mesa. Misma división que el monitor.
+      laptopBody: (() => {
         const base = new THREE.BoxGeometry(0.26 * S, 0.016 * S, 0.18 * S);
         base.translate(0, 0.008 * S, -0.02 * S);
         const lid = new THREE.BoxGeometry(0.26 * S, 0.17 * S, 0.012 * S);
@@ -145,14 +170,32 @@ function sharedAssets() {
         lid.translate(0, 0.078 * S, 0.085 * S);
         return mergeGeometries([base, lid], false);
       })(),
-      // Teclado: una losa fina inclinada delante del monitor. Es barato y es
-      // lo que termina de leer "puesto de trabajo" — una mesa con pantalla y
-      // nada delante parece un escaparate.
+      laptopScreen: (() => {
+        const panel = new THREE.BoxGeometry(0.225 * S, 0.142 * S, 0.004 * S);
+        panel.rotateX(0.32);
+        panel.translate(0, 0.0785 * S, 0.0785 * S);
+        return panel;
+      })(),
+      // Teclado: losa fina inclinada, con una segunda losa encima algo más
+      // pequeña que hace de bloque de teclas. Con una sola losa se leía como
+      // un posavasos; el escalón basta para que se lea teclado.
       keyboard: (() => {
-        const k = new THREE.BoxGeometry(0.3 * S, 0.014 * S, 0.11 * S);
-        k.rotateX(-0.04);
-        k.translate(0, 0.007 * S, 0);
-        return k;
+        const base = new THREE.BoxGeometry(0.3 * S, 0.01 * S, 0.11 * S);
+        base.translate(0, 0.005 * S, 0);
+        const keys = new THREE.BoxGeometry(0.27 * S, 0.006 * S, 0.085 * S);
+        keys.translate(0, 0.012 * S, -0.004 * S);
+        const merged = mergeGeometries([base, keys], false);
+        merged.rotateX(-0.04);
+        return merged;
+      })(),
+      // El ratón. Es minúsculo y aun así es lo que más "puesto ocupado"
+      // aporta por polígono: una mesa con pantalla y teclado pero sin ratón
+      // se lee como un expositor de tienda.
+      mouse: (() => {
+        const m = new THREE.SphereGeometry(0.028 * S, 8, 6);
+        m.scale(0.75, 0.5, 1.15);
+        m.translate(0, 0.014 * S, 0);
+        return m;
       })(),
       stool: new THREE.CylinderGeometry(0.17 * S, 0.17 * S, 0.45 * S, 8),
       podFrame: podFrameGeometry(),
@@ -180,14 +223,22 @@ function sharedAssets() {
         edge: cozyMaterial("deskEdge"),
         leg: cozyMaterial("deskLeg"),
         seat: cozyMaterial("fabricDark"),
-        // Emisión BAJA a propósito. Una pantalla de escritorio encendida no
-        // ilumina la oficina: lo que la delata es el contraste contra su
-        // marco oscuro. Con la emisión alta, veinte monitores convertían el
-        // piso en una feria de luces y se comían el contraste de la escena.
+        // El marco del monitor: oscuro y MATE, sin emisión. Es la mitad del
+        // truco — el panel solo se lee encendido si tiene un marco apagado
+        // contra el que contrastar.
+        chassis: cozyMaterial("screen"),
+        // El panel encendido: base OSCURA con brillo encima, no un color
+        // claro a secas. Pintarlo del color del brillo lo dejaba como una
+        // ficha de menta plana pegada al marco; con la base oscura, lo que
+        // se ve es un cristal que emite, que es como se lee una pantalla.
+        //
+        // La emisión puede ir alta ahora porque solo la lleva la CARA. Antes
+        // la llevaba el monitor entero y por eso había que tenerla a 0.28
+        // para que veinte puestos no convirtieran el piso en una feria.
         screen: new THREE.MeshLambertMaterial({
           color: new THREE.Color(SURFACES.screen),
           emissive: new THREE.Color(SURFACES.screenGlow),
-          emissiveIntensity: 0.28,
+          emissiveIntensity: 0.6,
         }),
         bulb: new THREE.MeshLambertMaterial({
           color: new THREE.Color("#fff2cc"),
@@ -213,6 +264,20 @@ function transform(x, y, z, rotY = 0) {
   _euler.set(0, rotY, 0);
   _quat.setFromEuler(_euler);
   return _m.compose(_pos, _quat, _scale).clone();
+}
+
+/**
+ * La matriz de un ratón a partir de la de su teclado.
+ *
+ * El desplazamiento se aplica por la DERECHA (`multiply`), o sea en el
+ * espacio local del teclado: así el ratón queda siempre a la derecha de
+ * QUIEN SE SIENTA, gire como gire el puesto. Multiplicando por la izquierda
+ * se desplazaría en ejes de mundo y la mitad de los ratones acabarían dentro
+ * de la mesa del vecino.
+ */
+const _mouseOffset = new THREE.Matrix4();
+function besideKeyboard(keyboardMatrix) {
+  return keyboardMatrix.clone().multiply(_mouseOffset.makeTranslation(0.21 * S, 0, 0.012 * S));
 }
 
 /**
@@ -297,9 +362,18 @@ export function createFurnitureRegistry() {
 
       instanced(a.chairBody, a.materials.seat, chairs);
       instanced(a.chairStand, a.materials.leg, chairs);
-      instanced(a.monitor, a.materials.screen, monitors);
-      instanced(a.laptop, a.materials.screen, laptops);
+      // Chasis y panel comparten lista de transformaciones, así que no
+      // pueden desalinearse por mucho que se mueva el puesto.
+      instanced(a.monitorBody, a.materials.chassis, monitors);
+      instanced(a.monitorScreen, a.materials.screen, monitors);
+      instanced(a.laptopBody, a.materials.chassis, laptops);
+      instanced(a.laptopScreen, a.materials.screen, laptops);
       instanced(a.keyboard, a.materials.leg, keyboards);
+      // El ratón sale del teclado, no de una lista propia: se coloca a la
+      // derecha de cada uno componiendo un desplazamiento LOCAL sobre su
+      // matriz. Así aparece solo en cada puesto que ya tenga teclado, sin
+      // que quien monta el plano tenga que acordarse de pedirlo.
+      instanced(a.mouse, a.materials.leg, keyboards.map(besideKeyboard));
       instanced(a.stool, a.materials.seat, stools);
       instanced(a.podFrame, a.materials.seat, pods);
       instanced(a.podCushion, a.materials.top, pods);
