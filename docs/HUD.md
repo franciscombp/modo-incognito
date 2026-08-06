@@ -4,9 +4,13 @@
 antes de tocar código. Sirve igual que `MOTOR.md`: escribe encima, tacha,
 contesta las preguntas del final, y lo que quede aprobado se construye.
 
-> **Falta meter las capturas de referencia en `docs/referencias/hud/`.** Están
-> en el chat pero no en el repo, y sin ellas este documento se queda cojo
-> dentro de tres semanas.
+**Referencias en el repo** (`docs/referencias/hud/`):
+
+| Archivo | Qué es | Se desmonta en |
+|---|---|---|
+| `partida.jpeg` | HUD de partida | §1.1 |
+| `pausa.jpeg` | Menú de pausa | §1.2 |
+| `tareas.jpeg` | Lista de misiones | §4bis |
 
 > ⚠️ **Este documento se escribió antes de la decisión del LIENZO FIJO**
 > ([`PANTALLAS.md`](PANTALLAS.md) §1). Cambia dos premisas suyas:
@@ -200,8 +204,7 @@ un token, así que se ajusta en un sitio.
 
 ## 4bis. Las tareas — la segunda referencia
 
-> ⚠️ Captura **no subida al repo**: se pegó en el chat sin adjuntar. Su sitio
-> sería `docs/referencias/hud/tareas.png` (ver `docs/referencias/README.md`).
+> Referencia: `docs/referencias/hud/tareas.jpeg`.
 
 Esta es la que más nos sirve, porque ataca **el punto flojo que ya tenemos
 identificado**: hoy las tareas viven en un menulet que hay que ABRIR, y en
