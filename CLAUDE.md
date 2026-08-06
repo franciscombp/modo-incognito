@@ -450,13 +450,25 @@ Ese bloque va **al final a propósito**: alinea por cascada las familias
 históricas sin tener que perseguirlas por el archivo. Editar cada una "en su
 sitio" es justo lo que las volvió a separar las veces anteriores.
 
-### El LIENZO FIJO: 1920×1080 y nada más (`src/ui/stage.js`)
+### El LIENZO FIJO: dos tamaños y nada más (`src/ui/stage.js`)
 
 **Ya no hay diseño responsive: hay UN diseño.** El juego entero se dibuja
-sobre un lienzo de 1920×1080 apaisado y ese lienzo se ESCALA para caber en la
-pantalla, con bandas negras si sobra. Es como escala un juego de Unity, y es
-lo que permite que un botón de 40 px mida 40 px SIEMPRE. Antes había 19 media
+sobre un lienzo apaisado de 16:9 que se ESCALA para caber en la pantalla, con
+bandas negras si sobra. Es como escala un juego de Unity. Antes había 19 media
 queries peleándose por seis tamaños, y cada elemento nuevo sumaba tres reglas.
+
+**Ese lienzo tiene DOS tamaños, y los elige `pickStage()` al arrancar:**
+1920×1080 con puntero fino, **1280×720 en táctil o ventana pequeña**. NO es un
+segundo diseño (eso sería volver al responsive): es el mismo, sobre un lienzo
+menor. Los dos son 16:9, así que no se recoloca nada — cada elemento ocupa más
+fracción de pantalla. Hizo falta porque 1920 lógicos en los 844 físicos de un
+teléfono dan escala 0.36, y ahí un botón de 40 px mide 14 de verdad: todo
+diminuto y los controles del pulgar por debajo de lo que un dedo acierta.
+
+Se decide UNA vez y no cambia en caliente — cambiarlo obligaría a redimensionar
+renderer, cámara y pase de píxeles a mitad de partida. Girar el teléfono no
+cruza el umbral: `pointer: coarse` no depende de la orientación. El tamaño lo
+escribe JS en `--stage-w`/`--stage-h` y marca `data-stage="compact|wide"`.
 
 Cinco cosas de este montaje que hay que saber, y las cinco costaron:
 
@@ -483,10 +495,12 @@ Cinco cosas de este montaje que hay que saber, y las cinco costaron:
 Los builders de `creador/` **se quedan fuera del lienzo** a propósito: son
 herramientas de escritorio y ahí el responsive normal es lo correcto.
 
-`npm run check:layout` ya no comprueba seis viewports: comprueba que el
-lienzo mide 1920×1080 pase lo que pase, que queda centrado en cinco
+`npm run check:layout` ya no comprueba seis viewports: comprueba que cada
+dispositivo cae en EL LIENZO QUE LE TOCA, que queda centrado en cinco
 relaciones de aspecto, que nada se sale en coordenadas de lienzo, que un clic
-en una esquina LLEGA a esa esquina, y que la cortina aparece en vertical.
+en una esquina LLEGA a esa esquina, que la cortina aparece en vertical, y que
+los controles del pulgar miden **40 px REALES** o más en un teléfono — que es
+la razón por la que existe el lienzo pequeño, así que es lo que hay que medir.
 
 ### El HUD de partida (`src/ui/gamehud.js`)
 

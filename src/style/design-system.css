@@ -9019,18 +9019,25 @@ body.inc-game-active .inc-menu-scrim {
 
 
 /* ═════════════════════════════════════════════════════════════════════
-   EL LIENZO FIJO · 1920×1080
+   EL LIENZO FIJO · 1920×1080 (y 1280×720 en móvil)
    ═════════════════════════════════════════════════════════════════════
-   El juego se dibuja SIEMPRE sobre un lienzo de 1920×1080 apaisado que se
+   El juego se dibuja SIEMPRE sobre un lienzo apaisado de 16:9 que se
    escala entero para caber en la pantalla, con bandas negras si hace
    falta — como un juego de motor. No hay diseño responsive: hay UN
    diseño, y por eso este archivo ya no tiene media queries de tamaño
    (había diecinueve; el historial de git las guarda).
 
+   HAY DOS TAMAÑOS DE ESE LIENZO, y los elige `ui/stage.js` al arrancar:
+   1920×1080 con puntero fino, 1280×720 en táctil o ventana pequeña. NO es
+   un segundo diseño: es el mismo, sobre un lienzo más chico. Al ser los
+   dos 16:9 no se recoloca nada — cada elemento pasa a ocupar más fracción
+   de pantalla, y así un botón de 40 px deja de medir 14 físicos en un
+   teléfono para medir 22.
+
    `#app` ES el lienzo. Toda la interfaz monta dentro, así que el
    `transform` de aquí la escala entera — y de paso convierte a #app en el
    containing block de todos sus `position: fixed`: quedan fijos AL
-   LIENZO, en coordenadas 1920×1080, que es exactamente el contrato.
+   LIENZO, en coordenadas de lienzo, que es exactamente el contrato.
 
    El canvas 3D es la excepción a la escala: su buffer se dimensiona a
    resolución REAL en main.js (pixelRatio × escala), porque escalado con
@@ -9048,8 +9055,13 @@ body {
   position: fixed;
   left: 50%;
   top: 50%;
-  width: 1920px;
-  height: 1080px;
+  /* El TAMAÑO lo escribe JS (ui/stage.js), porque hay DOS lienzos y lo elige
+     el dispositivo: 1920×1080 con puntero fino, 1280×720 en táctil o ventana
+     pequeña. Los dos son 16:9, así que nada se recoloca — cada elemento
+     ocupa más fracción de pantalla, que es justo lo que faltaba en móvil.
+     Las reservas de aquí son el lienzo grande, por si JS no llegó a correr. */
+  width: var(--stage-w, 1920px);
+  height: var(--stage-h, 1080px);
   transform: translate(-50%, -50%) scale(var(--ui-scale));
   transform-origin: center center;
   overflow: hidden;

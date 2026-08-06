@@ -7,9 +7,9 @@ dibuja todo, y las pantallas de menú.
 
 | Sección | Estado | Dónde vive |
 |---|---|---|
-| §1 El lienzo fijo 1920×1080 | ✅ construido | `src/ui/stage.js`, bloque «EL LIENZO FIJO» del DS, `src/main.js` |
+| §1 El lienzo fijo (1920×1080 y 1280×720 en móvil) | ✅ construido | `src/ui/stage.js`, bloque «EL LIENZO FIJO» del DS, `src/main.js` |
 | §1.4 Cortina de orientación + pantalla completa | ✅ construido | `src/ui/stage.js` → `createStage()` |
-| §1.7 `check:layout` reescrito | ✅ construido | `tools/check-layout.mjs` (5 relaciones de aspecto) |
+| §1.7 `check:layout` reescrito | ✅ construido | `tools/check-layout.mjs` (5 relaciones de aspecto + área táctil real) |
 | §1.8 Paneles con CSS 3D | ◻︎ la `perspective` está puesta en `#app`; ningún panel la usa aún |
 | §2 Selección de personaje como expediente | ◻︎ sin construir — sigue la pantalla de login anterior |
 | §3 Evaluación de desempeño | ◻︎ sin construir — hoy es el panel de resultado de siempre |
@@ -34,12 +34,27 @@ construye todo lo demás**.
 
 ## 1.1 La decisión
 
-> **El juego se dibuja siempre sobre un lienzo de 1920×1080, apaisado, y ese
-> lienzo se ESCALA entero para caber en la pantalla. Con bandas negras si
-> hace falta.**
+> **El juego se dibuja siempre sobre un lienzo apaisado de 16:9, y ese lienzo
+> se ESCALA entero para caber en la pantalla. Con bandas negras si hace
+> falta.**
 
-✅ **1920×1080 confirmado.** Es además lo que ya asume `--ui-scale` en los
-tokens, así que no hay que cambiar nada de lo que hay.
+**Hay DOS tamaños de ese lienzo** (añadido después de probarlo en un
+teléfono): **1920×1080** con puntero fino y **1280×720** en táctil o ventana
+pequeña. No es un segundo diseño — eso sería volver al responsive que tanto
+costó quitar — es **el mismo diseño sobre un lienzo más chico**.
+
+Por qué hizo falta: 1920 lógicos en los ~844 físicos de un teléfono dan una
+escala de 0.36, y ahí un botón de 40 px acaba midiendo 14 de verdad. Estaba
+todo diminuto y los controles del pulgar quedaban por debajo de lo que un
+dedo acierta. Al ser los dos 16:9 no se recoloca nada: cada elemento pasa a
+ocupar más fracción de pantalla y ya. El botón de usar pasó de 31 px reales
+a 46, y el joystick de 46 a 69.
+
+**Se elige UNA vez, al arrancar.** Cambiarlo en caliente obligaría a
+redimensionar renderer, cámara y pase de píxeles a mitad de partida. Girar el
+teléfono no cruza el umbral: `pointer: coarse` no depende de la orientación.
+`check:layout` comprueba que cada dispositivo cae en el suyo, y —lo que de
+verdad importa— que los controles táctiles midan 40 px REALES o más.
 
 Igual que un juego de Unity o Unreal: se diseña a una resolución y el motor
 lo escala. No hay diseño responsive, hay **un** diseño.

@@ -2,10 +2,13 @@
 //
 // Antes esta comprobación recorría seis tamaños de pantalla buscando
 // solapes: cada pieza de interfaz peleaba por su cuenta con el viewport.
-// Con el lienzo fijo eso dejó de tener sentido — solo hay UN diseño, a
-// 1920×1080 — y lo que puede romperse es OTRA cosa:
+// Con el lienzo fijo eso dejó de tener sentido — solo hay UN diseño — y lo
+// que puede romperse es OTRA cosa:
 //
-//   1. Que el lienzo deje de medir 1920×1080 (algo lo redimensionó).
+//   1. Que el lienzo no mida lo que le toca A ESE DISPOSITIVO. Son DOS
+//      tamaños: 1920×1080 con puntero fino y 1280×720 en táctil o ventana
+//      pequeña (ui/stage.js). No es un segundo diseño: es el mismo, sobre
+//      un lienzo menor, para que en un teléfono todo no salga diminuto.
 //   2. Que la escala salga mal o quede descentrado en alguna relación de
 //      aspecto (16:10, 16:9, 20:9, 4:3, ultrapanorámico).
 //   3. Que dentro del lienzo algo se solape o se salga — lo de siempre,
@@ -13,6 +16,10 @@
 //   4. Que un clic en una esquina NO llegue a la esquina: la trampa
 //      clásica del transform (coordenadas de pantalla vs. de lienzo).
 //   5. Que en un táctil vertical salga la CORTINA de girar el teléfono.
+//   6. Que los controles del pulgar midan lo bastante EN PÍXELES REALES.
+//      Es lo que motivó el segundo lienzo, así que es lo que hay que medir:
+//      un botón de 40 px de lienzo a escala 0.36 son 14 px de verdad, y
+//      ningún dedo acierta eso.
 //
 // Uso: npm run check:layout   (necesita `npm run preview` en :4173)
 import { chromium } from "playwright";
@@ -27,31 +34,48 @@ function verdict(name, ok, detail = "") {
 }
 
 // ── 1+2 · El lienzo mide, escala y centra en varias relaciones de aspecto ──
-for (const [w, h, name] of [
-  [1440, 900, "escritorio 16:10"],
-  [1920, 1080, "nativo 16:9"],
-  [844, 390, "móvil apaisado 20:9"],
-  [1024, 768, "tablet 4:3"],
-  [2560, 720, "ultrapanorámico"],
+// `touch` marca los que deben caer en el lienzo pequeño. El de 1024×768 va
+// sin táctil a propósito: cae al pequeño por TAMAÑO, que es la otra puerta.
+for (const [w, h, name, touch] of [
+  [1440, 900, "escritorio 16:10", false],
+  [1920, 1080, "nativo 16:9", false],
+  [844, 390, "móvil apaisado 20:9", true],
+  [1024, 768, "ventana pequeña 4:3", false],
+  [2560, 720, "ultrapanorámico", false],
 ]) {
-  const p = await (await b.newContext({ viewport: { width: w, height: h } })).newPage();
+  const p = await (await b.newContext({
+    viewport: { width: w, height: h },
+    hasTouch: touch,
+    isMobile: touch,
+  })).newPage();
   await p.goto(url, { waitUntil: "domcontentloaded" });
   await p.waitForSelector("#app", { timeout: 20000 });
   await p.waitForTimeout(600);
   const m = await p.evaluate(() => {
     const app = document.getElementById("app");
     const r = app.getBoundingClientRect();
-    return { w: app.offsetWidth, h: app.offsetHeight, cx: r.left + r.width / 2, cy: r.top + r.height / 2, shownW: r.width };
+    return {
+      w: app.offsetWidth,
+      h: app.offsetHeight,
+      cx: r.left + r.width / 2,
+      cy: r.top + r.height / 2,
+      shownW: r.width,
+      cual: document.documentElement.dataset.stage,
+    };
   });
-  const scale = Math.min(w / 1920, h / 1080);
+  // Qué lienzo TOCA aquí, con la misma regla que ui/stage.js.
+  const compacto = touch || Math.max(w, h) < 1100;
+  const [lw, lh] = compacto ? [1280, 720] : [1920, 1080];
+  const scale = Math.min(w / lw, h / lh);
   const ok =
-    m.w === 1920 && m.h === 1080 &&
-    Math.abs(m.shownW - 1920 * scale) < 2 &&
+    m.w === lw && m.h === lh &&
+    m.cual === (compacto ? "compact" : "wide") &&
+    Math.abs(m.shownW - lw * scale) < 2 &&
     Math.abs(m.cx - w / 2) < 2 && Math.abs(m.cy - h / 2) < 2;
   verdict(
-    `lienzo 1920×1080, escalado y centrado — ${name}`,
+    `lienzo ${lw}×${lh}, escalado y centrado — ${name}`,
     ok,
-    `mide ${m.w}×${m.h}, mostrado ${Math.round(m.shownW)} (esperado ${Math.round(1920 * scale)}), centro (${Math.round(m.cx)},${Math.round(m.cy)}) vs (${w / 2},${h / 2})`,
+    `mide ${m.w}×${m.h} (${m.cual}), mostrado ${Math.round(m.shownW)} (esperado ${Math.round(lw * scale)}), centro (${Math.round(m.cx)},${Math.round(m.cy)}) vs (${w / 2},${h / 2})`,
   );
   await p.context().close();
 }
@@ -149,6 +173,52 @@ for (const [w, h, name] of [
     return g ? getComputedStyle(g).display !== "none" : false;
   });
   verdict("táctil en vertical: cortina de «gira el teléfono»", guard === true);
+  await ctx.close();
+}
+
+// ── 6 · Los controles del pulgar, en PÍXELES REALES ──
+// Es la razón de que exista el segundo lienzo, así que se mide en un
+// teléfono de verdad y en píxeles de pantalla, no de lienzo. El mínimo
+// cómodo para un dedo son ~44 px (la guía de Apple y la de Android
+// coinciden en la práctica); por debajo de 40 se falla el toque y eso no se
+// ve en ninguna captura.
+{
+  const ctx = await b.newContext({ viewport: { width: 844, height: 390 }, hasTouch: true, isMobile: true });
+  const p = await ctx.newPage();
+  await p.goto(url, { waitUntil: "networkidle" });
+  await p.waitForFunction(() => !!window.__game, null, { timeout: 30000 });
+  await p.evaluate(() => { window.__game.engine.startDay(0, { skipMinigame: true }); });
+  await p.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 90000 });
+  await p.evaluate(() => {
+    const css = document.createElement("style");
+    css.textContent = ".vn-layer, .inc-dialogue { display: none !important; }";
+    document.head.appendChild(css);
+    window.__game.engine.game.setPaused(false);
+  });
+  await p.waitForTimeout(900);
+  const dedos = await p.evaluate(() => {
+    // getBoundingClientRect YA viene en px de pantalla: incluye el scale del
+    // lienzo. Es justo lo que se quiere medir aquí.
+    const out = [];
+    for (const sel of [".touch-btn-interact", ".touch-btn-pretend", ".touch-stick-base"]) {
+      const el = document.querySelector(sel);
+      if (!el) continue;
+      const r = el.getBoundingClientRect();
+      if (r.width < 1) continue;
+      out.push({ sel, w: Math.round(r.width), h: Math.round(r.height) });
+    }
+    return out;
+  });
+  const MIN = 40;
+  const chicos = dedos.filter((d) => Math.min(d.w, d.h) < MIN);
+  verdict(
+    `los controles táctiles miden >= ${MIN}px reales en un teléfono`,
+    dedos.length > 0 && chicos.length === 0,
+    dedos.length === 0
+      ? "no se encontró ningún control táctil que medir"
+      : chicos.map((d) => `${d.sel} ${d.w}×${d.h}`).join(", "),
+  );
+  if (dedos.length) console.log("      medidos:", dedos.map((d) => `${d.sel} ${d.w}×${d.h}`).join(" · "));
   await ctx.close();
 }
 
