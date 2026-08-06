@@ -1,27 +1,49 @@
-# Referencias de dirección de arte — nostálgico, tecnológico, maduro
+# Referencias visuales
 
-Cuatro capturas guardadas por Fran (agosto 2026) que fijan el norte visual
-del escenario. Menos infantil, más *Where Cards Fall*: dioramas serenos con
-luz de verdad.
+Dos grupos, y conviene no mezclarlos: las del **escenario** (cómo se ve el
+Piso 10) y las de **interfaz** (cómo se ven HUD y menús).
 
-| Archivo | Qué copiar de ella |
+---
+
+## Escenario — `ref-*.png`
+
+⚠️ **Estas cuatro son HISTÓRICAS.** Fijaron el norte del escenario en la etapa
+sepia/oliva y **ya no describen el juego**: la paleta se pasó a la familia
+marina para unificarla con la interfaz (ver `CLAUDE.md` → «El TEMA»). Se
+quedan porque siguen valiendo para lo que de verdad importaba de ellas —**la
+LUZ, no el color**.
+
+| Archivo | Qué sigue valiendo |
 | --- | --- |
-| `ref-interior-sepia.png` | Interior en sepias y maderas; UN charco de luz sobre la mesa y el resto se hunde en penumbra. La viñeta come los bordes. |
-| `ref-noche-azul.png` | Noche azul acero: luna por las ventanas, sombras largas de cristalera, el diorama flota en un vacío casi negro. |
-| `ref-cabana-lamparas.png` | Lámparas colgantes con halo cálido sobre vacío verde oliva. Sillas verde salvia, maderas ricas, acentos mínimos. |
-| `ref-calle-olivo.png` | Exterior de día: luz suave, paleta oliva/acero desaturada, la saturación reservada a acentos pequeños (sombrillas, delantal). |
+| `ref-interior-sepia.png` | UN charco de luz sobre la mesa y el resto hundido en penumbra. La viñeta come los bordes |
+| `ref-noche-azul.png` | Sombras largas de cristalera; el diorama flotando en un vacío casi negro |
+| `ref-cabana-lamparas.png` | Lámparas colgantes con halo, cada mesa con su charco de luz implícito |
+| `ref-calle-olivo.png` | Saturación reservada a acentos pequeños, nunca al fondo |
 
-## Cómo está aplicado
+**Lo que ya NO se copia de ellas:** los sepias, los verdes oliva y las maderas
+cálidas. El decorado es marino y sale de los tokens `--w-*` del tema.
 
-- **`src/game/themes.js`** — la jornada recorre estas cuatro láminas: amanecer
-  sepia → mañana oliva (cabaña) → mediodía calle → tarde ámbar de lámpara →
-  anochecer azul acero → noche de luna. Cada tema trae su vacío (cielo/niebla),
-  y el contraste llave/ambiente está subido a propósito: la luz clave manda.
-- **`src/scene/cozy.js`** — superficies maduras: maderas de cabaña, greige
-  cálido en paredes, sillas salvia, metal envejecido. La saturación vive en
-  los acentos (pantallas encendidas, ropa de personajes).
-- **`src/scene/pixelPipeline.js`** — viñeta más honda: el diorama se apaga
-  hacia los bordes, como en las referencias.
+---
 
-Si un cambio de escena "se ve alegre de juguete", está fuera de esta
-dirección: compáralo contra estas cuatro imágenes antes de darlo por bueno.
+## Interfaz — `pantallas/` y `hud/`
+
+Las que fijan el rumbo NUEVO. Ver [`../PANTALLAS.md`](../PANTALLAS.md) y
+[`../HUD.md`](../HUD.md), donde están desmontadas pieza a pieza.
+
+| Archivo | Qué es | Qué copiar |
+| --- | --- | --- |
+| `pantallas/seleccion-escuadron.jpg` | Selección de agente de escuadrón | La estructura de tres columnas, el personaje 3D como protagonista, lo bloqueado en silueta, y los paneles **sesgados** que inspiran los menús 3D |
+| `pantallas/seleccion-agentes.webp` | Selección de agente competitiva | Las **cartas a sangre** y sus estados (elegida / bloqueada / de otro), el botón de acción DENTRO de la carta, y el personaje **saliéndose del marco** |
+
+### Faltan tres
+
+Se pegaron en el chat sin adjuntar y no llegaron al repo. Están descritas en
+`HUD.md` pero sin imagen, así que dentro de unos meses nadie va a saber de
+qué se hablaba:
+
+- **HUD de partida** («Lime Street») — placa retrato+vida arriba-izq, moneda
+  arriba-der, prompt de botón abajo-izq, nombre de zona abajo-der.
+- **Menú de pausa** — pestañas con gatillos, acento único, leyenda de mandos
+  abajo, el juego visible por detrás.
+- **Lista de misiones** — filas sin caja, atajo por tarea, distancia y
+  progreso alineados a la derecha, insignia por categoría.

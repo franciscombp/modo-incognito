@@ -244,22 +244,35 @@ doblar un codo se abría un boquete en el pliegue.
   sale del encuadre.
 
 Los pliegos de `public/sprites/` **siguen en uso** para los retratos del
-diálogo y la pantalla de selección de personaje, y son la referencia de la que
+diálogo y la pantalla de selección de personaje (que se rehace entera, ver
+`docs/PANTALLAS.md` §2), y son la referencia de la que
 salió el color de cada receta. `tools/pack-sprites.py` los normaliza a la
 rejilla 4x4 de 128x176 (no vienen regulares: cortarlos por «ancho / 4» mete la
 cabeza de una fila en los pies de la anterior). Su sitio es siempre
 `public/sprites/`.
 
-### La estética cozy (hoy: nostálgica y madura)
+### La estética del escenario
 
-**La dirección de arte vigente está en `docs/referencias/`** (cuatro capturas
+⚠️ **Las cuatro `ref-*.png` de `docs/referencias/` son HISTÓRICAS**: fijaron la
+etapa sepia/oliva y el decorado ya no es eso — se pasó a la familia marina
+para unificarlo con la interfaz (ver «El TEMA» más abajo). De ellas sigue
+valiendo **la LUZ**: charcos cálidos, sombras hondas, viñeta, y la saturación
+reservada a acentos pequeños. El COLOR sale de los tokens `--w-*`.
+
+Lo que viene ahora en interfaz está en `docs/PANTALLAS.md` y `docs/HUD.md`.
+
+<details><summary>Texto anterior (etapa sepia/oliva)</summary>
+
+**La dirección de arte de entonces estaba en `docs/referencias/`** (cuatro capturas
 + README): dioramas sobre vacío apagado, sepias/olivas/azul acero, la luz
 clave mandando con sombras hondas y viñeta. Menos infantil, más *Where Cards
 Fall*. Antes de dar por buena una mejora visual, compárala con esas imágenes.
 
-### La estética cozy
+</details>
 
-El decorado va en tonos cálidos, apagados y **sin textura**; todo el color
+### Cómo se pinta el decorado
+
+El decorado va **sin textura**; todo el color
 saturado se reserva para los personajes. La paleta entera está en
 `src/scene/cozy.js` y es el único sitio donde tocarla:
 
