@@ -257,8 +257,12 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     // nunca devuelve vacío: quien no tenga receta propia sale con la
     // genérica. Si el cuerpo aún no llegó, refreshCharacters() redibuja al
     // terminar la precarga.
+    // El retrato va a una VARIABLE, no al fondo del disco: lo pinta un
+    // `::after` que desborda el círculo por arriba, para que el muñeco se
+    // salga del pedestal en vez de quedar recortado dentro (ver el bloque
+    // «EL PERSONAJE SE SALE DEL DISCO» del design system).
     const shot = looks ? characterShot(looks.get(id) ?? looks.get(mode.sheet), CARD_POSE[id]) : null;
-    if (shot) avatar.style.backgroundImage = `url(${shot})`;
+    if (shot) avatar.style.setProperty("--avatar-shot", `url(${shot})`);
     if (locked) {
       const lockBadge = el("span", "inc-login-lock", avatar);
       lockBadge.innerHTML = svgIcon("lock", { size: 22 });
@@ -267,14 +271,22 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     const metaBits = [mode.role, !locked && mode.difficulty ? `modo ${mode.difficulty}` : null].filter(Boolean);
     el("div", "inc-login-role", loginUser, metaBits.join(" · "));
     el("p", "inc-login-blurb", loginUser, locked ? mode.lockedReason ?? "Bloqueado" : mode.blurb ?? "");
-    const enter = el("button", "inc-btn inc-btn--primary inc-login-enter", loginUser);
-    enter.type = "button";
+    // Ya NO hay botón de «iniciar sesión». Sobraba: se cambia de cuenta con
+    // las flechas o pasando por encima de su ficha, y se entra con clic,
+    // Enter o espacio — un botón aparte era un paso de más para algo que ya
+    // se decide en la propia lista.
+    //
+    // En su sitio queda la LEYENDA de mandos, que es lo que la referencia de
+    // HUD pone abajo (docs/HUD.md §1.2): dice qué se pulsa sin ocupar un
+    // control, y resuelve que los atajos no estaban escritos en ninguna
+    // parte.
+    const legend = el("div", "inc-login-legend", loginUser);
     if (locked) {
-      enter.disabled = true;
-      enter.innerHTML = `<span class="inc-menu-btn-icon">${svgIcon("lock")}</span><span>Cuenta bloqueada</span>`;
+      legend.innerHTML = `<span class="inc-login-legend-lock">${svgIcon("lock", { size: 16 })} Cuenta bloqueada</span>`;
     } else {
-      enter.innerHTML = `<span class="inc-menu-btn-icon">${svgIcon("play")}</span><span>Iniciar sesión</span>`;
-      enter.addEventListener("click", () => loginSelect(id));
+      legend.innerHTML =
+        `<span><b>←</b><b>→</b> cambiar</span>` +
+        `<span><b>Enter</b> entrar</span>`;
     }
 
     // El muelle de usuarios: un circulito por cuenta, como en un Mac.
@@ -288,11 +300,21 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
       const miniShot = looks ? characterShot(looks.get(uid) ?? looks.get(m.sheet), CARD_POSE[uid]) : null;
       if (miniShot) dot.style.backgroundImage = `url(${miniShot})`;
       el("span", "inc-login-mini-name", dot, m.name);
-      dot.addEventListener("click", () => {
+      // PASAR POR ENCIMA ya cambia de cuenta: la ficha grande es la vista
+      // previa de lo que hay bajo el cursor, sin tener que hacer clic para
+      // «llegar» a ella primero.
+      dot.addEventListener("mouseenter", () => {
         if (i === loginAt) return;
         loginAt = i;
         sfxMove();
         renderCharacters();
+      });
+      // Y el CLIC entra directo, esté seleccionada o no. Antes el primer
+      // clic solo navegaba y hacía falta un segundo en otro botón.
+      dot.addEventListener("click", () => {
+        if (m.playable === false) return;
+        loginAt = i;
+        loginSelect(uid);
       });
     });
   }
@@ -553,6 +575,24 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     if (!onSlider && currentScreen === "characters" && (key === "arrowleft" || key === "a")) {
       e.preventDefault();
       moveLogin(-1);
+      return;
+    }
+    // Sin botón de entrar, la confirmación es la tecla: Enter, espacio o E
+    // eligen la cuenta que se esté viendo.
+    //
+    // La guarda es por el pie de pantalla (el botón «Volver») y NADA MÁS.
+    // Estuvo puesta como «si el foco es un <button>, no» y no entraba
+    // nunca: las flechas del carrusel y las fichas del muelle también son
+    // botones, y al abrir la pantalla el foco cae en la primera. Con eso,
+    // Enter movía el carrusel en vez de entrar.
+    if (
+      currentScreen === "characters" &&
+      (key === "enter" || key === " " || key === "spacebar" || key === "e") &&
+      !document.activeElement?.closest?.(".inc-menu-screen-foot")
+    ) {
+      e.preventDefault();
+      const [id, mode] = loginEntries[loginAt] ?? [];
+      if (id && mode?.playable !== false) loginSelect(id);
       return;
     }
     if (!onSlider && (key === "arrowdown" || key === "s" || key === "arrowright" || key === "d")) {

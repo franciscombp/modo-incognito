@@ -7670,6 +7670,8 @@ body.inc-game-active .inc-menu-scrim {
   margin: 0;
 }
 .inc-login-stage {
+  /* Aire por arriba para lo que el muñeco desborda del disco. */
+  margin-top: 26px;
   display: flex;
   align-items: center;
   gap: clamp(8px, 4vw, 40px);
@@ -10110,11 +10112,12 @@ body {
 .inc-login {
   background: linear-gradient(180deg, hsl(var(--p-bg-800) / 0.72), hsl(var(--p-bg-900) / 0.82));
   border: 1px solid hsl(var(--p-accent-bright) / 0.28);
-  border-radius: 0;
-  clip-path: polygon(
-    22px 0, 100% 0, 100% calc(100% - 22px),
-    calc(100% - 22px) 100%, 0 100%, 0 22px
-  );
+  /* Esquinas REDONDEADAS. Se probó el bisel recto (el mismo de las medallas
+     del piso) y endurecía la pantalla: el resto de contenedores del juego
+     son de canto suave, y una sola pantalla en ángulo se lee como de otra
+     aplicación. Lo holográfico lo pone la LUZ —filo fino, halo, tinta
+     teal—, no el corte. */
+  border-radius: 22px;
   box-shadow: 0 0 0 1px hsl(var(--p-accent-bright) / 0.1), 0 24px 70px hsl(var(--p-shadow-hue) / 0.55);
 }
 
@@ -10134,13 +10137,46 @@ body {
 /* El retrato: disco de holograma, no botón. Anillo fino, halo y sin
    relleno sólido, para que el muñeco flote dentro en vez de estar pegado
    sobre una moneda. */
+/* ── EL PERSONAJE SE SALE DEL DISCO ───────────────────────────────────
+   Estaba metido DENTRO de un círculo, recortado por él, y eso lo convertía
+   en un icono de cuenta: pequeño, contenido y sin presencia. El disco tiene
+   que ser el PEDESTAL —la luz sobre la que se para— y el muñeco tiene que
+   desbordarlo por arriba, que es lo que le da tamaño y lo hace el
+   protagonista de la pantalla.
+
+   El truco es sacar la imagen del fondo del propio disco y ponerla en un
+   `::after` que puede crecer fuera. `overflow: visible` por si alguna regla
+   histórica lo recortaba. */
 .inc-login-avatar {
   background-color: transparent;
+  background-image: none !important;
   border: 1px solid hsl(var(--p-accent-bright) / 0.45);
   box-shadow:
     inset 0 0 44px hsl(var(--p-accent-bright) / 0.14),
     0 0 34px hsl(var(--p-accent-bright) / 0.22);
+  overflow: visible;
+  --avatar-shot: none;
 }
+
+/* El muñeco: anclado al SUELO del disco y creciendo hacia arriba, así que
+   la cabeza queda por encima del anillo. */
+.inc-login-avatar::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: 4%;
+  transform: translateX(-50%);
+  /* Cuánto desborda. Estuvo en 165% y la cabeza se subía encima del
+     título de la pantalla: desbordar es el efecto, taparlo es un fallo. */
+  width: 142%;
+  height: 142%;
+  background: var(--avatar-shot) center bottom / contain no-repeat;
+  pointer-events: none;
+  filter: drop-shadow(0 10px 22px hsl(var(--p-shadow-hue) / 0.6));
+}
+
+/* El candado se queda pegado al disco, no al muñeco. */
+.inc-login-lock { z-index: 2; }
 
 .inc-login-name {
   letter-spacing: 0.06em;
@@ -10190,8 +10226,7 @@ body {
   padding: 8px 6px;
   /* Sin borde ni radio: el filo lo pone el bisel, como el resto del HUD. */
   border: 1px solid hsl(var(--p-accent-bright) / 0.2);
-  border-radius: 0;
-  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  border-radius: 14px;
   background-color: hsl(var(--p-bg-900) / 0.5);
   background-size: auto 74%;
   background-position: center 16%;
@@ -10278,8 +10313,7 @@ body {
 .inc-login-arrow {
   background: transparent;
   border: 1px solid hsl(var(--p-accent-bright) / 0.35);
-  border-radius: 0;
-  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  border-radius: 50%;
   color: hsl(var(--p-accent-bright));
   box-shadow: none;
 }
@@ -10287,4 +10321,49 @@ body {
 .inc-login-arrow:hover {
   background: hsl(var(--p-accent-bright) / 0.12);
   border-color: hsl(var(--p-accent-bright) / 0.7);
+}
+
+/* La leyenda de mandos, en el sitio que dejó el botón de entrar. Es lo que
+   la referencia de HUD pone abajo (docs/HUD.md §1.2): dice qué se pulsa sin
+   gastar un control. Las teclas van en su losa, igual que el aviso de
+   acción del piso, para que se lean como teclas y no como texto. */
+.inc-login-legend {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.inc-login-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.inc-login-legend b {
+  display: inline-grid;
+  place-items: center;
+  min-width: 30px;
+  padding: 4px 8px;
+  border: 1px solid hsl(var(--p-accent-bright) / 0.45);
+  border-radius: 7px;
+  background: hsl(var(--p-accent-bright) / 0.1);
+  color: hsl(var(--p-accent-bright));
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+.inc-login-legend-lock {
+  color: var(--text-faint);
+  letter-spacing: 0.14em;
+}
+
+/* Sin botón de entrar, la ficha activa es lo único que dice dónde estás:
+   se le marca el foco de teclado con el mismo halo que el resto. */
+.inc-login-mini:focus-visible {
+  outline: 2px solid hsl(var(--p-accent-bright));
+  outline-offset: 3px;
 }
