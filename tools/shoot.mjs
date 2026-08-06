@@ -13,7 +13,12 @@ await mkdir(outDir, { recursive: true });
 const VIEWPORTS = [
   { name: "desktop", width: 1440, height: 900, framing: 0 },
   { name: "desktop-follow", width: 1440, height: 900, framing: 1 },
-  { name: "phone-portrait", width: 390, height: 844, framing: 0.8, touch: true },
+  // En VERTICAL el juego no se dibuja a propósito: cae la cortina de «gira el
+  // teléfono» (docs/PANTALLAS.md §1.4). Así que aquí no se comprueba que el
+  // diorama se pinte —sería exigir lo contrario de lo que se diseñó— sino que
+  // la cortina esté puesta. Sin esto la captura salía «EN BLANCO» y el test
+  // fallaba por hacer el juego justo lo que debe.
+  { name: "phone-portrait", width: 390, height: 844, framing: 0.8, touch: true, esperaCortina: true },
   { name: "phone-landscape", width: 844, height: 390, framing: 0.6, touch: true },
 ];
 
@@ -90,15 +95,27 @@ for (const vp of VIEWPORTS) {
   await page.waitForTimeout(700);
 
   const shot = await page.screenshot({ path: `${outDir}/${vp.name}.png` });
-
-  // A black screen is a flat image, and a flat image compresses to almost
-  // nothing. Anything under ~40KB at these sizes means the floor never drew.
   const kb = Math.round(shot.length / 1024);
-  const blank = kb < 40;
-  const status = errors.length ? "ERROR" : blank ? "EN BLANCO" : "ok";
+
+  let mal;
+  let status;
+  if (vp.esperaCortina) {
+    // Vertical: lo que tiene que verse es la cortina, no el piso.
+    const cortina = await page.evaluate(() => {
+      const el = document.querySelector(".inc-rotate-guard");
+      return !!el && getComputedStyle(el).display !== "none" && el.getBoundingClientRect().height > 100;
+    });
+    mal = !cortina;
+    status = errors.length ? "ERROR" : cortina ? "ok (cortina)" : "SIN CORTINA";
+  } else {
+    // A black screen is a flat image, and a flat image compresses to almost
+    // nothing. Anything under ~40KB at these sizes means the floor never drew.
+    mal = kb < 40;
+    status = errors.length ? "ERROR" : mal ? "EN BLANCO" : "ok";
+  }
   console.log(`${vp.name.padEnd(16)} ${status}  png=${kb}KB`);
   errors.forEach((e) => console.error("   ", e));
-  if (errors.length || blank) failed = true;
+  if (errors.length || mal) failed = true;
   await context.close();
 }
 
