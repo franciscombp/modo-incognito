@@ -25,6 +25,7 @@ tabla, los dos podéis trabajar todo el día sin un solo conflicto.
 | `src/game/furnitureModels.js` | La geometría de cada mueble |
 | `src/scene/builder.js` | El decorado: suelos, muros, vidrio, plantas |
 | `src/scene/palette.js` | El puente entre los tokens y el edificio |
+| `src/scene/sunlight.js` | Los charcos de luz que entran por las ventanas |
 | `src/scene/config.js` → `CAMERA_PRESET` | El encuadre de juego |
 | `src/entities/character3d.js` → `POSE_LIBRARY` | Las poses y su ritmo |
 
@@ -228,28 +229,56 @@ Ahora mira al pecho (1.3), el pitch baja de 44 a 40 y la distancia de 14 a
 > valores nuevos hasta darle a restablecer. Si un cambio "no hace nada",
 > empieza por ahí.
 
+### Los charcos de luz de ventana (`sunlight.js`)
+
+Es lo que hace que la hora se VEA, y sale de `ref-noche-azul.png`: ahí lo que
+dice qué hora es no es el tinte, son los **rectángulos de luz que las ventanas
+dibujan en el suelo**. El sol moviéndose da la sombra; esto da la luz.
+
+**No son sombras de verdad, y no pueden serlo.** Lo natural sería que los
+montantes proyectaran sombra y las franjas salieran solas, pero el sol es UNA
+direccional con un mapa que cubre el piso entero: a esa resolución un montante
+de 10 cm deja un borrón, no una franja.
+
+La geometría se crea una vez en el espacio local de su tramo y **el sol solo
+cambia la MATRIZ**, con un cizallamiento. Reconstruir vértices para trece
+tramos sesenta veces por segundo es justo lo que no hay que hacer.
+
+**Tres trampas, las tres pagadas y las tres del mismo tipo — dar por supuesto
+un signo:**
+
+- **De qué lado está "dentro"** depende del sentido en que esté escrito el
+  contorno. Suponerlo mandaba la mitad de los charcos hacia FUERA, flotando
+  sobre el vacío. Ahora sale del área con signo.
+- **El recorte hay que hacerlo en la dirección REAL de la luz**, no a lo largo
+  de la normal. Recortando solo la profundidad, con el sol rasante el charco
+  se deslizaba de lado y se pasaba de largo la esquina del edificio.
+- **El eje X local de la tira NO es la tangente del muro**: tras la rotación
+  es `(nz, -nx)`. Usando la tangente, el desplazamiento lateral iba al lado
+  contrario. Derivarlo de la base real cierra el fallo para siempre.
+
+Nada de esto se ve en un diff: **hay que mirar la imagen**, y comparando con
+el grupo `sunPools` oculto, que es como se identificó que las manchas de fuera
+eran nuestras y no del decorado.
+
+### El rango de luz del edificio (tokens `--w-*`)
+
+Este fue el arreglo de "todo se ve de un solo color", y **no estaba en la
+luz**: suelo, pared y mesa —el 90% de los píxeles— cabían en un rango de 0.13
+de luminancia. Medido, no a ojo.
+
+Todos esos tokens son el mismo marino a propósito, así que lo que tiene que
+separarlos es la LUMINANCIA. Ahora va de 0.05 a 0.31 **ordenada por
+orientación**: suelo abajo, verticales arriba, sobres de mesa en medio-alto
+para que floten.
+
+> Dos superficies con la misma luminancia se funden aunque sean de matices
+> distintos. Una superficie nueva se coloca en esa escala, no se le elige un
+> azul que "pegue".
+
 ## Lo que está pendiente, por orden de lo que más se nota
 
-### 1 · Los charcos de luz de ventana ← lo siguiente
-
-Es lo que más acerca el piso a `docs/referencias/ref-noche-azul.png`, que es
-la referencia de la que sale todo esto: **la hora se lee por los rectángulos
-de luz que las ventanas dibujan en el suelo**. El edificio ya tiene muro
-cortina de vidrio en todo el perímetro (`buildPerimeterWalls`), así que la
-geometría está; falta proyectar esa luz al interior y que siga al sol.
-
-### 2 · El rango de valor del edificio
-
-Medido sobre el tema `terminal`: suelo, pared y mesa —el 90% de los píxeles—
-caben en un rango de **0.13 de luz**. Todo el edificio se lee como una masa y
-las mesas no se despegan del suelo.
-
-Esto **no se arregla desde arte solo**: los `--w-*` viven en
-`design-system.css`, el archivo más caliente del otro frente. Hay que
-acordarlo. La propuesta es abrir el rango a ~0.05–0.35 (suelo hundido, mesa a
-media altura, pared alta).
-
-### 3 · Textura de superficie
+### 1 · Textura de superficie
 
 Todo es color plano y la luz no tiene dónde agarrarse. `textures.js` conserva
 las recetas de trama, pero **quitarlas fue una decisión deliberada**
@@ -258,7 +287,7 @@ peleaba con ellos. Si se recupera, tiene que ser a un contraste mucho más bajo
 que el de entonces, y hay que actualizar ese párrafo de `CLAUDE.md` en el
 mismo commit.
 
-### 4 · El resto de poses
+### 2 · El resto de poses
 
 Solo llevan `hold` y amplitud revisada `coffee`, `eat` y `work`. Faltan
 `sleep`, `movie`, `phone`, `scared`, `sit`, `sitWork` y `shrug`.

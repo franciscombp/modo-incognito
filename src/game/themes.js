@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { skyTexture } from "../scene/cozy.js";
-import { setSunAngles } from "../scene/lighting.js";
+import { setSunAngles, getSunPools } from "../scene/lighting.js";
 
 // Per-day atmosphere. Each day names a theme and the engine re-tints the
 // lights and background, so "miércoles nublado" and "viernes al atardecer"
@@ -55,6 +55,7 @@ export const themes = {
     hemi: { sky: 0x9fbcd6, ground: 0x7a5f42, intensity: 0.34 },
     key: { color: 0xffcf92, intensity: 2.1 },
     sun: { azimuth: 0.38, elevation: 0.16 },
+    sunStrength: 1.0, // amanece rasante: el sol entra casi horizontal y el charco cruza medio piso
     exposure: 1.02,
   },
   morning: {
@@ -65,6 +66,7 @@ export const themes = {
     hemi: { sky: 0xa6c3da, ground: 0x8a7458, intensity: 0.4 },
     key: { color: 0xffdca4, intensity: 2.25 },
     sun: { azimuth: 0.95, elevation: 0.62 },
+    sunStrength: 1.0,
     exposure: 1.06,
   },
   midday: {
@@ -75,6 +77,7 @@ export const themes = {
     hemi: { sky: 0xb0cbe0, ground: 0x93866e, intensity: 0.44 },
     key: { color: 0xffe9c0, intensity: 2.35 },
     sun: { azimuth: 1.62, elevation: 1.18 },
+    sunStrength: 0.9, // sol alto: charcos cortos y marcados, pero entra menos por la fachada
     exposure: 1.08,
   },
   afternoon: {
@@ -85,6 +88,7 @@ export const themes = {
     hemi: { sky: 0x9cbad4, ground: 0x77604c, intensity: 0.4 },
     key: { color: 0xffc987, intensity: 2.3 },
     sun: { azimuth: 2.25, elevation: 0.78 },
+    sunStrength: 1.0,
     exposure: 1.06,
   },
   latAfternoon: {
@@ -95,6 +99,7 @@ export const themes = {
     hemi: { sky: 0x8aa8c6, ground: 0x6b4f38, intensity: 0.36 },
     key: { color: 0xffb877, intensity: 2.15 },
     sun: { azimuth: 2.7, elevation: 0.34 },
+    sunStrength: 1.0, // la brasa: la mejor hora de charcos, largos y ambar
     exposure: 1.0,
   },
   dusk: {
@@ -105,6 +110,7 @@ export const themes = {
     hemi: { sky: 0x7f9dbe, ground: 0x45414a, intensity: 0.34 },
     key: { color: 0xd8bda0, intensity: 1.6 },
     sun: { azimuth: 2.95, elevation: 0.15 },
+    sunStrength: 0.7, // se apaga
     exposure: 0.99,
   },
   duskDark: {
@@ -118,6 +124,7 @@ export const themes = {
     hemi: { sky: 0x6f8fb4, ground: 0x2f3542, intensity: 0.4 },
     key: { color: 0xbcd0e8, intensity: 1.25 },
     sun: { azimuth: 3.25, elevation: 0.62 },
+    sunStrength: 0.3, // ya no hay sol: lo poco que entra es resplandor de ciudad
     exposure: 0.95,
   },
   twilight: {
@@ -130,6 +137,7 @@ export const themes = {
     hemi: { sky: 0x556f92, ground: 0x1f242e, intensity: 0.3 },
     key: { color: 0xa8c4e8, intensity: 1.35 },
     sun: { azimuth: 3.9, elevation: 0.85 },
+    sunStrength: 0.35, // luna por las ventanas — tenue y fria, como la referencia azul
     exposure: 0.9,
   },
   overcast: {
@@ -142,6 +150,7 @@ export const themes = {
     hemi: { sky: 0xbcc2ba, ground: 0x7c7466, intensity: 0.66 },
     key: { color: 0xf0e8d8, intensity: 0.85 },
     sun: { azimuth: 1.5, elevation: 1.3 },
+    sunStrength: 0.25, // nublado: luz difusa, casi no deja charco
     exposure: 1.0,
   },
 };
@@ -161,6 +170,10 @@ export function applyTheme(name, { renderer, scene, ambient, hemi, key, worldSca
   key.color.set(theme.key.color);
   key.intensity = theme.key.intensity;
   if (theme.sun) setSunAngles(key, theme.sun, worldScale);
+  // Los charcos de ventana siguen al sol. `sunStrength` es cuánto pega:
+  // de noche no entra sol por la fachada, entra luna, y eso es un charco
+  // mucho más tenue (ver `themes.twilight`).
+  getSunPools()?.update(key, theme.sunStrength ?? 1);
   renderer.toneMappingExposure = theme.exposure;
   return theme;
 }
@@ -252,6 +265,10 @@ export function createThemeBlender({ renderer, scene, ambient, hemi, key, worldS
           worldScale
         );
       }
+      getSunPools()?.update(
+        key,
+        THREE.MathUtils.lerp(a.sunStrength ?? 1, b.sunStrength ?? 1, mix)
+      );
       renderer.toneMappingExposure = THREE.MathUtils.lerp(a.exposure, b.exposure, mix);
 
       if (scene.fog) {
