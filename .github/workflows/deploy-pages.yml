@@ -10,7 +10,19 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
+  # El lanzamiento manual acepta elegir DÓNDE correr. Existe por el día en
+  # que la nube de runners de GitHub se cayó: todos los jobs `ubuntu-latest`
+  # se quedaban en cola y morían a los 15 minutos, incluido el constructor
+  # propio de Pages. Con un runner self-hosted conectado (Settings → Actions
+  # → Runners), lanzar el workflow con `runner: self-hosted` publica usando
+  # TU máquina y se salta la cola compartida entera. Los push normales no se
+  # ven afectados: siguen en ubuntu-latest y se recuperan solos.
   workflow_dispatch:
+    inputs:
+      runner:
+        description: "Dónde correr (ubuntu-latest o self-hosted)"
+        required: false
+        default: "ubuntu-latest"
 
 permissions:
   contents: read
@@ -48,7 +60,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -79,7 +91,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.runner || 'ubuntu-latest' }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
