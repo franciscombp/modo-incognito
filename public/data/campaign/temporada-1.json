@@ -27,11 +27,23 @@
     "            por eso no sale duplicada en la lista de tareas.",
     "",
     "El `icono` es el MISMO en tres sitios: la medalla del piso, la fila de",
-    "la lista del HUD y la evaluación. Uno solo, por nombre de ui/icons.js."
+    "la lista del HUD y la evaluación. Uno solo, por nombre de ui/icons.js.",
+    "",
+    "nivelacion.pruebas: la tanda del PLAN DE NIVELACIÓN (§5.1), por id",
+    "  del registro de minijuegos (src/game/minigames.js). Salta cuando",
+    "  se acaban los 5 días sin cerrar la temporada. NO se pierde la",
+    "  partida: al terminarla vuelves al día 1 con lo ya hecho intacto.",
+    "  Fallar una prueba no cuesta nada a propósito — si costara, el",
+    "  plan dejaría de ser una red y sería otra forma de perder."
   ],
   "numero": 1,
   "rango": "Aprendiz",
   "rangoSiguiente": "Junior",
+  "nivelacion": {
+    "pruebas": [
+      "crossing"
+    ]
+  },
   "misiones": [
     {
       "id": "meet-gabo",
@@ -47,18 +59,24 @@
       "tipo": "que",
       "titulo": "Finge que trabajas",
       "recurrencia": "diaria",
-      "requiere": ["meet-gabo"],
+      "requiere": [
+        "meet-gabo"
+      ],
       "accion": "fingir",
       "segundos": 3,
       "icono": "keyboard",
-      "recompensa": { "reloj": 20 }
+      "recompensa": {
+        "reloj": 20
+      }
     },
     {
       "id": "coffee",
       "tipo": "que",
       "titulo": "Tomar café",
       "recurrencia": "diaria",
-      "requiere": ["meet-gabo"],
+      "requiere": [
+        "meet-gabo"
+      ],
       "estacion": "coffee",
       "icono": "coffee"
     },
@@ -67,17 +85,23 @@
       "tipo": "como",
       "titulo": "Fran tiene un chisme",
       "recurrencia": "unica",
-      "requiere": ["fingir-101"],
+      "requiere": [
+        "fingir-101"
+      ],
       "personaje": "fran_npc",
       "icono": "chat",
-      "recompensa": { "reloj": 30 }
+      "recompensa": {
+        "reloj": 30
+      }
     },
     {
       "id": "movie",
       "tipo": "que",
       "titulo": "Ver la película",
       "recurrencia": "unica",
-      "requiere": ["coffee"],
+      "requiere": [
+        "coffee"
+      ],
       "estacion": "movie",
       "icono": "movie"
     },
@@ -86,7 +110,9 @@
       "tipo": "que",
       "titulo": "Comer a escondidas",
       "recurrencia": "diaria",
-      "requiere": ["coffee"],
+      "requiere": [
+        "coffee"
+      ],
       "estacion": "snack",
       "icono": "snack"
     }

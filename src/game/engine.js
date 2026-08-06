@@ -13,6 +13,8 @@ import { createLobby } from "../ui/lobby.js";
 import { createGameHud } from "../ui/gamehud.js";
 import { createCampaign } from "./campaign.js";
 import { createHrCourse } from "../ui/hrCourse.js";
+import { createReview } from "../ui/review.js";
+import { createLevelling } from "../ui/levelling.js";
 import { createEggReveal } from "../ui/eggReveal.js";
 import { createMinigameRegistry } from "./minigames.js";
 import {
@@ -92,6 +94,14 @@ export function createEngine({
   // juego se comporta como siempre — la campaña es opt-in por datos.
   const campaign = createCampaign({ save, data: campaignData });
   const hrCourse = createHrCourse(app);
+  const review = createReview(app);
+  const levelling = createLevelling(app, {
+    minigames,
+    render: (s, c) => pixels?.render(s, c),
+    setBusy: (v) => {
+      crossingActive = v;
+    },
+  });
   // Con el guardado ya leído se sabe qué personaje es la jugadora: la placa
   // del HUD enseña SU cara desde el primer frame, no la del por defecto.
   menuBar.setPlayerLook?.(save.characterId ? looks?.get?.(save.characterId) : null);
@@ -909,6 +919,26 @@ export function createEngine({
     // La EVALUACIÓN de RRHH: nota por los dos ejes (Qués y Cómos) y avance
     // de calendario — AAA salta la temporada, A asciende por antigüedad.
     const evalRes = campaign.active ? campaign.endDay({ win: result.win }) : null;
+    // La EVALUACIÓN va ANTES del panel de resultado, y en su propia pantalla.
+    // Estaba como una línea dentro del cuerpo del panel: el chiste central
+    // del juego —los dos ejes por separado, «cumples pero no eres de
+    // equipo»— pasaba de largo en letra pequeña.
+    if (evalRes) await review.show(evalRes);
+
+    // PLAN DE NIVELACIÓN: cinco días sin cerrar la temporada. No se pierde
+    // la partida — es la red de seguridad (CAMPANA §5.1). La tanda sale del
+    // JSON de la temporada, así que el motor no sabe qué pruebas son.
+    if (evalRes?.nota === "Nivelación") {
+      setInLevel(false);
+      await levelling.run({
+        pruebas: campaignData?.nivelacion?.pruebas ?? [],
+        temporada: evalRes.temporada,
+      });
+      campaign.afterLevelling();
+      startDay(dayIndex, { skipPrologue: true });
+      return;
+    }
+
     const actions = [];
 
     if (result.win && !isLast) {
@@ -945,7 +975,9 @@ export function createEngine({
         : result.warnings >= (day.rules?.maxWarnings ?? 3)
         ? "Sin advertencias de sobra: te ascienden a cliente."
         : "Se acabó la jornada con objetivos pendientes.") +
-        (evalRes ? `\nEvaluación ${evalRes.nota} · ${evalRes.detalle}` : ""),
+        // Solo la LETRA: el detalle ya lo contó la pantalla de evaluación, y
+        // repetirlo aquí entero lo convertía en ruido.
+        (evalRes ? `\nEvaluación del ciclo: ${evalRes.nota}` : ""),
       win: result.win,
       actions,
     });
@@ -1043,6 +1075,9 @@ export function createEngine({
     guides,
     minimap,
     save,
+    // La campaña se expone para las comprobaciones de tools/: la nota y el
+    // calendario se pueden verificar sin jugar cinco días seguidos.
+    campaign,
     start: () => openTitle(),
     startDay,
     openPause,
