@@ -8,6 +8,14 @@ contesta las preguntas del final, y lo que quede aprobado se construye.
 > en el chat pero no en el repo, y sin ellas este documento se queda cojo
 > dentro de tres semanas.
 
+> ⚠️ **Este documento se escribió antes de la decisión del LIENZO FIJO**
+> ([`PANTALLAS.md`](PANTALLAS.md) §1). Cambia dos premisas suyas:
+> - **Ya no hay responsive.** Todo se diseña a 1920×1080 y se escala entero.
+>   Donde aquí se habla de que algo "se repliega en pantallas pequeñas", ya no
+>   aplica: solo hay un tamaño.
+> - **El repliegue por presión** (§4bis.3) sigue en pie, pero ahora es por
+>   TENSIÓN, nunca por espacio. Es una decisión de diseño, no un apaño.
+
 ---
 
 ## 1. Qué hace bien la referencia
@@ -353,8 +361,9 @@ Ordenado por relación valor/riesgo:
 8. **Decidir el destino de la barra** — la última, porque depende de cómo
    sienten la placa y la lista una vez puestas.
 
-Cada fase con `check:layout` en los seis tamaños y `check:theme`, que la
-placa nueva no se ancle a un color.
+Cada fase con `check:theme` (que la placa nueva no se ancle a un color) y con
+el `check:layout` NUEVO — el de lienzo fijo, ver [`PANTALLAS.md`](PANTALLAS.md)
+§1.7. El de seis tamaños deja de tener sentido en cuanto entre el `#stage`.
 
 ---
 
