@@ -54,11 +54,32 @@ const STAGE_COMPACT = { w: 1280, h: 720 };
  * orientación.
  */
 function pickStage() {
+  // Lo primero, la ELECCIÓN de la jugadora: en Ajustes → «Tamaño de la
+  // interfaz». Se lee de localStorage a mano y no importando settings.js
+  // para no atar este módulo —que corre antes del primer pintado— a la
+  // carga del resto del juego. Si no hay nada guardado, manda el 1280 por
+  // las razones que explica el DEFAULTS de settings.js.
+  const pref = readStagePref();
+  if (pref === "1920") return STAGE_WIDE;
+  if (pref === "1280") return STAGE_COMPACT;
+
+  // "auto": el dispositivo decide, como antes.
   const coarse = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
   // Y una ventana pequeña de escritorio también: ahí el lienzo grande deja
   // el texto por debajo de lo legible aunque el puntero sea fino.
   const small = Math.max(window.innerWidth, window.innerHeight) < 1100;
   return coarse || small ? STAGE_COMPACT : STAGE_WIDE;
+}
+
+/** El ajuste guardado, tolerante a que no exista o esté corrupto. */
+function readStagePref() {
+  try {
+    const raw = localStorage.getItem("modo-incognito:settings:v1");
+    const v = raw ? JSON.parse(raw).stageSize : null;
+    return v === "1920" || v === "1280" || v === "auto" ? v : "1280";
+  } catch {
+    return "1280";
+  }
 }
 
 const CHOSEN = pickStage();
