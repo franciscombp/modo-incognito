@@ -126,6 +126,19 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
   registran en `main.js`; el día las pide por id en su JSON, y **el texto de
   la derrota es JSON** (`minigame.onFail`), no código. El motor nunca debe
   volver a tener un `if (day.loQueSea)` para un minijuego concreto.
+- `src/game/activityGame.js` — el PULSO, que es el minijuego de las tareas.
+  Un solo mecanismo parametrizado desde `activities[].pulso` en el JSON de la
+  escena; no hay un módulo por actividad.
+
+**Y la regla que decidió cómo es el pulso: un minijuego de TAREA no puede
+pausar el mundo.** Era lo tentador y habría roto el juego: hacer una tarea
+tiene que EXPONERTE, y si mientras juegas el jefe se congela, las estaciones
+pasan a ser el sitio más seguro del piso — lo contrario de su función. Por eso
+el pulso es una tira fina abajo y no una pantalla. Mantener espacio termina la
+tarea igual (ese es el suelo, y no se toca: obligar a jugarlo dejaría a alguien
+encallado en la primera tarea del día 1); tocar al ritmo la termina antes, y
+fallar hace RUIDO, que sube la sospecha. Lo vigila `npm run check:pulse`, y su
+primera comprobación es que el jefe SIGUE CAMINANDO mientras se juega.
 
 ### Personajes 3D (ya no son sprites)
 
@@ -562,6 +575,18 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   a un curso de cumplimiento con un botón de saltar que se mueve — y que HUYE
   del cursor a partir de la segunda visita. Siempre se puede terminar: es un
   peaje, no otra derrota.
+- **El día cierra con la EVALUACIÓN** (`src/ui/review.js`), y su gracia es que
+  enseña los DOS EJES a la vez: objetivos al 4/4 y competencias al 1/2 es
+  «cumples pero no eres de equipo», que es el tema del juego. Resumirlo otra
+  vez en una letra lo deja sin filo. Las notas malas van APAGADAS, no en rojo:
+  el rojo diría que pasó algo grave, y lo grave es que a nadie le importó.
+- **Cinco días sin cerrar la temporada → PLAN DE NIVELACIÓN**
+  (`src/ui/levelling.js`): una tanda de pruebas del registro de minijuegos,
+  pedida por id desde el JSON de la temporada. **Es una red, no otra derrota**
+  — fallar una prueba no cuesta nada a propósito, y la tanda no regala reloj
+  ni desbloquea nada, porque si saliera a cuenta suspender la gente
+  suspendería a propósito. Se comprueba la nota ANTES que B y C: estuvo
+  después y la red solo saltaba si fallabas los dos ejes a la vez.
 - **Para superar la puerta del día se llama a `game.clearGate()`**, nunca
   `metGabo = true` a pelo. Son dos pasos —la bandera y avisar a la campaña— y
   hacer solo el primero abre el piso con la lista de tareas VACÍA. Media suite

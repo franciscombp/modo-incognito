@@ -89,6 +89,18 @@ export function createCampaign({ save, data }) {
       return misiones.filter((x) => !elegible(x, antes) && elegible(x, ahora));
     },
 
+    /**
+     * Terminado el plan de nivelación: vuelta al día 1 de la MISMA temporada.
+     * Las misiones únicas ya hechas siguen hechas — el guardado es por tareas
+     * (§9), así que el plan cuesta tiempo y orgullo, nunca progreso. Sin esto
+     * el calendario se quedaba clavado en el día 5 y la nivelación se repetía
+     * cada jornada para siempre.
+     */
+    afterLevelling() {
+      const c = persisted();
+      save.campaign = { ...c, dia: 1 };
+    },
+
     /** ¿Queda algo por hacer en la TEMPORADA? (las únicas pendientes) */
     unicasPendientes() {
       const hechas = hechasTotales();
@@ -102,7 +114,26 @@ export function createCampaign({ save, data }) {
     endDay({ win }) {
       const c = persisted();
       const hechas = hechasTotales();
-      const delDia = misiones.filter((m) => elegible(m, new Set(c.unicas)) || hoy.has(m.id));
+
+      // QUÉ ESTUVO EN TU PLATO HOY.
+      //
+      // Esto lo decidía `elegible(m, new Set(c.unicas))`, o sea mirando solo
+      // las ÚNICAS ya guardadas — y ahí había un agujero que se comía el
+      // chiste central del juego: una misión desbloqueada por un requisito
+      // DIARIO no aparecía nunca. En la temporada 1, `chisme-fran` (cómo)
+      // depende de `fingir-101` (diaria); como las diarias no se persisten,
+      // la evaluación no lo contaba jamás y la nota B —«cumples los qués
+      // pero no hablas con nadie»— era inalcanzable por esa vía.
+      //
+      // La definición correcta es: estuvo en tu plato si sus requisitos
+      // quedaron satisfechos hoy (mirando TODO lo hecho, no solo lo
+      // guardado) y no es una única que ya despachaste otro día.
+      const delDia = misiones.filter((m) => {
+        const yaConsumida =
+          m.recurrencia === "unica" && c.unicas.includes(m.id) && !hoy.has(m.id);
+        if (yaConsumida) return false;
+        return (m.requiere ?? []).every((r) => hechas.has(r));
+      });
       const ques = delDia.filter((m) => m.tipo === "que");
       const comos = delDia.filter((m) => m.tipo === "como");
       const quesOk = ques.every((m) => hechas.has(m.id));
@@ -122,15 +153,22 @@ export function createCampaign({ save, data }) {
         nota = "A";
         detalle = "Asciendes por antigüedad: no había nadie más que durara tanto.";
         ascenso = true;
+      } else if (c.dia >= 5) {
+        // LA NIVELACIÓN VA ANTES QUE B Y C, y el orden importa: estaba
+        // detrás, así que en el día 5 una B («cumples pero no hablas»)
+        // ganaba y la red de seguridad solo saltaba si fallabas los DOS
+        // ejes a la vez. O sea que casi nadie la habría visto nunca, y
+        // quien llegara al día 5 con medio expediente se quedaba dando
+        // vueltas en el día 5 para siempre. Llegar al quinto sin cerrar la
+        // temporada es la condición, venga por donde venga.
+        nota = "Nivelación";
+        detalle = "Cinco días sin cerrar la temporada: plan de nivelación.";
       } else if (quesOk && !comosOk) {
         nota = "B";
         detalle = "Cumples los qués, pero hay que trabajar los cómos: habla con la gente.";
       } else if (!quesOk && comosOk) {
         nota = "C";
         detalle = "Muy buena actitud. Cero resultados. RRHH está «preocupado».";
-      } else if (c.dia >= 5) {
-        nota = "Nivelación";
-        detalle = "Cinco días sin completar objetivos: plan de nivelación.";
       } else {
         nota = win ? "En curso" : "—";
         detalle = "La temporada sigue: mañana, más.";
@@ -145,7 +183,21 @@ export function createCampaign({ save, data }) {
           save.campaign = { ...c, dia: Math.min(5, c.dia + 1) };
         }
       }
-      return { nota, detalle, ascenso, rango: this.rango, dia: c.dia, temporada: c.temporada };
+      return {
+        nota,
+        detalle,
+        ascenso,
+        rango: this.rango,
+        rangoSiguiente: data?.rangoSiguiente ?? null,
+        dia: c.dia,
+        temporada: c.temporada,
+        // LOS DOS EJES, POR SEPARADO. Es el chiste central de la evaluación
+        // (§3.2) y hasta ahora se resumía en una letra: la pantalla de
+        // desempeño necesita poder enseñar que cumpliste todo tu trabajo y
+        // aun así te suspenden por no hablar con nadie.
+        ques: { hechos: ques.filter((m) => hechas.has(m.id)).length, total: ques.length },
+        comos: { hechos: comos.filter((m) => hechas.has(m.id)).length, total: comos.length },
+      };
     },
   };
 }

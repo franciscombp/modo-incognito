@@ -12,7 +12,7 @@ dibuja todo, y las pantallas de menú.
 | §1.7 `check:layout` reescrito | ✅ construido | `tools/check-layout.mjs` (5 relaciones de aspecto + área táctil real) |
 | §1.8 Paneles con CSS 3D | ◻︎ la `perspective` está puesta en `#app`; ningún panel la usa aún |
 | §2 Selección de personaje como expediente | ◻︎ sin construir — sigue la pantalla de login anterior |
-| §3 Evaluación de desempeño | ◻︎ sin construir — hoy es el panel de resultado de siempre |
+| §3.2 Evaluación de desempeño | ✅ construido | `src/ui/review.js` |
 | §4 RRHH | ✅ construido | `src/ui/hrCourse.js`, bloque «CURSO DE RRHH» del DS |
 
 **Referencias en el repo** (`docs/referencias/pantallas/`):
@@ -404,11 +404,30 @@ Esbozos, para ir llenando.
 Ver `HUD.md` §4.5 — pestañas, acento único, leyenda de mandos, el juego
 visible detrás.
 
-## 3.2 Evaluación de fin de día *(nueva, la pide `CAMPANA.md`)*
+## 3.2 Evaluación de fin de día — ✅ **construida**
 La calificación AAA/AA/A/B/C con los dos ejes (Qués y Cómos) por separado.
 Debería parecer **una evaluación de desempeño real**: la nota, el gráfico de
 los dos ejes, y un comentario del evaluador con el tono pasivo-agresivo de
 una de verdad.
+
+Vive en `src/ui/review.js`, y sale ANTES del panel de resultado. Lo que la
+hace funcionar es que **los dos ejes se ven a la vez**: OBJETIVOS al 4/4 con
+la barra llena y COMPETENCIAS al 1/2 a media asta, y debajo un comentario que
+te felicita mientras te hunde. En una línea de texto —que es como estaba— eso
+no se leía.
+
+Dos detalles que importan más de lo que parecen:
+- **Las notas malas no se pintan de rojo**, sino apagadas. Un rojo de alarma
+  diría «te pasó algo grave»; lo que pasó es peor: nadie se alteró.
+- **El comentario rota** entre varios por nota. Vas a ver esta pantalla
+  veinticinco veces y la misma frase cinco días seguidos mata el chiste.
+
+Lo vigila `npm run check:review`.
+
+## 3.2bis Plan de nivelación *(CAMPANA §5.1)* — ✅ **construido**
+`src/ui/levelling.js`. El papeleo entre prueba y prueba, y las pruebas salen
+del registro de minijuegos por id desde el JSON de la temporada. Sobrio a
+propósito: si se viera celebratorio, suspender empezaría a salir a cuenta.
 
 ## 3.3 Curso de RRHH *(nueva, `CAMPANA.md` §7.2)* — ✅ **construida**
 El vídeo y el botón de saltar que huye. Pantalla completa, sin HUD.

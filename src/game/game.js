@@ -13,6 +13,7 @@ import { BOSS_STATES } from "../entities/boss.js";
 import { buzz } from "./settings.js";
 import { sfxComplete, sfxWarn, sfxDistraction } from "./sfx.js";
 import { runEffect } from "./effects.js";
+import { createActivityPulse } from "./activityGame.js";
 
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
@@ -240,6 +241,22 @@ export class Game {
     }));
     this._safeSpotCharge = (i) => this.safeSpotCharge(i);
 
+    // El pulso de la actividad (game/activityGame.js). Corre SIN pausar el
+    // mundo a propósito: una tarea tiene que exponerte, y un minijuego que
+    // congela al jefe convertiría las estaciones en el sitio más seguro del
+    // piso. Un fallo hace ruido, y el ruido entra por la misma puerta que
+    // todo lo demás: la sospecha.
+    this.pulse = createActivityPulse({
+      onNoise: (n) => {
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
+        buzz(30);
+      },
+      onFeedback: (tipo) => {
+        if (tipo === "acierto") sfxComplete();
+        else sfxWarn();
+      },
+    });
+
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
     this._eggDwell = new Map();
@@ -259,6 +276,11 @@ export class Game {
 
   update(dt) {
     if (this.gameOver || this.paused) {
+      // El pulso se apaga al pausar. Sin esto la tira se quedaba encendida
+      // ENCIMA del menú de pausa y del aviso de alarma —`update` sale por
+      // aquí antes de llegar a apagarla— y además dejaba al motor creyendo
+      // que sigues en la actividad después de reanudar desde otro sitio.
+      this.pulse.end();
       this.hud.render(this._snapshot());
       return;
     }
@@ -361,15 +383,35 @@ export class Game {
       // vea de frente es el personaje, que es más barato y nunca marea.
       const camYaw = (getCameraSettings().yawDeg * Math.PI) / 180;
       this.player.sprite.setHeading(Math.sin(camYaw), Math.cos(camYaw));
+
+      // EL SUELO, y no se toca: mantener pulsado termina la tarea igual, solo
+      // que lento. Quien no quiera jugar al pulso —o esté a la vez huyendo del
+      // jefe— la acaba de todas formas. El pulso es un ATAJO con riesgo, no un
+      // peaje: si fuera obligatorio, un mal jugador se quedaría encallado en la
+      // primera tarea del día 1.
+      this.pulse.begin(this.nearStation);
+      this.pulse.update(dt);
       this.nearStation.progress = Math.min(this.nearStation.time, this.nearStation.progress + dt);
       if (this.nearStation.progress >= this.nearStation.time && !this.nearStation.done) {
         this.nearStation.done = true;
+        // Lo limpio que fuiste paga en RELOJ, que es la única moneda. Se cobra
+        // ANTES de soltar el pulso, que es quien lleva la cuenta.
+        const bonus = this.pulse.bonusReloj();
         this._completeActivity(this.nearStation);
+        if (bonus > 0) {
+          this._grantTime(bonus, {
+            at: this.player.position,
+            sub: "sin que se note",
+            kind: "nerve",
+          });
+        }
+        this.pulse.end();
         // La campaña escucha: una estación cumplida puede desbloquear la
         // siguiente misión de la cadena (ver engine.js -> campaign).
         this.onMissionDone?.(this.nearStation.id);
       }
     } else {
+      this.pulse.end();
       this.player.isDoingActivity = false;
       // Fingir que trabajas es, literalmente, la pose de estar en el portátil.
       this.player.pose = this.player.isPretending ? "work" : null;
@@ -431,6 +473,13 @@ export class Game {
       } else {
         this.toast("¡Ya te vio! Una distracción no lo detiene ahora.");
       }
+    } else if (holdingSpace && !this._prevInteractKey && this.nearStation && this.pulse.active) {
+      // EL TOQUE DEL PULSO. Es un flanco de subida sobre la MISMA tecla que
+      // mantiene la actividad: mantener pulsado avanza lento, y soltar y
+      // volver a pulsar al ritmo avanza rápido. Una tecla, dos niveles de
+      // implicación — y quien no se entere de que existe termina la tarea
+      // igual, que era la condición para poder meter esto.
+      this.pulse.hit();
     }
     this._prevInteractKey = holdingSpace;
 
@@ -1266,6 +1315,10 @@ export class Game {
       // que todavía no se pueden hacer: solo la de encontrar al guardián.
       objectives: this.metGabo ? this.objectives : this._gateObjectives,
       nearStation: this.nearStation,
+      // El pulso de la actividad en marcha, o null. Va por el MISMO snapshot
+      // por frame que todo lo demás: no hay una segunda verdad que se pueda
+      // desincronizar del motor.
+      pulse: this.pulse.snapshot(),
       nearDistraction: this.nearDistraction,
       nearNpc: this.nearNpc,
       focusStation: this.focusStation,

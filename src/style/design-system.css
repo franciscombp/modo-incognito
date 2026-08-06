@@ -8534,6 +8534,8 @@ body.inc-game-active .inc-menu-scrim {
 .inc-login-mini,
 .hud-overlay-btn,
 .crossing-btn,
+.inc-review-ok,
+.inc-level-ok,
 .wprompt-key {
   border-radius: var(--btn-radius);
   border: var(--btn-border) solid var(--line);
@@ -9371,6 +9373,77 @@ body {
   transform: none;
 }
 
+/* ── EL PULSO DE LA ACTIVIDAD (game/activityGame.js) ──────────────────────
+   Una TIRA, no un panel. Se juega con el jefe caminando por detrás —el
+   mundo NO se pausa, a propósito— así que esto no puede tapar el escenario
+   ni robar la atención: va baja, centrada y estrecha. Todo de tokens. */
+.inc-pulse {
+  position: absolute;
+  left: 50%;
+  /* Abajo del todo, POR DEBAJO DE LOS PIES de la jugadora. La cámara la
+     sigue, así que va siempre centrada: cualquier banda por encima de esta
+     altura le cruza la cara, y la cara es donde está toda la expresión.
+     Los puntos van DEBAJO de la tira por lo mismo — encima se metían en la
+     píldora de controles. */
+  bottom: 96px;
+  width: 360px;
+  height: 14px;
+  transform: translateX(-50%) scaleY(0.4);
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-pop);
+}
+.inc-pulse.on {
+  opacity: 1;
+  transform: translateX(-50%) scaleY(1);
+}
+/* La zona buena: se recoloca en cada acierto, así que se mueve sola. */
+.inc-pulse-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 999px;
+  background: hsl(var(--p-accent) / 0.42);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  transition: left var(--dur-1) var(--ease-out), width var(--dur-1) var(--ease-out);
+}
+/* El marcador NO lleva transición: va a 60 fps y suavizarlo lo dejaría
+   detrás de donde el motor cree que está — y entonces el acierto que ves no
+   sería el que cuenta. */
+.inc-pulse-mark {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 4px;
+  margin-left: -2px;
+  border-radius: 2px;
+  background: var(--text);
+  box-shadow: 0 0 10px var(--text);
+}
+.inc-pulse-pips {
+  position: absolute;
+  left: 50%;
+  top: 22px;
+  display: flex;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+.inc-pulse-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.inc-pulse-pip.on {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
 /* El reloj y los avisos reutilizan las clases de la barra retirada
    (.inc-bar-center, .inc-notice…), que ya salen de tokens. Solo cambia el
    ancla: ahora cuelgan del layer del HUD, no de una barra. */
@@ -9494,3 +9567,237 @@ body {
   font-size: 13px;
   color: var(--text-muted);
 }
+
+/* ═════════════════════════════════════════════════════════════════════
+   EVALUACIÓN DE DESEMPEÑO (ui/review.js · docs/PANTALLAS.md §3.2)
+   ═════════════════════════════════════════════════════════════════════
+   El chiste central del juego, con cara de documento de RRHH. Lo que esta
+   pantalla tiene que conseguir es que los DOS EJES se vean a la vez: es
+   donde se lee "cumpliste los objetivos pero no eres de equipo", y en una
+   línea de texto eso no se leía.
+   ════════════════════════════════════════════════════════════════════ */
+.inc-review {
+  position: absolute;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: hsl(var(--p-bg-900) / 0.82);
+  opacity: 0;
+  transition: opacity var(--dur-3) var(--ease-out);
+}
+.inc-review.on { opacity: 1; }
+.inc-review.out { opacity: 0; }
+
+.inc-review-card {
+  width: min(680px, 86%);
+  padding: 34px 40px 30px;
+  border-radius: var(--btn-radius);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  box-shadow: 0 30px 80px hsl(var(--p-shadow-hue) / 0.5);
+  transform: translateY(14px) scale(0.98);
+  transition: transform var(--dur-3) var(--ease-pop);
+}
+.inc-review.on .inc-review-card { transform: none; }
+
+.inc-review-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.inc-review-kicker {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+.inc-review-cycle {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.inc-review-nota {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 0 10px;
+}
+.inc-review-nota-value {
+  font-family: var(--sans);
+  font-size: 84px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--accent);
+}
+/* Las notas malas NO se pintan de rojo de alarma: se pintan apagadas. Un
+   rojo de peligro diría "te pasó algo grave", y lo que pasó es peor —
+   nadie se alteró. */
+.inc-review-nota.nota-b .inc-review-nota-value,
+.inc-review-nota.nota-c .inc-review-nota-value,
+.inc-review-nota.nota-nivelación .inc-review-nota-value { color: var(--text-muted); }
+.inc-review-nota-label {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.inc-review-ejes {
+  display: grid;
+  gap: 16px;
+  margin: 6px 0 20px;
+}
+.inc-review-eje-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.inc-review-eje-label {
+  font-family: var(--mono);
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  color: var(--text);
+}
+.inc-review-eje-num {
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.inc-review-eje-bar {
+  height: 8px;
+  margin: 6px 0 4px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  overflow: hidden;
+}
+.inc-review-eje-bar > i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  /* Crece al entrar: la barra que sube es lo que hace que esto se lea como
+     un veredicto y no como una tabla. */
+  transition: width 0.9s var(--ease-out);
+}
+.inc-review-eje-bar > i.corto { background: var(--text-muted); }
+.inc-review-eje-sub {
+  font-family: var(--sans);
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.inc-review-quote {
+  position: relative;
+  padding: 16px 18px 14px 46px;
+  border-radius: var(--btn-radius);
+  background: var(--surface-sunken);
+  border-left: 2px solid var(--accent);
+}
+.inc-review-quote-mark {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  color: var(--accent);
+  opacity: 0.8;
+}
+.inc-review-quote-mark svg { width: 20px; height: 20px; }
+.inc-review-quote-text {
+  margin: 0 0 8px;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text);
+}
+.inc-review-quote-by {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.inc-review-asc {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--accent);
+}
+.inc-review-asc svg { width: 18px; height: 18px; }
+
+.inc-review-ok { margin-top: 22px; width: 100%; }
+
+
+/* ═════════════════════════════════════════════════════════════════════
+   PLAN DE NIVELACIÓN (ui/levelling.js · docs/CAMPANA.md §5.1)
+   ═════════════════════════════════════════════════════════════════════
+   El papeleo entre prueba y prueba. Deliberadamente SOBRIO: es un trámite
+   con vocabulario de RRHH, no un premio. Si esto se viera celebratorio,
+   suspender empezaría a salir a cuenta — que es el riesgo que el propio
+   documento se marca en §11.4.
+   ════════════════════════════════════════════════════════════════════ */
+.inc-level {
+  position: absolute;
+  inset: 0;
+  z-index: 62;
+  display: grid;
+  place-items: center;
+  background: hsl(var(--p-bg-900) / 0.9);
+  opacity: 0;
+  transition: opacity var(--dur-3) var(--ease-out);
+}
+.inc-level.on { opacity: 1; }
+.inc-level.out { opacity: 0; }
+
+.inc-level-card {
+  width: min(520px, 84%);
+  padding: 34px 38px 30px;
+  text-align: center;
+  border-radius: var(--btn-radius);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 60px hsl(var(--p-shadow-hue) / 0.5);
+  transform: translateY(12px);
+  transition: transform var(--dur-3) var(--ease-pop);
+}
+.inc-level.on .inc-level-card { transform: none; }
+
+.inc-level-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+}
+.inc-level-icon svg { width: 26px; height: 26px; }
+.inc-level-kicker {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+}
+.inc-level-title {
+  margin: 6px 0 10px;
+  font-family: var(--sans);
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text);
+}
+.inc-level-body {
+  margin: 0;
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+.inc-level-ok { margin-top: 22px; width: 100%; }

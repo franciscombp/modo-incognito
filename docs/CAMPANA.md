@@ -16,9 +16,9 @@ encima, tacha, contesta las preguntas.
 | §7.2 Tres amonestaciones → RRHH | ✅ | `src/ui/hrCourse.js`, enganchado en `engine.js` → `finishDay` |
 | §9 Guardado por progreso de TAREAS | ✅ | una `unica` se persiste en el ACTO, no al cerrar el día |
 | §5.1 Salto de temporada con AAA | ✅ lógica | no hay temporadas 2–5 que escribir todavía |
-| §6 Rangos y jubilación | ◻︎ | `RANGOS` existe en `campaign.js`; sin pantalla ni final |
-| §8 Minijuegos de plan de nivelación | ◻︎ | la nota «Nivelación» se calcula pero no dispara nada |
-| Pantalla de evaluación (PANTALLAS §3) | ◻︎ | la nota se añade al panel de resultado de siempre |
+| §6 Rangos y jubilación | ◻︎ parcial | El rango y el ascenso ya salen en la evaluación; falta la temporada 5 y el final (es CONTENIDO: hay que escribir las temporadas 2–5) |
+| §8 Plan de nivelación | ✅ | `src/ui/levelling.js`; la tanda sale de `nivelacion.pruebas` en el JSON de la temporada |
+| Pantalla de evaluación (PANTALLAS §3) | ✅ | `src/ui/review.js`: los dos ejes por separado, con barra y comentario del evaluador |
 
 > ⚠️ **Esto reemplaza el modelo de juego actual.** El día 1 era una jornada
 > suelta con tres actividades libres; ahora esas tres actividades son
@@ -287,9 +287,41 @@ Dos usos distintos, y conviene no mezclarlos:
 |---|---|---|---|
 | Cruzar la avenida | tránsito | Esquivar tráfico | **Ya existe**, hoy desactivado |
 | Cruzar a otro edificio | tránsito | Variante de lo anterior | por hacer |
-| Calentar la comida | tarea (qué) | El microondas y la cola | por hacer |
-| Curso de RRHH | castigo | El *skip* que huye | por hacer |
+| **El pulso** (todas las tareas) | tarea (qué) | Acertar la zona sin hacer ruido | ✅ **hecho** |
+| Curso de RRHH | castigo | El *skip* que huye | ✅ hecho |
 | Plan de nivelación | castigo | Tanda de los anteriores | por hacer |
+
+### El PULSO — cómo quedaron los minijuegos de tarea
+
+> ⚠️ **La regla que decidió el diseño entero: un minijuego de tarea NO PUEDE
+> PAUSAR EL MUNDO.** Era lo tentador (pantalla completa, el microondas, la
+> cola) y habría roto justo lo que el juego es. Hacer una tarea tiene que
+> EXPONERTE — estás parada, a la vista, haciendo algo que no es trabajar. Si
+> mientras juegas el jefe se congela, las estaciones pasan a ser el sitio más
+> seguro del piso, que es exactamente lo contrario de su función, y el bucle
+> de [`MOTOR.md`](MOTOR.md) §1 se queda sin el intercambio que lo sostiene.
+
+Así que el minijuego de tarea corre **en el piso, sin pausa y sin tapar el
+escenario**: una tira fina abajo, por debajo de los pies de la jugadora.
+
+- **Mantener espacio la termina igual, lento.** Ese es el SUELO y no se toca:
+  quien no quiera jugar a nada, o esté a la vez huyendo, la acaba de todas
+  formas. Un minijuego obligatorio dejaría a alguien encallado en la primera
+  tarea del día 1.
+- **Encima va el pulso:** un marcador barre la tira y hay una zona buena.
+  Tocar espacio dentro da un pellizco de progreso; fuera, resta y **hace
+  RUIDO**, que sube la sospecha. No es «menos puntos»: es que alguien te oyó.
+- **Es la MISMA tecla**, en dos niveles: mantenida avanza lento, soltar y
+  volver a pulsar al ritmo avanza rápido.
+- **Lo limpio paga en reloj**, que es la única moneda.
+- **No son tres minijuegos, es uno parametrizado.** El carácter sale del JSON
+  (`activities[].pulso` en `scenes/piso7.json`): el café es amable, el
+  microondas va nervioso y con la zona estrecha, la película lenta y ancha.
+  Tres sensaciones, un solo sistema que mantener.
+
+Vive en `src/game/activityGame.js` y lo vigila `npm run check:pulse`, cuya
+primera comprobación —la que de verdad importa— es que **el jefe sigue
+caminando** mientras se juega.
 
 **Buena noticia:** el registro ya existe y está aislado a propósito
 (`src/game/minigames.js`). Se registran por id, el día los pide desde su
@@ -399,14 +431,12 @@ hecho; la temporada 1 se juega de punta a punta.**
    temporada 1 → `public/data/campaign/temporada-1.json`.
 2. ✅ **`campaign.js`**: activar, completar, encadenar.
 3. ✅ **Lista de tareas en el HUD** (`HUD.md` §4bis) → `src/ui/gamehud.js`.
-4. ◻︎ **Cierre de día y calificación**: la NOTA ya se calcula y se enseña,
-   pero dentro del panel de resultado de siempre. Falta la pantalla de
-   evaluación maquetada en [`PANTALLAS.md`](PANTALLAS.md) §3.2.
+4. ✅ **Cierre de día y calificación** → `src/ui/review.js`.
 5. ✅ **Temporadas y rangos**: el salto por AAA y el ascenso por antigüedad
    están en `endDay()`. Falta ESCRIBIR las temporadas 2–5.
 6. ✅ **Curso de RRHH** → `src/ui/hrCourse.js`.
-7. ◻︎ **Minijuegos de tarea** (comida, etc.) y reactivar la avenida.
-8. ◻︎ **Plan de nivelación**: la nota se calcula, pero no dispara nada.
+7. ◻︎ parcial — **los minijuegos de tarea están** (el pulso); reactivar la avenida sigue pendiente.
+8. ✅ **Plan de nivelación** → `src/ui/levelling.js`.
 9. ◻︎ **Temporada 5 y jubilación** — el final.
 
 Cada fase con su comprobación en `tools/`. `MOTOR.md` ya está actualizado:

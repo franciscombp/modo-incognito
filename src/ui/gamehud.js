@@ -109,6 +109,38 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   let zoneShown = null;
   let zoneTimer = 0;
 
+  // ── EL PULSO DE LA ACTIVIDAD ──────────────────────────────────────────
+  // Una TIRA FINA y baja, no un panel: esto se juega con el jefe encima y el
+  // escenario tiene que seguir viéndose (game/activityGame.js explica por qué
+  // el mundo no se pausa). Va centrada abajo, justo donde ya está mirando
+  // quien acaba de pulsar el botón de acción.
+  const pulseBar = el("div", "inc-pulse", layer);
+  const pulseZone = el("i", "inc-pulse-zone", pulseBar);
+  const pulseMark = el("i", "inc-pulse-mark", pulseBar);
+  const pulsePips = el("div", "inc-pulse-pips", pulseBar);
+  let pulseHits = -1;
+
+  function renderPulse(state) {
+    const p = state.pulse;
+    pulseBar.classList.toggle("on", !!p);
+    if (!p) {
+      pulseHits = -1;
+      return;
+    }
+    pulseZone.style.left = `${(p.zonaAt - p.zona / 2) * 100}%`;
+    pulseZone.style.width = `${p.zona * 100}%`;
+    pulseMark.style.left = `${p.pos * 100}%`;
+    // Los puntos solo se redibujan cuando cambia la cuenta: reconstruir seis
+    // nodos por frame es gratis en un portátil y se nota en un teléfono.
+    if (p.aciertos !== pulseHits) {
+      pulseHits = p.aciertos;
+      pulsePips.replaceChildren();
+      for (let i = 0; i < p.necesarios; i++) {
+        el("i", `inc-pulse-pip${i < p.aciertos ? " on" : ""}`, pulsePips);
+      }
+    }
+  }
+
   // ── AVISOS (caen bajo el reloj y se van solos) ────────────────────────
   const notices = el("div", "inc-bar-notices", layer);
   function notify({ icon = "alert", text = "", tone = "info", ttl = 4200 } = {}) {
@@ -294,6 +326,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       renderQuests(state);
       renderClock(state);
       renderZone(state);
+      renderPulse(state);
     },
   };
 }
