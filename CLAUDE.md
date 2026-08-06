@@ -12,6 +12,9 @@ no la dupliques aquí.
 > - [`docs/CAMPANA.md`](docs/CAMPANA.md) — la campaña: misiones encadenadas,
 >   Qués y Cómos, temporadas, rangos, jubilación. **En diseño, sin implementar.**
 > - [`docs/HUD.md`](docs/HUD.md) — la interfaz de partida. **En diseño.**
+> - [`docs/PANTALLAS.md`](docs/PANTALLAS.md) — el LIENZO FIJO (1920×1080
+>   apaisado, escalado como un juego de motor) y las pantallas de menú:
+>   selección de personaje, evaluación, RRHH. **En diseño.**
 
 ## Estado: MVP del día 1
 
@@ -461,7 +464,9 @@ pantalla esté abierta, para que ajustes-desde-pausa herede lo correcto.
 
 Si tocas el HUD o el CSS, corre `npm run check:layout` antes de darlo por
 bueno: comprueba en seis tamaños de pantalla que nada se solape, se recorte
-ni se salga. Este tipo de fallo no se ve en el diff y es fácil que se cuele
+ni se salga. (⚠️ Cuando entre el lienzo fijo de `docs/PANTALLAS.md` §1, esta
+comprobación cambia de sentido: solo habrá UN tamaño y lo que se verifica es
+la escala y el encuadre.) Este tipo de fallo no se ve en el diff y es fácil que se cuele
 en una captura.
 
 ## Invariantes que no debes romper
