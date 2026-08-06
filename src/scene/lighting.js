@@ -63,6 +63,12 @@ export function createWorldLighting(scene, quality, S = 1) {
   key.shadow.camera.bottom = -span;
   key.shadow.camera.far = 220 * S;
   key.shadow.bias = -0.0018;
+  // El BORDE de la sombra, que es la mitad de lo duro que se ve el set.
+  // Con radio 1 (el de por defecto) el canto sale a cuchillo y el piso se
+  // lee como recortado en cartulina; el sol de una oficina entra por metros
+  // de vidrio, así que su sombra tiene penumbra ancha. Con PCFSoftShadowMap
+  // el radio ensancha ese difuminado sin pagar otro mapa.
+  key.shadow.radius = 4;
   scene.add(key);
   // El objetivo tiene que estar EN la escena: una DirectionalLight apunta a
   // su `target`, y un target suelto se queda en el origen del mundo sin
