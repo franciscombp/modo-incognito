@@ -17,9 +17,23 @@ permissions:
   pages: write
   id-token: write
 
+# UN despliegue a la vez, pero NUNCA cancelando el que está en marcha.
+#
+# Estuvo en `cancel-in-progress: true` y montó una cascada que dejó el sitio
+# cinco commits sin publicar. Lo que pasa es esto: `deploy-pages` no es un
+# paso local — RESERVA un despliegue en la infraestructura de Pages y espera
+# a que termine. Si se cancela ese job a mitad, la reserva se queda colgada,
+# y el siguiente intento se pone a la cola detrás de un despliegue que ya no
+# va a acabar nunca: «Current status: deployment_queued» hasta que expira.
+# Cada push nuevo cancelaba al anterior y añadía otro zombi a la cola.
+#
+# Con `false`, un push mientras hay un despliegue en marcha simplemente
+# espera su turno (y los intermedios se descartan, que es lo que se quiere:
+# publicar el último). Es además lo que recomienda la plantilla oficial de
+# Pages, por esta misma razón.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
