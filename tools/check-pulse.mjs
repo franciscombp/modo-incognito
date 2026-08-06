@@ -70,7 +70,16 @@ assert("y el HUD lo pinta", arranque.pintado === true, JSON.stringify(arranque))
 const vivo = await p.evaluate(async () => {
   const g = window.__game.engine.game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  // El jefe, lejos y con ruta libre, para que tenga a dónde ir.
+  // El jefe, LEJOS de verdad y con la captura vetada. La primera versión
+  // solo subía la sospecha para que caminara — y según dónde le pillara la
+  // ronda, a veces LLEGABA: te atrapaba, el interrogatorio pausaba la
+  // partida y el pulso se apagaba justo antes de la fase siguiente, que
+  // encontraba `station` en null y devolvía {}. Una de cada tantas, según
+  // el azar de su ruta. Aquí se mide que el mundo sigue vivo, no la captura
+  // (esa la prueban check-catch y check-pursuit).
+  g._caughtCooldown = 999;
+  g.boss.position.x = g.player.position.x + 30;
+  g.boss.position.z = g.player.position.z;
   g.suspicion = Math.max(g.suspicion, g.boss.chaseSuspicionFloor + 15);
   g.boss.suspicion = g.suspicion;
   const antes = { x: g.boss.position.x, z: g.boss.position.z };
@@ -98,6 +107,25 @@ const golpes = await p.evaluate(async () => {
   const g = window.__game.engine.game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const snap = () => g.pulse.snapshot();
+
+  // REARMAR antes de medir: si algo de la fase anterior apagó el pulso (una
+  // pausa, un empujón que te sacó del radio), aquí se vuelve al estado que
+  // esta fase necesita en vez de heredar el azar de la anterior.
+  g.setPaused(false);
+  g.suspicion = 0;
+  g.boss.suspicion = 0;
+  g.boss.resetToPatrol();
+  const st0 = g.objectives.find((o) => !o.dynamic);
+  g.player.position.x = st0.x;
+  g.player.position.z = st0.z;
+  g.player.keys.add(" ");
+  for (let i = 0; i < 60 && !g.pulse.active; i++) {
+    g.setPaused(false);
+    g.player.position.x = st0.x;
+    g.player.position.z = st0.z;
+    await sleep(60);
+  }
+  if (!g.pulse.active) return { error: "el pulso no llegó a rearmar" };
   const dentro = (s) => Math.abs(s.pos - s.zonaAt) <= s.zona / 2;
 
   /** Espera a que el marcador esté dentro (o fuera) y devuelve ahí mismo. */
