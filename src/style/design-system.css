@@ -10083,3 +10083,208 @@ body {
   text-transform: uppercase;
   color: var(--accent);
 }
+
+/* =====================================================================
+   EL EXPEDIENTE: la selección de personaje en el idioma del HUD
+   =====================================================================
+
+   La pantalla era una TARJETA DE LOGIN centrada: un panel opaco con
+   esquinas redondas, un círculo grande y un muelle de miniaturas. Se leía
+   como el acceso de un sistema operativo genérico — que era la idea
+   original— pero no se parecía en nada a lo que la jugadora ve el resto
+   de la partida, así que al entrar al piso la interfaz cambiaba de idioma
+   de golpe.
+
+   Ahora habla como la LISTA DE MISIONES, que es la pieza más lograda del
+   HUD: filas sin caja separadas por una línea fina, mayúsculas con letra
+   espaciada, y la fila elegida marcada por un LAVADO que se desvanece —
+   no por un borde ni por un cambio de tinta.
+
+   Va al final del archivo a propósito: alinea por cascada las reglas
+   históricas de `.inc-login-*` sin tener que perseguirlas por el archivo,
+   que es la misma decisión que tomó el bloque «BOTÓN ÚNICO».
+   ===================================================================== */
+
+/* El panel deja de ser una tarjeta y pasa a ser un plano holográfico:
+   sin relleno opaco, con filo fino y esquinas cortadas en bisel. */
+.inc-login {
+  background: linear-gradient(180deg, hsl(var(--p-bg-800) / 0.72), hsl(var(--p-bg-900) / 0.82));
+  border: 1px solid hsl(var(--p-accent-bright) / 0.28);
+  border-radius: 0;
+  clip-path: polygon(
+    22px 0, 100% 0, 100% calc(100% - 22px),
+    calc(100% - 22px) 100%, 0 100%, 0 22px
+  );
+  box-shadow: 0 0 0 1px hsl(var(--p-accent-bright) / 0.1), 0 24px 70px hsl(var(--p-shadow-hue) / 0.55);
+}
+
+/* El título, como una cabecera de sistema: pequeño, espaciado y con una
+   regla debajo. Un titular grande competía con el propio personaje. */
+.inc-login-greeting {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: hsl(var(--p-accent-bright));
+  padding-bottom: 14px;
+  border-bottom: 1px solid hsl(var(--p-accent-bright) / 0.2);
+  text-shadow: 0 0 14px hsl(var(--p-accent-bright) / 0.5);
+}
+
+/* El retrato: disco de holograma, no botón. Anillo fino, halo y sin
+   relleno sólido, para que el muñeco flote dentro en vez de estar pegado
+   sobre una moneda. */
+.inc-login-avatar {
+  background-color: transparent;
+  border: 1px solid hsl(var(--p-accent-bright) / 0.45);
+  box-shadow:
+    inset 0 0 44px hsl(var(--p-accent-bright) / 0.14),
+    0 0 34px hsl(var(--p-accent-bright) / 0.22);
+}
+
+.inc-login-name {
+  letter-spacing: 0.06em;
+  text-shadow: 0 0 18px hsl(var(--p-accent-bright) / 0.35);
+}
+
+/* El rol, en el mismo micro-texto que un título de misión. */
+.inc-login-role {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: hsl(var(--p-accent-bright) / 0.95);
+}
+
+.inc-login-blurb {
+  font-size: 17px;
+  line-height: 1.6;
+  max-width: 44ch;
+}
+
+/* ── EL MUELLE: FICHAS HOLOGRÁFICAS, EN FILA ───────────────────────
+   Se probó en lista vertical, como la de misiones, y no cabe: con cinco
+   cuentas el panel se pasa del lienzo y la última queda cortada. Así que
+   se queda en fila, pero cada cuenta pasa de circulito a FICHA con bisel
+   y su nombre dentro — que es lo que faltaba, porque sin retrato cargado
+   los círculos eran cinco cuadrados vacíos y ahí estaba la confusión.
+
+   El lavado de la elegida es el mismo recurso que `.inc-quest.followed`:
+   ilumina sin poner borde ni cambiar la tinta. */
+.inc-login-dock {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.inc-login-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 122px;
+  height: 106px;
+  padding: 8px 6px;
+  /* Sin borde ni radio: el filo lo pone el bisel, como el resto del HUD. */
+  border: 1px solid hsl(var(--p-accent-bright) / 0.2);
+  border-radius: 0;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  background-color: hsl(var(--p-bg-900) / 0.5);
+  background-size: auto 74%;
+  background-position: center 16%;
+  background-repeat: no-repeat;
+  box-shadow: none;
+  transition: background var(--transition-base), border-color var(--transition-base);
+}
+
+.inc-login-mini.active {
+  border-color: hsl(var(--p-accent-bright) / 0.75);
+  background-color: hsl(var(--p-accent-bright) / 0.14);
+  box-shadow: 0 0 22px hsl(var(--p-accent-bright) / 0.3);
+  transform: none;
+}
+
+.inc-login-mini:hover {
+  border-color: hsl(var(--p-accent-bright) / 0.5);
+  transform: none;
+}
+
+.inc-login-mini.locked { opacity: 0.4; }
+
+/* El nombre va DENTRO de la ficha, no flotando debajo. */
+.inc-login-mini-name {
+  position: static;
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  /* Sin nowrap: con nowrap un nombre largo se salía de su ficha y se
+     metía encima de la vecina. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inc-login-mini.active .inc-login-mini-name {
+  color: hsl(var(--p-accent-bright));
+  text-shadow: 0 0 12px hsl(var(--p-accent-bright) / 0.5);
+}
+
+/* ── ENTRAR: también holográfico ───────────────────────────────────
+   Era la única píldora sólida de la pantalla y cantaba como de otra
+   interfaz. Ahora es un plano con filo, bisel y halo — sigue siendo lo
+   más llamativo, que es su trabajo, pero en el mismo idioma. */
+.inc-login-enter {
+  /* `background-image: none` a mano: `.inc-btn--primary` pinta un DEGRADADO,
+     y sin apagarlo el relleno seguía leyéndose sólido por mucho que el
+     color de fondo fuera translúcido. */
+  background-image: none;
+  background-color: hsl(var(--p-accent-bright) / 0.16);
+  border: 1px solid hsl(var(--p-accent-bright) / 0.7);
+  border-radius: 0;
+  clip-path: polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px);
+  color: hsl(var(--p-accent-bright));
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 16px 34px;
+  box-shadow: 0 0 26px hsl(var(--p-accent-bright) / 0.28), inset 0 0 22px hsl(var(--p-accent-bright) / 0.1);
+  text-shadow: 0 0 12px hsl(var(--p-accent-bright) / 0.6);
+}
+
+.inc-login-enter:hover:not(:disabled) {
+  background-image: none;
+  background-color: hsl(var(--p-accent-bright) / 0.26);
+  box-shadow: 0 0 34px hsl(var(--p-accent-bright) / 0.42), inset 0 0 26px hsl(var(--p-accent-bright) / 0.16);
+  transform: none;
+}
+
+.inc-login-enter:disabled {
+  border-color: hsl(var(--p-ink-700) / 0.5);
+  color: var(--text-faint);
+  background: transparent;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+/* Las flechas, en bisel y sin relleno: mandos de consola, no botones de
+   formulario. */
+.inc-login-arrow {
+  background: transparent;
+  border: 1px solid hsl(var(--p-accent-bright) / 0.35);
+  border-radius: 0;
+  clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+  color: hsl(var(--p-accent-bright));
+  box-shadow: none;
+}
+
+.inc-login-arrow:hover {
+  background: hsl(var(--p-accent-bright) / 0.12);
+  border-color: hsl(var(--p-accent-bright) / 0.7);
+}
