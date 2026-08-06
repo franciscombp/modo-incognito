@@ -1297,6 +1297,71 @@ h1, h2, h3, h4, h5, h6 {
   gap: var(--space-sm);
 }
 
+/* ── QUE SE VEA QUE AVANZA ──────────────────────────────────────────
+   El carril iba a 6px y sin cifra: en una tarea larga, la barra se mueve
+   tan despacio que parece congelada, y la sensación es que el juego no
+   registró la acción. Tres cosas lo arreglan, y las tres hacen falta:
+   carril GORDO, cifra que sube, y un latido en cada avance real.
+   Todo respeta `prefers-reduced-motion` al final del archivo. */
+.inc-action-scene .inc-action-progress-track {
+  height: 14px;
+  border: 1px solid hsl(var(--p-accent-bright) / 0.25);
+}
+.inc-action-scene .inc-action-progress-fill {
+  background: var(--accent);
+  box-shadow: 0 0 12px hsl(var(--p-accent-bright) / 0.55);
+  /* Rayado en movimiento: el relleno se mueve AUNQUE el porcentaje no
+     haya cambiado todavía, que es lo que dice "está en marcha" durante
+     los segundos muertos entre dos incrementos. */
+  background-image: repeating-linear-gradient(
+    -45deg,
+    hsl(var(--p-bg-700) / 0.28) 0 8px,
+    transparent 8px 16px
+  );
+  animation: inc-action-stripes 0.7s linear infinite;
+}
+@keyframes inc-action-stripes {
+  from { background-position: 0 0; }
+  to { background-position: 22px 0; }
+}
+
+.inc-action-pct {
+  margin-top: var(--space-sm);
+  font-size: 20px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: hsl(var(--p-accent-bright));
+  text-align: right;
+}
+
+/* El latido de cada avance. Es corto a propósito: tiene que leerse como
+   un tic, no como una animación que compite con el piso. */
+.inc-action-scene.advancing {
+  animation: inc-action-tick 0.22s var(--ease-pop);
+}
+@keyframes inc-action-tick {
+  0% { transform: scale(1); }
+  45% { transform: scale(1.035); }
+  100% { transform: scale(1); }
+}
+
+/* Y el remate al terminar: el panel se enciende en verde una vez. */
+.inc-action-scene.done {
+  border-color: hsl(var(--p-ok) / 0.6);
+  box-shadow: 0 0 0 2px hsl(var(--p-ok) / 0.25), 0 20px 60px rgba(10, 10, 8, 0.1);
+}
+.inc-action-scene.done .inc-action-progress-fill {
+  background-color: hsl(var(--p-ok));
+  animation: none;
+}
+.inc-action-scene.done .inc-action-pct { color: hsl(var(--p-ok)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .inc-action-scene.advancing { animation: none; }
+  .inc-action-scene .inc-action-progress-fill { animation: none; }
+}
+
 /* ---------- INTRO CARD ---------- */
 
 .inc-intro-card {

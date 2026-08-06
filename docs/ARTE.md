@@ -292,6 +292,28 @@ mismo commit.
 Solo llevan `hold` y amplitud revisada `coffee`, `eat` y `work`. Faltan
 `sleep`, `movie`, `phone`, `scared`, `sit`, `sitWork` y `shrug`.
 
+
+## Cuando arte cruza a territorio de motor
+
+Ha pasado ya, a peticion expresa, y conviene dejar constancia de QUE se tocó
+para que el otro frente no se lo encuentre por sorpresa:
+
+| Qué | Dónde | Por qué |
+|---|---|---|
+| El medidor de sospecha de la placa | `ui/gamehud.js` + su CSS | A cero era un hilo oscuro sobre placa oscura: no se veía, y es justo cuando más falta hace |
+| El aviso de acción en curso | `game/hud.js` + su CSS | Una barra que avanza despacio parece congelada; hacía falta cifra, rayado y latido |
+
+**La regla sigue siendo la de siempre:** se toca la pieza concreta y nada
+más. Nada de reordenar el archivo ni de "ya que estoy". Y se avisa en el
+mensaje del commit, que es donde el otro frente lo va a leer.
+
+> ⚠️ **Sin verificar en juego:** el panel de acción se gobierna desde el
+> snapshot por frame y se vuelve a ocultar solo, así que no se pudo
+> fotografiar en marcha. El estilo y el enganche están escritos y compilan,
+> pero **falta verlo con una tarea de verdad en curso**. Si al probarlo no
+> se ve, empieza por `setAction` en `game/hud.js` y por quién le pasa
+> `nearStation` en el snapshot.
+
 ## Cómo se mira lo que haces
 
 El diff de una receta de luz o de una pose **no dice nada**. Hay que ver la
