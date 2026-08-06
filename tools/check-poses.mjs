@@ -45,10 +45,26 @@ const result = await page.evaluate(async () => {
 
   const out = { hasPoses: player.sprite.hasPoses, activities: [] };
 
-  // Solo las ESTACIONES del plano: la campaña también reparte misiones sin
-  // sitio fijo (`dynamic`) —hablar con alguien, el tutorial de fingir— y esas
-  // no tienen pose de actividad que muestrear.
-  for (const station of game.objectives.filter((o) => !o.dynamic)) {
+  // LAS ACTIVIDADES DEL DÍA, no la lista de tareas del momento.
+  //
+  // Desde que la campaña reparte las misiones (docs/CAMPANA.md), `objectives`
+  // ya no trae las tres actividades del día 1 de golpe: llegan encadenadas,
+  // y al arrancar solo hay una estación activa — las otras dos se desbloquean
+  // al hacerla. Iterando esa lista, la prueba medía el RITMO de la campaña en
+  // vez de las poses, y decía que faltaban dos actividades que están ahí.
+  //
+  // `rules.objectives` es lo que el JSON del día declara como sus actividades,
+  // y no depende de por dónde vaya la cadena; `_allStations` las resuelve a
+  // estaciones del plano con su pose. Eso es lo que este archivo quiere.
+  const delDia = game.rules.objectives ?? null;
+  const stations = (game._allStations ?? [])
+    .filter((s) => !delDia || delDia.includes(s.id))
+    .map((s) => ({ ...s, progress: 0, done: false }));
+  // Y se ponen TODAS en la lista de tareas: `nearStation` solo mira ahí, así
+  // que plantarse encima de una estación que la cadena aún no ha desbloqueado
+  // no dispara ninguna pose. Aquí se prueban las poses, no la cadena.
+  game.objectives = stations;
+  for (const station of stations) {
     player.keys.clear();
     player.position.x = station.x;
     player.position.z = station.z;

@@ -305,7 +305,11 @@ Tres trampas al escribir uno, las tres pagadas ya:
 2. **Una amonestación resetea la sospecha a cero**, así que la prueba siguiente
    empieza en frío — y en frío el jefe ya no persigue (regla 3.1).
 3. El jefe lleva **su propia copia** de la sospecha, que `game.js` sincroniza
-   una vez por cuadro. En un montaje hay que poner las dos.
+   una vez por cuadro. En un montaje hay que poner las dos. Es la trampa que
+   más veces ha mordido: `check:music` decía que la música no reaccionaba a
+   la persecución, y lo que pasaba es que `startChase()` encontraba al jefe
+   todavía en frío y la puerta del respiro (regla 3.1) le denegaba la caza.
+   La música estaba perfecta.
 4. **Para saltarse la puerta del día 1 se llama a `game.clearGate()`**, nunca
    `game.metGabo = true` a pelo. La bandera sola abre el piso pero deja la
    lista de tareas VACÍA, porque quien reparte el plan del día es la campaña
@@ -320,7 +324,16 @@ Tres trampas al escribir uno, las tres pagadas ya:
 Honestidad por delante, para que decidas tú:
 
 1. **`check:safespots` tiene un FAIL** ("y su marcador lo refleja"). Es
-   anterior a estos cambios y sigue ahí.
+   anterior a la campaña y sigue ahí. Lo que se sabe hasta ahora: la prueba
+   mete a la jugadora en una sala y da vueltas de `update()` hasta agotarle
+   el cupo (26 s de juego en 1200 vueltas de 1/30 s, o sea 40 s de margen);
+   al salir, `inSafeSpot` es `false` —eso pasa— pero el marcador no llega a
+   0. **Sospecha, sin confirmar:** el cupo no se agota del todo y la
+   comprobación hermana ("una sala se gasta y deja de cubrirte") estaría
+   pasando por el motivo equivocado. Un intento de aislarlo con una sonda
+   dejó el navegador colgado sin devolver dato, así que la causa NO está
+   confirmada y no conviene "arreglarlo" a ciegas: si la teoría es cierta,
+   el fallo real es de la prueba, no del motor.
 2. **Los personajes no se esquivan entre ellos** (ver 3.6).
 3. **El umbral de 40 está sin jugar de verdad.** Está probado que funciona,
    pero el número correcto sale de jugarlo, no de razonarlo.
