@@ -31,8 +31,19 @@ permissions:
 # espera su turno (y los intermedios se descartan, que es lo que se quiere:
 # publicar el último). Es además lo que recomienda la plantilla oficial de
 # Pages, por esta misma razón.
+# El NOMBRE del grupo es una válvula de escape, y ya hizo falta una vez.
+#
+# Un run se quedó encallado en `waiting` durante horas: la API devolvía 502 al
+# cancelarlo y «this workflow is already running» al relanzarlo, y el botón de
+# la web tampoco podía con él (usa el cancel normal, no `force-cancel`). Un run
+# así RETIENE el grupo para siempre, así que ningún push posterior llegaba
+# siquiera a compilar — se quedaban todos en `pending` detrás de un fantasma.
+#
+# Cambiar el nombre del grupo es la única forma de salir sin permisos de
+# administrador: los runs nuevos entran en un grupo limpio y el zombi se queda
+# solo en el suyo. Si vuelve a pasar, se sube el número y listo.
 concurrency:
-  group: pages
+  group: pages-v2
   cancel-in-progress: false
 
 jobs:
