@@ -183,12 +183,18 @@ const REST = {
 };
 
 const POSE_LIBRARY = {
+  // TECLEAR: aquí NO hay que subir la amplitud del brazo — un mecanógrafo
+  // mueve las manos, no los hombros, y un brazo que sube y baja se lee como
+  // dirigir una orquesta. Lo que faltaba era ALTERNANCIA: los dos codos se
+  // movían casi al unísono, y dos manos que suben y bajan a la vez no
+  // teclean. Ahora van en oposición clara, y sin `hold` — teclear es
+  // continuo, no tiene acento.
   work: {
-    speed: 2.6,
+    speed: 3.1,
     prop: null,
     hands: "open",
-    a: { torso: [0.14, 0, 0], head: [0.2, 0, 0], armL: [-1.35, 0, 0.25], armR: [-1.4, 0, -0.25], elbowL: [-0.75, 0, 0], elbowR: [-0.68, 0, 0] },
-    b: { torso: [0.14, 0, 0], head: [0.22, 0, 0], armL: [-1.42, 0, 0.25], armR: [-1.32, 0, -0.25], elbowL: [-0.62, 0, 0], elbowR: [-0.82, 0, 0] },
+    a: { torso: [0.14, 0, 0], head: [0.2, 0, 0], armL: [-1.35, 0, 0.25], armR: [-1.4, 0, -0.25], elbowL: [-0.94, 0, 0], elbowR: [-0.52, 0, 0] },
+    b: { torso: [0.15, 0, 0], head: [0.22, 0, 0], armL: [-1.4, 0, 0.25], armR: [-1.35, 0, -0.25], elbowL: [-0.5, 0, 0], elbowR: [-0.96, 0, 0] },
     context: {
       props: [{ name: "documents", bone: "LeftHand", offset: [0.02, -0.02, 0], rotation: [0, 0, 0] }],
       furniture: [],
@@ -204,22 +210,33 @@ const POSE_LIBRARY = {
       furniture: [{ name: "bed", position: [0, 0, 0.2], rotation: [0, 0, 0] }],
     },
   },
+  // BEBER: la taza baja al pecho y SUBE HASTA LA BOCA, donde se queda el
+  // sorbo. Antes el brazo recorría 0.43 rad (unos 25°) — a la distancia a la
+  // que se juega, dos píxeles: se veía a alguien quieto con una taza, no
+  // bebiendo. Ahora recorre el triple y la cabeza baja a encontrarse con
+  // ella, que es el gesto que de verdad delata que estás bebiendo.
   coffee: {
     speed: 1.5,
+    hold: 0.45,
     prop: "cup",
     hands: "grip",
-    a: { head: [0.06, -0.1, 0], armR: [-1.15, 0, -0.2], elbowR: [-1.5, 0, 0], armL: [0, 0, 0.22] },
-    b: { head: [-0.04, -0.1, 0], armR: [-0.72, 0, -0.3], elbowR: [-1.05, 0, 0], armL: [0, 0, 0.22] },
+    a: { head: [0.02, -0.1, 0], armR: [-0.62, 0, -0.26], elbowR: [-0.78, 0, 0], armL: [0, 0, 0.22] },
+    b: { head: [0.2, -0.1, 0], armR: [-1.42, 0, -0.16], elbowR: [-1.92, 0, 0], armL: [0, 0, 0.22] },
     context: {
       props: [{ name: "coffee", bone: "RightHand", offset: [0, -0.08, 0], rotation: [0, 0, 0] }],
       furniture: [],
     },
   },
+  // COMER: la izquierda SOSTIENE el plato quieto (es el ancla que dice
+  // "plato") y la derecha hace el viaje entero plato -> boca. Antes la
+  // derecha se movía 0.3 rad, menos aún que el café, y las dos manos
+  // quedaban a la misma altura: se leía como alguien aplaudiendo despacio.
   eat: {
-    speed: 1.9,
+    speed: 1.7,
+    hold: 0.4,
     prop: "plate",
-    a: { head: [0.12, 0, 0], armL: [-1.0, 0, 0.3], elbowL: [-1.15, 0, 0], armR: [-1.1, 0, -0.2], elbowR: [-1.5, 0, 0] },
-    b: { head: [0.0, 0, 0], armL: [-1.0, 0, 0.3], elbowL: [-1.15, 0, 0], armR: [-0.8, 0, -0.3], elbowR: [-0.95, 0, 0] },
+    a: { head: [0.16, 0, 0], armL: [-1.02, 0, 0.3], elbowL: [-1.15, 0, 0], armR: [-0.5, 0, -0.28], elbowR: [-0.72, 0, 0] },
+    b: { head: [0.08, 0, 0], armL: [-1.02, 0, 0.3], elbowL: [-1.15, 0, 0], armR: [-1.34, 0, -0.14], elbowR: [-1.95, 0, 0] },
     context: {
       props: [{ name: "food", bone: "LeftHand", offset: [0.02, -0.05, 0], rotation: [0, 0, 0] }],
       furniture: [],
@@ -1332,7 +1349,26 @@ export class Character3D {
     const blend = this._blend;
     const pose = this._pose;
 
-    const wave = pose ? (1 - Math.cos(this._poseT)) / 2 : 0;
+    // ── EL RITMO DE LA POSE ─────────────────────────────────────────────
+    //
+    // Era `(1 - cos t) / 2` a secas: un vaivén PERFECTAMENTE SIMÉTRICO y sin
+    // pausa. Subir tardaba lo mismo que bajar y nunca se detenía en ningún
+    // extremo, así que todas las poses se leían igual — "respirar con los
+    // brazos en otra postura" — y no se entendía qué estaba haciendo nadie.
+    //
+    // Una acción se reconoce por su ACENTO: llegar, PARARSE un momento, y
+    // volver. `hold` es cuánto se queda quieta en cada extremo (0 = como
+    // antes, 0.5 = media vuelta parada). Recortar y reescalar la onda es lo
+    // que crea esa pausa: los tramos que se salen del rango se aplastan
+    // contra 0 y 1, que es precisamente el tiempo que la mano pasa en la
+    // boca o el dedo sobre la tecla.
+    //
+    // Por defecto es 0, así que una pose que no lo pida se mueve exactamente
+    // igual que antes.
+    const hold = pose?.hold ?? 0;
+    const raw = pose ? (1 - Math.cos(this._poseT)) / 2 : 0;
+    const h = Math.min(Math.max(hold, 0), 0.9) / 2;
+    const wave = h > 0 ? Math.min(Math.max((raw - h) / (1 - 2 * h), 0), 1) : raw;
     const angles = (name) => {
       if (!pose) return REST[name];
       const a = pose.a[name] ?? REST[name];
