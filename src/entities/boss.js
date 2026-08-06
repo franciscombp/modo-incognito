@@ -25,8 +25,25 @@ function facingRotationY(dirX, dirZ) {
 // única, que se leía como una cuña de cartulina pegada al suelo; con el
 // degradado parece un haz de luz y además comunica mejor la mecánica — el
 // peligro real está cerca del vértice, no en la punta lejana.
-const CONE_ALPHA_CORE = 0.62; // en el vértice
+const CONE_ALPHA_CORE = 0.34; // en el vértice
 const CONE_ALPHA_EDGE = 0.0; // en el arco exterior
+
+// LA PRESENCIA DEL HALO: cuánto pesa en pantalla, aparte de su color.
+//
+// Estaba clavada al máximo, y con ~7 vigilantes en el piso el suelo acababa
+// cubierto de cuñas de color: el halo tapaba el escenario que se supone que
+// tienes que leer para esconderte. Y encima se comía su propia escalada —
+// si en ronda ya está a tope, la persecución solo puede cambiar de tono.
+//
+// Ahora el halo RESPIRA con la presión: en ronda es un susurro, y se va
+// haciendo presente según sube la sospecha. El contraste comunica más que
+// el brillo constante, y en el estado normal —que es donde pasas casi toda
+// la jornada— el piso vuelve a verse.
+const HALO_PRESENCE_CALM = 0.45; // en ronda, sin sospecha
+const HALO_PRESENCE_HOT = 1; // cazando o viéndote en falta
+// Velocidad a la que se funde entre esos dos. Saltar de golpe delata el
+// frame exacto en que cambió el estado interno y se lee como un parpadeo.
+const HALO_PRESENCE_EASE = 4;
 
 // Radianes por segundo a los que gira la mirada. Persiguiendo gira casi al
 // doble: está pendiente de ti, no paseando.
@@ -226,7 +243,10 @@ export class Boss {
     this.coneMaterial = new THREE.MeshBasicMaterial({
       color: coneColor,
       transparent: true,
-      opacity: 1, // el degradado vive en el alfa por vértice
+      // El degradado a lo largo del haz vive en el alfa POR VÉRTICE; esta
+      // opacidad es el mando global de PRESENCIA, y la mueve update() con la
+      // presión (ver HALO_PRESENCE_*). Arranca en el susurro de la ronda.
+      opacity: HALO_PRESENCE_CALM,
       vertexColors: true,
       side: THREE.DoubleSide,
       depthWrite: false,
@@ -511,7 +531,21 @@ export class Boss {
       }
       this.coneMaterial.color.copy(this._heatColor);
     }
-    this._updateWaves(dt, hot);
+
+    // Y además de teñirse, PESA más: en ronda es un susurro y en caza se
+    // planta. El color dice QUÉ pasa; la presencia dice CUÁNTO importa, y
+    // separarlos es lo que deja el piso visible el resto del tiempo.
+    // `SEARCH` sube sin llegar al tope: te está buscando, no te tiene.
+    const wanted = hot
+      ? HALO_PRESENCE_HOT
+      : this.state === SEARCH
+        ? THREE.MathUtils.lerp(HALO_PRESENCE_CALM, HALO_PRESENCE_HOT, 0.6)
+        : THREE.MathUtils.lerp(HALO_PRESENCE_CALM, HALO_PRESENCE_HOT, ratio);
+    this._presence = this._presence ?? HALO_PRESENCE_CALM;
+    this._presence += (wanted - this._presence) * Math.min(1, dt * HALO_PRESENCE_EASE);
+    this.coneMaterial.opacity = this._presence;
+
+    this._updateWaves(dt, hot, this._presence);
   }
 
   /**
@@ -534,7 +568,7 @@ export class Boss {
   }
 
   /** Ondas del radar de Washo: tres frentes que salen y se desvanecen. */
-  _updateWaves(dt, hot) {
+  _updateWaves(dt, hot, presence = 1) {
     if (!this._waves) return;
     this._waveTime += dt;
     const color = hot ? 0xe6483f : this.baseConeColor;
@@ -543,8 +577,10 @@ export class Boss {
       // Arranca pegado a él y se expande hasta el borde de su alcance.
       const radius = this.visionRange * (0.12 + t * 0.88);
       wave.mesh.scale.set(radius, 1, radius);
-      // Se apaga al llegar al borde; el frente joven es el más visible.
-      wave.material.opacity = 0.5 * (1 - t) * (1 - t);
+      // Se apaga al llegar al borde; el frente joven es el más visible. Y
+      // respira con la presión igual que el cono: el radar de Washo barre
+      // 360°, así que es el halo que más suelo tapa de los siete.
+      wave.material.opacity = 0.5 * (1 - t) * (1 - t) * presence;
       wave.material.color.set(color);
     }
   }

@@ -220,6 +220,24 @@ del personaje y parece salirle de la espalda.
 El **color del halo dice el nivel de sospecha** (tranquilo → ámbar → rojo), para
 leerla del suelo sin mirar el HUD.
 
+Y **su PRESENCIA dice cuánto importa** (`HALO_PRESENCE_*`). Son dos ejes
+distintos a propósito: el color dice QUÉ pasa, la opacidad dice CUÁNTO
+aprieta. En ronda el halo es un susurro (45%) y solo se planta del todo
+cazando o cuando te ve en falta; buscando se queda a medio camino.
+
+Por qué: estaba clavado al máximo, y con siete vigilantes en el piso el suelo
+acababa cubierto de cuñas de color — el halo tapaba justo el escenario que
+tienes que leer para esconderte. Además se comía su propia escalada: si en
+ronda ya está a tope, la persecución solo puede cambiar de tono. El contraste
+comunica más que el brillo constante.
+
+Se funde entre los dos valores (`HALO_PRESENCE_EASE`) en vez de saltar:
+el salto delata el frame exacto en que cambió el estado interno y se lee como
+un parpadeo.
+
+> El radar de Washo (`visionShape: "radar"`) respira con lo mismo. Barre 360°,
+> así que es el halo que más suelo tapa de los siete.
+
 ---
 
 ## 4. Cubrirse

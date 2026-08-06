@@ -648,6 +648,15 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   en `boss.js`). Bajarlo al suelo hace que, con la cámara oblicua, se dibuje
   encima del sprite y parezca salirle de la espalda. `npm run check:vision`
   vigila eso y que el haz no se desvíe del sprite más de media dirección.
+- **El halo tiene DOS ejes, y no se mezclan**: el COLOR dice qué pasa
+  (tranquilo → ámbar → rojo) y la PRESENCIA dice cuánto aprieta
+  (`HALO_PRESENCE_*` en `boss.js`, la opacidad global del material). En ronda
+  es un susurro y solo se planta cazando. Estuvo clavado al máximo y con siete
+  vigilantes el suelo desaparecía bajo las cuñas de color — tapando justo el
+  escenario que hay que leer para esconderse. Si lo subes «para que se vea
+  mejor», se pierde la escalada: en ronda a tope, la caza solo puede cambiar
+  de tono. El degradado a lo largo del haz es OTRA cosa y vive en el alfa por
+  vértice (`CONE_ALPHA_CORE`); la opacidad del material es el mando global.
 - **Una línea de diálogo con `narrator: true` no usa la caja**: se dibuja en
   su propia tarjeta (`.vn-narrator`) y la caja se aparta con `vn-narrating`.
   Estuvo con `bottom: -140px`, o sea entera fuera de pantalla, y como la
