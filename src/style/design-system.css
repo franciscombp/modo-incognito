@@ -147,24 +147,42 @@
 
      La regla de este set: el decorado es CONTENIDO y el color saturado se
      reserva para los personajes. Si el edificio compite con la gente, la
-     gente deja de leerse. */
-  --w-floor: #3d5468;        /* suelo de oficina */
-  --w-floor-alt: #465e73;    /* pasillos, un punto más claros */
-  --w-floor-lobby: #4d677d;  /* la entrada */
-  --w-rug: #385568;          /* moquetas de zona */
-  --w-wall: #4a637a;         /* tabiques */
-  --w-wall-light: #5a768c;   /* paneles y volúmenes */
-  --w-desk: #4e6779;         /* sobre de la mesa */
-  --w-desk-edge: #33454f;
-  --w-desk-leg: #2a3844;
+     gente deja de leerse.
+
+     ── LO QUE SEPARA UNA SUPERFICIE DE OTRA ES LA LUZ, NO EL MATIZ ──────
+     Todos estos valores son el mismo azul marino a propósito (ver la regla
+     de arriba). Lo que tiene que distinguirlos es su LUMINANCIA, y ahí
+     estaba el fallo: suelo, pared y mesa cabían en un rango de 0.13 —
+     medido, no a ojo— y el edificio entero se leía como una sola masa. Las
+     mesas no se despegaban del suelo y ninguna cantidad de luz lo arreglaba,
+     porque el problema no era la luz sino que las tres cosas eran el mismo
+     gris azulado.
+
+     Ahora el rango va de 0.05 a 0.31, y está ordenado por ORIENTACIÓN, que
+     es como se lee un volumen: el suelo abajo del todo, las verticales
+     (tabiques, paneles) arriba, y los sobres de mesa en medio-alto para que
+     floten claramente por encima del suelo.
+
+     Si añades una superficie, colócala en esa escala en vez de elegir un
+     azul que "pegue": dos superficies con la misma luminancia se funden
+     aunque sean de matices distintos. */
+  --w-floor: #3a5062;        /* suelo de oficina — el suelo de la escala */
+  --w-floor-alt: #4f6981;    /* pasillos: un escalón claro, se leen como paso */
+  --w-floor-lobby: #5c7b95;  /* la entrada, la más clara del plano horizontal */
+  --w-rug: #2e4555;          /* moquetas de zona: hunden, no iluminan */
+  --w-wall: #60819e;         /* tabiques — vertical, claramente sobre el suelo */
+  --w-wall-light: #8099ad;   /* paneles y volúmenes: lo más claro del set */
+  --w-desk: #6d8ba1;         /* sobre de la mesa: flota sobre el suelo */
+  --w-desk-edge: #445c6a;
+  --w-desk-leg: #31414f;
   --w-fabric: #4a7a76;       /* tapicería: el acento del set */
   --w-screen: #1a2530;
   --w-screen-glow: #7fd8cf;
-  --w-plant-pot: #3d4d58;
+  --w-plant-pot: #435561;
   --w-leaves: #4f9b83;
   --w-glass: #6fa3aa;
-  --w-frame: #4a6172;
-  --w-metal: #5c7386;
+  --w-frame: #546d81;
+  --w-metal: #6e869b;
 
   /* Acentos del mobiliario. Pocos y emparentados: doce colores distintos
      se leen como ruido, cinco primos se leen como una oficina con gusto. */
