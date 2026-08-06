@@ -9,6 +9,7 @@ corrige **aquí primero** y luego se implementa.
 | [`CAMPANA.md`](CAMPANA.md) | La carrera: misiones encadenadas, Qués y Cómos, temporadas, rangos, jubilación, RRHH | **Parcial** — temporada 1 jugable; 2–5 sin escribir |
 | [`HUD.md`](HUD.md) | La interfaz DURANTE la partida: placa de identidad, lista de tareas, pausa | **Parcial** — placa, misiones, reloj y zona en juego; pausa por hacer |
 | [`PANTALLAS.md`](PANTALLAS.md) | El lienzo fijo 1920×1080 y las pantallas que no son la partida: selección de personaje, evaluación, RRHH | **Parcial** — lienzo y RRHH hechos; expediente y evaluación por hacer |
+| [`ARTE.md`](ARTE.md) | El reparto de archivos entre el frente de arte y el de motor, para trabajar en paralelo sin pisarse | **Vivo** — léelo antes de abrir nada |
 | [`referencias/`](referencias/) | Las capturas que fijan el rumbo, con qué copiar de cada una | — |
 
 Cada documento abre con su propia tabla de **qué está construido y qué no**,
