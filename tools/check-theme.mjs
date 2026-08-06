@@ -133,6 +133,61 @@ assert(
   anclados.join("\n        "),
 );
 
+// ── EN MODO OSCURO DEL SISTEMA: la piel tiene que ser LA MISMA ──
+//
+// Esta es la comprobación que faltaba, y su ausencia dejó volver el fallo
+// entero: la suite corría siempre en esquema CLARO, así que un
+// `@media (prefers-color-scheme: dark)` apilado al final del archivo pisaba
+// veinte tokens sin que ninguna prueba lo viera. En pantalla eso era un
+// panel marrón sobre fondo marino y el botón primario verde entre acentos
+// teal — dos sistemas de color a la vez.
+//
+// La regla: el esquema del sistema NO puede cambiar ni un token. Quien
+// decide la piel es el TEMA (capa 1), nunca el sistema operativo.
+{
+  const dark = await browser.newContext({ viewport: { width: 1024, height: 720 }, colorScheme: "dark" });
+  const dp = await dark.newPage();
+  await dp.goto(URL, { waitUntil: "networkidle" });
+  await dp.waitForTimeout(1200);
+  const enOscuro = await dp.evaluate(() => {
+    const cs = getComputedStyle(document.documentElement);
+    const tok = (n) => cs.getPropertyValue(n).trim();
+    return {
+      ink: tok("--ink"), text: tok("--text"),
+      paper: tok("--paper"), bg: tok("--bg"),
+      // Cada alias con SU rol, que no es el que parece por el nombre:
+      // `--cyan` apunta a --text-accent y `--violet` (el botón primario) a
+      // --accent. Compararlos contra el rol equivocado da un fallo que no
+      // existe, y perseguirlo cuesta más que escribir bien el par.
+      cyan: tok("--cyan"), textAccent: tok("--text-accent"),
+      violet: tok("--violet"), accent: tok("--accent"),
+    };
+  });
+  // Los alias heredados APUNTAN a su rol; no tienen valor propio. Si el
+  // esquema oscuro les mete un hex, dejan de coincidir.
+  assert(
+    "el esquema oscuro del sistema NO desengancha --ink de --text",
+    enOscuro.ink === enOscuro.text,
+    `--ink=${enOscuro.ink} vs --text=${enOscuro.text}`,
+  );
+  assert(
+    "ni --paper de --bg",
+    enOscuro.paper === enOscuro.bg,
+    `--paper=${enOscuro.paper} vs --bg=${enOscuro.bg}`,
+  );
+  assert(
+    "ni el acento del texto de su rol",
+    enOscuro.cyan === enOscuro.textAccent,
+    `--cyan=${enOscuro.cyan} vs --text-accent=${enOscuro.textAccent}`,
+  );
+  assert(
+    "ni el BOTÓN PRIMARIO del acento (fue lo más visible: salía verde entre teales)",
+    enOscuro.violet === enOscuro.accent,
+    `--violet=${enOscuro.violet} vs --accent=${enOscuro.accent}`,
+  );
+  await dark.close();
+}
+
 await browser.close();
 console.log(
   fallos === 0
