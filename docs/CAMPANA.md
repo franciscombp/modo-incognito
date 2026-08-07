@@ -285,11 +285,43 @@ Dos usos distintos, y conviene no mezclarlos:
 
 | Minijuego | Tipo | Qué se hace | Estado |
 |---|---|---|---|
-| Cruzar la avenida | tránsito | Esquivar tráfico | **Ya existe**, hoy desactivado |
+| Cruzar la avenida | tránsito | Esquivar tráfico | ✅ **activo del día 2 en adelante**; el día 1 va sin cruce a propósito (§8.1) |
 | Cruzar a otro edificio | tránsito | Variante de lo anterior | por hacer |
 | **El pulso** (todas las tareas) | tarea (qué) | Acertar la zona sin hacer ruido | ✅ **hecho** |
 | Curso de RRHH | castigo | El *skip* que huye | ✅ hecho |
 | Plan de nivelación | castigo | Tanda de los anteriores | por hacer |
+
+### 8.1 El cruce es el TRAYECTO, y empieza el día 2 — ✅ construido
+
+Decidido e implementado así:
+
+- **El día 1 NO tiene cruce.** El reto del primer día es presentarse con
+  Gabo: es el tutorial del piso, y meterle la avenida delante era poner el
+  examen antes de la primera clase. Además narrativamente aguanta: el primer
+  día te acompañan — nadie te suelta en la Amazonas el día de la firma.
+- **Del día 2 en adelante, SIEMPRE.** El cruce es el ritual del trayecto:
+  abre cada jornada como el commute real, y su dificultad puede crecer con
+  la semana sin tocar el motor (cada día declara su bloque `minigame` en su
+  JSON, con su propia intro de Steven).
+- **Tardar cuesta reloj.** El cronómetro arranca al pisar la acera (la
+  intro no cuenta — leer no es dudar) y hay **20 s de gracia**: por debajo,
+  cruzar sale gratis. Cada segundo por encima se descuenta de la jornada al
+  llegar, con un **suelo del 60 %** para que un cruce desastroso nunca deje
+  el día perdido de antemano — castigar sí, sentenciar no. El descuento lo
+  hace `game.applyCommuteDelay()` y NO pasa por `_grantTime`: no es un
+  premio negativo, es presupuesto que nunca llegó a existir, y `timeGained`
+  (lo que enseña el HUD como ganado) no debe moverse.
+- El aviso al llegar es un toast: «Llegaste tarde: −Ns de jornada».
+
+### 8.2 La firma del contrato — ✅ construido
+
+Elegir personaje ya no es pulsar una opción: es FIRMAR. Al confirmar, el
+muñeco pasa a la pose de trabajo — que lleva los documentos en la mano, o
+sea la hoja que le acaban de dar — y un sello **CONTRATADO** cae en
+diagonal sobre el expediente, en rojo burocrático con la tinta comida a
+trozos. Recién entonces se entra. Dura ~1,4 s y un clic la salta: es un
+momento, no una cinemática. (`loginSelect` en `ui/menus.js`; el sello es
+`.inc-login-stamp`.)
 
 ### El PULSO — cómo quedaron los minijuegos de tarea
 
@@ -337,6 +369,35 @@ Y el de la avenida ya está hecho: hoy está apagado en `levels/dia-1.json`
 
 > **Se guarda por PROGRESO DE TAREAS, no por días.** Puedes parar en
 > cualquier momento.
+
+### 9.1 Un slot por personaje — ✅ construido
+
+El progreso ya NO es uno global: **cada personaje guarda su carrera en su
+propio slot** (`save.js`: una clave por personaje y un puntero que dice
+quién está activo). Lo que compra esto:
+
+- **Elegir a alguien es CONTINUAR su historia.** El expediente enseña la
+  carrera guardada de cada cuenta («Día 2 · 3 misiones únicas · 1 jornada»
+  o «Sin historial — primer día») antes de firmar.
+- **Empezar de nuevo es cambiar de empleado**, no borrar nada: arrancas de
+  cero con otro personaje y el anterior queda exactamente donde iba.
+- **«Reiniciar progreso» borra SOLO el slot activo.** La carrera de los
+  demás no se toca.
+- El guardado viejo (global) se migra solo la primera vez, al slot del
+  personaje que llevaba dentro, y se deja donde estaba — conservar el
+  original hace la migración inocua si algo falla a mitad.
+
+### 9.2 La continuación — qué hay y qué falta
+
+Lo que ya se siente como continuar: cada slot recuerda su día
+(`dayIndex`), sus únicas hechas y sus jornadas superadas, así que
+«Continuar» retoma el día que toca con la cadena avanzada — y el **día 2
+está ACTIVO** en `manifest.json`, con lo que superar el día 1 lleva de
+verdad a una mañana siguiente (con cruce).
+
+Lo que falta para que sea una semana entera: activar `dia-3`..`dia-5` en
+`manifest.json` cuando su contenido esté revisado — es una línea, no hay
+código que tocar — y decidir la pregunta del reloj de abajo.
 
 Implicaciones que hay que tener claras antes de implementarlo:
 
