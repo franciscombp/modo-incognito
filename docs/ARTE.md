@@ -26,13 +26,17 @@ tabla, los dos podéis trabajar todo el día sin un solo conflicto.
 | `src/scene/builder.js` | El decorado: suelos, muros, vidrio, plantas |
 | `src/scene/palette.js` | El puente entre los tokens y el edificio |
 | `src/scene/sunlight.js` | Los charcos de luz que entran por las ventanas |
+| `src/scene/crossing3d.js` → cielo, luz, materiales | El aspecto de la escena de cruzar la avenida (no su tuning de carriles, que es de Motor) |
 | `src/scene/config.js` → `CAMERA_PRESET` | El encuadre de juego |
 | `src/entities/character3d.js` → `POSE_LIBRARY` | Las poses y su ritmo |
 
-> Los dos últimos son **archivos compartidos**: `config.js` lleva además
-> `WORLD_SCALE` y la paleta de zonas, y `character3d.js` es medio motor. Arte
-> entra SOLO a `CAMERA_PRESET` y a `POSE_LIBRARY` (más `_applyPose`, que es
-> quien las reproduce). Del resto de esos dos archivos, no.
+> Los tres últimos son **archivos compartidos**: `config.js` lleva además
+> `WORLD_SCALE` y la paleta de zonas, `character3d.js` es medio motor, y
+> `crossing3d.js` es medio minijuego. Arte entra a `CAMERA_PRESET`, a
+> `POSE_LIBRARY` (más `_applyPose`) y, en `crossing3d.js`, solo a la parte de
+> cielo/luz/materiales de `createCrossing3D` — no a `ROWS` (velocidades y
+> huecos de carril, ver `npm run check:crossing`), ni a `placeCamera()`, ni a
+> la lógica de colisión/estado. Del resto de esos tres archivos, no.
 
 ### Motor — cómo funciona el juego
 
@@ -275,6 +279,31 @@ para que floten.
 > Dos superficies con la misma luminancia se funden aunque sean de matices
 > distintos. Una superficie nueva se coloca en esa escala, no se le elige un
 > azul que "pegue".
+
+### La calle (`crossing3d.js`)
+
+Cruzar la avenida vivía en su propia paleta suelta (cielo lavanda plano,
+asfalto y árboles en hex propios) y sin una sola sombra: se entraba a la
+oficina desde otro juego. Ahora comparte set con el piso:
+
+- Cielo, niebla y ángulo de sol son los valores EXACTOS del tema `morning` de
+  `game/themes.js` — cruzar la avenida y entrar al vestíbulo son el mismo
+  instante, no dos renders distintos.
+- Acera, fachada, ventanas, puerta, skyline y edificios laterales van por
+  `cozyMaterial()` con los mismos tokens `--w-*` que el piso (`tileLobby`,
+  `wallPanel`, `glass`, `metal`, `deskLeg`, alternando `wallPanel`/`frame`/
+  `panelLight` en los edificios de fondo para que no se lean clonados).
+  Asfalto, carril bici y mediana no tienen equivalente dentro del edificio y
+  siguen con su propio color, pero por la MISMA fábrica de material.
+- El sol ahora proyecta sombra — árboles, vehículos, fachada y edificios la
+  castean. La avenida es mucho más larga que el piso, así que el frustum de
+  sombra es una ventana ESTRECHA (12 unidades) que `frame()` arrastra cada
+  cuadro siguiendo a la jugadora en Z (mismo offset luz↔objetivo, congelado al
+  arrancar) — un frustum fijo que cubriera la calle entera habría diluido la
+  sombra a nada.
+- Los colores de coches y bicis (`CAR_COLORS`/`BIKE_COLORS`) se dejaron tal
+  cual a propósito: son legibilidad de carril, no decorado, y ya estaban
+  suficientemente contenidos.
 
 ## Lo que está pendiente, por orden de lo que más se nota
 

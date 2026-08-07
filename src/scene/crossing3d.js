@@ -2,6 +2,9 @@ import * as THREE from "three";
 import { Character3D } from "../entities/character3d.js";
 import { WORLD_SCALE as S } from "./config.js";
 import { getCameraSettings, subscribeCameraSettings } from "./cameraSettings.js";
+import { cozyMaterial, skyTexture } from "./cozy.js";
+import { setSunAngles } from "./lighting.js";
+import { resolveQuality } from "../game/settings.js";
 
 // Cruzar la Amazonas con sprites: mismo motor pero ahora con sprites 2D
 // de autos, bicis y árboles. Pantalla completa para máximo impacto.
@@ -42,16 +45,23 @@ const ROWS = [
 ];
 const GOAL_ROW = ROWS.length - 1;
 
-// De día, no de madrugada: el asfalto casi negro de antes desentonaba con el
-// cielo claro. Colores más saturados que un gris neutro plano — esta escena
-// es la primera que ve cualquiera que abra el juego, no puede leerse apagada.
-const ROAD_COLORS = {
-  sidewalk: 0xece2d2,
-  goal: 0xece2d2,
-  car: 0xa2988c,
-  bike: 0x93a382,
-  median: 0x9dbf88,
-};
+// ── LA MISMA PALETA DE LA OFICINA, NO OTRA ──────────────────────────────
+// Esta escena tenía su propio set de colores sueltos (ROAD_COLORS,
+// CAR_COLORS...) mientras el resto del juego lee del tema por `--w-*` (ver
+// scene/cozy.js). El resultado era una costura visible: cruzas la avenida
+// en un mundo, entras al piso y estás en otro. La acera y todo lo que
+// pertenece al edificio pasan a usar los MISMOS tokens que pinta el piso
+// — con `cozyMaterial()`, así que un cambio de tema re-tiñe esta escena
+// también, sin tocar una línea de aquí.
+//
+// El asfalto, el carril bici y la mediana NO tienen equivalente dentro del
+// edificio, así que van con su propio color — pero por la MISMA fábrica
+// (`cozyMaterial(nombre, {color})`), que les da el mismo modelo de luz y
+// sombra que el resto del set en vez de un material aparte. Los tonos
+// siguen la regla que ya describe cozy.js: fríos y contenidos ("porcelana,
+// grafito, azules de acero"), no el sepia cálido de antes.
+const ROAD_COLORS = { sidewalk: "tileLobby", goal: "tileLobby" };
+const CROSSING_HEX = { car: "#4b5560", bike: "#4d6b5c", median: "#4f7550" };
 
 // Carga de texturas sprite
 const textureLoader = new THREE.TextureLoader();
@@ -123,6 +133,18 @@ function box(w, h, d, color, x = 0, y = 0, z = 0) {
   return mesh;
 }
 
+/** Sombra en cada pieza de un vehículo: sin esto pasan por encima de la
+ *  jugadora sin dejar sombra, la única cosa sólida de la calle que no la
+ *  proyecta. */
+function castVehicleShadow(group) {
+  group.traverse((o) => {
+    if (o.isMesh) {
+      o.castShadow = true;
+      o.receiveShadow = true;
+    }
+  });
+}
+
 /**
  * Un coche: carrocería, cabina, ruedas y faros.
  *
@@ -132,7 +154,11 @@ function box(w, h, d, color, x = 0, y = 0, z = 0) {
  */
 function vehicleSprite(kind, dir) {
   const group = new THREE.Group();
-  if (kind !== "car") return buildBike(group, dir);
+  if (kind !== "car") {
+    buildBike(group, dir);
+    castVehicleShadow(group);
+    return group;
+  }
 
   const color = CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)];
   const L = 3.1 * S;
@@ -162,6 +188,7 @@ function vehicleSprite(kind, dir) {
   for (const sz of [-1, 1]) {
     group.add(box(0.1 * S, 0.14 * S, 0.22 * S, "#fff3d0", dir * L * 0.49, H * 0.6 + 0.16 * S, sz * W * 0.3));
   }
+  castVehicleShadow(group);
   return group;
 }
 
@@ -189,29 +216,50 @@ function buildBike(group, dir) {
   return group;
 }
 
-/** Un árbol: tronco y dos o tres copas, como en la referencia del camión. */
+/**
+ * Un árbol: tronco y dos o tres copas. Antes tenía su propio verde y su
+ * propio marrón sueltos; ahora reutiliza EXACTAMENTE los mismos tokens que
+ * las plantas de maceta del piso (`woodPot`/`leaves`, ver builder.js) — un
+ * cambio de tema tiñe los árboles de la calle igual que las plantas de
+ * dentro, y de paso ya casta sombra como el resto del decorado sólido.
+ */
 function treeSprite() {
   const group = new THREE.Group();
   const trunk = new THREE.Mesh(
     new THREE.CylinderGeometry(0.1 * S, 0.14 * S, 1.0 * S, 8),
-    flat("#a8794f")
+    cozyMaterial("woodPot")
   );
   trunk.position.y = 0.5 * S;
+  trunk.castShadow = true;
   group.add(trunk);
 
-  const greens = ["#7fa86b", "#8fb87a", "#6f9a5e"];
+  const leafMat = cozyMaterial("leaves");
   const blobs = 2 + Math.floor(Math.random() * 2);
   for (let i = 0; i < blobs; i++) {
     const r = (0.44 - i * 0.07 + Math.random() * 0.08) * S;
-    const leaf = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 9), flat(greens[i % greens.length]));
+    const leaf = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 9), leafMat);
     leaf.position.set(
       (Math.random() - 0.5) * 0.4 * S,
       (1.05 + i * 0.34) * S,
       (Math.random() - 0.5) * 0.3 * S
     );
+    leaf.castShadow = true;
     group.add(leaf);
   }
   return group;
+}
+
+/**
+ * El material de una fila de la calle. Acera y meta van por el token de
+ * oficina (`tileLobby`, la entrada — es literalmente la misma superficie
+ * de fuera de los ascensores); asfalto, carril bici y mediana no tienen
+ * equivalente dentro y van con su propio color, pero por la misma fábrica
+ * `cozyMaterial()` — mismo modelo de luz y sombra que el resto del set.
+ */
+function rowMaterial(kind) {
+  const token = ROAD_COLORS[kind];
+  if (token) return cozyMaterial(token);
+  return cozyMaterial(`crossing-${kind}`, { color: CROSSING_HEX[kind] ?? "#4b5560" });
 }
 
 function el(tag, className, parent) {
@@ -244,20 +292,53 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   const btnRight = el("button", "crossing-btn", midRow);
   btnRight.textContent = "▶";
 
-  // Son las 8:45 de la mañana, no medianoche: cielo claro y luz de sol, no el
-  // azul casi negro de antes.
-  const SKY = 0xe9dff0;
+  // ── LA MISMA MAÑANA QUE EL PISO, NO OTRA ────────────────────────────────
+  // Esta escena tenía su propio cielo liso y su propio sol sin sombra —
+  // otro mundo, cruzando la costura entre "afuera" y "adentro" del edificio.
+  // Son las 8:45 de la mañana, así que se toman los valores EXACTOS del tema
+  // `morning` de `game/themes.js` (mismo cielo, misma niebla, mismo ángulo de
+  // sol): cruzar la avenida y entrar al vestíbulo tienen que leerse como el
+  // mismo instante, no como dos renders distintos.
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(SKY);
-  scene.fog = new THREE.Fog(SKY, 34 * S, 70 * S);
+  scene.background = skyTexture("#2a4054", "#3d5a70");
+  scene.fog = new THREE.Fog(0x2f4557, 34 * S, 70 * S);
 
-  scene.add(new THREE.AmbientLight(0xfff4e6, 1.5));
-  const key = new THREE.DirectionalLight(0xfff0d4, 1.15);
-  key.position.set(10 * S, 30 * S, 6 * S);
+  scene.add(new THREE.AmbientLight(0xc8dcea, 0.9));
+  const hemi = new THREE.HemisphereLight(0xa6c3da, 0x8a7458, 1.1);
+  scene.add(hemi);
+
+  // El sol, con sombra — la calle no tenía ninguna. Calidad la decide el
+  // mismo ajuste que el piso (`resolveQuality()`), así que un móvil que
+  // corre sin sombras en la oficina tampoco las paga aquí.
+  const quality = resolveQuality();
+  const key = new THREE.DirectionalLight(0xffdca4, 1.5);
+  key.castShadow = quality.shadows;
+  key.shadow.mapSize.set(quality.shadowMap, quality.shadowMap);
+  // La avenida es mucho más larga que el piso (11 filas de fondo): un solo
+  // frustum ortográfico que la cubriera entera diluiría la sombra a nada, así
+  // que el mapa es una ventana estrecha alrededor de la jugadora y `frame()`
+  // la arrastra con ella cada cuadro (ver más abajo, junto al resto de la
+  // cámara).
+  const shadowSpan = 12 * S;
+  key.shadow.camera.left = -shadowSpan;
+  key.shadow.camera.right = shadowSpan;
+  key.shadow.camera.top = shadowSpan;
+  key.shadow.camera.bottom = -shadowSpan;
+  key.shadow.camera.far = 60 * S;
+  key.shadow.bias = -0.0018;
+  key.shadow.radius = 4;
   scene.add(key);
+  scene.add(key.target);
+  setSunAngles(key, { azimuth: 0.95, elevation: 0.62 }, S);
+  // El offset entre el sol y su objetivo, congelado aquí: cada cuadro se
+  // desliza el PAR entero (posición + objetivo) a lo largo de Z siguiendo a
+  // la jugadora, así que el ángulo de luz no cambia — solo la ventana de
+  // sombra viaja con ella. Sin esto, en cuanto avanza cuatro filas sale del
+  // frustum estrecho y la sombra desaparece.
+  const sunOffset = key.position.clone().sub(key.target.position);
   // Relleno desde el lado de la cámara: la fachada de la institución mira hacia -Z y
   // sin esto se veía como un rectángulo negro al fondo de la calle.
-  const fill = new THREE.DirectionalLight(0xf0e6ff, 0.75);
+  const fill = new THREE.DirectionalLight(0xf0e6ff, 0.5);
   fill.position.set(-4 * S, 12 * S, -20 * S);
   scene.add(fill);
 
@@ -288,27 +369,32 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
 
   const apron = new THREE.Mesh(
     new THREE.PlaneGeometry(GROUND_WIDTH, LANE_DEPTH * 4),
-    new THREE.MeshLambertMaterial({ color: ROAD_COLORS.sidewalk })
+    rowMaterial("sidewalk")
   );
   apron.rotation.x = -Math.PI / 2;
   apron.position.set(0, 0, -LANE_DEPTH * 2);
+  apron.receiveShadow = true;
   roadGroup.add(apron);
 
   ROWS.forEach((row, i) => {
     const z = i * LANE_DEPTH;
     const mesh = new THREE.Mesh(
       new THREE.PlaneGeometry(GROUND_WIDTH, LANE_DEPTH),
-      new THREE.MeshLambertMaterial({ color: ROAD_COLORS[row.kind] })
+      rowMaterial(row.kind)
     );
     mesh.rotation.x = -Math.PI / 2;
     mesh.position.set(0, 0, z);
+    mesh.receiveShadow = true;
     roadGroup.add(mesh);
 
     if (row.kind === "car" || row.kind === "bike") {
       // Línea discontinua central del carril, de puro detalle. Se reparte a
       // todo el ancho de la calle (antes se quedaba agrupada en el centro,
       // dejando el resto del carril desnudo).
-      const dashColor = row.kind === "bike" ? 0xa8e05f : 0xffffff;
+      // Un verde menta claro sobre el nuevo carril bici (más oscuro y frío
+      // que el sepia de antes): sigue leyéndose como pintura de carril sin
+      // desentonar con el resto de la paleta.
+      const dashColor = row.kind === "bike" ? 0xa9d9bf : 0xffffff;
       const dashSpan = ROAD_WIDTH * 0.9;
       const dashCount = Math.round(dashSpan / (1.1 * S));
       for (let d = 0; d < dashCount; d++) {
@@ -338,20 +424,22 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
 
   // ---- El edificio de la institución, al fondo: es lo que da sentido a caminar
   // hacia allá. Con la cámara detrás, es lo único que llena el horizonte.
+  // `wallPanel` es el MISMO token que los tabiques del piso — la fachada que
+  // vas a cruzar y las paredes en las que vas a fingir que trabajas son una
+  // sola superficie, no dos materiales que casualmente se parecen.
   const facade = new THREE.Mesh(
     new THREE.BoxGeometry(ROAD_WIDTH * 1.6, 12 * S, 4 * S),
-    new THREE.MeshLambertMaterial({ color: 0xd9cbb6 })
+    cozyMaterial("wallPanel")
   );
   facade.position.set(0, 6 * S, GOAL_ROW * LANE_DEPTH + 3.2 * S);
+  facade.castShadow = true;
+  facade.receiveShadow = true;
   roadGroup.add(facade);
 
-  // Ventanas encendidas, en rejilla: el piso 10 ya está trabajando sin ti.
+  // Ventanas: el mismo `glass` que las mamparas del piso, ahora que hay sol
+  // de verdad para que respondan a la luz en vez de ser un plano sin sombrear.
   const windowGeo = new THREE.PlaneGeometry(0.42 * S, 0.3 * S);
-  const windowMat = new THREE.MeshBasicMaterial({
-    // Sobre fachada clara, una ventana amarilla brillante se lee como un
-    // agujero de neón. En una mañana nublada las ventanas son cristal, no luz.
-    color: 0x9db4c4,
-  });
+  const windowMat = cozyMaterial("glass");
   for (let r = 0; r < 8; r++) {
     for (let c = -3; c <= 3; c++) {
       if ((r + c) % 3 === 0) continue; // algunas apagadas, para que no sea una cuadrícula muerta
@@ -361,9 +449,12 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
     }
   }
 
+  // La puerta va en `metal`: acero institucional, la misma familia fría que
+  // el resto del set — el marrón de madera de antes desentonaba con todo lo
+  // demás en cuanto se apagó el sepia.
   const door = new THREE.Mesh(
     new THREE.PlaneGeometry(1.6 * S, 1.9 * S),
-    new THREE.MeshBasicMaterial({ color: 0x8a5a32, side: THREE.DoubleSide })
+    cozyMaterial("metal", { side: THREE.DoubleSide })
   );
   door.position.set(0, 0.95 * S, GOAL_ROW * LANE_DEPTH + 1.19 * S);
   roadGroup.add(door);
@@ -373,15 +464,22 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   // una caja flotando en cielo abierto por los lados: a esa distancia
   // subtiende pocos grados de cámara. Una franja baja y MUY ancha detrás
   // cierra el horizonte con un perfil de azotea sin competir con la institución.
+  // `deskLeg` es el token más oscuro del set: perfecto para una silueta
+  // lejana que no debe robarle protagonismo a la fachada.
   const skyline = new THREE.Mesh(
     new THREE.BoxGeometry(ROAD_WIDTH * 6, 9 * S, 3 * S),
-    new THREE.MeshLambertMaterial({ color: 0x3a4256 })
+    cozyMaterial("deskLeg")
   );
   skyline.position.set(0, 4.5 * S, GOAL_ROW * LANE_DEPTH + 7 * S);
   roadGroup.add(skyline);
 
   // Edificios que flanquean la calle, a los lados, para que la avenida se
   // lea como una calle de ciudad y no como una pista sobre fondo vacío.
+  // Antes eran todos el mismo beige plano; alternan tres tokens de pared de
+  // oficina (`wallPanel`/`frame`/`panelLight`) por índice, la misma variedad
+  // con la que el piso distingue un tabique de un panel sin salirse de la
+  // paleta.
+  const SIDE_BUILDING_TOKENS = ["wallPanel", "frame", "panelLight"];
   const SIDE_BUILDINGS = [
     { side: -1, z: 1, h: 10, d: 4 },
     { side: -1, z: 4, h: 7, d: 3.4 },
@@ -390,14 +488,16 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
     { side: 1, z: 3.6, h: 11, d: 4 },
     { side: 1, z: 7, h: 6.5, d: 3.2 },
   ];
-  for (const b of SIDE_BUILDINGS) {
+  SIDE_BUILDINGS.forEach((b, i) => {
     const bx = b.side * (ROAD_WIDTH / 2 + b.d * S * 0.5 + 0.6 * S);
     const bz = b.z * LANE_DEPTH * (GOAL_ROW / 8);
     const building = new THREE.Mesh(
       new THREE.BoxGeometry(b.d * S, b.h * S, b.d * S),
-      new THREE.MeshLambertMaterial({ color: 0xcabca6 })
+      cozyMaterial(SIDE_BUILDING_TOKENS[i % SIDE_BUILDING_TOKENS.length])
     );
     building.position.set(bx, (b.h / 2) * S, bz);
+    building.castShadow = true;
+    building.receiveShadow = true;
     roadGroup.add(building);
     // Un par de ventanas encendidas por edificio, de puro ambiente.
     for (let r = 1; r < b.h - 1; r += 1.4) {
@@ -406,7 +506,7 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
       w.rotation.y = Math.PI / 2;
       roadGroup.add(w);
     }
-  }
+  });
 
   // ---- Jugadora: el mismo muñeco que en el piso, de espaldas ----
   // Aquí se le da la dirección del mundo a mano y no una de las cuatro de
@@ -626,6 +726,11 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
     camTarget.z += (playerCell.row * LANE_DEPTH - camTarget.z) * Math.min(1, dt * 4);
     camTarget.x += (playerX - camTarget.x) * Math.min(1, dt * 6);
     placeCamera();
+
+    // El sol viaja con ella: mismo ángulo, ventana de sombra centrada en la
+    // fila actual (ver `sunOffset` más arriba).
+    key.target.position.set(0, 0, camTarget.z);
+    key.position.set(sunOffset.x, sunOffset.y, camTarget.z + sunOffset.z);
 
     if (stepTimer > 0) {
       stepTimer -= dt;
