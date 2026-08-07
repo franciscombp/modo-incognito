@@ -8,19 +8,33 @@
   "rules": {
     "duration": 240,
     "maxWarnings": 3,
-    "objectives": ["coffee","movie","snack"],
+    "objectives": [
+      "coffee",
+      "movie",
+      "snack"
+    ],
     "bossSpeedMul": 0.85,
     "visionMul": 0.9,
     "targetScore": 540,
     "bossRoute": "sur",
-    "bossTether": [5,9],
+    "bossTether": [
+      5,
+      9
+    ],
     "gate": {
       "guard": "jefe",
-      "task": {"id":"meet-gabo","label":"Buscar a Gabo","icon":"person"}
+      "task": {
+        "id": "meet-gabo",
+        "label": "Buscar a Gabo",
+        "icon": "person"
+      }
     }
   },
   "minions": [
-    {"id":"crispo","route":"sur"}
+    {
+      "id": "crispo",
+      "route": "sur"
+    }
   ],
   "$minigame": {
     "id": "crossing",
@@ -30,15 +44,25 @@
         "narrator": true,
         "text": "Oye, antes: hay que cruzar la Amazonas. Seis carriles de caos puro. La institución está al otro lado."
       },
-      {"speaker":"Tú","text":"Nadie menciona esto en la oferta de trabajo. Bueno, allá vamos."}
+      {
+        "speaker": "Tú",
+        "text": "Nadie menciona esto en la oferta de trabajo. Bueno, allá vamos."
+      }
     ],
     "onFail": {
       "icon": "alert",
       "title": "No fue tu día",
       "body": "Te atropellaron antes de llegar al piso.",
       "dialogue": [
-        {"speaker":"Steven el Daddy","narrator":true,"text":"Oye... ¿tú estás bien? Cuéntame qué pasó."},
-        {"speaker":"Tú","text":"La avenida. No la cruzamos juntos, así que... perdí."},
+        {
+          "speaker": "Steven el Daddy",
+          "narrator": true,
+          "text": "Oye... ¿tú estás bien? Cuéntame qué pasó."
+        },
+        {
+          "speaker": "Tú",
+          "text": "La avenida. No la cruzamos juntos, así que... perdí."
+        },
         {
           "speaker": "Steven el Daddy",
           "narrator": true,
@@ -51,40 +75,49 @@
   "intro": [
     {
       "speaker": "Tú",
-      "text": "Piso 10. Ala sur. Aquí no hay nada de remodelación, solo diseñadores fingiendo ser productivos."
+      "text": "Piso 10, ala sur. Puro diseñador fingiendo productividad."
     },
-    {"speaker":"Tú","text":"Yo soy una de esos diseñadores. Hoy es mi primer día."},
     {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "Hey. Yo soy Steven el Daddy. Tu amigo, ¿te acuerdas? El que te ayudó a entrar acá. Estoy en el call center, pero te voy a seguir de cerca."
-    },
-    {"speaker":"Tú","text":"Steven. Claro, mi amigo. El que hace milagros."},
-    {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "Bueno, primero que nada: busca a Gabo. Es el jefe de diseño aquí. Va a ser quien te presente formalmente y te cuente cómo funcionan las cosas. Cuando lo encuentres, cuéntale que es tu primer día."
-    },
-    {"speaker":"Tú","text":"¿Y después?"},
-    {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "Hoy tu misión es simple: un café, una película y algo de comer. Ninguna de eso es tu trabajo real, pero todas te dan reloj. Una vez que Gabo te presente, puedes empezar con las actividades."
+      "speaker": "Tú",
+      "text": "Y desde hoy, yo soy una más. Primer día."
     },
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
-      "text": "Usa ESPACIO para hacer las actividades o para fingir que trabajas en una zona segura. Si te bloqueas, me escribes. Adelante."
+      "text": "Hey, soy Steven el Daddy. Tu amigo, el que te consiguió el puesto. Ando en el call center, pero te vigilo."
+    },
+    {
+      "speaker": "Tú",
+      "text": "Steven. Claro. El que hace milagros."
+    },
+    {
+      "speaker": "Steven el Daddy",
+      "narrator": true,
+      "text": "Primero: busca a Gabo, el jefe de diseño. Dile que es tu primer día — él te presenta."
+    },
+    {
+      "speaker": "Tú",
+      "text": "¿Y después?"
+    },
+    {
+      "speaker": "Steven el Daddy",
+      "narrator": true,
+      "text": "Un café, una peli y algo de comer. Nada de eso es trabajo, y todo te da reloj."
+    },
+    {
+      "speaker": "Steven el Daddy",
+      "narrator": true,
+      "text": "ESPACIO para hacer cosas o fingir en zona segura. Si te trabas, me escribes."
     }
   ],
   "outroWin": [
     {
       "speaker": "Tú",
-      "text": "Café, película, comida. Misión cumplida. Día uno: productividad cero, supervivencia máxima."
+      "text": "Café, peli, comida. Productividad cero, supervivencia máxima."
     },
     {
       "speaker": "Gabo",
-      "text": "Excelente primer día. Pasaste todo el tiempo ocupada. Eso aquí es lo único que cuenta."
+      "text": "Excelente primer día. Todo el tiempo ocupada. Aquí eso es lo único que cuenta."
     },
     {
       "speaker": "Steven el Daddy",
@@ -93,7 +126,11 @@
     }
   ],
   "outroLose": [
-    {"speaker":"Gabo","mood":"angry","text":"Vaya. En tu primer día. No pensé que fuera posible."},
+    {
+      "speaker": "Gabo",
+      "mood": "angry",
+      "text": "Vaya. En tu primer día. No pensé que fuera posible."
+    },
     {
       "speaker": "Steven el Daddy",
       "narrator": true,
@@ -112,9 +149,21 @@
     "choice": {
       "prompt": "¿Cómo llegas al piso 10?",
       "options": [
-        {"label":"Esperar el ascensor","reply":"Espero. Con paciencia.","effect":"wait"},
-        {"label":"Subir por escaleras","reply":"Siete pisos. Voy.","effect":"stairs"},
-        {"label":"Colarte adelante","reply":"Permiso, es urgente.","effect":"cut"}
+        {
+          "label": "Esperar el ascensor",
+          "reply": "Espero. Con paciencia.",
+          "effect": "wait"
+        },
+        {
+          "label": "Subir por escaleras",
+          "reply": "Siete pisos. Voy.",
+          "effect": "stairs"
+        },
+        {
+          "label": "Colarte adelante",
+          "reply": "Permiso, es urgente.",
+          "effect": "cut"
+        }
       ]
     }
   },
