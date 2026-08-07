@@ -10644,3 +10644,81 @@ body {
   cursor: wait;
 }
 
+/* =====================================================================
+   EL MENSAJE DE DADDY: burbuja de chat, no tarjeta de sistema
+   =====================================================================
+   Steven narra POR MENSAJES — la ficción es que te escribe al teléfono —
+   así que su tarjeta se viste de chat: cabecera con nombre y "en línea",
+   burbuja con colita, y entrada de notificación (sube y asienta).
+
+   ── EL BUG DEL CENTRADO, pagado ─────────────────────────────────────
+   La tarjeta usaba `animation: inc-pop-enter`, cuyos keyframes escriben
+   `transform: scale(.95) translateY(10px)` A SECAS: el transform de los
+   keyframes PISA el `translate(-50%,-50%)` que la centraba, así que
+   durante la animación el mensaje se corría a la esquina y al terminar
+   pegaba el salto al centro. Es la misma trampa de keyframes que ya está
+   documentada en CLAUDE.md con text-shadow. La regla: cualquier keyframe
+   de un elemento centrado por transform DEBE repetir el translate. */
+.inc-dialogue-narrator {
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  max-width: 440px;
+  border: 1px solid hsl(var(--p-ok) / 0.35);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px hsl(var(--p-shadow-hue) / 0.5), 0 0 30px hsl(var(--p-ok) / 0.14);
+  animation: inc-wa-in 0.38s var(--ease-pop) both;
+}
+
+@keyframes inc-wa-in {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) translateY(26px) scale(0.94);
+  }
+  70% {
+    opacity: 1;
+    transform: translate(-50%, -50%) translateY(-3px) scale(1.01);
+  }
+  100% {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* La cabecera del chat: quién escribe y que está "en línea". */
+.inc-dialogue-narrator-title {
+  margin: 0;
+  padding: 12px 18px;
+  gap: 10px;
+  background: hsl(var(--p-ok) / 0.14);
+  border-bottom: 1px solid hsl(var(--p-ok) / 0.25);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.inc-dialogue-narrator-title::after {
+  content: "en línea";
+  margin-left: auto;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: hsl(var(--p-ok));
+}
+
+/* El cuerpo es LA BURBUJA: fondo propio, colita abajo a la izquierda. */
+.inc-dialogue-narrator-text {
+  position: relative;
+  margin: 16px 18px 20px;
+  padding: 14px 18px;
+  font-size: 22px;
+  line-height: 1.5;
+  text-align: left;
+  background: hsl(var(--p-ok) / 0.1);
+  border: 1px solid hsl(var(--p-ok) / 0.22);
+  border-radius: 14px 14px 14px 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inc-dialogue-narrator { animation: none; }
+}
