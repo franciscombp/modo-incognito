@@ -5,6 +5,7 @@ import { createCameraPanel } from "./cameraPanel.js";
 import { characterShot } from "./charshot.js";
 import { icon as svgIcon } from "./icons.js";
 import { buildControlsLegend } from "./controls.js";
+import { peekSlot } from "../game/save.js";
 
 // Every full-screen menu the game has: title, day select, settings (game +
 // camera), how-to-play and pause. They all live in one overlay that swaps
@@ -238,13 +239,47 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     { passive: true }
   );
 
+  // ── LA FIRMA DEL CONTRATO ─────────────────────────────────────────
+  // Elegir no es pulsar una opción: es FIRMAR. Al confirmar, el muñeco pasa
+  // a la pose de trabajo — que lleva los documentos en la mano, o sea la
+  // hoja que le acaban de dar — y un sello CONTRATADO cae en diagonal sobre
+  // el expediente. Recién entonces se entra.
+  //
+  // La ceremonia es corta (~1.4 s) y un clic la salta: es un momento, no
+  // una cinemática. `ceremonyOn` evita que un doble clic dispare dos.
+  let ceremonyOn = false;
   function loginSelect(id) {
+    if (ceremonyOn) return;
+    ceremonyOn = true;
     buzz(10);
     sfxSelect();
-    actions.selectCharacter(id);
-    renderCharBadge();
-    renderCharacters();
-    show(previousScreen ?? "title");
+
+    const finish = () => {
+      ceremonyOn = false;
+      actions.selectCharacter(id);
+      renderCharBadge();
+      renderCharacters();
+      show(previousScreen ?? "title");
+    };
+
+    // El retrato cambia a la pose de firmar. Si el cuerpo aún no llegó
+    // (characterShot devuelve null), la ceremonia sigue sin re-foto: el
+    // sello solo también se lee.
+    const avatar = loginUser.querySelector(".inc-login-avatar");
+    const mode = modes[id];
+    const signShot = looks ? characterShot(looks.get(id) ?? looks.get(mode?.sheet), "work") : null;
+    if (signShot && avatar) avatar.style.setProperty("--avatar-shot", `url(${signShot})`);
+
+    const stamp = el("div", "inc-login-stamp", loginUser, "CONTRATADO");
+    const skip = () => done();
+    let timer = setTimeout(() => done(), 1400);
+    function done() {
+      clearTimeout(timer);
+      loginStage.removeEventListener("click", skip);
+      stamp.remove();
+      finish();
+    }
+    loginStage.addEventListener("click", skip);
   }
 
   function renderCharacters() {
@@ -281,6 +316,20 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     const metaBits = [mode.role, !locked && mode.difficulty ? `modo ${mode.difficulty}` : null].filter(Boolean);
     el("div", "inc-login-role", panelLeft, metaBits.join(" · "));
     el("p", "inc-login-blurb", panelLeft, locked ? mode.lockedReason ?? "Bloqueado" : mode.blurb ?? "");
+    // La carrera guardada de ESTE personaje: cada uno tiene su slot, y el
+    // expediente lo dice antes de entrar. "Sin historial" tambien es
+    // informacion — significa empezar de cero sin pisar a nadie.
+    if (!locked) {
+      const slot = peekSlot(id);
+      el(
+        "div",
+        "inc-login-career",
+        panelLeft,
+        slot && (slot.completedDays > 0 || slot.unicas > 0 || slot.dia > 1)
+          ? `Día ${slot.dia} · ${slot.unicas} misión${slot.unicas === 1 ? "" : "es"} única${slot.unicas === 1 ? "" : "s"} · ${slot.completedDays} jornada${slot.completedDays === 1 ? "" : "s"}`
+          : "Sin historial — primer día"
+      );
+    }
 
     // ── PANEL DERECHO: cómo se juega ─────────────────────────────────
     // Las barras de la referencia (RANGO / DAÑO / DUREZA), traducidas a lo
