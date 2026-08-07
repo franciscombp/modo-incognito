@@ -99,29 +99,16 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   const logo = el("div", "inc-menu-logo", titleScreen);
   el("span", "inc-menu-logo-main", logo, title);
   el("span", "inc-menu-logo-sub", logo, subtitle);
+  // El ORDEN del menú cuenta la secuencia del juego: primero JUGAR (que es
+  // a lo que se vino), luego elegir día y cuenta, luego lo de sistema, y lo
+  // DESTRUCTIVO al fondo del todo — «Reiniciar progreso» llegó a salir como
+  // PRIMER botón cuando no había carrera, que es ofrecerle la borradura a
+  // quien todavía no tiene nada que borrar.
   const titleMenu = el("div", "inc-menu-menu-list", titleScreen);
   const continueBtn = button(titleMenu, "Continuar", {
     primary: true,
     icon: "play",
     onClick: () => actions.play(save.dayIndex),
-  });
-  button(titleMenu, "Reiniciar progreso", {
-    icon: "star",
-    onClick: () => {
-      // Antes esto solo saltaba al día 0 sin tocar el resto del save: los
-      // flags de diálogo (con quién ya hablaste, cuántas amonestaciones
-      // llevas) seguían puestos, así que "empezar de nuevo" en realidad
-      // seguía a medio camino de la partida anterior — Gabo, por ejemplo,
-      // saltaba directo a una de sus líneas de seguimiento en vez de
-      // presentarse. Es irreversible (borra días completados, secretos y
-      // mejores tiempos), así que primero se confirma.
-      const ok = window.confirm(
-        "Esto borra TODO tu progreso (días completados, secretos, mejores tiempos) y empieza desde cero. ¿Seguro?"
-      );
-      if (!ok) return;
-      save.reset();
-      actions.play(0);
-    },
   });
   button(titleMenu, "Elegir día", { icon: "grid", onClick: () => show("days") });
   button(titleMenu, "Personaje", {
@@ -133,6 +120,24 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   });
   button(titleMenu, "Ajustes", { icon: "gear", onClick: () => show("settings") });
   button(titleMenu, "Cómo se juega", { icon: "help", onClick: () => show("help") });
+  const resetBtn = button(titleMenu, "Reiniciar progreso", {
+    icon: "star",
+    onClick: () => {
+      // Antes esto solo saltaba al día 0 sin tocar el resto del save: los
+      // flags de diálogo (con quién ya hablaste, cuántas amonestaciones
+      // llevas) seguían puestos, así que "empezar de nuevo" en realidad
+      // seguía a medio camino de la partida anterior — Gabo, por ejemplo,
+      // saltaba directo a una de sus líneas de seguimiento en vez de
+      // presentarse. Es irreversible (borra el slot de ESTE personaje),
+      // así que primero se confirma.
+      const ok = window.confirm(
+        "Esto borra el progreso de ESTE personaje (días completados, secretos, mejores tiempos) y empieza su carrera de cero. Los demás no se tocan. ¿Seguro?"
+      );
+      if (!ok) return;
+      save.reset();
+      actions.play(0);
+    },
+  });
   const charBadge = el("div", "inc-menu-title-char", titleScreen);
   const titleFoot = el("div", "inc-menu-title-foot", titleScreen);
 
@@ -719,7 +724,11 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     openTitle(progress) {
       renderDays();
       renderCharBadge();
-      continueBtn.classList.toggle("inc-hidden", !progress.hasProgress);
+      continueBtn.classList.remove("inc-hidden");
+      continueBtn.querySelector("span:last-child").textContent = progress.hasProgress
+        ? `Continuar — Día ${Math.min(save.dayIndex + 1, levels.length)}`
+        : "Empezar jornada";
+      resetBtn.classList.toggle("inc-hidden", !progress.hasProgress);
       updateTitleFoot(progress.summary);
       // Primera vez (o localStorage limpio): elegir personaje no es opcional.
       if (!save.characterId) {
