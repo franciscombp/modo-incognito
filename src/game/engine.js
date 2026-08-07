@@ -478,12 +478,21 @@ export function createEngine({
     // Cada uno es una escena propia con su bucle; mientras dura, main.js deja
     // de dibujar el piso (ver engine.crossingActive).
     const mini = skipMinigame ? null : minigames.forDay(day);
+    // Lo que TARDES en el minijuego se paga en reloj de jornada: dudar en
+    // la acera también es llegar tarde. El cronómetro arranca al empezar a
+    // jugar (la intro no cuenta — leer no es dudar) y hay un tiempo de
+    // gracia por debajo del cual cruzar sale gratis. Ver
+    // `game.applyCommuteDelay`, que además pone el suelo.
+    const COMMUTE_GRACE_S = 20;
+    let commuteDelay = 0;
     if (mini) {
       if (mini.spec.intro) await dialogue.play(withSprites(mini.spec.intro), ctx);
       if (mini.bodyClass) document.body.classList.add(mini.bodyClass);
       crossingActive = true;
       if (mini.mood) setMood(mini.mood);
+      const crossStart = performance.now();
       const outcome = await mini.play((s, c) => pixels?.render(s, c));
+      commuteDelay = Math.max(0, (performance.now() - crossStart) / 1000 - COMMUTE_GRACE_S);
       crossingActive = false;
       if (mini.bodyClass) document.body.classList.remove(mini.bodyClass);
       if (outcome === "hit") {
@@ -546,6 +555,10 @@ export function createEngine({
     // aparece en cuanto llega su cuerpo.
     await Promise.race([baseModelsReady, wait(30000)]);
     const onDuty = prepareFloor(day);
+    // El peaje del cruce se cobra recién ahora, porque el juego no existía
+    // mientras se cruzaba. Va ANTES de applyPrologue para que cualquier
+    // bono del ascensor se calcule sobre la jornada ya descontada.
+    if (commuteDelay > 0) game.applyCommuteDelay(commuteDelay);
     // Y la elección del ascensor se aplica aquí, no antes: `applyPrologue`
     // arranca con `if (!game) return`, así que mientras se llamaba antes de
     // montar el día no hacía absolutamente nada — esperar, subir por las

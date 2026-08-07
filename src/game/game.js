@@ -705,6 +705,31 @@ export class Game {
     return this._grantTime(seconds, { at, label, kind: "minor" });
   }
 
+  /**
+   * El peaje del trayecto: lo que tardaste EN LLEGAR se descuenta de la
+   * jornada. Es lo que hace que el cruce de la avenida no sea gratis —
+   * dudar en la acera también es llegar tarde a la oficina.
+   *
+   * No pasa por `_grantTime` a propósito: aquello mantiene `timeGained`
+   * (lo GANADO, que enseña el HUD) y esto no es un premio negativo, es
+   * presupuesto que nunca llegó a existir. Se descuenta del arranque, con
+   * un suelo del 60% de la jornada para que un cruce desastroso nunca
+   * deje el día perdido de antemano — castigar sí, sentenciar no.
+   *
+   * @param {number} seconds Tardanza a descontar, ya sin la gracia.
+   * @returns {number} Lo descontado de verdad, tras el suelo.
+   */
+  applyCommuteDelay(seconds) {
+    if (!(seconds > 0)) return 0;
+    const floor = this.rules.duration * 0.6;
+    const cut = Math.min(Math.round(seconds), Math.max(0, this.timeLeft - floor));
+    this.timeLeft -= cut;
+    if (cut > 0) {
+      this.toast(`Llegaste tarde: -${cut}s de jornada`);
+    }
+    return cut;
+  }
+
   applyPerk(perk) {
     this._clearPerk();
     this.perk = perk;

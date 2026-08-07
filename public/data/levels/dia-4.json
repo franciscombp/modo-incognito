@@ -4,6 +4,30 @@
   "title": "Jueves · Modo incógnito",
   "subtitle": "Se cayeron las distracciones. Solo quedan las paredes.",
   "scene": "piso7",
+  "minigame": {
+    "id": "crossing",
+    "intro": [
+      {
+        "speaker": "Steven el Daddy",
+        "narrator": true,
+        "text": "Ya casi viernes. La avenida lo sabe y esta vengativa. Vamo a calmarno... y a cruzar con fe."
+      }
+    ],
+    "onFail": {
+      "icon": "alert",
+      "title": "No fue tu día",
+      "body": "Te atropellaron antes de llegar al piso.",
+      "dialogue": [
+        {"speaker":"Steven el Daddy","narrator":true,"text":"Oye... ¿tú estás bien? Cuéntame qué pasó."},
+        {"speaker":"Tú","text":"La avenida. Otra vez la avenida."},
+        {
+          "speaker": "Steven el Daddy",
+          "narrator": true,
+          "text": "Qué mal. Mañana lo intentamos de nuevo. Eres fuerte, lo sé."
+        }
+      ]
+    }
+  },
   "theme": "dusk",
   "rules": {
     "duration": 230,
