@@ -3864,7 +3864,7 @@ body.touch-device #hint {
   display: none;
 }
 
-/* ⚠️ PIEL MUERTA: el diálogo en juego NO usa `.vn-*`, usa `.inc-dialogue-*`
+/* OJO — PIEL MUERTA: el diálogo en juego NO usa `.vn-*`, usa `.inc-dialogue-*`
    (ver game/dialogue.js). Estas reglas se quedan porque el bloque entero
    sigue en el archivo, pero lo que se ve al jugar se ajusta abajo, en
    «EL DIÁLOGO SE LEE». No pierdas el tiempo afinando aquí. */
