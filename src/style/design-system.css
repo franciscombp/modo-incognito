@@ -10616,3 +10616,31 @@ body {
   text-transform: uppercase;
   color: hsl(var(--p-accent-bright) / 0.85);
 }
+
+/* La nota de «nueva versión»: una píldora abajo, fuera del lienzo de
+   juego. No roba foco ni tapa nada — está hasta que se toca o se ignora
+   (ignorarla también vale: la versión entra sola al próximo arranque). */
+.inc-update-note {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 10001;
+  padding: 12px 22px;
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: hsl(var(--p-accent-bright));
+  background: hsl(var(--p-bg-900) / 0.92);
+  border: 1px solid hsl(var(--p-accent-bright) / 0.6);
+  border-radius: 999px;
+  box-shadow: 0 0 24px hsl(var(--p-accent-bright) / 0.3);
+  cursor: pointer;
+  animation: inc-slide-up 0.4s var(--ease-pop);
+}
+.inc-update-note:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+

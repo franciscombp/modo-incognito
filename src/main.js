@@ -117,10 +117,58 @@ const { key } = lights;
 
 async function boot() {
   // PWA a la carta: el service worker cachea SOLO los .glb (una descarga de
-  // los cuerpos y listos) y deja el motor y los datos siempre en red — ver
-  // public/sw.js. Si el navegador no lo soporta, no pasa nada.
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register(`${BASE}sw.js`).catch(() => {});
+  // los cuerpos y listos) y además va cacheando el resto al usarse, así que
+  // el juego FUNCIONA SIN RED una vez visitado — ver public/sw.js. Si el
+  // navegador no lo soporta, no pasa nada.
+  //
+  // El `?v=BUILD` del registro es el corazón del flujo de versiones: un
+  // build nuevo cambia la URL del script, el navegador lo trata como worker
+  // nuevo y `updatefound` dispara la NOTA de «nueva versión» — que no
+  // impone nada: actualiza cuando la jugadora la toca (o en el siguiente
+  // arranque, si la ignora).
+  // Bajo automatización (navigator.webdriver: Playwright, los checks de
+  // tools/) el worker NO se registra: los checks reescriben datos
+  // interceptando la red con page.route, y las peticiones que hace un
+  // service worker no pasan por esa intercepción — check-retry parchea
+  // dia-1.json al vuelo y con SW nunca veía su parche, con red-primero o
+  // sin él. Los checks prueban el JUEGO; el worker se prueba a mano.
+  if ("serviceWorker" in navigator && !navigator.webdriver) {
+    navigator.serviceWorker
+      .register(`${BASE}sw.js?v=${BUILD}`)
+      .then((reg) => {
+        const offerUpdate = (worker) => {
+          // Solo si ya había un worker controlando: en la primera visita el
+          // "nuevo" es el único y no hay nada que anunciar.
+          if (!navigator.serviceWorker.controller) return;
+          const note = document.createElement("button");
+          note.type = "button";
+          note.className = "inc-update-note";
+          note.textContent = "Nueva versión lista — toca para actualizar";
+          note.addEventListener("click", () => {
+            note.disabled = true;
+            worker.postMessage({ type: "SKIP_WAITING" });
+          });
+          document.body.appendChild(note);
+        };
+        // Puede que la actualización ya estuviera esperando de una visita
+        // anterior; si no, se vigila la próxima.
+        if (reg.waiting) offerUpdate(reg.waiting);
+        reg.addEventListener("updatefound", () => {
+          const w = reg.installing;
+          w?.addEventListener("statechange", () => {
+            if (w.state === "installed") offerUpdate(w);
+          });
+        });
+        // Cuando el worker nuevo toma el control (la jugadora aceptó), se
+        // recarga UNA vez para arrancar ya con la versión nueva.
+        let reloaded = false;
+        navigator.serviceWorker.addEventListener("controllerchange", () => {
+          if (reloaded) return;
+          reloaded = true;
+          location.reload();
+        });
+      })
+      .catch(() => {});
   }
 
   // ---- Content: everything the game is made of comes from public/data ----
@@ -664,8 +712,26 @@ async function boot() {
     if (moved || hintPlayTime > 18) document.body.classList.add("hints-done");
   }
 
+  // ── EL PRESUPUESTO DE FRAMES, O POR QUÉ EL TELÉFONO QUEMABA ──────────
+  // rAF dispara a la tasa del PANEL: en un móvil de 120 Hz eso era pintar
+  // el piso entero 120 veces por segundo — y seguía haciéndolo en los
+  // menús, donde el 3D de fondo es un decorado quieto tras un velo. De ahí
+  // el recalentamiento. El juego se sella a 60 fps (más no aporta nada a
+  // un juego de sigilo), y en pausa/menús baja a 30, que para un fondo
+  // estático es invisible y deja la GPU respirar.
+  const FRAME_MS_ACTIVE = 1000 / 60;
+  const FRAME_MS_IDLE = 1000 / 30;
   let last = performance.now();
+  let lastFrame = 0;
   function animate(now) {
+    const budget = engine.isPaused || engine.menus.isOpen ? FRAME_MS_IDLE : FRAME_MS_ACTIVE;
+    // El medio milisegundo de margen evita saltarse frames legítimos por
+    // el redondeo del reloj de rAF (que en 60 Hz llega a 16.6, no a 16.7).
+    if (now - lastFrame < budget - 0.5) {
+      requestAnimationFrame(animate);
+      return;
+    }
+    lastFrame = now;
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
     const t = now / 1000;
