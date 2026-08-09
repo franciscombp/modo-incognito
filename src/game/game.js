@@ -97,7 +97,14 @@ const SEEN_NERVE_BONUS = 1.4; // ...and in his cone, which is madness
 const PERK_DURATION = 15;
 
 const DEFAULT_RULES = {
-  duration: 240,
+  // UN MINUTO. La jornada ya no viene dada: arranca en 60 segundos reales y
+  // la ALARGAS tú, con lo que haces. Cada actividad prohibida devuelve entre
+  // 17 y 43 segundos (`reward` en el JSON de la escena), así que la primera
+  // taza de café casi duplica lo que te queda y encadenar tres te da una
+  // jornada larga. Estaba en 240 y el reloj no apretaba nunca: con cuatro
+  // minutos de partida y las mismas recompensas, la única moneda del juego
+  // no significaba nada hasta el final.
+  duration: 60,
   maxWarnings: 3,
   objectives: null, // null = every forbidden activity
   decayMul: 1,
@@ -191,6 +198,14 @@ export class Game {
     this._finished = false;
 
     this.timeGained = 0; // reloj regalado hoy; es lo que enseña el HUD
+    // Segundos de jornada CONSUMIDOS. El reloj de pared (9:00 → 7:00) sale
+    // de aquí y no de `duration - timeLeft`, que es lo que había: en cuanto
+    // ganas más reloj del que llevas gastado esa resta se vuelve NEGATIVA y
+    // el HUD se ponía a marcar horas imposibles ("-6:00 a.m."). Con la
+    // jornada en 60 segundos y combos de hasta x4, una sola tarea temprana
+    // ya te mete ahí, así que dejó de ser un caso raro. Este contador solo
+    // sube, y el reloj con él.
+    this.timeSpent = 0;
     this.combo = 1;
     this.comboLeft = 0;
     this.perk = null;
@@ -306,6 +321,7 @@ export class Game {
     // El tiempo pasa más rápido cuando finges trabajo
     const effectiveDt = dt * (this.player.isPretending ? PRETEND_TIME_SPEED : 1);
     this.timeLeft = Math.max(0, this.timeLeft - effectiveDt);
+    this.timeSpent += effectiveDt;
     if (this._caughtCooldown > 0) this._caughtCooldown -= dt;
 
     if (this.revealBossUntil > 0) this.revealBossUntil -= dt;
@@ -1345,8 +1361,14 @@ export class Game {
    */
   /** Hora actual del día (número, ej. 13.5 = 1:30 p.m.), según cuánto ha pasado. */
   getCurrentHour() {
-    const elapsed = this.rules.duration - this.timeLeft;
-    const frac = this.rules.duration > 0 ? elapsed / this.rules.duration : 0;
+    // Del tiempo GASTADO, no de lo que queda: alargar la jornada no puede
+    // hacer retroceder el reloj de pared (ver `timeSpent`). Y topado en las
+    // dos puntas, que quien banque más de una jornada entera de reloj no
+    // debe empujar la hora más allá del cierre.
+    const frac =
+      this.rules.duration > 0
+        ? Math.min(1, Math.max(0, this.timeSpent / this.rules.duration))
+        : 0;
     return this.dayStartHour + frac * (this.dayEndHour - this.dayStartHour);
   }
 

@@ -306,6 +306,27 @@ Esconderse baja la sospecha, pero **no rompe una persecución comprometida**.
   piso, que es el mundo en el que finges vivir.
 - Todo el tiempo regalado pasa por `_grantTime()` (ver 1.1).
 
+### 5.1 UN MINUTO, y lo alargas tú ← **NUEVO**
+
+`rules.duration` es **60**. Antes era 240 (230/220 los últimos días) y el
+reloj no apretaba nunca: con cuatro minutos de partida y las mismas
+recompensas, la única moneda del juego no significaba nada hasta el final.
+
+Ahora la jornada **no viene dada, se gana**. Cada actividad prohibida
+devuelve entre 17 y 43 segundos (`reward` en el JSON de la escena, ×combo),
+así que la primera taza de café casi duplica lo que te queda y encadenar
+tres te da una jornada larga de verdad. El día crece con lo que haces.
+
+> Ojo con los dos campos que se confunden solos: **`time` es lo que TARDA**
+> una actividad y **`reward` el reloj que DA**.
+
+**El reloj de pared sale de `timeSpent`, no de `duration - timeLeft`.** Es la
+trampa que abrió la jornada corta: en cuanto ganas más reloj del que llevas
+gastado, esa resta se vuelve NEGATIVA y el HUD marcaba horas imposibles
+("-6:00 a.m."). Con 60 segundos y combos de hasta ×4, una sola tarea temprana
+ya te mete ahí. `timeSpent` solo sube, y va topado en las dos puntas: alargar
+la jornada te deja jugar más, no retroceder el reloj de la oficina.
+
 ---
 
 ## 6. Los diálogos

@@ -30,7 +30,7 @@
   },
   "theme": "dusk",
   "rules": {
-    "duration": 230,
+    "duration": 60,
     "maxWarnings": 2,
     "objectives": ["scroll","sleep","meeting","snack","print","window"],
     "bossSpeedMul": 1.15,

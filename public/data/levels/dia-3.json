@@ -30,7 +30,7 @@
   },
   "theme": "overcast",
   "rules": {
-    "duration": 240,
+    "duration": 60,
     "maxWarnings": 2,
     "objectives": ["coffee","chat","movie","snack","window"],
     "bossSpeedMul": 1.1,
