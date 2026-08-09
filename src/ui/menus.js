@@ -5,7 +5,7 @@ import { createCameraPanel } from "./cameraPanel.js";
 import { characterShot } from "./charshot.js";
 import { icon as svgIcon } from "./icons.js";
 import { buildControlsLegend } from "./controls.js";
-import { peekSlot } from "../game/save.js";
+import { listSlots, SLOT_COUNT } from "../game/save.js";
 
 // Every full-screen menu the game has: title, day select, settings (game +
 // camera), how-to-play and pause. They all live in one overlay that swaps
@@ -104,40 +104,23 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   // DESTRUCTIVO al fondo del todo — «Reiniciar progreso» llegó a salir como
   // PRIMER botón cuando no había carrera, que es ofrecerle la borradura a
   // quien todavía no tiene nada que borrar.
+  // JUGAR es UNA sola cosa, y lleva a las hojas de vida. Antes el título
+  // ofrecía seis puertas —continuar, elegir día, personaje, ajustes, ayuda,
+  // reiniciar— y había que entender el juego antes de poder empezarlo.
+  // Ahora la secuencia es la de una consola: jugar → qué partida → quién.
+  // Elegir día y reiniciar viven DENTRO de la partida (pausa), que es donde
+  // significan algo; el título solo tiene lo que se necesita para entrar.
   const titleMenu = el("div", "inc-menu-menu-list", titleScreen);
-  const continueBtn = button(titleMenu, "Continuar", {
+  const continueBtn = button(titleMenu, "Jugar", {
     primary: true,
     icon: "play",
-    onClick: () => actions.play(save.dayIndex),
-  });
-  button(titleMenu, "Elegir día", { icon: "grid", onClick: () => show("days") });
-  button(titleMenu, "Personaje", {
-    icon: "incognito",
     onClick: () => {
-      renderCharacters();
-      show("characters");
+      renderSlots();
+      show("slots");
     },
   });
   button(titleMenu, "Ajustes", { icon: "gear", onClick: () => show("settings") });
   button(titleMenu, "Cómo se juega", { icon: "help", onClick: () => show("help") });
-  const resetBtn = button(titleMenu, "Reiniciar progreso", {
-    icon: "star",
-    onClick: () => {
-      // Antes esto solo saltaba al día 0 sin tocar el resto del save: los
-      // flags de diálogo (con quién ya hablaste, cuántas amonestaciones
-      // llevas) seguían puestos, así que "empezar de nuevo" en realidad
-      // seguía a medio camino de la partida anterior — Gabo, por ejemplo,
-      // saltaba directo a una de sus líneas de seguimiento en vez de
-      // presentarse. Es irreversible (borra el slot de ESTE personaje),
-      // así que primero se confirma.
-      const ok = window.confirm(
-        "Esto borra el progreso de ESTE personaje (días completados, secretos, mejores tiempos) y empieza su carrera de cero. Los demás no se tocan. ¿Seguro?"
-      );
-      if (!ok) return;
-      save.reset();
-      actions.play(0);
-    },
-  });
   const charBadge = el("div", "inc-menu-title-char", titleScreen);
   const titleFoot = el("div", "inc-menu-title-foot", titleScreen);
 
@@ -153,6 +136,133 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     });
     const timestamp = `v${buildId} · ${buildTime}`;
     titleFoot.innerHTML = summary ? `${summary} <span style="opacity:0.6"> · ${timestamp}</span>` : `<span>${timestamp}</span>`;
+  }
+
+  // ---------------- Hojas de vida (las partidas guardadas) ----------------
+  //
+  // Las tres ranuras NO son tarjetas de "Nueva partida": son HOJAS DE VIDA,
+  // y se escriben solas con lo que vas haciendo. Una recién sacada está en
+  // blanco, con los campos por diligenciar; una con carrera detrás va
+  // llenándose de la clase de viñeta que uno se inventa para rellenar un CV
+  // — «3 jornadas sobrevividas», «2 encargos atendidos sin supervisión» —
+  // que es exactamente el chiste del juego: tu progreso ES el relleno de
+  // currículum de alguien que se pasa el día fingiendo que trabaja.
+  //
+  // Por eso la ranura vacía tampoco dice "vacía": dice SIN DILIGENCIAR, con
+  // renglones de puntitos esperando. La forma comunica antes que el texto.
+  const slotsScreen = makeScreen("slots", "inc-menu-screen-slots");
+  el("h2", "inc-menu-screen-title-text", slotsScreen, "Hojas de vida");
+  el(
+    "p",
+    "inc-menu-screen-sub",
+    slotsScreen,
+    "Cada hoja es una carrera aparte. Se escriben solas."
+  );
+  const cvGrid = el("div", "inc-cv-grid", slotsScreen);
+  button(el("div", "inc-menu-screen-foot", slotsScreen), "Volver", {
+    back: true,
+    onClick: () => show("title"),
+  });
+
+  /** Las viñetas de experiencia que esa carrera se ha ganado. */
+  function cvExperience(s) {
+    const lines = [];
+    if (s.completedDays > 0) {
+      lines.push(`${s.completedDays} jornada${s.completedDays === 1 ? "" : "s"} sobrevivida${s.completedDays === 1 ? "" : "s"} en el Piso 7`);
+    }
+    if (s.unicas > 0) {
+      lines.push(`${s.unicas} encargo${s.unicas === 1 ? "" : "s"} atendido${s.unicas === 1 ? "" : "s"} sin supervisión directa`);
+    }
+    if (s.eggs > 0) {
+      lines.push(`${s.eggs} hallazgo${s.eggs === 1 ? "" : "s"} no documentado${s.eggs === 1 ? "" : "s"}`);
+    }
+    // Una carrera empezada pero sin nada que presumir todavía. El chiste
+    // sigue: en un CV, "en curso" también ocupa renglón.
+    if (!lines.length) lines.push("Incorporación reciente · periodo de adaptación");
+    return lines;
+  }
+
+  function renderSlots() {
+    cvGrid.innerHTML = "";
+    listSlots().forEach((s) => {
+      const cv = el("button", `inc-cv ${s.empty ? "inc-cv--blank" : ""}`, cvGrid);
+      cv.type = "button";
+      cv.setAttribute(
+        "aria-label",
+        s.empty ? `Hoja ${s.index}, sin diligenciar` : `Hoja ${s.index}, día ${s.dia}`
+      );
+
+      const head = el("div", "inc-cv-head", cv);
+      el("span", "inc-cv-num", head, String(s.index));
+      el("span", "inc-cv-kicker", head, "Hoja de vida");
+
+      const body = el("div", "inc-cv-body", cv);
+      const photo = el("div", "inc-cv-photo", body);
+
+      const fields = el("div", "inc-cv-fields", body);
+      if (s.empty) {
+        el("div", "inc-cv-name inc-cv-name--blank", fields, "Por diligenciar");
+        el("div", "inc-cv-role", fields, "Vacante");
+      } else {
+        const mode = modes[s.characterId];
+        // La foto del CV es el muñeco de verdad, no un icono: es la misma
+        // que se ve en el piso, así que la hoja habla de quien juegas.
+        const shot = looks ? characterShot(looks.get(s.characterId) ?? looks.get(mode?.sheet)) : null;
+        if (shot) photo.style.setProperty("--avatar-shot", `url(${shot})`);
+        el("div", "inc-cv-name", fields, mode?.name ?? s.characterId);
+        el("div", "inc-cv-role", fields, mode?.role ?? "");
+      }
+
+      const sec = el("div", "inc-cv-section", cv);
+      el("div", "inc-cv-section-tag", sec, "Experiencia");
+      if (s.empty) {
+        // Renglones vacíos: la hoja enseña el HUECO que vas a rellenar.
+        const rules = el("div", "inc-cv-rules", sec);
+        for (let i = 0; i < 3; i++) el("span", "inc-cv-rule", rules);
+      } else {
+        const list = el("ul", "inc-cv-list", sec);
+        cvExperience(s).forEach((line) => el("li", null, list, line));
+      }
+
+      const foot = el("div", "inc-cv-foot", cv);
+      el(
+        "span",
+        "inc-cv-stamp",
+        foot,
+        s.empty ? "Sin diligenciar" : `Temporada ${s.temporada} · Día ${s.dia}`
+      );
+
+      cv.addEventListener("click", () => {
+        buzz(10);
+        sfxSelect();
+        actions.chooseSlot(s.index);
+        if (save.characterId) {
+          actions.play(save.dayIndex);
+        } else {
+          // Hoja en blanco: lo primero que se escribe es quién eres.
+          renderCharacters();
+          show("characters");
+        }
+      });
+
+      // Tirar una hoja empezada: destructivo, así que va aparte del clic
+      // grande y pregunta antes.
+      if (!s.empty) {
+        const wipe = el("button", "inc-cv-wipe", cv);
+        wipe.type = "button";
+        wipe.innerHTML = svgIcon("minus", { size: 16 });
+        wipe.setAttribute("aria-label", `Descartar la hoja ${s.index}`);
+        wipe.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const ok = window.confirm(
+            `Esto descarta la hoja ${s.index} entera y no se puede deshacer. Las otras no se tocan. ¿Seguro?`
+          );
+          if (!ok) return;
+          actions.clearSlot(s.index);
+          renderSlots();
+        });
+      }
+    });
   }
 
   // ---------------- Day select ----------------
@@ -263,8 +373,15 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
       ceremonyOn = false;
       actions.selectCharacter(id);
       renderCharBadge();
+      // Firmar el contrato ES entrar a trabajar: se va derecho al piso, no
+      // de vuelta a un menú. Solo cuando vienes a CAMBIAR de cara con una
+      // carrera ya abierta se vuelve por donde entraste.
+      if (previousScreen === "slots" || !previousScreen) {
+        actions.play(save.dayIndex);
+        return;
+      }
       renderCharacters();
-      show(previousScreen ?? "title");
+      show(previousScreen);
     };
 
     // El retrato cambia a la pose de firmar. Si el cuerpo aún no llegó
@@ -324,15 +441,21 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     // La carrera guardada de ESTE personaje: cada uno tiene su slot, y el
     // expediente lo dice antes de entrar. "Sin historial" tambien es
     // informacion — significa empezar de cero sin pisar a nadie.
+    // La carrera de LA HOJA DE VIDA abierta (ya no la del personaje: la
+    // ranura es la partida y el personaje una propiedad suya, así que
+    // cambiar de cara a mitad de carrera no reinicia nada).
     if (!locked) {
-      const slot = peekSlot(id);
+      const st = save.state;
+      const dia = st.campaign?.dia ?? 1;
+      const unicas = st.campaign?.unicas?.length ?? 0;
+      const jornadas = st.completedDays?.length ?? 0;
       el(
         "div",
         "inc-login-career",
         panelLeft,
-        slot && (slot.completedDays > 0 || slot.unicas > 0 || slot.dia > 1)
-          ? `Día ${slot.dia} · ${slot.unicas} misión${slot.unicas === 1 ? "" : "es"} única${slot.unicas === 1 ? "" : "s"} · ${slot.completedDays} jornada${slot.completedDays === 1 ? "" : "s"}`
-          : "Sin historial — primer día"
+        jornadas > 0 || unicas > 0 || dia > 1
+          ? `Hoja ${save.slot ?? "—"} · Día ${dia} · ${jornadas} jornada${jornadas === 1 ? "" : "s"}`
+          : "Hoja en blanco — primer día"
       );
     }
 
@@ -724,19 +847,18 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     openTitle(progress) {
       renderDays();
       renderCharBadge();
+      // El título ya no decide nada: SIEMPRE es "Jugar", y quién juega y en
+      // qué carrera lo decide la hoja de vida. Antes este botón se
+      // rebautizaba a «Continuar — Día N» y la pantalla se saltaba sola a
+      // elegir personaje si no había ninguno; las dos cosas eran el título
+      // haciendo el trabajo de la pantalla siguiente.
       continueBtn.classList.remove("inc-hidden");
-      continueBtn.querySelector("span:last-child").textContent = progress.hasProgress
-        ? `Continuar — Día ${Math.min(save.dayIndex + 1, levels.length)}`
-        : "Empezar jornada";
-      resetBtn.classList.toggle("inc-hidden", !progress.hasProgress);
       updateTitleFoot(progress.summary);
-      // Primera vez (o localStorage limpio): elegir personaje no es opcional.
-      if (!save.characterId) {
-        renderCharacters();
-        show("characters");
-        return;
-      }
       show("title");
+    },
+    openSlots() {
+      renderSlots();
+      show("slots");
     },
     openPause(info) {
       pauseInfo.textContent = info ?? "";

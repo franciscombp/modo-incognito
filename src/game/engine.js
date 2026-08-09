@@ -273,21 +273,41 @@ export function createEngine({
       resume: () => resumeFromMenu(),
       restart: () => startDay(dayIndex),
       toTitle: () => openTitle(),
+      // Abrir una hoja de vida: se carga esa carrera y, si ya trae
+      // personaje, se pone su cara antes de entrar — si no lo hiciéramos
+      // aquí, la primera partida de la sesión arrancaría con el muñeco por
+      // defecto aunque la hoja diga otra cosa.
+      chooseSlot: (n) => {
+        save.useSlot(n);
+        if (save.characterId) applyCharacter(save.characterId);
+      },
+      clearSlot: (n) => save.clearSlot(n),
       selectCharacter: (id) => {
         save.setCharacter(id);
-        // El sprite se cambia en caliente: elegir personaje pasa con el juego
-        // ya montado, no al arrancar. nameToSheet también, o el retrato de
-        // diálogo se queda enseñando al personaje con el que se abrió el
-        // juego para siempre, aunque elijas otro.
-        const sheet = modes[id]?.sheet ?? playerSheet;
-        nameToSheet.set(playerName, sheet);
-        nameToSheet.set("Tú", sheet);
-        // La placa del HUD enseña la CARA del personaje elegido: cambia con él.
-        menuBar.setPlayerLook?.(looks?.get?.(id) ?? null);
-        onCharacter?.(id);
+        applyCharacter(id);
       },
     },
   });
+
+  /**
+   * Poner la cara de alguien en el juego ya montado. Lo llaman DOS caminos:
+   * elegir personaje (firmar el contrato) y abrir una hoja de vida que ya
+   * traía uno. Estaba solo dentro de `selectCharacter`, así que cargar una
+   * partida guardada dejaba el muñeco por defecto hasta que volvieras a
+   * pasar por la pantalla de personaje.
+   */
+  function applyCharacter(id) {
+    // El sprite se cambia en caliente: elegir personaje pasa con el juego
+    // ya montado, no al arrancar. nameToSheet también, o el retrato de
+    // diálogo se queda enseñando al personaje con el que se abrió el
+    // juego para siempre, aunque elijas otro.
+    const sheet = modes[id]?.sheet ?? playerSheet;
+    nameToSheet.set(playerName, sheet);
+    nameToSheet.set("Tú", sheet);
+    // La placa del HUD enseña la CARA del personaje elegido: cambia con él.
+    menuBar.setPlayerLook?.(looks?.get?.(id) ?? null);
+    onCharacter?.(id);
+  }
 
   function openTitle() {
     setInLevel(false);

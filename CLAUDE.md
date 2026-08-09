@@ -745,6 +745,33 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   pintan personajes — se quedan como referencia de color de las recetas. Los
   emojis que quedan son iconos de interfaz y de objeto (botones, actividades),
   que es otra cosa.
+- **El arranque es TÍTULO → HOJA DE VIDA → PERSONAJE → juego**, y en ese
+  orden. El título tiene exactamente tres puertas (Jugar, Ajustes, Cómo se
+  juega) y no decide nada más: antes ofrecía seis —incluida «Reiniciar
+  progreso», que llegó a salir de primera cuando no había nada que borrar— y
+  se saltaba solo a elegir personaje si no había ninguno, o sea el título
+  haciendo el trabajo de la pantalla siguiente.
+- **El guardado son TRES RANURAS NUMERADAS, y el personaje va DENTRO**
+  (`src/game/save.js`). Antes la ranura ERA el personaje: había tantas
+  carreras como gente en el reparto, no se podían tener dos partidas con
+  Giuli, y empezar de cero obligaba a borrar. Ahora `useSlot(n)` abre una
+  carrera y `setCharacter()` solo dice con qué cara se juega ESA — cambiarla
+  a mitad no reinicia nada. Los dos formatos anteriores (una clave global, y
+  una por personaje) los recoge `migrateOnce()` la primera vez, ordenados
+  por quién jugó más, y **no se borran**: conservarlos hace la migración
+  inocua si algo falla a mitad.
+- **Las ranuras son HOJAS DE VIDA que se escriben solas**, no tarjetas de
+  «Nueva partida». Cada una lista la experiencia que esa carrera se ha
+  ganado —«3 jornadas sobrevividas en el Piso 7», «2 encargos atendidos sin
+  supervisión directa»— con el tono de relleno de currículum, que es el
+  chiste del juego puesto en la interfaz. La vacía no dice «vacía»: enseña
+  el HUECO, con renglones punteados esperando. Ojo con dos cosas: la lista
+  de viñetas sale de `cvExperience()` y **nunca queda a cero** (una carrera
+  recién empezada trae «Incorporación reciente», porque en un CV el «en
+  curso» también ocupa renglón), y **no hay override responsive** para el
+  lienzo pequeño — el lienzo es fijo y siempre 16:9, así que las tres hojas
+  caben en los dos tamaños; apilarlas en una columna fue el primer intento
+  y dejaba la tercera cortada abajo.
 - **El día 1 arranca en el ascensor.** El cruce de la avenida está desactivado
   a propósito: en `levels/dia-1.json` su bloque se llama `$minigame`, y
   recuperarlo es devolverle el nombre `minigame`. El piso se monta CON LAS

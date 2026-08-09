@@ -10722,3 +10722,247 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .inc-dialogue-narrator { animation: none; }
 }
+
+/* ═════════════════════════════════════════════════════════════════════
+   HOJAS DE VIDA · las tres partidas guardadas
+   ═════════════════════════════════════════════════════════════════════
+   Las ranuras de guardado no son tarjetas de "Nueva partida": son HOJAS
+   DE VIDA que se escriben solas con lo que vas haciendo. Es el chiste
+   del juego puesto en la interfaz — tu progreso ES el relleno de
+   currículum de alguien que se pasa el día fingiendo que trabaja.
+
+   Por eso la vacía no dice "vacía": enseña el HUECO. Renglones de
+   puntitos esperando a que alguien los llene, que comunican antes de
+   que nadie lea la palabra "Vacante".
+
+   Todo sale de la capa 2 (--surface, --text, --border, --accent). Ni un
+   color crudo, que es la regla que no se rompe.
+   ═════════════════════════════════════════════════════════════════════ */
+
+.inc-menu-screen-slots .inc-menu-screen-sub {
+  margin: 0 0 22px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.inc-cv-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  width: 100%;
+}
+
+/* La hoja. `text-align: left` porque es un DOCUMENTO: centrar un CV lo
+   convierte en un cartel. */
+.inc-cv {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Estirado a propósito: la pantalla de menú centra a sus hijos, y sin
+     esto la fila de foto+nombre salía centrada dentro del folio — un CV
+     centrado deja de leerse como documento y pasa a ser un cartel. */
+  align-items: stretch;
+  gap: 12px;
+  padding: 18px 16px 14px;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--btn-radius);
+  background: var(--surface-raised);
+  color: var(--text);
+  cursor: pointer;
+  /* Proporción de folio, para que se lea como papel y no como botón. Se
+     mide contra el lienzo CORTO (720 de alto): con el título, el subtítulo
+     y el pie, al folio le quedan unos 460. */
+  min-height: 270px;
+  transition:
+    transform var(--dur-fast) var(--ease-pop),
+    border-color var(--dur-fast) linear,
+    background var(--dur-fast) linear;
+}
+
+.inc-cv:hover,
+.inc-cv:focus-visible {
+  transform: translateY(-4px);
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+/* La hoja sin diligenciar va APAGADA: se ve que está ahí y que le falta
+   todo. Punteada, como un formulario que nadie ha rellenado. */
+.inc-cv--blank {
+  border-style: dashed;
+  background: var(--surface);
+}
+
+.inc-cv-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.inc-cv-num {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.inc-cv-kicker {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.inc-cv-body {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  width: 100%;
+}
+
+/* La foto del CV: el muñeco 3D de verdad, el mismo que sale al piso. */
+.inc-cv-photo {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 68px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background-color: var(--surface);
+  background-image: var(--avatar-shot, none);
+  background-size: cover;
+  background-position: center 18%;
+}
+
+.inc-cv-fields {
+  min-width: 0;
+}
+
+.inc-cv-name {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.15;
+  /* Un nombre largo (o el rótulo de la hoja en blanco) se salía por el
+     costado del folio: la columna es estrecha y una palabra suelta no
+     rompe sola. */
+  overflow-wrap: anywhere;
+}
+
+.inc-cv-name--blank {
+  font-size: 15px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.inc-cv-role {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.inc-cv-section {
+  flex: 1 1 auto;
+}
+
+.inc-cv-section-tag {
+  margin-bottom: 8px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.inc-cv-list {
+  margin: 0;
+  padding-left: 16px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.inc-cv-list li + li {
+  margin-top: 4px;
+}
+
+/* Los renglones vacíos de la hoja sin diligenciar. */
+.inc-cv-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inc-cv-rule {
+  display: block;
+  height: 1px;
+  border-top: 1px dashed var(--border);
+}
+
+.inc-cv-rule:nth-child(2) {
+  width: 82%;
+}
+
+.inc-cv-rule:nth-child(3) {
+  width: 60%;
+}
+
+.inc-cv-foot {
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.inc-cv-stamp {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.inc-cv--blank .inc-cv-stamp {
+  opacity: 0.75;
+}
+
+/* Descartar una hoja: pequeño, en la esquina, y fuera del clic grande. */
+.inc-cv-wipe {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--dur-fast) linear;
+}
+
+.inc-cv:hover .inc-cv-wipe,
+.inc-cv-wipe:focus-visible {
+  opacity: 1;
+}
+
+.inc-cv-wipe:hover,
+.inc-cv-wipe:focus-visible {
+  border-color: var(--border);
+  color: var(--text);
+}
+
+/* NO hay override para el lienzo pequeño, y es a propósito. El lienzo es
+   FIJO y siempre 16:9 (1920x1080 o 1280x720), así que nunca existe el caso
+   "pantalla estrecha": tres folios caben en los dos tamaños. Apilarlos en
+   una columna en el lienzo compacto fue el primer intento y salía una sola
+   hoja por pantalla con la tercera cortada abajo — responsive de costumbre
+   aplicado donde no hay nada a lo que responder. */
