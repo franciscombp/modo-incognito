@@ -62,6 +62,9 @@ export function createEngine({
   playerSheet = "npc-camina",
   playerName = "Tú",
   minions = new Map(),
+  // Los puestos con silla de verdad del piso (scene/furniture.js): fingir
+  // que trabajas sienta a la jugadora en uno si lo tiene a mano.
+  seats = [],
   onPopup = null,
   minigames = createMinigameRegistry(),
   pixels = null,
@@ -605,6 +608,7 @@ export function createEngine({
       minions: onDuty,
       hud,
       canvas,
+      seats,
       config: bossConfig,
       rules: mergedRules(day),
       onFinish: (result) => finishDay(day, result),

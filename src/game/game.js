@@ -7,6 +7,7 @@ import {
   nearestArea,
   areaAt,
 } from "../scene/floorplan.js";
+import { nearestFreeSeat } from "../scene/furniture.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { getCameraSettings } from "../scene/cameraSettings.js";
 import { BOSS_STATES } from "../entities/boss.js";
@@ -134,6 +135,9 @@ export class Game {
     minions = [],
     hud,
     canvas = null,
+    // Los puestos con silla de verdad (scene/furniture.js). Fingir que
+    // trabajas te sienta en uno si lo hay a mano.
+    seats = [],
     rules = {},
     config = null,
     onFinish = null,
@@ -152,6 +156,9 @@ export class Game {
     this.onHeatAlert = onHeatAlert;
     this.hud = hud;
     this.canvas = canvas;
+    this.seats = seats;
+    // La silla en la que estás fingiendo ahora mismo, si es que hay una.
+    this._pretendSeat = null;
     this.rules = { ...DEFAULT_RULES, ...rules };
     this.onFinish = onFinish;
     this.onEgg = onEgg;
@@ -424,15 +431,7 @@ export class Game {
     } else {
       this.pulse.end();
       this.player.isDoingActivity = false;
-      // Fingir que trabajas es, literalmente, la pose de estar en el portátil.
-      this.player.pose = this.player.isPretending ? "work" : null;
-      // Y fingiendo, también de cara a la cámara: mismo criterio que las
-      // actividades — el gesto es el premio y se ve de frente, sin que la
-      // cámara tenga que girar a buscarlo.
-      if (this.player.isPretending) {
-        const camYaw = (getCameraSettings().yawDeg * Math.PI) / 180;
-        this.player.sprite.setHeading(Math.sin(camYaw), Math.cos(camYaw));
-      }
+      this._updatePretendPose();
     }
 
     this.distractionState.forEach((d) => {
@@ -849,6 +848,64 @@ export class Game {
         this.boss.distract({ x: this.player.position.x, z: this.player.position.z }, 8);
       }
     }
+  }
+
+  /**
+   * FINGIR QUE TRABAJAS, SENTADA EN UNA SILLA DE VERDAD.
+   *
+   * Antes esto era una línea: pose `work` (de pie, tecleando en el aire) y
+   * girarse de cara a la cámara. Ahora, si el lugar seguro en el que estás
+   * tiene una silla libre a mano, te SIENTAS en ella — la del puesto, la que
+   * ya está puesta en la mesa, no una que aparezca contigo.
+   *
+   * Se sienta en el FLANCO de subida y no cada cuadro, a propósito: fijar la
+   * posición todos los frames dejaría el movimiento bloqueado mientras
+   * mantienes espacio. Así te deslizas a la silla una vez y sigues siendo
+   * dueña de tus piernas.
+   *
+   * Y solo vale una silla DENTRO del radio del propio lugar seguro: eso es
+   * lo que garantiza que sentarte no te saque de él (que sería quitarte la
+   * cobertura justo al usarla).
+   *
+   * Sin silla cerca —media planta no tiene— se queda en lo de siempre: de
+   * pie, tecleando, de cara a la cámara para que el gesto se vea.
+   */
+  _updatePretendPose() {
+    if (!this.player.isPretending) {
+      this._pretendSeat = null;
+      this.player.pose = null;
+      return;
+    }
+
+    if (!this._pretendSeat) {
+      const spot = this.currentSafeSpot;
+      const seat = spot
+        ? nearestFreeSeat(this.seats, this.player.position.x, this.player.position.z, spot.radius)
+        : null;
+      if (seat) {
+        this._pretendSeat = seat;
+        this.player.position.x = seat.x;
+        this.player.position.z = seat.z;
+        // Sentada de cara a SU MESA: es la única orientación en la que
+        // sentarse a un escritorio significa algo. Se pierde el "de frente a
+        // la cámara" de la versión de pie, y es un cambio buscado — un
+        // muñeco sentado y tecleando en un puesto real se lee como trabajo
+        // mucho antes que uno flotando de cara a ti.
+        this.player.sprite.setHeading(Math.sin(seat.facing), Math.cos(seat.facing));
+      }
+    }
+
+    if (this._pretendSeat) {
+      this.player.pose = "sitWork";
+      return;
+    }
+
+    // De pie: la pose de estar en el portátil, y de cara a la cámara —
+    // mismo criterio que las actividades, el gesto es el premio y se ve de
+    // frente sin que la cámara tenga que girar a buscarlo.
+    this.player.pose = "work";
+    const camYaw = (getCameraSettings().yawDeg * Math.PI) / 180;
+    this.player.sprite.setHeading(Math.sin(camYaw), Math.cos(camYaw));
   }
 
   /**

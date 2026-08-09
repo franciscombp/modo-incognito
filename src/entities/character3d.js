@@ -307,14 +307,14 @@ const POSE_LIBRARY = {
     b: { torso: [0.16, 0, 0], head: [0.17, 0, 0], legL: [-1.5, 0, 0.06], legR: [-1.5, 0, -0.06], kneeL: [1.42, 0, 0], kneeR: [1.42, 0, 0], footL: [0.12, 0, 0], footR: [0.12, 0, 0], armL: [-1.27, 0, 0.22], armR: [-1.18, 0, -0.22], elbowL: [-0.58, 0, 0], elbowR: [-0.76, 0, 0], lift: -0.082 },
     context: {
       props: [],
-      furniture: [
-        // SOLO la silla, que viaja CON el personaje (es hija suya): si lo
-        // empujan, la silla de rueditas se lo lleva rodando. La mesa y la
-        // computadora NO se crean aquí: son las del escenario — el personaje
-        // se sienta FRENTE a la mesa blanca que ya existe, y su monitor se
-        // queda en ella pase lo que pase.
-        { name: "office_chair", position: [0, 0, -0.08], rotation: [0, 0, 0] },
-      ],
+      // SIN MUEBLES: la silla es la DEL PUESTO, no una que traiga el
+      // personaje. Antes esta pose creaba su propio `office_chair` y el
+      // resultado era dos sillas en cada puesto — la del escenario, vacía, y
+      // la del personaje, encima. Quien se sienta se coloca sobre un asiento
+      // real (ver `claimNearestSeat` en scene/furniture.js), así que aquí no
+      // hay nada que crear. La mesa y la computadora tampoco: son las del
+      // escenario de siempre.
+      furniture: [],
     },
   },
   shrug: {

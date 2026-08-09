@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { DioramaCamera } from "./scene/camera.js";
 import { updateBeacons } from "./scene/beacons.js";
 import { buildOffice } from "./scene/builder.js";
+import { claimNearestSeat } from "./scene/furniture.js";
 import { createCollisionWorld } from "./scene/collision.js";
 import { buildNavmesh } from "./scene/navmesh.js";
 import { PixelPipeline } from "./scene/pixelPipeline.js";
@@ -185,7 +186,8 @@ async function boot() {
   setActiveScene(data.scenes.get(firstLevel.scene));
 
   const world = createCollisionWorld();
-  const { roomLabels, markerGroup, hidingMarkers, safeSpotMarkers, activityMarkers } = buildOffice(scene, world);
+  const { roomLabels, markerGroup, hidingMarkers, safeSpotMarkers, activityMarkers, seats, moveSeatChair } =
+    buildOffice(scene, world);
   const navmesh = buildNavmesh(world, { radius: 0.3 * S });
 
   // Pull every authored point onto walkable floor. A waypoint buried in a
@@ -294,7 +296,21 @@ async function boot() {
       // entre las variantes de `extras` para que el piso no salga clonado
       // (en el plano, nueve de los diez NPC compartían el mismo pliego gris).
       const look = def.cast ? looks.get(def.cast) : looks.extra(i);
-      const npc = new NPC(look, { ...def, radius: stats.radius, height: stats.height, navmesh });
+      // Quien va a trabajar sentado se queda con un PUESTO de verdad: el
+      // asiento libre más cercano a donde lo puso el plano. El JSON sigue
+      // decidiendo en qué mesa se sienta cada quien; el asiento, el
+      // centímetro exacto. Sin ninguno cerca (2 unidades es media mesa) se
+      // queda donde estaba, de pie — mejor eso que sentado en el aire.
+      const wantsSeat = def.pose === undefined || def.pose === "sitWork";
+      const seat = wantsSeat ? claimNearestSeat(seats, def.x, def.z, 2) : null;
+      const npc = new NPC(look, {
+        ...def,
+        radius: stats.radius,
+        height: stats.height,
+        navmesh,
+        seat,
+        moveSeatChair,
+      });
       // Named colleagues can be talked to; the rest are set dressing.
       npc.cast = def.cast ?? null;
       npc.displayName = persona?.name ?? stats.name ?? "Compañero";
@@ -393,6 +409,7 @@ async function boot() {
     onCharacter: (id) => applyCharacterSprite(id),
     playerName: chars.player.name ?? "Tú",
     minions,
+    seats,
     onPopup: (p) => popups.spawn(p),
     minigames,
     pixels,

@@ -287,6 +287,15 @@ function besideKeyboard(keyboardMatrix) {
  */
 export function createFurnitureRegistry() {
   const chairs = [];
+  // LOS ASIENTOS DE VERDAD. Una entrada por silla realmente colocada, con la
+  // posición ya jittered (la misma que la silla) y hacia dónde mira quien se
+  // sienta. Existe porque los personajes se sentaban en el aire trayéndose
+  // SU PROPIA silla encima de la del puesto: dos sillas por culo y ninguna
+  // debajo. Ver `claimNearestSeat`.
+  const seats = [];
+  // Las dos mallas instanciadas de la silla, rellenadas en `build()`. Hacen
+  // falta para mover una silla suelta después de construir el piso.
+  let chairMeshes = [];
   const monitors = [];
   const laptops = [];
   const keyboards = [];
@@ -310,6 +319,22 @@ export function createFurnitureRegistry() {
       const jx = (r2 - 0.5) * 0.14 * S;
       const jz = (r1 - 0.5) * 0.1 * S;
       chairs.push(transform(x + jx, 0, z + jz, rotY + Math.PI + jitterRot));
+      // El asiento que ofrece esta silla. Se guarda la posición YA JITTERED,
+      // no la teórica: quien se siente tiene que caer sobre la silla que se
+      // ve, no sobre la que habría sin el desorden. Y `facing` es hacia
+      // dónde mira el que se sienta (rotY), no la rotación de la malla
+      // (rotY + PI) — el respaldo del modelo vive en su +z local.
+      seats.push({
+        x: x + jx,
+        z: z + jz,
+        facing: rotY + jitterRot,
+        taken: false,
+        // Índice de ESTA silla dentro de la lista instanciada, para poder
+        // moverla luego (ver `moveSeatChair`: la silla de rueditas que se
+        // lleva a su dueño de un empujón ya no es una silla aparte del
+        // personaje, es la del puesto).
+        index: chairs.length - 1,
+      });
     },
     addMonitor(x, y, z, rotY) {
       monitors.push(transform(x, y, z, rotY));
@@ -341,13 +366,38 @@ export function createFurnitureRegistry() {
       slabs[kind].push(geometry);
     },
 
+    /** Los asientos reales del piso, para que la gente se siente EN ellos. */
+    getSeats() {
+      return seats;
+    },
+
+    /**
+     * Mueve la silla de un asiento (las dos mallas que la forman, asiento y
+     * pie, comparten índice). Es lo que hace posible el gag de siempre: a
+     * quien está sentado y recibe un empujón, la silla de rueditas se lo
+     * lleva rodando — solo que ahora rueda LA DEL PUESTO, no una silla
+     * aparte que el personaje llevaba encima. Pasar `null` la devuelve a su
+     * sitio.
+     */
+    moveSeatChair(seat, x, z, rotY) {
+      if (!seat || !chairMeshes.length) return;
+      const matrix =
+        x == null
+          ? chairs[seat.index]
+          : transform(x, 0, z, rotY + Math.PI);
+      for (const mesh of chairMeshes) {
+        mesh.setMatrixAt(seat.index, matrix);
+        mesh.instanceMatrix.needsUpdate = true;
+      }
+    },
+
     build() {
       const group = new THREE.Group();
       group.name = "furniture";
       const a = sharedAssets();
 
       const instanced = (geometry, material, list) => {
-        if (!list.length) return;
+        if (!list.length) return null;
         const mesh = new THREE.InstancedMesh(geometry, material, list.length);
         list.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
         mesh.instanceMatrix.needsUpdate = true;
@@ -358,10 +408,15 @@ export function createFurnitureRegistry() {
         // test entirely rather than pay for a useless check.
         mesh.frustumCulled = false;
         group.add(mesh);
+        return mesh;
       };
 
-      instanced(a.chairBody, a.materials.seat, chairs);
-      instanced(a.chairStand, a.materials.leg, chairs);
+      // Las dos mallas de la silla se guardan para poder mover una instancia
+      // suelta después (ver `moveSeatChair`).
+      chairMeshes = [
+        instanced(a.chairBody, a.materials.seat, chairs),
+        instanced(a.chairStand, a.materials.leg, chairs),
+      ].filter(Boolean);
       // Chasis y panel comparten lista de transformaciones, así que no
       // pueden desalinearse por mucho que se mueva el puesto.
       instanced(a.monitorBody, a.materials.chassis, monitors);
@@ -394,6 +449,59 @@ export function createFurnitureRegistry() {
       return group;
     },
   };
+}
+
+/**
+ * Reserva el asiento libre más cercano a (x, z) y lo devuelve, o `null` si no
+ * hay ninguno a menos de `maxDist`.
+ *
+ * ── POR QUÉ EXISTE ────────────────────────────────────────────────────
+ * Los puestos del piso los genera `placeSeatedTable` alrededor de cada mesa;
+ * los NPC, en cambio, vienen colocados A MANO en el JSON de la escena. Las
+ * dos listas nunca coincidieron: medido en el día 1, el compañero sentado
+ * más cercano estaba a 0,76 unidades de la silla más próxima — casi tres
+ * veces el radio de la silla. Como encima la pose `sitWork` se traía su
+ * PROPIA silla, el resultado era dos sillas por puesto: la del escenario,
+ * vacía, y la del personaje, flotando al lado.
+ *
+ * Ahora el JSON dice a qué PUESTO pertenece cada quien (por cercanía) y el
+ * asiento de verdad dice dónde se sienta exactamente y mirando adónde.
+ *
+ * `taken` evita que dos compañeros reclamen la misma silla y acaben uno
+ * dentro del otro; quien no encuentre sitio se queda donde lo puso el JSON,
+ * de pie, que es un fallo mucho más benigno que sentarse en el aire.
+ */
+export function claimNearestSeat(seats, x, z, maxDist = Infinity) {
+  let best = null;
+  let bestD = maxDist;
+  for (const seat of seats) {
+    if (seat.taken) continue;
+    const d = Math.hypot(seat.x - x, seat.z - z);
+    if (d < bestD) {
+      bestD = d;
+      best = seat;
+    }
+  }
+  if (best) best.taken = true;
+  return best;
+}
+
+/**
+ * El asiento libre más cercano SIN reservarlo: para quien se sienta de paso
+ * (la jugadora fingiendo en su puesto) y se vuelve a levantar.
+ */
+export function nearestFreeSeat(seats, x, z, maxDist = Infinity) {
+  let best = null;
+  let bestD = maxDist;
+  for (const seat of seats) {
+    if (seat.taken) continue;
+    const d = Math.hypot(seat.x - x, seat.z - z);
+    if (d < bestD) {
+      bestD = d;
+      best = seat;
+    }
+  }
+  return best;
 }
 
 /**

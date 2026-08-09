@@ -806,6 +806,32 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   navmesh y vuelven. Los relojes van desfasados a propósito — con el mismo
   reloj, el piso entero se levanta a la vez y parece un simulacro de
   incendio.
+- **Quien se sienta lo hace EN LA SILLA DEL PUESTO, no en una propia.** La
+  pose `sitWork` se traía su `office_chair` colgada del personaje, y las
+  sillas del piso las genera aparte `placeSeatedTable`: resultado, DOS sillas
+  por puesto — la del escenario vacía y la del personaje encima. Medido en el
+  día 1, el compañero sentado más cercano estaba a **0,76 unidades** de la
+  silla más próxima, casi tres veces el radio de la silla. Ahora
+  `createFurnitureRegistry` lleva una lista de **asientos reales**
+  (`getSeats()`: la posición ya jittered de cada silla y hacia dónde mira
+  quien se sienta), `claimNearestSeat()` reparte uno a cada NPC sentado al
+  montar el piso, y `sitWork` ya no crea mueble ninguno. Tres cosas que no se
+  pueden romper:
+  - **Sin silla no hay sentarse.** Un NPC que no consiga asiento se queda DE
+    PIE (`npc.js` fuerza `homePose = null`): mantener la pose sentada sin una
+    silla debajo deja a alguien flotando en cuclillas en mitad del pasillo.
+    Hoy 7 de 9 encuentran sitio; los otros dos se quedan de pie a propósito.
+  - **La silla que rueda es la del puesto.** El gag de empujar a alguien
+    sentado sigue existiendo, pero ahora `moveSeatChair()` mueve ESA
+    instancia del escenario; vuelve a su sitio cuando su dueño se vuelve a
+    sentar, no al terminar el rodaje, para que el salto de la silla coincida
+    con el momento en que el ojo está en él.
+  - **La jugadora se sienta en el flanco de subida de fingir**, no cada
+    cuadro (`Game._updatePretendPose`): fijar la posición todos los frames
+    dejaría el movimiento bloqueado mientras mantienes espacio. Y solo vale
+    una silla DENTRO del radio del propio lugar seguro — así sentarte nunca
+    te saca de él, que sería quitarte la cobertura justo al usarla. Sin silla
+    cerca se queda de pie con la pose `work` de siempre, de cara a la cámara.
 - Audio: los efectos (`src/game/sfx.js`) son sintetizados con WebAudio, sin
   archivos. La música también es 100% procedural (`src/game/soundtrack.js` +
   `soundtrackThemes.js`, con Tone.js) — no hay ningún mp3 grabado. Hubo uno

@@ -120,6 +120,12 @@ export function buildOffice(scene, world) {
     distractionMarkers: markers.distractionMarkers,
     hidingMarkers: markers.hidingMarkers,
     safeSpotMarkers: markers.safeSpotMarkers,
+    // Los puestos con silla de verdad, para que quien se siente lo haga EN
+    // una de ellas y no en el aire con una silla propia encima (ver
+    // `claimNearestSeat` en furniture.js). `moveSeatChair` es lo que deja
+    // rodar la silla del puesto cuando empujas a su ocupante.
+    seats: registry.getSeats(),
+    moveSeatChair: registry.moveSeatChair,
   };
 }
 

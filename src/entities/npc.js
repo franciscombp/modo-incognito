@@ -28,18 +28,52 @@ const WORLD_FACING = {
 export class NPC {
   constructor(
     look,
-    { id, x, z, radius = 0.28 * S, height = 1.4 * S, facing = "south", sway = 0, pose = "sitWork", navmesh = null } = {}
+    {
+      id,
+      x,
+      z,
+      radius = 0.28 * S,
+      height = 1.4 * S,
+      facing = "south",
+      sway = 0,
+      pose = "sitWork",
+      navmesh = null,
+      // El puesto REAL que le tocó (scene/furniture.js → claimNearestSeat) y
+      // cómo mover su silla. Sin asiento, se queda donde lo puso el JSON.
+      seat = null,
+      moveSeatChair = null,
+    } = {}
   ) {
     this.id = id;
+    this.seat = seat;
+    this._moveSeatChair = moveSeatChair;
+    // SENTARSE EN LA SILLA QUE HAY, no al lado. Las posiciones del JSON se
+    // escribieron a mano y las sillas las genera `placeSeatedTable`: medido
+    // en el día 1, el compañero sentado más cercano estaba a 0,76 unidades
+    // de su silla — casi tres veces el radio de la silla. El JSON sigue
+    // decidiendo a QUÉ puesto pertenece cada quien (por cercanía); el
+    // asiento decide el centímetro exacto y hacia dónde mira.
+    if (seat) {
+      x = seat.x;
+      z = seat.z;
+    }
     this.position = { x, z };
     this.home = { x, z };
     this.radius = radius;
     this.sway = sway * S;
     this.homeFacing = facing;
-    this.homeDir = WORLD_FACING[facing] ?? WORLD_FACING.south;
+    this.homeDir = seat
+      ? { x: Math.sin(seat.facing), z: Math.cos(seat.facing) }
+      : WORLD_FACING[facing] ?? WORLD_FACING.south;
     this.navmesh = navmesh;
     // La pose de "estar en su puesto". `null` explícito en el JSON = de pie.
-    this.homePose = pose;
+    //
+    // SIN SILLA NO HAY SENTARSE. Quien no consiguió puesto (el plano lo dejó
+    // lejos de cualquier mesa) se queda DE PIE: antes la silla se la traía
+    // el propio personaje, así que daba igual dónde estuviera; ahora la
+    // silla es la del escenario, y mantener la pose sentada sin una debajo
+    // deja a alguien flotando en cuclillas en mitad del pasillo.
+    this.homePose = pose === "sitWork" && !seat ? null : pose;
 
     this.sprite = new Character3D(look, { height });
     this.sprite.setHeading(this.homeDir.x, this.homeDir.z);
@@ -73,6 +107,10 @@ export class NPC {
    * El empujón a alguien SENTADO: la silla de rueditas se lo lleva en la
    * dirección del golpe, girando un poco, y cuando la silla se para se
    * levanta y vuelve a su puesto andando. La computadora ni se entera.
+   *
+   * La silla que rueda es LA DEL PUESTO (una instancia del escenario que se
+   * mueve, ver `moveSeatChair`), no una que el personaje llevara encima: esa
+   * era justo la que sobraba y hacía que cada puesto tuviera dos.
    */
   rollAway(nx, nz) {
     if (this._state === "roll") return;
@@ -164,6 +202,8 @@ export class NPC {
           // _updateTurn en el mismo frame.
           this.sprite._targetYaw += this._rollSpin * dt;
           this.sprite.setPosition(this.position.x, this.position.z);
+          // Y la silla del puesto rueda con él, que es el chiste entero.
+          this._moveSeatChair?.(this.seat, this.position.x, this.position.z, this.sprite._targetYaw);
         } else {
           this.sprite.setPose(null);
           this._path = this.navmesh?.path(this.position, this.home) ?? null;
@@ -180,6 +220,12 @@ export class NPC {
         if (this.sprite._poseName !== this.homePose) {
           this.sprite.setHeading(this.homeDir.x, this.homeDir.z);
           this.sprite.setPose(this.homePose);
+          // Vuelve a su puesto: y la silla, si se la habían llevado rodando,
+          // vuelve con él. Se devuelve AQUÍ y no al terminar el rodaje para
+          // que el salto de la silla coincida con el momento en que su dueño
+          // se sienta — el ojo está en él, así que se lee como que la arrimó,
+          // no como que la silla se teletransportó sola por el piso.
+          this._moveSeatChair?.(this.seat, null);
         }
         this.sprite.setMoving(false);
         if (this.sway > 0 && !this.homePose) {
