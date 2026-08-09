@@ -15,6 +15,10 @@
     "    persigue — sigue su ronda de siempre aunque te pille en falta. Es el",
     "    respiro del principio del dia: sin el, el dia 1 no dejaba jugar.",
     "  boss.reportingCooldown: cada cuánto puede un secuaz volver a delatarte.",
+    "  boss.followThreshold: vigilancia INDIVIDUAL (0-1, Boss.localHeat) a la",
+    "    que un secuaz concreto rompe su ronda y se pone a seguirte de verdad.",
+    "    Solo aplica a role:'minion' — el jefe no lo usa, su persecución la",
+    "    sigue gobernando chaseSuspicionFloor sobre el medidor compartido.",
     "  gameplay.dayStartHour / dayEndHour: reloj del HUD (9:00 a.m. -> ...).",
     "",
     "RESERVADO, TODAVÍA SIN CONECTAR (pensado para el ascensor de salida):",
@@ -42,7 +46,8 @@
     "reportingCooldown": 6.5,
     "alertDistance": 8,
     "alertDuration": 3,
-    "chaseSuspicionFloor": 40
+    "chaseSuspicionFloor": 40,
+    "followThreshold": 0.55
   },
   "gameplay": {
     "dayStartHour": 9,

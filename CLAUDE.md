@@ -756,6 +756,28 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
 - **Un secuaz te aborda solo cuando te TOCA** (`minionTouches` en `game.js`),
   no cuando te ve. Es un radio de contacto, no de interacción; subirlo
   reintroduce el "Crispo me habla desde el otro lado del pasillo".
+- **La vigilancia es individual: cada vigilante lleva SU PROPIO `localHeat`**
+  (`boss.js`, 0–1), y es lo que pinta SU halo — antes los siete copiaban el
+  mismo `suspicionRatio` del jefe, así que ningún secuaz podía llevar más o
+  menos sospechado que otro. Solo el jefe sigue leyendo directamente el
+  medidor compartido (`boss.localHeat = suspicion/max`, en `game.js`): él ES
+  ese número. Cada secuaz sube el suyo solo mientras `game.js` lo ve
+  (`_updateMinionCatch`-style: rápido si `redAlert`, más despacio si solo te
+  ve fuera de tu puesto) y decae en cuanto deja de verte — `_decayMinionHeat`
+  se llama incluso en gate/explore/lugar seguro, para que fingir dentro de
+  una sala no te deje "fichada" con un secuaz que te vio un segundo antes de
+  entrar. Por encima de `followThreshold` (0.55 por defecto,
+  `boss-config.json` → `boss.followThreshold`) un secuaz rompe la ronda y se
+  pone a SEGUIRTE de verdad (reutiliza `INVESTIGATE`, pero con el objetivo
+  refrescado a tu posición real cada cuadro en vez del glance de 2.5 s de
+  antes) y sigue avisando al jefe (`onSpot`/`distract`) mientras te tiene
+  detrás — nunca te atrapa él (`catches()` sigue devolviendo `false` para
+  `role: "minion"`, invariante sin tocar). El medidor compartido del HUD
+  SIGUE existiendo y sigue siendo quien dispara amonestaciones/evaluación,
+  pero ahora sube por el umbral individual de alguien (`m.localHeat >=
+  m.followThreshold`), no por verte un instante — así que un vistazo de
+  refilón ya no mueve el HUD, hace falta que alguien de verdad lleve un rato
+  sospechando.
 - **El estado del sonido tiene UNA fuente y avisa a quien lo pinte**
   (`src/game/audioControl.js`). Se cambia desde tres sitios —el menulet de la
   barra, la tecla `V` y el mute automático al perder el foco de la ventana— y

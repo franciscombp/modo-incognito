@@ -26,6 +26,17 @@ const MINION_CAUGHT_RATE = 12; // secuaz te pilla en una actividad prohibida
 // mirándolo a los ojos no hacía nada.
 const SEEN_IDLE_BOSS_RATE = 9;
 const SEEN_IDLE_MINION_RATE = 5;
+
+// VIGILANCIA INDIVIDUAL de cada secuaz (`Boss.localHeat`, 0–1): aparte del
+// medidor de arriba, cada vigilante acumula SU PROPIA sospecha, que es lo
+// que pinta su halo y lo que le hace romper la ronda para seguirte (ver
+// boss.js). Pillarte en plena actividad prohibida la dispara rápido; verte
+// suelta fuera de tu puesto, más despacio; y decae sola en cuanto deja de
+// verte — así un secuaz que te perdió de vista un rato no sigue "sabiendo"
+// que andas mal.
+const MINION_HEAT_RISE_CAUGHT = 0.22; // ratio/seg — a su umbral (0.55) en ~2.5s
+const MINION_HEAT_RISE_SEEN = 0.07; // ratio/seg — a su umbral en ~8s
+const MINION_HEAT_DECAY = 0.12; // ratio/seg, sin verte
 const INTERACT_RADIUS = 1.5 * S;
 const DISTRACTION_EFFECT_DURATION = 7;
 // A hiding spot is a one-shot breather, not a safe room: once you have used
@@ -488,9 +499,12 @@ export class Game {
     this.boss.suspicion = this.suspicion;
     // Y en qué FRACCIÓN del medidor va: el halo se tiñe con ella (verdoso
     // tranquilo → ámbar → rojo) para que el nivel de sospecha se lea del
-    // suelo, sin mirar el HUD.
-    this.boss.suspicionRatio = this.suspicion / (this.suspicionConfig.max || 100);
-    this.minions.forEach((m) => (m.suspicionRatio = this.boss.suspicionRatio));
+    // suelo, sin mirar el HUD. El jefe ES el medidor compartido, así que su
+    // halo sigue leyendo directamente de él. Cada secuaz, en cambio, lleva
+    // SU PROPIO `localHeat` — se actualiza más abajo, junto al resto de la
+    // sospecha, porque necesita `outOfPlace` (y por qué es individual está
+    // explicado ahí).
+    this.boss.localHeat = this.suspicion / (this.suspicionConfig.max || 100);
 
     // Un NPC apagado (el doble del personaje elegido) tampoco tapa la vista
     // del jefe: no está ahí para nadie. Se reutiliza el mismo array entre
@@ -522,29 +536,51 @@ export class Game {
       // Antes de conocer al guardián de la puerta del día no hay nada que
       // reprochar todavía: ni tareas que hacer mal, ni vigilancia activa.
       this.suspicion = 0;
+      this._decayMinionHeat(dt);
     } else if (this.rules.explore) {
       // Kiara ya renunció: nada de esto le afecta.
       this.suspicion = 0;
+      this._decayMinionHeat(dt);
     } else if (this.inSafeSpot) {
       // Bebedero / baño / tu propia mesa: el jefe puede verte ahí y no cuenta.
       this.suspicion = Math.max(0, this.suspicion - susCfg.decayIdle * this.rules.decayMul * dt);
+      this._decayMinionHeat(dt);
     } else {
       const decay = this.rules.decayMul;
       const outOfPlace = !this.player.isPretending && !this.inWorkspace;
       const highHeat = this.suspicion >= susCfg.captureThreshold;
 
-      // Un secuaz te ve: si te pilla en una actividad prohibida sube fuerte;
-      // si solo te ve fuera de tu puesto sin fingir, sube más despacio. Antes
-      // solo existía la primera rama, así que pasearte delante de un secuaz
-      // sin tocar nada prohibido no levantaba nada.
+      // VIGILANCIA INDIVIDUAL: cada secuaz acumula SU PROPIO calor aparte
+      // de lo de abajo — es lo que pinta SU halo y lo que le hace romper la
+      // ronda para seguirte (ver boss.js). Que te pille en plena actividad
+      // prohibida lo dispara rápido; que te vea suelta fuera de tu puesto,
+      // más despacio; si no te ve, decae.
+      for (const m of this.minions) {
+        const rising = m.redAlert
+          ? MINION_HEAT_RISE_CAUGHT
+          : m.playerVisible && outOfPlace
+            ? MINION_HEAT_RISE_SEEN
+            : 0;
+        m.localHeat =
+          rising > 0
+            ? Math.min(1, m.localHeat + rising * dt)
+            : Math.max(0, m.localHeat - MINION_HEAT_DECAY * dt);
+      }
+
+      // Un secuaz te pilla en plena actividad prohibida: sube fuerte el
+      // medidor compartido. Que ALGUNO ya haya acumulado su propio umbral de
+      // vigilancia (arriba) lo sube más despacio — antes esto miraba si te
+      // veía ESTE INSTANTE, que era nervioso: un vistazo de refilón ya
+      // subía el HUD. Ahora hace falta que alguien de verdad haya
+      // sospechado un rato, no solo mirado una vez.
       const minionCaught = this.minions.some((m) => m.redAlert);
-      const minionSeenIdle = !minionCaught && outOfPlace && this.minions.some((m) => m.playerVisible);
+      const minionAlerted = !minionCaught && this.minions.some((m) => m.localHeat >= m.followThreshold);
       if (minionCaught && !this.boss.redAlert) {
         this.suspicion = Math.min(
           susCfg.max,
           this.suspicion + MINION_CAUGHT_RATE * this.rules.minionSuspicionMul * dt
         );
-      } else if (minionSeenIdle && !this.boss.redAlert) {
+      } else if (minionAlerted && !this.boss.redAlert) {
         this.suspicion = Math.min(
           susCfg.max,
           this.suspicion + SEEN_IDLE_MINION_RATE * this.rules.minionSuspicionMul * dt
@@ -813,6 +849,18 @@ export class Game {
         this.boss.distract({ x: this.player.position.x, z: this.player.position.z }, 8);
       }
     }
+  }
+
+  /**
+   * Deja que la vigilancia individual de cada secuaz se enfríe sola cuando
+   * ni siquiera hay sospecha compartida que gestionar (puerta sin superar,
+   * modo exploración, lugar seguro): sin esto, un secuaz que te vio justo
+   * antes de que entraras a la sala de reuniones se quedaba "sabiendo" que
+   * andabas mal mientras fingías dentro, y salía siguiéndote al segundo de
+   * pisar la puerta.
+   */
+  _decayMinionHeat(dt) {
+    for (const m of this.minions) m.localHeat = Math.max(0, m.localHeat - MINION_HEAT_DECAY * dt);
   }
 
   /**

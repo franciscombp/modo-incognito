@@ -165,6 +165,21 @@ export class Boss {
     // `_mayChase()`, que es donde de verdad se aplica.
     this.chaseSuspicionFloor = config?.chaseSuspicionFloor ?? 40;
     this.suspicion = 0; // Game lo actualiza cada frame antes de update()
+    // VIGILANCIA INDIVIDUAL: cuánto sospecha ESTE vigilante en concreto,
+    // 0–1, aparte del medidor compartido del HUD. En el jefe, Game.js se
+    // limita a copiar aquí la fracción del medidor compartido (sigue siendo
+    // ÉL a quien representa ese número); en cada secuaz, Game.js lo hace
+    // subir y bajar por su cuenta según lo que ESE secuaz ve — así Crispo
+    // puede llevar medio camino de sospechar de ti mientras Washo, que no te
+    // ha visto en toda la mañana, sigue a cero. Pinta el halo (más abajo, en
+    // update()) y, solo en secuaces, decide cuándo rompe la ronda para
+    // seguirte (ver _advanceState).
+    this.localHeat = 0;
+    // El umbral de ESTE vigilante. El jefe no lo usa para nada — su
+    // persecución de verdad la sigue gobernando `chaseSuspicionFloor` sobre
+    // el medidor compartido; esto es solo para que un secuaz decida cuándo
+    // deja de rondar y se pone a seguirte.
+    this.followThreshold = config?.followThreshold ?? 0.55;
     this._graceTimer = 0; // grantGrace(): unos segundos ciego tras amonestar
     this.world = world;
     this.navmesh = navmesh;
@@ -435,6 +450,12 @@ export class Boss {
     this.searchTimer = 0;
     this.lastSeenPlayerPos = null;
     this.lockedOn = false;
+    // Ya sea el interrogatorio de un secuaz o la amonestación del jefe: se
+    // resolvió, así que la vigilancia de ESTE vigilante vuelve a cero. Sin
+    // esto, un secuaz recién reseteado a PATROL volvía a pasar su propio
+    // umbral en el mismo frame y se ponía a seguirte otra vez de inmediato
+    // — "vuelve a su ronda" se quedaba en el nombre, no en el hecho.
+    this.localHeat = 0;
   }
 
   /**
@@ -468,8 +489,15 @@ export class Boss {
     this._updateVision(player, npcs);
 
     // A minion that catches you slacking shouts for the boss instead of
-    // grabbing you, then goes back to its round.
-    if (this.role === "minion" && this.redAlert && this._reportCooldown <= 0) {
+    // grabbing you, then goes back to its round. También avisa por
+    // vigilancia sostenida (`localHeat` sobre su umbral) aunque nunca te
+    // haya pillado con las manos en la masa — un secuaz que lleva un rato
+    // siguiéndote igual termina llamando al jefe.
+    if (
+      this.role === "minion" &&
+      (this.redAlert || this.localHeat >= this.followThreshold) &&
+      this._reportCooldown <= 0
+    ) {
       this._reportCooldown = this.reportingCooldown;
       this.onSpot?.(this, { x: player.position.x, z: player.position.z });
     }
@@ -514,7 +542,7 @@ export class Boss {
     // nivel se lee del suelo sin abrir el HUD. Cazando (o viéndote en falta)
     // se planta en rojo pleno, y buscando en ámbar, pase lo que pase con el
     // medidor.
-    const ratio = THREE.MathUtils.clamp(this.suspicionRatio ?? 0, 0, 1);
+    const ratio = THREE.MathUtils.clamp(this.localHeat ?? 0, 0, 1);
     if (hot) {
       this.coneMaterial.color.set(0xe6483f);
     } else if (this.state === SEARCH) {
@@ -615,6 +643,21 @@ export class Boss {
         break;
       }
       case INVESTIGATE: {
+        // SEGUIMIENTO: un secuaz cuya PROPIA vigilancia (`localHeat`) sigue
+        // por encima de su umbral no suelta la pista con un vistazo de 2.5s
+        // — se queda tirando de ti mientras dure. El objetivo se refresca a
+        // tu posición REAL cada cuadro que te ve (esto es lo que lo
+        // convierte en "te sigue" y no en "camina una vez a donde te vio"),
+        // y solo te deja cuando el calor baja bastante — con la MISMA cifra
+        // exacta se quedaría enganchando y desenganchando en el filo.
+        const following = this.role === "minion" && this.localHeat >= this.followThreshold;
+        if (following) {
+          if (this.playerVisible) {
+            this.investigateTarget = { x: player.position.x, z: player.position.z };
+          }
+          if (this.localHeat < this.followThreshold * 0.6) this._resumeNearestRoutePoint();
+          break;
+        }
         this.investigateTimer -= dt;
         if (this.playerVisible && player.isDoingActivity) {
           this.startChase();
@@ -627,6 +670,16 @@ export class Boss {
         // Seeing her slacking off is what actually starts the pursuit.
         if (this.redAlert) {
           this.startChase();
+          break;
+        }
+        // Vigilancia individual: un secuaz no necesita pillarte con las
+        // manos en la masa — si ya te ha visto lo bastante como para pasar
+        // SU propio umbral (arriba en update()), rompe la ronda y se pone a
+        // seguirte. Nunca te atrapa él (ver catches()): solo te tiene
+        // fichada y avisa al jefe (ver update()).
+        if (this.role === "minion" && this.localHeat >= this.followThreshold) {
+          this.state = INVESTIGATE;
+          this.investigateTarget = { x: player.position.x, z: player.position.z };
           break;
         }
         // Con correa puesta, su ronda deja de ser el piso entero y pasa a ser

@@ -238,6 +238,40 @@ un parpadeo.
 > El radar de Washo (`visionShape: "radar"`) respira con lo mismo. Barre 360°,
 > así que es el halo que más suelo tapa de los siete.
 
+### 3.8 La vigilancia es individual ← **NUEVO**
+
+Cada vigilante (jefe y cada secuaz) lleva su propio `localHeat` (0–1), y es
+lo que pinta SU halo. Antes los siete copiaban el `suspicionRatio` del jefe
+cada cuadro: ningún secuaz podía ir por delante o por detrás de otro, todos
+se teñían del mismo calor de oficina. Ahora Crispo puede llevar media
+vigilancia acumulada mientras Washo, que no te ha visto en toda la mañana,
+sigue a cero.
+
+Solo el jefe sigue leyendo el medidor compartido directamente (`localHeat =
+suspicion / max`): él ES ese número, y su persecución de verdad la sigue
+gobernando `chaseSuspicionFloor` (§3.1) — esto no lo toca. Cada secuaz, en
+cambio, acumula el suyo con las mismas dos velocidades de siempre (rápido si
+te pilla en una actividad prohibida, más despacio si solo te ve fuera de tu
+puesto) y decae en cuanto deja de verte — incluso con la puerta del día sin
+superar, en modo exploración o dentro de un lugar seguro, para que fingir
+dentro de una sala no te deje "fichada" por alguien que te vio un segundo
+antes de entrar.
+
+Por encima de `followThreshold` (0.55 por defecto, `boss-config.json` →
+`boss.followThreshold`) un secuaz rompe la ronda y se pone a **seguirte de
+verdad**: reutiliza el estado `INVESTIGATE` de siempre, pero con el objetivo
+refrescado a tu posición REAL cada cuadro que te ve, en vez del vistazo de
+2.5 s y se acabó de antes. Sigue avisando al jefe (mismo `onSpot` →
+`boss.distract()` de siempre) mientras te tiene detrás — y nunca te atrapa
+él: `catches()` sigue devolviendo `false` para `role: "minion"`, eso no
+cambia (§3.4).
+
+El medidor compartido del HUD **sigue existiendo** y sigue siendo quien
+dispara amonestaciones y la nota del día — pero ahora sube cuando ALGÚN
+secuaz cruza SU propio umbral, no por verte un instante. Antes bastaba un
+vistazo de refilón (`playerVisible` ese cuadro) para mover el HUD; ahora
+hace falta que alguien de verdad lleve un rato sospechando.
+
 ---
 
 ## 4. Cubrirse
