@@ -78,8 +78,17 @@ await page.evaluate(() => {
 });
 out.firstRun = await reachCrossing();
 
-// Perder a propósito: quedarse quieto en un carril hasta que pase un coche.
-await page.keyboard.press("ArrowUp");
+// Perder a propósito: caminar hasta el primer carril y quedarse quieta
+// hasta que pase un coche. Con el movimiento CONTINUO del cruce se MANTIENE
+// la tecla hasta una `z` MEDIDA (el centro de la franja del carril 1), no
+// un tiempo: en headless el rAF va famélico y 650 ms de reloj eran la mitad
+// de tiempo simulado — la jugadora se quedaba a un paso del tráfico, nada
+// la atropellaba nunca, y la espera de abajo caducaba pareciendo otra cosa.
+await page.keyboard.down("ArrowUp");
+await page.waitForFunction(() => window.__game.crossing3D.getState().z >= 2.6, null, {
+  timeout: 20000,
+});
+await page.keyboard.up("ArrowUp");
 await page.waitForFunction(
   () => !document.querySelector(".crossing-ui:not(.hidden)"),
   null,
