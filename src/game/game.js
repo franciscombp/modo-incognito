@@ -515,7 +515,21 @@ export class Game {
     // fingiendo, y con eso ya se resuelve el lugar seguro de verdad.
     // SPACE/ENTER es la tecla unificada para acciones y fingir (según contexto)
     const holdingSpace = this.player.keys.has(" ") || this.player.keys.has("enter");
-    this.player.isPretending = holdingSpace && this._standingInUsableSafeSpot(pos);
+    // Fingir/sentarse es un INTERRUPTOR, no una tecla que sostener: un toque
+    // te sienta y te quedas así hasta que (a) vuelves a tocar la tecla, (b)
+    // sales del sitio o deja de ser usable (se ocupa, se gasta), o (c) algo
+    // te fuerza a levantarte (una amonestación). Mantenerla apretada un
+    // minuto entero era agotador de verdad con el pulgar en móvil, y no
+    // aportaba nada que un interruptor no diera igual de bien.
+    const spacePressedEdge = holdingSpace && !this._prevInteractKey;
+    const inUsableSpot = this._standingInUsableSafeSpot(pos);
+    if (spacePressedEdge) {
+      this._pretendToggle = this._pretendToggle ? false : inUsableSpot;
+    } else if (this._pretendToggle && !inUsableSpot) {
+      // Te moviste fuera, o el sitio se ocupó/gastó bajo tus pies: de pie.
+      this._pretendToggle = false;
+    }
+    this.player.isPretending = this._pretendToggle;
     // El sabor, en la TRANSICIÓN a false→true — una vez por sesión de fingir,
     // no cada frame que mantienes la tecla. Puro texto: no toca timeLeft,
     // energy ni suspicion, así que fingir sigue siendo el colchón gratis.
@@ -1037,6 +1051,18 @@ export class Game {
     this.pulse.end();
     this.gesture.end();
     this.player.inputLocked = false;
+    // SE SUELTA LA TECLA A LA FUERZA. Sin esto, el CUADRO SIGUIENTE volvía a
+    // encontrar `holdingSpace && nearStation` true (nada le impide seguir
+    // mash/holding tras fallar) y reentraba en ACTIVAR — worldFrozen otra
+    // vez, con boss.update() saltado ANTES de que el jefe se hubiera movido
+    // un centímetro desde que se puso "en camino". El resultado, medido: el
+    // jefe se queda con state=CHASE/lockedOn=true para siempre y la
+    // distancia no varía ni un milímetro en 40s de simulación — «el jefe no
+    // captura», tal cual lo reportó la jugadora. Soltar la tecla obliga a un
+    // gesto NUEVO de la jugadora para reintentar, y de paso dibuja bien el
+    // fallo: espacio deja de sostener nada hasta que vuelva a pulsarlo.
+    this.player.keys.delete(" ");
+    this.player.keys.delete("enter");
 
     const floor = this.boss.chaseSuspicionFloor ?? 0;
     this.suspicion = Math.min(
@@ -1679,6 +1705,23 @@ export class Game {
     this.boss.resetToPatrol();
     buzz([40, 60, 40]);
     sfxWarn();
+
+    // Tras la amonestación te manda derecha a tu puesto, ya fingiendo: no te
+    // deja plantada donde te pilló, con el jefe recién alejado y el reflejo
+    // obvio (sentarte) todavía por hacer a mano. `_pretendSeat` se limpia
+    // para que `_updatePretendPose` busque una silla desde la posición
+    // nueva, no desde donde estabas antes del teletransporte.
+    const desk = safeSpots.find((s) => s.kind === "desk");
+    if (desk) {
+      this.player.position.x = desk.x;
+      this.player.position.z = desk.z;
+      this.player.keys.clear();
+      this.player.touchAxis.x = 0;
+      this.player.touchAxis.z = 0;
+      this._pretendSeat = null;
+      this._pretendToggle = true;
+      this.player.isPretending = true;
+    }
 
     const final = this.warnings >= this.rules.maxWarnings;
     if (final) {

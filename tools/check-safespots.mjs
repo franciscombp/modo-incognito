@@ -75,13 +75,31 @@ const out = await page.evaluate(async () => {
     });
   });
 
-  /** Coloca a la jugadora, mantiene (o no) F, y devuelve qué pasa. */
+  /**
+   * Coloca a la jugadora, la sienta (o no) y devuelve qué pasa.
+   *
+   * Fingir es un INTERRUPTOR (un TOQUE de espacio te sienta, no hace falta
+   * sostenerla — ver game.js `_pretendToggle`), así que aquí se TOCA, no se
+   * mantiene. Y como el interruptor sobrevive a un teletransporte entre dos
+   * lugares seguros (solo se fuerza a false cuando dejas de estar dentro de
+   * UNO), cada probe arranca apagándolo a mano: en juego real caminarías
+   * fuera de un sitio antes de entrar al siguiente y eso ya lo apaga solo,
+   * pero aquí saltamos de sitio en sitio sin cruzar por en medio.
+   */
   async function probe({ at, pretend, ms = 700 }) {
     player.keys.clear();
+    game._pretendToggle = false;
+    player.isPretending = false;
     player.position.x = at.x;
     player.position.z = at.z;
-    if (pretend) player.keys.add(" "); // la tecla de fingir es espacio, no "f"
     game.suspicion = 50;
+    if (pretend) {
+      // Un TOQUE: se pulsa un frame y se suelta. El interruptor se queda
+      // encendido solo — sostenerla ya no hace falta ni cambia nada.
+      player.keys.add(" ");
+      await sleep(50);
+      player.keys.delete(" ");
+    }
     await sleep(ms);
     return {
       pretending: player.isPretending,
