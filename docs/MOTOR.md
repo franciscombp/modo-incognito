@@ -224,7 +224,13 @@ suelta** por perderte de vista ni por atascarse contra un mueble. Solo hay dos
 salidas:
 
 1. **Un lugar seguro** — se comprueba cada frame mientras estés dentro, no solo
-   al entrar.
+   al entrar. Y el jefe **SE ALEJA de verdad** (`Boss.retreatFrom`): agarra
+   como INVESTIGATE hacia el waypoint de su ronda más lejos de ti — la ronda
+   sola no basta, porque deriva hacia los puntos de interés del día y volvía a
+   acercarse. El SOPLO del nivel de búsqueda ≥2 (`_updateHeat` → distract a tu
+   posición) además **espera unos segundos**: su primer aviso caía justo tras
+   soltar y pisaba la retirada en el mismo segundo. Lo vigila
+   `npm run check:repel`.
 2. **Enfriar la sospecha a CERO sostenido** — 1,5 s seguidos en 0 sin que te
    esté viendo en falta. Entonces suelta la presa con unos segundos de gracia.
 
@@ -344,7 +350,12 @@ Son los **únicos** sitios donde se puede fingir. Dos tipos:
 | Tipo | Cubre | Se gasta |
 |---|---|---|
 | `meeting` (sala) | con entrar | sí (`budget`), y se ocupa sola (`busyEvery`/`busyFor`) |
-| `desk` (tu puesto) | solo mientras finges | no |
+| `desk` (tu puesto) | solo mientras finges | no — pero **también se ocupa** (`busyEvery`): a veces alguien se sienta en tu silla y toca plan B |
+
+**Tu puesto ocupado avisa SIEMPRE** (estés donde estés): es tu plan B el que
+se cae, y descubrirlo llegando en plena huida era el peor momento. Las salas
+solo avisan si estás dentro — que se ocupen es rutina. Lo vigila
+`npm run check:repel`, junto con la retirada del jefe (§3.3).
 
 ⚠️ **Dos lugares seguros no pueden solaparse ni repetir `id`.** Si se pisan, uno
 se gasta y el otro te sigue cubriendo desde el mismo metro cuadrado: la mecánica

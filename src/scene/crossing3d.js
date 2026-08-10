@@ -16,8 +16,15 @@ const LANE_DEPTH = 2.4 * S;
 const ROAD_WIDTH = 13.0 * S; // Ancho para llenar la pantalla de lado a lado
 const VEHICLE_WIDTH = 0.85 * S;
 const PLAYER_RADIUS = 0.3 * S;
-const MOVE_COOLDOWN = 105;
-const STEP_DURATION = 0.16; // segundos que tarda en deslizarse de una celda a la siguiente
+// SE CAMINA COMO EN EL PISO: movimiento continuo a la MISMA velocidad del
+// personaje en la oficina (characters.json → player.speed). El cruce fue de
+// casillas con un deslizamiento entre celdas, y aun suavizado se leía como
+// saltos — dos formas de moverse en el mismo juego es una de más.
+const PLAYER_SPEED = 4.4 * S;
+// Un vehículo golpea si está en tu franja de carril Y se solapa de lado.
+// La franja es algo menor que el carril entero: el morro y la cola de la
+// zancada perdonan, que esto es un chiste sobre despidos, no un examen.
+const LANE_HIT_DEPTH = LANE_DEPTH * 0.36;
 
 // Cámara: detrás de la jugadora y algo elevada, mirando calle adelante.
 const CAM_BACK = 9.6 * S;
@@ -291,7 +298,7 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   // personaje en el mismo juego, y la de aquí peor — un pulgar que ya sabe
   // dónde está su stick tenía que buscar cuatro botones nuevos justo en el
   // momento en que hay tráfico encima. Ahora el cruce lee ESE stick (ver
-  // `readStick` más abajo) y el CSS deja de esconderlo con `crossing-open`.
+  // `inputVector` más abajo) y el CSS deja de esconderlo con `crossing-open`.
 
   // ── LA MISMA MAÑANA QUE EL PISO, NO OTRA ────────────────────────────────
   // Esta escena tenía su propio cielo liso y su propio sol sin sombra —
@@ -560,31 +567,20 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
 
   let vehicles = [];
   let nextSpawnByRow = ROWS.map(() => 0);
-  let playerCell = { row: 0, col: Math.floor(COLS / 2) };
-  let lastMove = 0;
-  let stepTimer = 0; // ráfaga corta de animación de caminar tras cada paso
   let running = false;
   let resolveFn = null;
   let rafId = null;
   let lastTime = 0;
 
-  // La jugadora se movía por celdas pero `layoutPlayer` la teleportaba de una
-  // a otra sin transición, así que cada paso se veía como un salto en vez de
-  // una zancada. Ahora la posición renderizada (`playerPos`) se desliza desde
-  // la celda de origen hasta la de destino en STEP_DURATION segundos; la
-  // lógica de juego (colisión, meta) sigue usando `playerCell`, que cambia al
-  // instante.
+  // MOVIMIENTO CONTINUO. La posición es libre (no hay celdas): las teclas
+  // MANTENIDAS y el stick empujan un vector de velocidad, exactamente como
+  // dentro del edificio. La colisión y la meta miran esta misma posición.
   let playerPos = { x: 0, z: 0 };
-  let playerFrom = { x: 0, z: 0 };
-  let stepElapsed = STEP_DURATION;
+  const heldKeys = new Set();
 
   function layoutPlayer() {
-    const x = colToX(playerCell.col);
-    const z = playerCell.row * LANE_DEPTH;
-    playerPos = { x, z };
-    playerFrom = { x, z };
-    stepElapsed = STEP_DURATION;
-    player.setPosition(x, z);
+    playerPos = { x: colToX(Math.floor(COLS / 2)), z: 0 };
+    player.setPosition(playerPos.x, playerPos.z);
   }
 
   function spawnFor(rowIndex) {
@@ -624,11 +620,10 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   function resetGame() {
     vehicles.forEach((v) => disposeVehicle(v.mesh));
     vehicles = [];
-    playerCell = { row: 0, col: Math.floor(COLS / 2) };
+    heldKeys.clear();
     player.setPose(null);
     player.setHeading(0, 1);
     player.setMoving(false);
-    stepTimer = 0;
     layoutPlayer();
     camTarget.set(0, 0, 0);
     placeCamera();
@@ -644,67 +639,64 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
     });
   }
 
-  function tryMove(dr, dc) {
-    const now = performance.now();
-    if (now - lastMove < MOVE_COOLDOWN) return;
-    const nr = Math.min(GOAL_ROW, Math.max(0, playerCell.row + dr));
-    const nc = Math.min(COLS - 1, Math.max(0, playerCell.col + dc));
-    if (nr === playerCell.row && nc === playerCell.col) return;
-    lastMove = now;
-    playerCell.row = nr;
-    playerCell.col = nc;
-    // Mirar hacia donde se dio el paso. Avanzar es "north" (de espaldas a la
-    // cámara); la columna crece hacia -X, o sea hacia la derecha de pantalla.
-    // Direcciones del mundo, no de pantalla: la cámara de esta escena es otra.
-    if (dr !== 0) player.setHeading(0, dr > 0 ? 1 : -1);
-    else if (dc !== 0) player.setHeading(dc > 0 ? 1 : -1, 0);
-    player.setMoving(true);
-    // Un poco más que el enfriamiento entre pasos: si encadenas pasos, la
-    // animación no se corta entre uno y otro y se ve caminar de verdad.
-    stepTimer = 0.34;
-    playerFrom = { ...playerPos };
-    stepElapsed = 0;
-    if (playerCell.row === GOAL_ROW) finish("safe");
-  }
+  // Teclas MANTENIDAS, como el player del piso: keydown apunta, keyup
+  // suelta, y el vector se lee por cuadro. Direcciones del MUNDO, no de
+  // pantalla: avanzar es +z (de espaldas a la cámara) y la izquierda de
+  // pantalla es +x (la cámara de esta escena mira hacia +Z).
+  const KEYMAP = {
+    arrowup: "up",
+    w: "up",
+    arrowdown: "down",
+    s: "down",
+    arrowleft: "left",
+    a: "left",
+    arrowright: "right",
+    d: "right",
+  };
 
   function onKey(e) {
     if (!running) return;
-    const key_ = e.key.toLowerCase();
-    if (key_ === "arrowup" || key_ === "w") tryMove(1, 0);
-    else if (key_ === "arrowdown" || key_ === "s") tryMove(-1, 0);
-    else if (key_ === "arrowleft" || key_ === "a") tryMove(0, -1);
-    else if (key_ === "arrowright" || key_ === "d") tryMove(0, 1);
-    else return;
+    const dir = KEYMAP[e.key.toLowerCase()];
+    if (!dir) return;
+    heldKeys.add(dir);
     e.preventDefault();
   }
+  function onKeyUp(e) {
+    const dir = KEYMAP[e.key.toLowerCase()];
+    if (dir) heldKeys.delete(dir);
+  }
   window.addEventListener("keydown", onKey);
+  window.addEventListener("keyup", onKeyUp);
 
+  // EL MISMO STICK QUE EL PISO: `getTouchAxis` devuelve el eje que escribe
+  // `game/touchControls.js` (el mismo objeto que mueve a la jugadora dentro
+  // de la oficina). La zona muerta evita que el pulgar apoyado camine solo
+  // hacia el tráfico.
+  const STICK_DEADZONE = 0.2;
   /**
-   * EL MISMO STICK QUE EL PISO. `getTouchAxis` devuelve el eje que escribe
-   * `game/touchControls.js` (el mismo objeto que mueve a la jugadora dentro
-   * de la oficina), y aquí se traduce a un paso de casilla.
-   *
-   * Se manda el eje DOMINANTE, no los dos: en una rejilla, un empujón en
-   * diagonal que mueva a la vez de fila y de columna hace imposible medir
-   * el hueco entre dos coches. Y el umbral es alto (0.5) porque el stick
-   * flotante descansa cerca del centro — con uno bajo, el pulgar apoyado
-   * caminaba solo hacia el tráfico.
-   *
-   * El enfriamiento de `tryMove` (105 ms) es lo que convierte "mantener" en
-   * pasos seguidos, igual que la repetición del teclado. No hace falta
-   * soltar entre paso y paso.
+   * El vector de movimiento del cuadro: teclas mantenidas + stick, sumados y
+   * con tope 1 — el mismo modelo del piso. El stick va DIRECTO a velocidad
+   * (ya no a pasos de casilla): -z de pantalla es avanzar, y +x de pantalla
+   * es -x de mundo, por el encuadre de esta cámara.
    */
-  const STICK_DEADZONE = 0.5;
-  function readStick() {
+  function inputVector() {
+    let vx = 0;
+    let vz = 0;
+    if (heldKeys.has("up")) vz += 1;
+    if (heldKeys.has("down")) vz -= 1;
+    if (heldKeys.has("left")) vx += 1;
+    if (heldKeys.has("right")) vx -= 1;
     const axis = getTouchAxis?.();
-    if (!axis) return;
-    const { x, z } = axis;
-    if (Math.abs(z) >= Math.abs(x)) {
-      // -z en pantalla es "hacia el fondo", que aquí es AVANZAR.
-      if (z <= -STICK_DEADZONE) tryMove(1, 0);
-      else if (z >= STICK_DEADZONE) tryMove(-1, 0);
-    } else if (x >= STICK_DEADZONE) tryMove(0, 1);
-    else if (x <= -STICK_DEADZONE) tryMove(0, -1);
+    if (axis && Math.hypot(axis.x, axis.z) >= STICK_DEADZONE) {
+      vx += -axis.x;
+      vz += -axis.z;
+    }
+    const len = Math.hypot(vx, vz);
+    if (len > 1) {
+      vx /= len;
+      vz /= len;
+    }
+    return { vx, vz, len: Math.min(1, len) };
   }
 
   function frame(t) {
@@ -712,10 +704,25 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
     const dt = lastTime ? Math.min(0.05, (t - lastTime) / 1000) : 0;
     lastTime = t;
 
-    // El stick se lee por CUADRO (el teclado llega por evento). Va antes que
-    // el tráfico para que el paso y la colisión de este cuadro miren la
-    // misma posición.
-    readStick();
+    // El movimiento va antes que el tráfico para que la colisión de este
+    // cuadro mire la posición ya movida.
+    const inp = inputVector();
+    if (inp.len > 0.01) {
+      const xMax = ROAD_WIDTH / 2 - PLAYER_RADIUS;
+      playerPos.x = Math.min(xMax, Math.max(-xMax, playerPos.x + inp.vx * PLAYER_SPEED * dt));
+      playerPos.z = Math.min(GOAL_ROW * LANE_DEPTH, Math.max(0, playerPos.z + inp.vz * PLAYER_SPEED * dt));
+      player.setHeading(inp.vx, inp.vz);
+      player.setMoving(true);
+      player.setPosition(playerPos.x, playerPos.z);
+      // La meta es PISAR la acera de llegada, no una casilla exacta.
+      if (playerPos.z >= (GOAL_ROW - 0.45) * LANE_DEPTH) {
+        player.setMoving(false);
+        finish("safe");
+        return;
+      }
+    } else {
+      player.setMoving(false);
+    }
 
     vehicles.forEach((v) => {
       v.x += v.dir * v.speed * dt;
@@ -738,10 +745,11 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
       return !gone;
     });
 
-    // Colisión: mismo carril y solape lateral.
-    const playerX = colToX(playerCell.col);
+    // Colisión: dentro de la franja del carril del vehículo Y solape lateral.
     const hit = vehicles.some(
-      (v) => v.row === playerCell.row && Math.abs(v.x - playerX) < (VEHICLE_WIDTH + PLAYER_RADIUS * 2) / 2
+      (v) =>
+        Math.abs(v.row * LANE_DEPTH - playerPos.z) < LANE_HIT_DEPTH &&
+        Math.abs(v.x - playerPos.x) < (VEHICLE_WIDTH + PLAYER_RADIUS * 2) / 2
     );
     if (hit) {
       // El medio segundo antes de cortar a la pantalla de despido se aprovecha
@@ -753,8 +761,8 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
     }
 
     // Cámara: sigue a la jugadora con suavizado, siempre por detrás.
-    camTarget.z += (playerCell.row * LANE_DEPTH - camTarget.z) * Math.min(1, dt * 4);
-    camTarget.x += (playerX - camTarget.x) * Math.min(1, dt * 6);
+    camTarget.z += (playerPos.z - camTarget.z) * Math.min(1, dt * 4);
+    camTarget.x += (playerPos.x - camTarget.x) * Math.min(1, dt * 6);
     placeCamera();
 
     // El sol viaja con ella: mismo ángulo, ventana de sombra centrada en la
@@ -762,19 +770,6 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
     key.target.position.set(0, 0, camTarget.z);
     key.position.set(sunOffset.x, sunOffset.y, camTarget.z + sunOffset.z);
 
-    if (stepTimer > 0) {
-      stepTimer -= dt;
-      if (stepTimer <= 0) player.setMoving(false);
-    }
-    if (stepElapsed < STEP_DURATION) {
-      stepElapsed = Math.min(STEP_DURATION, stepElapsed + dt);
-      const t = stepElapsed / STEP_DURATION;
-      const targetX = colToX(playerCell.col);
-      const targetZ = playerCell.row * LANE_DEPTH;
-      playerPos.x = playerFrom.x + (targetX - playerFrom.x) * t;
-      playerPos.z = playerFrom.z + (targetZ - playerFrom.z) * t;
-      player.setPosition(playerPos.x, playerPos.z);
-    }
     player.update(dt);
     updatePedestrians(dt);
 
@@ -819,6 +814,7 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
 
   function dispose() {
     window.removeEventListener("keydown", onKey);
+    window.removeEventListener("keyup", onKeyUp);
     if (rafId) cancelAnimationFrame(rafId);
     unsubscribe?.();
     document.body.classList.remove("crossing-open");
@@ -830,8 +826,11 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   // la tecla a ciegas.
   function getState() {
     return {
-      row: playerCell.row,
-      col: playerCell.col,
+      // La "fila" ya es solo una lectura derivada — el movimiento es
+      // continuo — pero el bot de tools/ la usa para decidir cuándo avanzar.
+      row: Math.round(playerPos.z / LANE_DEPTH),
+      x: playerPos.x,
+      z: playerPos.z,
       goalRow: GOAL_ROW,
       vehicles: vehicles.map((v) => ({ row: v.row, x: v.x, dir: v.dir })),
       // El encuadre, para poder comprobar que la cámara mira de verdad hacia
@@ -839,7 +838,7 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
       camera: {
         z: camera.position.z,
         y: camera.position.y,
-        playerZ: playerCell.row * LANE_DEPTH,
+        playerZ: playerPos.z,
       },
     };
   }

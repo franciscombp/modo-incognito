@@ -38,6 +38,14 @@ const out = await page.evaluate(async () => {
   // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
   // es la campana al enterarse de que la mision de la puerta cayo.
   game.clearGate();
+  // TU PUESTO también se ocupa solo cada tanto (busyEvery en el JSON de la
+  // escena): esta prueba mide fingir/cubrir/gastarse, no la ocupación, así
+  // que se congela ese reloj — sin esto, una silla ocupada a mitad de
+  // medición volvía la prueba una moneda al aire.
+  game.safeSpotState.forEach((st) => {
+    st.nextBusy = Infinity;
+    st.busyLeft = 0;
+  });
   // El jefe fuera de escena: aquí se mide la mecánica del sitio, no su IA.
   game.boss.setTether(null);
   game.boss._updateVision = () => {

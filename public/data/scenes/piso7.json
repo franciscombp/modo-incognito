@@ -1019,7 +1019,9 @@
       "kind": "desk",
       "x": -11.200000000000001,
       "z": 5.9,
-      "radius": 1.9
+      "radius": 1.9,
+      "busyEvery": 70,
+      "busyFor": 12
     },
     {
       "id": "sala6",

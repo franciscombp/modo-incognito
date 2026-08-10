@@ -39,19 +39,27 @@ const result = await page.evaluate(async () => {
       };
     }
 
-    // Bot: avanza solo si el carril de delante está limpio a ambos lados.
+    // Bot para el movimiento CONTINUO: mantiene ↑ mientras el carril de
+    // delante esté limpio y SUELTA cuando no — keydown/keyup, como un pulgar
+    // de verdad. Si le pilla la duda a MITAD de un carril con tráfico, sigue
+    // empujando: pararse dentro del carril es lo único peor que cruzarlo.
+    const press = (down) =>
+      window.dispatchEvent(new KeyboardEvent(down ? "keydown" : "keyup", { key: "ArrowUp" }));
+    const laneClear = (s, row) =>
+      !s.vehicles.some((v) => {
+        if (v.row !== row) return false;
+        // Peligroso si está encima, o si viene de frente y llega pronto.
+        const dx = v.x - 0; // el bot nunca se mueve de la columna central
+        return Math.abs(dx) < 2.6 || (v.dir > 0 ? dx < 0 && dx > -5 : dx > 0 && dx < 5);
+      });
     for (let step = 0; step < 900 && !outcome; step++) {
       const s = crossing3D.getState();
-      const next = s.row + 1;
-      const clear = !s.vehicles.some((v) => {
-        if (v.row !== next) return false;
-        // Peligroso si está encima, o si viene de frente y llega pronto.
-        const dx = v.x - 0; // la columna central es x = 0
-        return Math.abs(dx) < 2.4 || (v.dir > 0 ? dx < 0 && dx > -4.5 : dx > 0 && dx < 4.5);
-      });
-      if (clear) window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp" }));
+      // 2.88 = LANE_DEPTH en unidades de mundo (2.4 × WORLD_SCALE 1.2).
+      const enMedio = Math.abs(s.z - s.row * 2.88) < 1.1 && !laneClear(s, s.row);
+      press(laneClear(s, s.row + 1) || enMedio);
       await sleep(60);
     }
+    press(false);
     if (outcome === "safe") out.wins++;
     await sleep(700);
   }

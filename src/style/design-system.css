@@ -10004,7 +10004,24 @@ body.inc-acting #hint {
    ancla: ahora cuelgan del layer del HUD, no de una barra. */
 .inc-gamehud .inc-bar-center {
   position: absolute;
+  /* En el HUD el reloj es una pastilla SUELTA arriba, no un widget colgando
+     de la barra de menú (que ya no existe): sin este top el `bottom: 0` del
+     CSS histórico la estiraba a pantalla completa. */
+  top: 14px;
+  bottom: auto;
   pointer-events: auto;
+}
+/* LA CAJA DEL RELOJ, corregida para el HUD. La receta histórica del "widget
+   de vidrio" asumía la barra macOS encima: reservaba `--bar-h` de padding
+   superior para asomar por debajo de ella y limitaba el alto al de un item
+   de barra (24px) — con la barra retirada, las CIFRAS quedaban FUERA de la
+   caja (medido: caja de 61px, texto acabando en 104px). Suelta, la pastilla
+   crece con su contenido, cierra el borde por arriba y redondea entera. */
+.inc-gamehud .inc-bar-center .inc-bar-btn {
+  height: auto;
+  padding: 10px 22px 12px;
+  border-radius: 18px;
+  border-top: 1px solid var(--border);
 }
 .inc-gamehud .inc-bar-notices {
   position: absolute;

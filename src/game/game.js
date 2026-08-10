@@ -1012,9 +1012,24 @@ export class Game {
    */
   /** Todo el que te venga persiguiendo se rinde al verte en lugar seguro. */
   _breakAllPursuits() {
-    let broke = this.boss.breakPursuit();
+    const bossBroke = this.boss.breakPursuit();
+    let broke = bossBroke;
     for (const m of this.minions) broke = m.breakPursuit() || broke;
-    if (broke) this.toast("Lugar seguro: dejan de perseguirte");
+    // Y EL JEFE SE ALEJA, no solo suelta: sin esto retomaba la ronda en el
+    // waypoint de al lado y "llegar a tu puesto" no cambiaba nada en
+    // pantalla. Ver Boss.retreatFrom.
+    if (bossBroke) {
+      this.boss.retreatFrom(this.player.position);
+      // Y el SOPLO espera: con búsqueda ≥2, _updateHeat manda al jefe a tu
+      // posición cada tanto ("alguien le ha dicho por dónde andas") — y su
+      // primer aviso caía justo después de soltar, pisando la retirada en
+      // el mismo segundo. Acabas de sentarte donde te corresponde: el
+      // chivatazo pierde frescura unos segundos.
+      this._huntTimer = Math.max(this._huntTimer, 8);
+      this.toast("A salvo: Gabo se aleja");
+    } else if (broke) {
+      this.toast("Lugar seguro: dejan de perseguirte");
+    }
     return broke;
   }
 
@@ -1397,7 +1412,14 @@ export class Game {
           state.nextBusy -= dt;
           if (state.nextBusy <= 0) {
             state.busyLeft = spot.busyFor ?? 12;
-            if (this._insideSafeSpot(spot, pos)) {
+            // TU PUESTO también se ocupa (alguien se sentó en tu silla), y
+            // eso se avisa SIEMPRE, estés donde estés: es tu plan B el que
+            // acaba de caerse, y enterarte al llegar corriendo con el jefe
+            // detrás era descubrirlo en el peor momento posible. Las salas
+            // solo avisan si estás dentro — que se ocupen es rutina.
+            if (spot.kind === "desk") {
+              this.toast(`${spot.label}: alguien se sentó en tu sitio. Búscate otro.`);
+            } else if (this._insideSafeSpot(spot, pos)) {
               this.toast(`${spot.label}: llegó gente a reunirse de verdad.`);
             }
           }

@@ -387,6 +387,46 @@ export class Boss {
     return true;
   }
 
+  /**
+   * ALEJARSE de verdad. `breakPursuit` retoma la ronda en el punto MÁS
+   * CERCANO — o sea que el jefe soltaba la presa y se quedaba merodeando a
+   * dos mesas de ti, y "llegué a mi puesto" no se sentía como llegar a
+   * ninguna parte. Ahora, al cortarse la persecución por lugar seguro,
+   * agarra hacia el waypoint de su ronda MÁS LEJOS de la jugadora y se le
+   * dan unos segundos de gracia (sin observar) para que la retirada se VEA:
+   * tú te sientas, él se va. La tensión vuelve a subir cuando su ronda lo
+   * traiga de vuelta — que es el ciclo del juego, no un favor.
+   */
+  retreatFrom(pos, seconds = 6) {
+    let pick = this.routeIndex;
+    let best = -Infinity;
+    this.route.forEach((p, i) => {
+      const d = Math.hypot(p.x - pos.x, p.z - pos.z);
+      if (d > best) {
+        best = d;
+        pick = i;
+      }
+    });
+    // La retirada va como INVESTIGATE hacia ese punto, no como PATROL: la
+    // ronda deriva por diseño hacia los puntos de interés del día (prowl), y
+    // dejada a su aire volvía a acercarse en cuanto una tarea caía cerca.
+    // Investigar es el único estado con un destino IMPERATIVO — camina hasta
+    // allí y, al agotarse el tiempo, retoma la ronda en ese mismo extremo
+    // (routeIndex ya apunta ahí).
+    const far = this.route[pick];
+    this.lockedOn = false;
+    this.state = INVESTIGATE;
+    this.investigateTarget = { x: far.x, z: far.z };
+    this.investigateTimer = seconds;
+    this.routeIndex = pick;
+    // El camino VIEJO se tira: breakPursuit acaba de trazar ruta al waypoint
+    // más cercano, y sin limpiarla seguía caminando ESA — o sea, hacia ti.
+    this._path = null;
+    this._pathTarget = null;
+    this.prowlTarget = null;
+    this.grantGrace(seconds * 0.8);
+  }
+
   distract(target, duration) {
     if (this.state === CHASE) return false;
     this.state = INVESTIGATE;

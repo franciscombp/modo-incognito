@@ -31,7 +31,7 @@
   },
   "theme": "morning",
   "rules": {
-    "duration": 120,
+    "duration": 240,
     "maxWarnings": 3,
     "objectives": ["coffee","stretch","sleep","scroll"],
     "bossSpeedMul": 1,
