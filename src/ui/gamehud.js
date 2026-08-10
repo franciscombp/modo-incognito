@@ -60,24 +60,22 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const layer = el("div", "inc-gamehud", root);
 
   // ── LA PLACA ──────────────────────────────────────────────────────────
+  // Ya NO lleva un medidor de "SOSPECHA": ese número era de quien sospecha
+  // de ti, no tuyo, y vivir en TU placa lo hacía leerse como una barra de
+  // vida — un solo número, viendo cómo baja, sin saber POR QUÉ. Se cambió
+  // por el globo de alerta SOBRE LA CABEZA de cada jefe/secuaz (ver
+  // entities/alertIcon.js): la sospecha se lee ahí, literal, como en Sneaky
+  // Sasquatch — donde sospecha, no en un panel aparte. La placa se queda con
+  // lo que sí es tuyo: quién eres, cuántas amonestaciones te quedan y
+  // cuánta energía tienes.
   const plate = el("div", "inc-plate", layer);
   const faceHost = el("div", "inc-plate-face", plate);
   const plateBody = el("div", "inc-plate-body", plate);
   const pipsRow = el("div", "inc-plate-pips", plateBody);
-  // El rótulo va ENCIMA del medidor, no dentro: una barra sin nombre no
-  // dice de qué es, y la sospecha a cero —que es cuando más falta hace
-  // saber si te han visto— no tiene barra que la delate.
-  const meterLabel = el("div", "inc-plate-meter-label", plateBody);
-  const meterLabelText = el("span", null, meterLabel);
-  const meterLabelPct = el("b", null, meterLabel);
-  meterLabelText.textContent = "SOSPECHA";
-  const meter = el("div", "inc-plate-meter", plateBody);
-  const meterFill = el("i", null, meter);
 
-  // La ENERGÍA, debajo de la sospecha y en la misma placa: las dos son "cómo
-  // estoy yo", y separarlas en dos tarjetas volvería a partir en pedazos lo
-  // que la placa junta a propósito. Es la que se vacía sola, así que se lee
-  // al revés que la otra — llena es buena.
+  // La ENERGÍA, en la misma placa: es la otra mitad de "cómo estoy yo". Es
+  // la que se vacía sola, así que se lee al revés que un medidor de peligro
+  // — llena es buena.
   const energyLabel = el("div", "inc-plate-meter-label", plateBody);
   const energyLabelText = el("span", null, energyLabel);
   const energyLabelPct = el("b", null, energyLabel);
@@ -101,7 +99,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   let pips = [];
   let pipsMax = -1;
   let lastWarnings = -1;
-  let lastHeatPct = 0;
+  let lastHunted = false;
 
   // ── LAS MISIONES ──────────────────────────────────────────────────────
   const quests = el("div", "inc-quests", layer);
@@ -307,27 +305,19 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       lastWarnings = state.warnings;
     }
 
-    const pct = Math.round((state.suspicion / (state.suspicionMax || 100)) * 100);
-    meterFill.style.width = `${pct}%`;
-    meter.classList.toggle("warn", pct >= 55 && pct < 90);
-    meter.classList.toggle("danger", pct >= 90);
-    meterLabelPct.textContent = `${pct}%`;
-    // El rótulo dice el ESTADO, no solo el número: "te vieron" es la
-    // información que se busca de reojo, y un porcentaje no la da.
+    // Ya no hay un % que enseñar aquí — quién sospecha lo dice SU PROPIO
+    // globo, en el mundo. La placa solo reacciona a si la cosa está fea
+    // AHORA (te buscan o te tienen), que sigue siendo información tuya.
     const chasing = state.bossState === "CHASE";
     const searching = state.bossState === "SEARCH";
-    meterLabelText.textContent = chasing
-      ? "TE VIERON"
-      : searching
-        ? "TE BUSCAN"
-        : pct >= 55
-          ? "SOSPECHAN"
-          : "SOSPECHA";
-    plate.classList.toggle("warn", (pct >= 55 && pct < 90) || searching);
-    plate.classList.toggle("danger", pct >= 90 || chasing);
-    plate.classList.toggle("mi-critical", pct >= 90 && !state.gameOver);
-    if (pct - lastHeatPct >= 12) pulse(plate, "mi-shake", 420);
-    lastHeatPct = pct;
+    plate.classList.toggle("warn", searching);
+    plate.classList.toggle("danger", chasing);
+    plate.classList.toggle("mi-critical", chasing && !state.gameOver);
+    // El sacudido marca la TRANSICIÓN a que alguien se puso a buscarte o
+    // vino a por ti — no un pico de número que ya no se enseña.
+    const hunted = chasing || searching;
+    if (hunted && !lastHunted) pulse(plate, "mi-shake", 420);
+    lastHunted = hunted;
 
     // La energía: llena es buena, así que avisa cuando BAJA. Y dormida lo
     // dice con todas las letras, porque es el único estado en el que los
@@ -340,13 +330,12 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     energyLabelText.textContent = state.asleep ? "DORMIDA" : ePct <= 20 ? "SIN FUERZAS" : "ENERGÍA";
     energyMeter.classList.toggle("mi-critical", ePct <= 15 && !state.gameOver);
 
-    // La cara sigue a la presión. Los umbrales van holgados para que no
-    // parpadee en la frontera.
+    // La cara sigue al PELIGRO, no a un número: reacciona a lo mismo que ya
+    // enseña el globo de quien te ve (`redAlert`), no a una sospecha propia.
     if (state.asleep) setFaceMood("sad");
     else if (state.gameOver) setFaceMood(state.win ? "happy" : "sad");
-    else if (state.bossState === "CHASE" || state.bossState === "SEARCH") setFaceMood("scared");
-    else if (pct >= 55) setFaceMood("surprised");
-    else if (pct >= 25) setFaceMood("neutral");
+    else if (chasing || searching) setFaceMood("scared");
+    else if (state.redAlert || state.minionAlert) setFaceMood("surprised");
     else setFaceMood("happy");
   }
 

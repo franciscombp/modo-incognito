@@ -1,6 +1,7 @@
 import { Character3D } from "./character3d.js";
 import { screenToGround, facingFromGround } from "../scene/iso.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
+import { createSleepIcon, updateSleepIcon } from "./alertIcon.js";
 
 // The protagonist. Input is interpreted in *screen* space and then rotated
 // into world space, so W/A/S/D (and the joystick) move her up/left/down/right
@@ -34,6 +35,11 @@ export class Player {
 
     this.sprite = new Character3D(look, { height });
     this.sprite.setPosition(x, z);
+    this.isAsleep = false;
+    // El ZZZ: mismo globo que lleva el jefe sobre su cabeza, aquí en azul y
+    // por SU propio estado (ver entities/alertIcon.js).
+    this.sleepIcon = createSleepIcon(height);
+    this._sleepTime = 0;
 
     this._onKeyDown = (e) => {
       const k = e.key.toLowerCase();
@@ -115,6 +121,9 @@ export class Player {
     this.sprite.setPosition(this.position.x, this.position.z);
     this.sprite.setTint(this.isHiding ? 0.6 : 1);
     this.sprite.update(dt);
+
+    this._sleepTime += dt;
+    updateSleepIcon(this.sleepIcon, this.position.x, this.position.z, this.isAsleep, this._sleepTime);
   }
 
   dispose() {

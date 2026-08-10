@@ -1131,12 +1131,15 @@ export function createEngine({
     themeBlender.update(live.timeLeft, live.levelDuration);
   }
 
-  // Hide boss/minion vision cones until player meets them
+  // Hide boss/minion vision cones (y su globo de alerta, misma regla) hasta
+  // que la jugadora los conoce.
   function updateCharacterVisibility(g) {
     boss.cone.visible = g.metGabo;
+    if (!g.metGabo) boss.alertIcon.visible = false;
     g.minions.forEach((m) => {
       if (m.id === "crispo") {
         m.cone.visible = g.metGabo;
+        if (!g.metGabo) m.alertIcon.visible = false;
       } else {
         m.cone.visible = true;
       }

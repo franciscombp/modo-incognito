@@ -81,6 +81,13 @@ function minionTouches(minion, player) {
 // Washo casi no anda, pero mientras estés en su mira te pesan las piernas.
 const WASHO_SLOW_MUL = 0.55;
 
+// Sin fuerzas se arrastra: por debajo de este % de energía empieza a ir más
+// lenta, cuesta abajo hasta ENERGY_SLOW_MUL_FLOOR justo antes de dormirse.
+// No es un salto (a las 3 de la tarde se nota, no de golpe) — es la misma
+// idea que ya usa Washo, pero disparada por ti misma, no por un vigilante.
+const ENERGY_SLOW_THRESHOLD = 0.35;
+const ENERGY_SLOW_MUL_FLOOR = 0.55;
+
 // Cupo por defecto de una sala de reuniones, si su JSON no trae `budget`. No
 // se recarga: agotado, esa sala está quemada hasta mañana.
 const SAFE_SPOT_BUDGET = 25;
@@ -1232,7 +1239,13 @@ export class Game {
     // entiende sin explicarlo.
     const washo = this.minions.find((m) => m.cast === "washo");
     const inRadar = washo?.active !== false && washo?.inRange(this.player.position);
-    this.player.speedMul = this._perkSpeedMul * (inRadar ? WASHO_SLOW_MUL : 1);
+    // Sin fuerzas, se arrastra: de ENERGY_SLOW_THRESHOLD a 0 interpola hasta
+    // el suelo de velocidad. Lineal y sin corte — la energía ya se agota sin
+    // avisar, no hace falta que además dé un salto.
+    const eRatio = this.energyMax > 0 ? this.energy / this.energyMax : 1;
+    const t = Math.max(0, Math.min(1, eRatio / ENERGY_SLOW_THRESHOLD));
+    const energyMul = eRatio >= ENERGY_SLOW_THRESHOLD ? 1 : ENERGY_SLOW_MUL_FLOOR + (1 - ENERGY_SLOW_MUL_FLOOR) * t;
+    this.player.speedMul = this._perkSpeedMul * energyMul * (inRadar ? WASHO_SLOW_MUL : 1);
     this.inWashoRadar = !!inRadar;
   }
 

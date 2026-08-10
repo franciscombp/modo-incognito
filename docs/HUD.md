@@ -7,7 +7,7 @@ lo que falta. Escribe encima, tacha, contesta las preguntas del final.
 
 | Sección | Estado | Nota |
 |---|---|---|
-| §4.1 La placa de identidad | ✅ | Cara VIVA (no retrato estático), rombos de amonestación y medidor de presión, fundidos en una pieza |
+| §4.1 La placa de identidad | ✅ | Cara VIVA (no retrato estático), rombos de amonestación y medidor de ENERGÍA, fundidos en una pieza. **Ya NO lleva un medidor de sospecha** — se sacó de la placa y se movió al mundo (ver nota) |
 | §4.2 El reloj al centro | ✅ | Se conservó tal cual estaba |
 | §4.3 Nombre de zona (inf. der.) | ✅ | Sale al entrar y se va solo |
 | §4.4 Prompt de acción (inf. izq.) | ◻︎ | Sigue solo el botón táctil |
@@ -21,6 +21,20 @@ lo que falta. Escribe encima, tacha, contesta las preguntas del final.
 > `gamehud.js` ocupa su sitio con la MISMA interfaz pública
 > (`render`/`notify`/`resetNotices`/`closePanels`/`setLive`), así que el
 > snapshot por frame de `hud.js` sigue siendo la única verdad.
+
+> **La sospecha ya NO es un número de la jugadora.** Era un medidor en SU
+> placa, y eso la convertía en el dueño de algo que en realidad es de quien
+> la mira — un jefe o un secuaz sospechando de ti, no al revés. Ahora vive
+> donde vive de verdad: sobre la cabeza de cada uno, en el mundo, como en
+> Sneaky Sasquatch (`src/entities/alertIcon.js`, enganchado en
+> `Boss.update()`). Ámbar = te tiene fichada, sin llegar a caza; rojo = va a
+> por ti (o, en un secuaz, su `localHeat` cruzó el umbral que lo pone a
+> seguirte — el mismo número que ya decidía eso, ahora también se VE). El
+> medidor compartido de `game.suspicion` sigue existiendo puertas adentro
+> —sigue siendo quien dispara amonestaciones y la evaluación— solo dejó de
+> pintarse en la placa. La placa se queda con lo que sí es tuyo: quién eres,
+> tus amonestaciones y tu energía. Y la energía, agotada, tiene su propio
+> globo — un Zzz azul sobre tu cabeza mientras duermes.
 
 **Referencias en el repo** (`docs/referencias/hud/`):
 

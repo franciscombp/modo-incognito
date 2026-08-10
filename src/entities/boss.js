@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Character3D } from "./character3d.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
+import { createAlertIcon, updateAlertIcon } from "./alertIcon.js";
 
 export const BOSS_STATES = {
   PATROL: "PATROL",
@@ -314,6 +315,10 @@ export class Boss {
       this.cone.renderOrder = 2;
       this._waves = null;
     }
+
+    // El globo de sospecha SOBRE SU CABEZA (ver entities/alertIcon.js): la
+    // sospecha ya no es un número del jugador, es de quien sospecha.
+    this.alertIcon = createAlertIcon(height);
   }
 
   get object3D() {
@@ -633,6 +638,21 @@ export class Boss {
     this.coneMaterial.opacity = this._presence;
 
     this._updateWaves(dt, hot, this._presence);
+
+    // EL GLOBO DE ALERTA: la misma lectura que el halo (rojo = te tiene,
+    // ámbar = sospecha), pero SOBRE SU CABEZA en vez de en un panel — así se
+    // lee quién sospecha sin tener que abrir la placa de nadie. Un secuaz
+    // cuenta además su PROPIO umbral de seguimiento (`followThreshold`): es
+    // el mismo número que lo pone a seguirte de verdad, así que el globo se
+    // pone rojo justo cuando deja de rondar y va a por ti.
+    this._iconTime = (this._iconTime ?? 0) + dt;
+    const following = this.role === "minion" && this.localHeat >= this.followThreshold;
+    let alertState = null;
+    if (hot || following) alertState = "red";
+    else if (this.playerVisible || ratio > 0.12 || this.state === SEARCH || this.state === INVESTIGATE) {
+      alertState = "amber";
+    }
+    updateAlertIcon(this.alertIcon, this.position.x, this.position.z, alertState, this._iconTime);
   }
 
   /**

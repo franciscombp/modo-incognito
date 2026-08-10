@@ -286,6 +286,7 @@ async function boot() {
     speed: chars.player.speed,
   });
   scene.add(player.object3D);
+  scene.add(player.sleepIcon);
 
   // Todos los NPC se crean siempre; el que coincide con el personaje elegido
   // se APAGA en caliente. Antes se filtraban aquí una sola vez, al arrancar,
@@ -351,6 +352,7 @@ async function boot() {
   boss.sprite.setRig(rigOf(chars.boss));
   scene.add(boss.object3D);
   scene.add(boss.cone);
+  scene.add(boss.alertIcon);
 
   // One watcher per sidekick, created up front and parked out of sight. Days
   // switch them on and hand them a route; nothing is added to or removed from
@@ -382,6 +384,7 @@ async function boot() {
     watcher.setActive(false);
     scene.add(watcher.object3D);
     scene.add(watcher.cone);
+    scene.add(watcher.alertIcon);
     minions.set(id, watcher);
   }
 
