@@ -77,6 +77,52 @@ amonestación; en un lugar seguro es una cabezada y ya.
 `time` es lo que TARDA en hacerse · `energy` es la ENERGÍA que DA ·
 `reward` es el reloj que daba antes, hoy solo el suelo si falta `energy`.
 
+### 1.2 Hacer una tarea: el gesto, el pulso y la cuenta atrás
+
+Una tarea no es «acércate y espera». Hay que hacer algo, se ve en PRIMER PLANO,
+y hay un reloj encima.
+
+**El suelo, que no se toca.** Mantener espacio en la estación la termina igual,
+solo que lento. Quien no quiera jugar a nada —o esté a la vez huyendo del jefe—
+la acaba de todas formas. Los dos minijuegos son ATAJOS con riesgo, nunca
+peajes: si fueran obligatorios, alguien se quedaría encallado en la primera
+tarea del día 1 sin entender por qué.
+
+**Una actividad juega a UNO de los dos**, según lo que declare su JSON:
+
+| | Qué te pide | Cómo se juega | Qué castiga |
+|---|---|---|---|
+| **PULSO** (`pulso`) | Timing | Un marcador barre una tira; tocas espacio en la zona buena | Fallar hace RUIDO |
+| **GESTO** (`gesto`) | Pulso firme | Un valor se te escapa solo y lo sostienes en su zona con el mando de andar | Dejarlo en el extremo hace RUIDO, por segundo |
+
+El gesto sale de cuatro números (valor, zona, deriva, control) y con eso se
+escriben verbos que no se parecen: **bájale el volumen a la peli** (la zona
+abajo, la deriva tirando hacia arriba), **sirve el café sin que se enfríe** (la
+zona arriba, la deriva hacia abajo), **habla bajito** (la zona además se
+mueve). Un mecanismo, no tres minijuegos.
+
+Mientras dura un gesto **no se camina**: el eje del mando queda libre para el
+gesto, así que no hay tecla nueva que aprender y funciona igual en el teléfono.
+De paso refuerza el bucle — hacer una tarea tiene que exponerte, y estar clavada
+en el sitio expone más. Se sale soltando la tecla de acción.
+
+**La cuenta atrás** (`limite`) arranca cuando te pones y ya no para: dejar la
+tarea a medias para huir **no la congela**. Si se acaba, pierdes lo hecho, la
+sospecha pega un salto **por encima del umbral de caza** y el jefe se pone en
+camino. Ojo con lo que eso NO es: no te amonesta a distancia. Viene, y si llegas
+antes a un lugar seguro no pasa nada — esa carrera es justo el juego.
+
+`limite` es SIEMPRE mayor que `time`. Al revés, mantener espacio dejaría de
+poder terminar la tarea y el suelo se caería sin que nada fallara a la vista.
+Lo vigila `npm run check:gesto`.
+
+⚠️ **Y la regla que manda sobre las tres:** un minijuego de tarea **no puede
+pausar el mundo**. «Primer plano» es una tarjeta con presencia en la banda baja,
+no una pantalla que tape el piso. Si el jefe se congelara mientras juegas, las
+estaciones pasarían a ser el sitio más seguro de la planta — lo contrario de su
+función. La primera comprobación de `check:gesto` y de `check:pulse` es esa: que
+el jefe SIGUE CAMINANDO.
+
 ---
 
 ## 2. La sospecha

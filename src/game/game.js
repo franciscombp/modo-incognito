@@ -16,6 +16,7 @@ import { buzz } from "./settings.js";
 import { sfxComplete, sfxWarn, sfxDistraction } from "./sfx.js";
 import { runEffect } from "./effects.js";
 import { createActivityPulse } from "./activityGame.js";
+import { createActivityGesture } from "./gestures.js";
 
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
@@ -95,6 +96,13 @@ const COMBO_MAX = 4;
 const NERVE_NEAR = 11 * S; // boss this close = "nerve" bonus
 const NERVE_BONUS = 0.8;
 const SEEN_NERVE_BONUS = 1.4; // ...and in his cone, which is madness
+
+// Lo que cuesta que se te acabe la cuenta atrás de una tarea. El MARGEN es lo
+// que garantiza que la amenaza llegue: el jefe no caza por debajo de su
+// umbral (`chaseSuspicionFloor`, 40), así que el pico tiene que dejarte por
+// encima o la cuenta atrás sería un adorno que no convoca a nadie.
+const TIMEOUT_HEAT = 26;
+const TIMEOUT_HEAT_MARGIN = 14;
 const PERK_DURATION = 15;
 
 const DEFAULT_RULES = {
@@ -351,6 +359,19 @@ export class Game {
       },
     });
 
+    // EL GESTO (game/gestures.js), el otro verbo de una actividad. Una
+    // estación juega a uno o al otro, nunca a los dos: lo decide su JSON.
+    // El ruido del gesto se cobra por SEGUNDO —te están oyendo mientras no
+    // lo corrijas— así que entra ya multiplicado por dt.
+    this.gesture = createActivityGesture({
+      onNoise: (n) => {
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
+      },
+      onFeedback: (tipo) => {
+        if (tipo === "dentro") sfxComplete();
+      },
+    });
+
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
     this._eggDwell = new Map();
@@ -365,6 +386,12 @@ export class Game {
       this.player.keys.clear();
       this.player.touchAxis.x = 0;
       this.player.touchAxis.z = 0;
+      // Y se devuelve el paso. Con `update()` saliendo antes por la pausa, el
+      // bloqueo del gesto se quedaría puesto: quien pausara a mitad de una
+      // tarea volvería sin poder andar hasta tocar una estación otra vez.
+      this.player.inputLocked = false;
+      this.pulse.end();
+      this.gesture.end();
     }
   }
 
@@ -480,19 +507,41 @@ export class Game {
       this.player.sprite.setHeading(Math.sin(camYaw), Math.cos(camYaw));
 
       // EL SUELO, y no se toca: mantener pulsado termina la tarea igual, solo
-      // que lento. Quien no quiera jugar al pulso —o esté a la vez huyendo del
-      // jefe— la acaba de todas formas. El pulso es un ATAJO con riesgo, no un
+      // que lento. Quien no quiera jugar —o esté a la vez huyendo del jefe— la
+      // acaba de todas formas. El minijuego es un ATAJO con riesgo, no un
       // peaje: si fuera obligatorio, un mal jugador se quedaría encallado en la
       // primera tarea del día 1.
-      this.pulse.begin(this.nearStation);
-      this.pulse.update(dt);
-      this.nearStation.progress = Math.min(this.nearStation.time, this.nearStation.progress + dt);
+      //
+      // Una estación juega al GESTO o al PULSO, según lo que declare su JSON.
+      // Nunca a los dos: pedir ritmo y pulso firme a la vez con el jefe
+      // rondando no es difícil, es ruido.
+      const conGesto = !!this.nearStation.gesto;
+      let ritmo = 1;
+      if (conGesto) {
+        this.pulse.end();
+        this.gesture.begin(this.nearStation);
+        // El paso se bloquea MIENTRAS dura el gesto: así el eje del mando
+        // queda libre para el gesto y no hace falta una tecla nueva. Se sale
+        // soltando la tecla de acción (ver la rama `else`, que lo devuelve).
+        this.player.inputLocked = true;
+        ritmo = this.gesture.update(dt, this.player.readIntent());
+      } else {
+        this.gesture.end();
+        this.pulse.begin(this.nearStation);
+        this.pulse.update(dt);
+      }
+
+      this._updateActivityDeadline(dt, this.nearStation);
+      this.nearStation.progress = Math.min(
+        this.nearStation.time,
+        this.nearStation.progress + dt * ritmo
+      );
       if (this.nearStation.progress >= this.nearStation.time && !this.nearStation.done) {
         this.nearStation.done = true;
         // Lo limpio que fuiste paga en RELOJ, no en energía: la actividad ya
         // te repuso el aguante, y lo que compra jugarla bien es DÍA para
-        // gastarlo. Se cobra ANTES de soltar el pulso, que lleva la cuenta.
-        const bonus = this.pulse.bonusReloj();
+        // gastarlo. Se cobra ANTES de soltar el minijuego, que lleva la cuenta.
+        const bonus = conGesto ? this.gesture.bonusReloj() : this.pulse.bonusReloj();
         this._completeActivity(this.nearStation);
         if (bonus > 0) {
           this._grantTime(bonus, {
@@ -502,14 +551,29 @@ export class Game {
           });
         }
         this.pulse.end();
+        this.gesture.end();
+        this.player.inputLocked = false;
+        this.nearStation.limiteLeft = null;
         // La campaña escucha: una estación cumplida puede desbloquear la
         // siguiente misión de la cadena (ver engine.js -> campaign).
         this.onMissionDone?.(this.nearStation.id);
       }
     } else {
       this.pulse.end();
+      this.gesture.end();
+      this.player.inputLocked = false;
       this.player.isDoingActivity = false;
       this._updatePretendPose();
+    }
+
+    // LA CUENTA ATRÁS SIGUE CORRIENDO AUNQUE TE VAYAS. Es lo que la convierte
+    // en presión de verdad: empezaste algo prohibido, y dejarlo a medias para
+    // huir del jefe no congela el reloj de la tarea — vuelves con lo que
+    // queda. Por eso vive aquí fuera y no dentro de la rama de arriba.
+    for (const o of this.objectives) {
+      if (o === this.nearStation && this.player.isDoingActivity) continue;
+      if (o.done || o.limiteLeft == null) continue;
+      this._updateActivityDeadline(dt, o);
     }
 
     this.distractionState.forEach((d) => {
@@ -765,6 +829,71 @@ export class Game {
     }
 
     this.hud.render(this._snapshot());
+  }
+
+  /**
+   * LA CUENTA ATRÁS DE UNA TAREA.
+   *
+   * Empieza en el momento en que te pones, y desde ahí ya no para: es lo que
+   * hace que empezar algo prohibido sea una DECISIÓN y no un trámite. Solo
+   * las actividades que declaran `limite` en el JSON la tienen.
+   *
+   * El límite es SIEMPRE mayor que `time`, y eso lo comprueba
+   * `npm run check:gesto`: si fuera al revés, mantener espacio dejaría de
+   * poder terminar la tarea y el suelo del minijuego —lo único que garantiza
+   * que nadie se quede encallado— se caería sin que nada fallara a la vista.
+   */
+  _updateActivityDeadline(dt, station) {
+    if (!station || station.done || !(station.limite > 0)) return;
+    if (station.limiteLeft == null) station.limiteLeft = station.limite;
+    station.limiteLeft = Math.max(0, station.limiteLeft - dt);
+    if (station.limiteLeft <= 0) this._activityTimeout(station);
+  }
+
+  /**
+   * SE TE FUE EL TIEMPO, Y AHORA VIENE.
+   *
+   * Pierdes lo hecho y el jefe se pone en camino. Ojo con CÓMO se pone en
+   * camino, porque es donde se cruzan dos invariantes:
+   *
+   *  - La amonestación es SIEMPRE física (`boss.catches`, un toque). Esto NO
+   *    amonesta: te manda al jefe. Si llegas a un lugar seguro antes que él,
+   *    no pasa nada — y esa carrera es justo el juego.
+   *  - El jefe no persigue con la sospecha baja, y la puerta está en UN sitio
+   *    (`Boss._mayChase`). Así que aquí no se salta la puerta: se SUBE la
+   *    sospecha por encima del umbral y luego se llama a `startChase()` por
+   *    la vía normal. Con el pico por debajo del suelo, la amenaza no
+   *    llegaría nunca y la cuenta atrás sería un adorno.
+   */
+  _activityTimeout(station) {
+    station.progress = 0;
+    station.limiteLeft = null; // se puede reintentar, empezando de cero
+    this.pulse.end();
+    this.gesture.end();
+    this.player.inputLocked = false;
+
+    const floor = this.boss.chaseSuspicionFloor ?? 0;
+    this.suspicion = Math.min(
+      this.suspicionConfig.max,
+      Math.max(this.suspicion + TIMEOUT_HEAT, floor + TIMEOUT_HEAT_MARGIN)
+    );
+    this.boss.lastSeenPlayerPos = { x: this.player.position.x, z: this.player.position.z };
+    // EL ORDEN IMPORTA. `_mayChase()` lee la sospecha DEL JEFE, y game.js se
+    // la copia más abajo en el frame (junto al `localHeat`): sin este empujón
+    // a mano, `startChase()` vería el valor del cuadro anterior, se quedaría
+    // por debajo del umbral y saldría por la rama de "se acerca a mirar". O
+    // sea: la cuenta atrás se agotaría y no vendría nadie.
+    this.boss.suspicion = this.suspicion;
+    this.boss.startChase();
+
+    this.toast(`${station.label}: se te acabó el tiempo`);
+    this.hud?.menuBar?.notify?.({
+      icon: "alert",
+      text: `${station.label}: te descubrieron. Viene hacia ti.`,
+      tone: "bad",
+    });
+    sfxWarn();
+    buzz([40, 60, 40]);
   }
 
   // ---------------------------------------------------------------- scoring
@@ -1754,6 +1883,15 @@ export class Game {
       // por frame que todo lo demás: no hay una segunda verdad que se pueda
       // desincronizar del motor.
       pulse: this.pulse.snapshot(),
+      gesture: this.gesture.snapshot(),
+      // La cuenta atrás de la tarea que tienes entre manos. Se enseña la de
+      // la estación en curso; las que dejaste a medias siguen corriendo por
+      // dentro y se ven al volver.
+      deadline: (() => {
+        const st = this.player.isDoingActivity ? this.nearStation : null;
+        if (!st || !(st.limite > 0) || st.limiteLeft == null) return null;
+        return { left: st.limiteLeft, total: st.limite, label: st.label ?? "" };
+      })(),
       nearDistraction: this.nearDistraction,
       nearNpc: this.nearNpc,
       focusStation: this.focusStation,

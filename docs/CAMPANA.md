@@ -287,7 +287,9 @@ Dos usos distintos, y conviene no mezclarlos:
 |---|---|---|---|
 | Cruzar la avenida | tránsito | Esquivar tráfico | ✅ **activo del día 2 en adelante**; el día 1 va sin cruce a propósito (§8.1) |
 | Cruzar a otro edificio | tránsito | Variante de lo anterior | por hacer |
-| **El pulso** (todas las tareas) | tarea (qué) | Acertar la zona sin hacer ruido | ✅ **hecho** |
+| **El pulso** (tareas de timing) | tarea (qué) | Acertar la zona sin hacer ruido | ✅ **hecho** |
+| **El gesto** (café, chisme, peli) | tarea (qué) | Sostener un valor que se te escapa (bajarle el volumen a la peli) | ✅ **hecho** |
+| **La cuenta atrás** (todas) | presión | Terminar antes de que se agote, o el jefe viene | ✅ **hecho** |
 | Curso de RRHH | castigo | El *skip* que huye | ✅ hecho |
 | Plan de nivelación | castigo | Tanda de los anteriores | por hacer |
 
@@ -323,7 +325,7 @@ trozos. Recién entonces se entra. Dura ~1,4 s y un clic la salta: es un
 momento, no una cinemática. (`loginSelect` en `ui/menus.js`; el sello es
 `.inc-login-stamp`.)
 
-### El PULSO — cómo quedaron los minijuegos de tarea
+### El PULSO y el GESTO — cómo quedaron los minijuegos de tarea
 
 > ⚠️ **La regla que decidió el diseño entero: un minijuego de tarea NO PUEDE
 > PAUSAR EL MUNDO.** Era lo tentador (pantalla completa, el microondas, la
@@ -345,7 +347,7 @@ escenario**: una tira fina abajo, por debajo de los pies de la jugadora.
   RUIDO**, que sube la sospecha. No es «menos puntos»: es que alguien te oyó.
 - **Es la MISMA tecla**, en dos niveles: mantenida avanza lento, soltar y
   volver a pulsar al ritmo avanza rápido.
-- **Lo limpio paga en reloj**, que es la única moneda.
+- **Lo limpio paga en reloj**, que es lo que alarga la jornada.
 - **No son tres minijuegos, es uno parametrizado.** El carácter sale del JSON
   (`activities[].pulso` en `scenes/piso7.json`): el café es amable, el
   microondas va nervioso y con la zona estrecha, la película lenta y ancha.
@@ -354,6 +356,48 @@ escenario**: una tira fina abajo, por debajo de los pies de la jugadora.
 Vive en `src/game/activityGame.js` y lo vigila `npm run check:pulse`, cuya
 primera comprobación —la que de verdad importa— es que **el jefe sigue
 caminando** mientras se juega.
+
+#### El GESTO: la acción en PRIMER PLANO
+
+El pulso pide TIMING. El gesto pide MANO, y es el que cumple lo que pedía el
+diseño: que hacer algo prohibido se VEA y haya que hacer algo de verdad.
+
+Hay un valor que se te escapa solo y lo sostienes en su zona empujando el
+mando. Cada actividad le da su verbo desde `activities[].gesto`:
+
+| Actividad | El gesto | Cómo salen los números |
+|---|---|---|
+| Ver película | **Bájale el volumen** | La zona abajo, la deriva tirando hacia arriba |
+| Tomar café | **Sirve sin que se enfríe** | La zona arriba, la deriva hacia abajo |
+| Chismear | **Habla bajito** | Como la peli, y además la zona se mueve sola |
+
+- **«Primer plano» es PRESENCIA, no pantalla completa.** Es una tarjeta con su
+  icono, su verbo y su reloj, en la banda baja — el piso sigue detrás y el
+  jefe sigue caminando. Un panel que tapara el escenario habría reintroducido
+  por la puerta de atrás justo lo que la regla de arriba prohíbe.
+- **Mientras dura el gesto no se camina.** Es lo que deja libre el eje del
+  mando: no hay tecla nueva que aprender y en el teléfono funciona con el
+  mismo joystick. Se sale soltando la tecla de acción.
+- **Dejar el valor en el extremo hace RUIDO**, y por SEGUNDO: no es un fallo
+  puntual, es que te están oyendo desde el pasillo mientras no lo corrijas.
+- **Una actividad juega al gesto O al pulso, nunca a los dos.**
+
+Vive en `src/game/gestures.js` y lo vigila `npm run check:gesto`.
+
+#### La CUENTA ATRÁS
+
+Toda actividad trae un `limite`. Arranca cuando te pones y **ya no para**:
+dejar la tarea a medias para huir del jefe no congela su reloj. Eso es lo que
+convierte empezar algo prohibido en una decisión y no en un trámite.
+
+Si se agota: **pierdes lo hecho y el jefe viene**. Ojo con lo que NO es —no te
+amonesta a distancia, que seguiría siendo física (te tiene que tocar). Lo que
+pasa es que la sospecha pega un salto por encima de su umbral de caza y se
+lanza a por ti; si llegas a un lugar seguro antes que él, no pasa nada. Esa
+carrera es justo el juego.
+
+`limite` es SIEMPRE mayor que `time`, o mantener espacio dejaría de poder
+terminar la tarea y el suelo se caería sin que nada fallara a la vista.
 
 **Buena noticia:** el registro ya existe y está aislado a propósito
 (`src/game/minigames.js`). Se registran por id, el día los pide desde su
@@ -496,7 +540,7 @@ hecho; la temporada 1 se juega de punta a punta.**
 5. ✅ **Temporadas y rangos**: el salto por AAA y el ascenso por antigüedad
    están en `endDay()`. Falta ESCRIBIR las temporadas 2–5.
 6. ✅ **Curso de RRHH** → `src/ui/hrCourse.js`.
-7. ◻︎ parcial — **los minijuegos de tarea están** (el pulso); reactivar la avenida sigue pendiente.
+7. ◻︎ parcial — **los minijuegos de tarea están** (el pulso, el gesto y la cuenta atrás); reactivar la avenida sigue pendiente.
 8. ✅ **Plan de nivelación** → `src/ui/levelling.js`.
 9. ◻︎ **Temporada 5 y jubilación** — el final.
 

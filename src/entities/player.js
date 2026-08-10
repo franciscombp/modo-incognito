@@ -19,6 +19,14 @@ export class Player {
     this.isHiding = false;
     this.isPretending = false;
     this.isDoingActivity = false;
+    // MIENTRAS DURA UN GESTO NO SE CAMINA. Lo pone game.js al empezar una
+    // actividad con `gesto`, y es lo que deja el eje del mando libre para
+    // bajarle el volumen a la tele sin inventar una tecla nueva que nadie
+    // encontraría (ver `src/ui/controls.js`: los mandos salen de un solo
+    // sitio). De paso refuerza el bucle: hacer una tarea tiene que
+    // EXPONERTE, y estar clavada en el sitio expone más. Se sale soltando
+    // la tecla de acción, así que nunca te deja atrapada.
+    this.inputLocked = false;
     this.facing = "south";
     // Clave de POSES (sprite.js) mientras hace algo — la pone game.js a
     // partir de la actividad en curso. Sin hoja de acciones se ignora sola.
@@ -41,6 +49,15 @@ export class Player {
     return this.sprite.object;
   }
 
+  /**
+   * Lo que pide el mando ahora mismo, en espacio de PANTALLA y sin mirar si
+   * se puede caminar o no. Público porque el gesto de una actividad lee este
+   * mismo eje mientras el paso está bloqueado — un solo mando, dos usos.
+   */
+  readIntent() {
+    return this._readInput();
+  }
+
   /** Screen-space intent, from either the keyboard or the on-screen stick. */
   _readInput() {
     const tx = this.touchAxis.x;
@@ -59,7 +76,7 @@ export class Player {
   }
 
   update(dt, world) {
-    const { right, up } = this._readInput();
+    const { right, up } = this.inputLocked ? { right: 0, up: 0 } : this._readInput();
     const magnitude = Math.min(Math.hypot(right, up), 1);
     let moving = false;
 

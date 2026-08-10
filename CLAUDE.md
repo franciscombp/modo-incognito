@@ -126,19 +126,48 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
   registran en `main.js`; el día las pide por id en su JSON, y **el texto de
   la derrota es JSON** (`minigame.onFail`), no código. El motor nunca debe
   volver a tener un `if (day.loQueSea)` para un minijuego concreto.
-- `src/game/activityGame.js` — el PULSO, que es el minijuego de las tareas.
-  Un solo mecanismo parametrizado desde `activities[].pulso` en el JSON de la
-  escena; no hay un módulo por actividad.
+- `src/game/activityGame.js` — el PULSO, minijuego de tarea de TIMING. Un
+  marcador barre una tira y tocas espacio en la zona buena. Un solo mecanismo
+  parametrizado desde `activities[].pulso`; no hay un módulo por actividad.
+- `src/game/gestures.js` — el GESTO, el otro verbo: hay un valor que se te
+  escapa solo (el volumen de la peli sube, el café se enfría) y lo sostienes
+  en su zona. Se parametriza desde `activities[].gesto` y sale de cuatro
+  números —valor, zona, deriva, control—, así que «bájale el volumen», «sirve
+  sin que se enfríe» y «habla bajito» son el MISMO mecanismo con distintos
+  ajustes. **Una actividad juega a uno de los dos, nunca a los dos**: si
+  declara `gesto`, juega al gesto; si no, al pulso. Pedir ritmo y pulso firme
+  a la vez con el jefe rondando no es difícil, es ruido.
 
-**Y la regla que decidió cómo es el pulso: un minijuego de TAREA no puede
+**Y la regla que decidió cómo son los dos: un minijuego de TAREA no puede
 pausar el mundo.** Era lo tentador y habría roto el juego: hacer una tarea
 tiene que EXPONERTE, y si mientras juegas el jefe se congela, las estaciones
 pasan a ser el sitio más seguro del piso — lo contrario de su función. Por eso
-el pulso es una tira fina abajo y no una pantalla. Mantener espacio termina la
-tarea igual (ese es el suelo, y no se toca: obligar a jugarlo dejaría a alguien
-encallado en la primera tarea del día 1); tocar al ritmo la termina antes, y
-fallar hace RUIDO, que sube la sospecha. Lo vigila `npm run check:pulse`, y su
-primera comprobación es que el jefe SIGUE CAMINANDO mientras se juega.
+esto vive en la banda baja de la pantalla y no en un panel que tape el piso:
+**«primer plano» es PRESENCIA, no pantalla completa.** Mantener espacio termina
+la tarea igual (ese es el suelo, y no se toca: obligar a jugarlo dejaría a
+alguien encallado en la primera tarea del día 1); jugar bien la termina antes,
+y jugar mal hace RUIDO, que sube la sospecha. Lo vigilan `npm run check:pulse`
+y `npm run check:gesto`, y la primera comprobación de los dos es que el jefe
+SIGUE CAMINANDO mientras se juega.
+
+**Mientras dura un gesto no se camina** (`player.inputLocked`). No es una
+restricción caprichosa: es lo que deja libre el eje del mando para el gesto, y
+por eso no hay una tecla nueva que aprender ni nada que inventar en táctil —
+los mandos siguen saliendo de un solo sitio. Se sale soltando la tecla de
+acción, así que nunca te deja atrapada.
+
+**La CUENTA ATRÁS de una tarea** (`activities[].limite`) arranca cuando te
+pones y **ya no para**: dejarla a medias para huir del jefe no la congela, y
+eso es lo que convierte empezar algo prohibido en una decisión. Si se agota,
+pierdes lo hecho y el jefe **viene** — pero no te amonesta a distancia, que
+seguiría siendo física. Dos cosas que se rompen solas si se tocan:
+- **`limite` SIEMPRE mayor que `time`.** Al revés, mantener espacio dejaría de
+  poder terminar la tarea y el suelo se caería sin que nada fallara a la vista.
+- **El pico de sospecha tiene que dejarte POR ENCIMA de
+  `chaseSuspicionFloor`**, y hay que copiarlo a `boss.suspicion` a mano antes
+  de `startChase()` — game.js lo sincroniza más abajo en el frame, así que sin
+  eso `_mayChase()` lee el valor del cuadro anterior, se queda corto y la
+  cuenta atrás se agota sin que venga nadie.
 
 ### Personajes 3D (ya no son sprites)
 
@@ -537,6 +566,12 @@ esquinas:
   energía es lo que te hace falta para llegar a las seis.
 - **Inf. der. · el nombre de zona**, texto pelado que sale al entrar y se va
   solo.
+- **Inf. centro · LA ACCIÓN EN PRIMER PLANO** (`.inc-action`): la tarjeta del
+  gesto y su cuenta atrás. Comparte banda con la tira del pulso (que baja a
+  `52px` para no pisarla) y con la píldora de mandos, que **le cede el sitio**
+  (`body.inc-acting`) — cuando estás haciendo algo prohibido, la lista de
+  teclas no es lo que hay que leer. Va con `pointer-events: none`: nunca puede
+  robar un clic.
 - **Notificaciones:** caen desde arriba y se van solas. Nunca roban el foco.
 
 **La lista SE REPLIEGA con la presión**, y no es un adorno: es la respuesta al

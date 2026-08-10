@@ -11,6 +11,7 @@ lo que falta. Escribe encima, tacha, contesta las preguntas del final.
 | §4.2 El reloj al centro | ✅ | Se conservó tal cual estaba |
 | §4.3 Nombre de zona (inf. der.) | ✅ | Sale al entrar y se va solo |
 | §4.4 Prompt de acción (inf. izq.) | ◻︎ | Sigue solo el botón táctil |
+| §4.7 La acción en PRIMER PLANO | ✅ | `.inc-action`: tarjeta del gesto (carril + zona) y cuenta atrás, en la banda baja. La tira del pulso baja a `52px` y la píldora de mandos le cede el sitio (`body.inc-acting`). Lo vigila `npm run check:gesto` |
 | §4.5 Menú de pausa | ◻︎ parcial | **La LEYENDA DE MANDOS ya está** y es permanente (`src/ui/controls.js`). Las pestañas siguen pendientes: hoy son pantallas sueltas |
 | §4.6 El bisel como lenguaje de formas | ◻︎ parcial | La placa y las filas ya lo llevan; falta el token `--cut` común |
 | §4bis Lista de tareas | ✅ | Opción **A** (placa izq. / tareas der.), teclas `1`–`3`, medalla compartida con el piso |

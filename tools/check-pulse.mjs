@@ -47,12 +47,30 @@ await p.evaluate(() => {
 });
 await p.waitForTimeout(600);
 
+await p.evaluate(() => {
+  // LA ESTACIÓN DE PULSO, PUESTA A MANO SI HACE FALTA.
+  //
+  // La cadena del día 1 abre con el café, y el café juega al GESTO desde que
+  // existen los gestos: en ese momento `objectives` no tiene ni una estación
+  // de pulso, y la prueba se quedaba sin sitio donde ponerse. La que sí lo
+  // juega (`snack`) se desbloquea más adelante en la cadena, así que aquí se
+  // adelanta desde el plano — que es exactamente lo que hace la campaña al
+  // desbloquear una misión, no un atajo inventado para la prueba.
+  const g = window.__game.engine.game;
+  if (g.objectives.some((o) => !o.dynamic && !o.gesto)) return;
+  const base = (g._allStations ?? []).find((a) => !a.gesto);
+  if (base) g.objectives.push({ ...base, progress: 0, done: false });
+});
+
 // ── 1 · El pulso arranca al ponerse a hacer una actividad ──
 const arranque = await p.evaluate(async () => {
   const g = window.__game.engine.game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const st = g.objectives.find((o) => !o.dynamic);
-  if (!st) return { error: "el día no trae ninguna estación" };
+  // SIN `gesto`: esa juega al otro minijuego (check-gesto.mjs). Pedir "una
+  // estación" a secas empezó a caer en el café en cuanto los gestos
+  // entraron, y el pulso salía apagado sin que nada estuviera roto.
+  const st = g.objectives.find((o) => !o.dynamic && !o.gesto);
+  if (!st) return { error: "el día no trae ninguna estación de pulso" };
   g.player.position.x = st.x;
   g.player.position.z = st.z;
   g.player.keys.add(" ");
@@ -115,7 +133,7 @@ const golpes = await p.evaluate(async () => {
   g.suspicion = 0;
   g.boss.suspicion = 0;
   g.boss.resetToPatrol();
-  const st0 = g.objectives.find((o) => !o.dynamic);
+  const st0 = g.objectives.find((o) => !o.dynamic && !o.gesto);
   g.player.position.x = st0.x;
   g.player.position.z = st0.z;
   g.player.keys.add(" ");
@@ -185,7 +203,9 @@ const suelo = await p.evaluate(async () => {
   g.boss.position.x = g.player.position.x + 40;
   g.setPaused(false);
   await sleep(200);
-  const st = g.objectives.find((o) => !o.dynamic && !o.done) ?? g.objectives.find((o) => !o.dynamic);
+  const st =
+    g.objectives.find((o) => !o.dynamic && !o.gesto && !o.done) ??
+    g.objectives.find((o) => !o.dynamic && !o.gesto);
   st.done = false;
   st.progress = 0;
   g.player.keys.delete(" ");

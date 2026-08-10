@@ -159,6 +159,92 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     }
   }
 
+  // ── LA ACCIÓN EN PRIMER PLANO ─────────────────────────────────────────
+  // Lo que pidió el diseño: que hacer algo prohibido se VEA, y que haya que
+  // hacer algo de verdad —bajarle el volumen a la peli para que no te oigan—
+  // con una cuenta atrás encima.
+  //
+  // «Primer plano» NO es «pantalla completa», y la diferencia es toda la
+  // mecánica: el mundo NO se pausa (game/gestures.js explica por qué), así
+  // que esto vive en la MISMA banda baja que el pulso —por debajo de los pies
+  // de la jugadora— y nunca roba un clic. Un panel centrado que tapara el
+  // piso convertiría las estaciones en el sitio más seguro de la planta, que
+  // es justo lo contrario de para qué están.
+  //
+  // El pulso y el gesto son excluyentes, así que comparten sitio sin pelearse.
+  const action = el("div", "inc-action", layer);
+  const actionClock = el("div", "inc-action-clock", action);
+  const actionClockFill = el("i", "inc-action-clock-fill", actionClock);
+  const actionBody = el("div", "inc-action-body", action);
+  const actionIcon = el("span", "inc-action-icon", actionBody);
+  const actionText = el("div", "inc-action-text", actionBody);
+  const actionVerb = el("b", "inc-action-verb", actionText);
+  const actionLabel = el("span", "inc-action-label", actionText);
+  const actionTrack = el("div", "inc-action-track", actionBody);
+  const actionZone = el("i", "inc-action-zone", actionTrack);
+  const actionKnob = el("i", "inc-action-knob", actionTrack);
+  const actionCount = el("span", "inc-action-count", actionBody);
+  let actionIconName = null;
+
+  function renderAction(state) {
+    const g = state.gesture;
+    const d = state.deadline;
+    const on = !!(g || d);
+    action.classList.toggle("on", on);
+    // La píldora de bienvenida comparte banda con esto y le cede el sitio
+    // (ver `body.inc-acting #hint`). Va en el <body> y no en el layer porque
+    // la píldora cuelga de ahí, no del HUD.
+    document.body.classList.toggle("inc-acting", on);
+    if (!on) {
+      actionIconName = null;
+      return;
+    }
+
+    // El icono se reconstruye solo cuando cambia: `iconEl` crea un SVG nuevo
+    // cada vez y hacerlo por cuadro se nota en un teléfono.
+    const icon = g?.icon ?? "clock";
+    if (icon !== actionIconName) {
+      actionIconName = icon;
+      actionIcon.replaceChildren(iconEl(icon));
+    }
+    actionVerb.textContent = g?.verbo ?? "Termina antes de que te vean";
+    actionLabel.textContent = g?.label ?? d?.label ?? "";
+
+    actionTrack.classList.toggle("on", !!g);
+    if (g) {
+      actionTrack.dataset.eje = g.eje;
+      // El eje "y" se pinta de abajo arriba (0 abajo), que es como se lee un
+      // volumen; el "x", de izquierda a derecha.
+      const zoneStart = `${Math.max(0, (g.zonaAt - g.zona / 2) * 100)}%`;
+      const zoneSize = `${g.zona * 100}%`;
+      if (g.eje === "x") {
+        actionZone.style.cssText = `left:${zoneStart};width:${zoneSize};top:0;bottom:0`;
+        actionKnob.style.cssText = `left:${g.valor * 100}%;top:-3px;bottom:-3px;width:5px;margin-left:-2.5px`;
+      } else {
+        actionZone.style.cssText = `bottom:${zoneStart};height:${zoneSize};left:0;right:0`;
+        actionKnob.style.cssText = `bottom:${g.valor * 100}%;left:-3px;right:-3px;height:5px;margin-bottom:-2.5px`;
+      }
+      actionTrack.classList.toggle("in", g.dentro);
+      // DELATADA: el valor está en el extremo y te están oyendo. Es el único
+      // estado del panel que grita, porque es el único que cuesta sospecha
+      // cada segundo que lo dejes así.
+      action.classList.toggle("loud", g.delatada);
+    } else {
+      action.classList.remove("loud");
+    }
+
+    if (d) {
+      actionClock.classList.add("on");
+      actionClockFill.style.width = `${Math.max(0, (d.left / d.total) * 100)}%`;
+      actionCount.textContent = `${Math.ceil(d.left)}s`;
+      action.classList.toggle("urge", d.left <= 3);
+    } else {
+      actionClock.classList.remove("on");
+      actionCount.textContent = "";
+      action.classList.remove("urge");
+    }
+  }
+
   // ── AVISOS (caen bajo el reloj y se van solos) ────────────────────────
   const notices = el("div", "inc-bar-notices", layer);
   function notify({ icon = "alert", text = "", tone = "info", ttl = 4200 } = {}) {
@@ -371,6 +457,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       renderClock(state);
       renderZone(state);
       renderPulse(state);
+      renderAction(state);
     },
   };
 }

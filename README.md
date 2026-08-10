@@ -67,6 +67,8 @@ código**.
 | El balance de IA del jefe / sospecha | [`boss-config.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/boss-config.json) |
 | Qué puede hacer una opción de diálogo (`effect`) | [`src/game/effects.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/effects.js) |
 | Registrar un minijuego nuevo (antes de la jornada) | [`src/game/minigames.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/minigames.js) |
+| El GESTO de una tarea (bajarle el volumen a la peli) y su cuenta atrás | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/scenes/piso7.json) → `activities[].gesto` / `.limite`; el mecanismo, en [`src/game/gestures.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/gestures.js) |
+| El PULSO de una tarea (el minijuego de ritmo) | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/scenes/piso7.json) → `activities[].pulso`; el mecanismo, en [`src/game/activityGame.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/activityGame.js) |
 | Los efectos de sonido 8-bit (menús, diálogo, acciones) (código) | [`src/game/sfx.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/sfx.js) |
 | La música (notas, tempo, mezcla por ánimo) | [`src/game/soundtrackThemes.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/soundtrackThemes.js) |
 | Cómo decide el motor cuándo cambiar de ánimo musical (código) | [`src/game/soundtrack.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/soundtrack.js) |

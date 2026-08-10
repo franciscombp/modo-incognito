@@ -28,6 +28,10 @@
 export const CONTROLES = [
   { teclas: ["WASD", "↑↓←→"], que: "Mover", corto: "WASD mover", tactil: "joystick", donde: "entities/player.js" },
   { teclas: ["Espacio"], que: "Usar / fingir", corto: "Espacio usar/fingir", tactil: "botón USAR", donde: "game/game.js" },
+  // El gesto de una tarea usa el MISMO mando de andar: mientras dura la
+  // acción no caminas, así que el eje queda libre. Por eso no hay una tecla
+  // nueva que aprender — y por eso funciona en el teléfono sin tocar nada.
+  { teclas: ["WASD", "↑↓←→"], que: "Ajustar la acción (bajar el volumen…)", corto: "WASD ajustar acción", tactil: "joystick", donde: "game/gestures.js" },
   { teclas: ["1", "2", "3"], que: "Seguir una misión", corto: "1–3 seguir misión", donde: "ui/gamehud.js" },
   { teclas: ["M"], que: "Inspeccionar el plano", corto: "M plano", tactil: "botón MAPA", donde: "main.js" },
   { teclas: ["V"], que: "Silenciar el sonido", corto: "V sonido", donde: "main.js" },
