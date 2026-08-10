@@ -61,7 +61,13 @@ export function createCampaign({ save, data }) {
       return persisted().temporada;
     },
     get rango() {
-      return data?.rango ?? RANGOS[Math.min(persisted().temporada - 1, RANGOS.length - 1)];
+      // El rango del JSON solo vale para SU temporada: si la carrera siguió
+      // (ascendiste y las temporadas 2–5 aún reusan estos datos), el rango
+      // sale de la escalera por antigüedad — sin esto, una Junior de
+      // temporada 2 seguía firmando como "Aprendiz" para siempre.
+      const t = persisted().temporada;
+      if (data?.rango && (data?.numero ?? 1) === t) return data.rango;
+      return RANGOS[Math.min(t - 1, RANGOS.length - 1)];
     },
 
     /** Arranque de jornada: qué misiones entran hoy. */

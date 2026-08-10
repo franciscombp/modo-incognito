@@ -44,6 +44,10 @@ const EMPTY = {
   // misiones ÚNICAS ya hechas. El guardado es por progreso de TAREAS: una
   // única se escribe aquí en el acto, no al cerrar el día.
   campaign: { temporada: 1, dia: 1, unicas: [] },
+  // EL EXPEDIENTE: el historial de evaluaciones firmadas, una por jornada
+  // cerrada. Es la memoria larga de la carrera de ESTA ranura — la hoja de
+  // vida lo lee para escribirse sola.
+  cv: { historial: [] },
   // Cuándo se tocó por última vez, para que la ranura pueda decir "ayer".
   playedAt: null,
 };
@@ -60,6 +64,7 @@ function freshEmpty() {
     bestTimes: {},
     bestSpare: {},
     campaign: { temporada: 1, dia: 1, unicas: [] },
+    cv: { historial: [] },
   };
 }
 
@@ -153,6 +158,11 @@ export function listSlots() {
             dia: s.campaign?.dia ?? 1,
             unicas: s.campaign?.unicas?.length ?? 0,
             eggs: s.eggs?.length ?? 0,
+            // La última nota firmada, para que la hoja de vida la presuma
+            // (o la cargue): las hojas se escriben solas.
+            ultimaNota: s.cv?.historial?.length
+              ? s.cv.historial[s.cv.historial.length - 1].nota
+              : null,
             playedAt: s.playedAt ?? null,
           }
         : { index: n, empty: true }
@@ -210,6 +220,22 @@ export function createSave() {
     },
     set campaign(c) {
       state.campaign = c;
+      write(state);
+    },
+    get cv() {
+      return state.cv ?? { historial: [] };
+    },
+    /**
+     * Firma una evaluación en el expediente de ESTA ranura. Siempre con un
+     * objeto nuevo — mutar el que hay podría estar tocando un estado
+     * compartido si la ranura venía limpia.
+     */
+    addReview(entry) {
+      const historial = [...(state.cv?.historial ?? []), entry];
+      // El expediente no es un log infinito: con 60 jornadas ya cuenta la
+      // carrera entera (25 días de calendario y sus repeticiones).
+      while (historial.length > 60) historial.shift();
+      state.cv = { ...(state.cv ?? {}), historial };
       write(state);
     },
     /**

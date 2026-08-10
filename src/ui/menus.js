@@ -176,6 +176,12 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     if (s.eggs > 0) {
       lines.push(`${s.eggs} hallazgo${s.eggs === 1 ? "" : "s"} no documentado${s.eggs === 1 ? "" : "s"}`);
     }
+    // La última nota firmada (save.cv.historial): el renglón que RRHH
+    // miraría primero, dicho como se dice en un CV — presumiendo la letra
+    // sin decir qué significa.
+    if (s.ultimaNota && s.ultimaNota !== "—") {
+      lines.push(`Evaluación de desempeño vigente: ${s.ultimaNota}`);
+    }
     // Una carrera empezada pero sin nada que presumir todavía. El chiste
     // sigue: en un CV, "en curso" también ocupa renglón.
     if (!lines.length) lines.push("Incorporación reciente · periodo de adaptación");

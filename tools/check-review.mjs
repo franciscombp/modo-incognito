@@ -53,10 +53,15 @@ const ejes = await p.evaluate(async () => {
   // todos los qués —lo que además lo desbloquea— y se deja ese sin tocar.
   // La primera versión llamaba a clearGate() y daba por hecho `meet-gabo`,
   // con lo que los dos ejes salían completos y la nota no era B, sino "—".
+  // OJO: la lista de qués tiene que seguir a la temporada — completar `movie`
+  // desbloquea `siesta-tactica` y esa a `ventana` (únicas qué), y un qué
+  // elegible sin hacer también rompe la B. Si añades un qué a la cadena,
+  // añádelo aquí o deja su requisito sin cumplir.
   engine.save.campaign = { temporada: 1, dia: 1, unicas: [] };
   camp.startDay();
   camp.complete("meet-gabo");
-  for (const id of ["fingir-101", "coffee", "movie", "snack"]) camp.complete(id);
+  for (const id of ["fingir-101", "coffee", "movie", "snack", "siesta-tactica", "ventana"])
+    camp.complete(id);
   const r = camp.endDay({ win: false });
   return { nota: r.nota, ques: r.ques, comos: r.comos, detalle: r.detalle };
 });

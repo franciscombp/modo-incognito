@@ -136,11 +136,29 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const pulseZone = el("i", "inc-pulse-zone", pulseBar);
   const pulseMark = el("i", "inc-pulse-mark", pulseBar);
   const pulsePips = el("div", "inc-pulse-pips", pulseBar);
+  // La regla del minijuego, escrita UNA vez encima de la tira las primeras
+  // veces que se enciende. Sin esto, la tira era un adorno misterioso: nadie
+  // sabía que tocar al ritmo acelera ni que fallar hace ruido. Después
+  // desaparece — con el jefe detrás nadie lee (el mismo principio del
+  // repliegue de la lista).
+  el(
+    "div",
+    "inc-pulse-hint",
+    pulseBar,
+    "ESPACIO al ritmo · dentro de la zona clara avanza · fuera hace RUIDO"
+  );
   let pulseHits = -1;
+  let pulseWasOn = false;
+  let pulseShows = 0;
 
   function renderPulse(state) {
     const p = state.pulse;
     pulseBar.classList.toggle("on", !!p);
+    if (!!p && !pulseWasOn) {
+      pulseShows += 1;
+      pulseBar.classList.toggle("hint", pulseShows <= 3);
+    }
+    pulseWasOn = !!p;
     if (!p) {
       pulseHits = -1;
       return;

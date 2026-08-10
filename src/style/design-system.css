@@ -9645,6 +9645,26 @@ body {
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent);
 }
+/* La regla del pulso, DICHA una vez: las primeras veces que la tira se
+   enciende, una línea encima explica el juego. Después desaparece — quien
+   ya lo jugó no necesita leerla con el jefe detrás. */
+.inc-pulse-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 100%;
+  margin-bottom: 10px;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-soft);
+  text-shadow: 0 2px 0 hsl(var(--p-shadow-hue) / 0.7);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.inc-pulse.on.hint .inc-pulse-hint { opacity: 1; }
 
 /* ── LA ACCIÓN EN PRIMER PLANO ───────────────────────────────────────────
    El gesto de una actividad (bajarle el volumen a la peli) y su cuenta atrás.

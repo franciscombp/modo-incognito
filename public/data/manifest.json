@@ -23,20 +23,9 @@
   "modes": "modes.json",
   "bossConfig": "boss-config.json",
   "campaign": "campaign/temporada-1.json",
-  "scenes": [
-    "piso7"
-  ],
-  "sprites": [
-    "giuli",
-    "gabo",
-    "crispo",
-    "fran",
-    "manu"
-  ],
-  "levels": [
-    "dia-1",
-    "dia-2"
-  ],
+  "scenes": ["piso7"],
+  "sprites": ["giuli","gabo","crispo","fran","manu"],
+  "levels": ["dia-1","dia-2"],
   "codeEggs": [
     {
       "id": "egg_konami",
@@ -62,14 +51,7 @@
     },
     {
       "id": "egg_nomina",
-      "keys": [
-        "n",
-        "o",
-        "m",
-        "i",
-        "n",
-        "a"
-      ],
+      "keys": ["n","o","m","i","n","a"],
       "scene": [
         {
           "speaker": "Sistema",
@@ -79,17 +61,7 @@
     },
     {
       "id": "egg_incognito",
-      "keys": [
-        "i",
-        "n",
-        "c",
-        "o",
-        "g",
-        "n",
-        "i",
-        "t",
-        "o"
-      ],
+      "keys": ["i","n","c","o","g","n","i","t","o"],
       "scene": [
         {
           "speaker": "Giuli",
@@ -120,10 +92,7 @@
           "sheet": "guili-camina",
           "text": "Con ayuda, eso sí. Fran no programa solo — programa con Claude Code al lado, fingiendo que es una reunión de arquitectura."
         },
-        {
-          "speaker": "Tú",
-          "text": "Así que hasta la IA está fingiendo que trabaja aquí."
-        }
+        {"speaker":"Tú","text":"Así que hasta la IA está fingiendo que trabaja aquí."}
       ]
     }
   ],

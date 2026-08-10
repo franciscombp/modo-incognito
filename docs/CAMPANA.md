@@ -19,6 +19,8 @@ encima, tacha, contesta las preguntas.
 | §6 Rangos y jubilación | ◻︎ parcial | El rango y el ascenso ya salen en la evaluación; falta la temporada 5 y el final (es CONTENIDO: hay que escribir las temporadas 2–5) |
 | §8 Plan de nivelación | ✅ | `src/ui/levelling.js`; la tanda sale de `nivelacion.pruebas` en el JSON de la temporada |
 | Pantalla de evaluación (PANTALLAS §3) | ✅ | `src/ui/review.js`: los dos ejes por separado, con barra y comentario del evaluador |
+| Temporada 1 con arco completo (14 misiones) | ✅ | `temporada-1.json`: el arco César → Manu → Giuli abre chat, sleep, window y meeting como únicas encadenadas; sus escenas van al frente del pozo en `dialogues.json` |
+| El historial de evaluaciones en el expediente | ✅ | `save.cv.historial`: cada evaluación se firma en `finishDay`; la hoja de vida enseña la nota vigente (`menus.js` → `cvExperience`) |
 
 > ⚠️ **Esto reemplaza el modelo de juego actual.** El día 1 era una jornada
 > suelta con tres actividades libres; ahora esas tres actividades son

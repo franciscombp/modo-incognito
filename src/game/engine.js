@@ -319,7 +319,12 @@ export function createEngine({
     const done = save.state.completedDays.length;
     menus.openTitle({
       hasProgress: done > 0 || save.dayIndex > 0,
-      summary: `${done}/${levels.length} días superados · ${save.state.eggs.length}/${eggIds.length} secretos`,
+      // Con campaña, el pie del título habla el idioma de la CARRERA
+      // (rango, temporada, día) — «0/2 días superados» era el modelo viejo
+      // asomando en la portada. Sin campaña, el resumen de siempre.
+      summary: campaign.active
+        ? `${campaign.rango} · Temporada ${campaign.temporada} · Día ${campaign.dia} · ${save.state.eggs.length}/${eggIds.length} secretos`
+        : `${done}/${levels.length} días superados · ${save.state.eggs.length}/${eggIds.length} secretos`,
     });
   }
 
@@ -956,6 +961,20 @@ export function createEngine({
     // La EVALUACIÓN de RRHH: nota por los dos ejes (Qués y Cómos) y avance
     // de calendario — AAA salta la temporada, A asciende por antigüedad.
     const evalRes = campaign.active ? campaign.endDay({ win: result.win }) : null;
+    // La evaluación se FIRMA en el expediente de la ranura en el acto: es la
+    // memoria larga de la carrera, y la hoja de vida la lee para escribirse
+    // sola. Se alimenta aquí y no desde la pantalla que la enseña — una
+    // pantalla no debe escribir progreso.
+    if (evalRes) {
+      save.addReview({
+        temporada: evalRes.temporada,
+        dia: evalRes.dia,
+        nota: evalRes.nota,
+        rango: evalRes.rango,
+        ques: evalRes.ques,
+        comos: evalRes.comos,
+      });
+    }
     // La EVALUACIÓN va ANTES del panel de resultado, y en su propia pantalla.
     // Estaba como una línea dentro del cuerpo del panel: el chiste central
     // del juego —los dos ejes por separado, «cumples pero no eres de

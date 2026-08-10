@@ -223,6 +223,18 @@
         [
           {
             "speaker": "Manu de la suerte",
+            "text": "¿César te habló de LA idea? Para que conste en acta: yo la pensé primero. Él le puso el drama, que también es un aporte, no digo que no."
+          },
+          {"speaker":"Tú","text":"¿Y qué es exactamente? Nadie me dice nada concreto."},
+          {
+            "speaker": "Manu de la suerte",
+            "text": "Concreto no hay NADA, por diseño. Si no hay nada concreto, no hay nada que reportar. Vamo a calmarno, y si alguien pregunta, esta conversación fue sobre KPIs."
+          },
+          {"speaker":"Tú","text":"La mejor reunión que he tenido en esta empresa."}
+        ],
+        [
+          {
+            "speaker": "Manu de la suerte",
             "text": "¿Sabías que llevo cuatro años sin que me toque una guardia de fin de mes? Cuatro."
           },
           {
@@ -290,6 +302,19 @@
     "cesar": {
       "cooldown": 40,
       "scenes": [
+        [
+          {
+            "speaker": "César",
+            "mood": "tense",
+            "text": "Shhh. ¿Fran ya te contó? Da igual, ella cuenta todo. Solo te digo una cosa: tengo una idea que va a arreglar TODO esto. La silla, el aire a veintiuno, el jefe. Todo."
+          },
+          {"speaker":"Tú","text":"¿Una idea? ¿Aquí? ¿En horario laboral?"},
+          {
+            "speaker": "César",
+            "text": "En horario laboral es cuando mejor pienso: técnicamente me pagan por quejarme. Habla con Manu — él va a decir que la idea fue suya. Déjalo. Los genios no discutimos con la suerte."
+          },
+          {"speaker":"Tú","text":"No sé nada, no vi nada. Pero cuéntamelo TODO."}
+        ],
         [
           {
             "speaker": "César",
@@ -642,6 +667,18 @@
     "giuli": {
       "cooldown": 30,
       "scenes": [
+        [
+          {
+            "speaker": "Giuli",
+            "text": "Yo no sé qué se traen César y Manu, y OFICIALMENTE no quiero saber. Extraoficialmente: si necesitas que alguien mire para otro lado, llevo años entrenando esa mirada."
+          },
+          {"speaker":"Tú","text":"¿Y qué pides a cambio?"},
+          {
+            "speaker": "Giuli",
+            "text": "Que cuando esto explote —porque va a explotar bonito— yo me entere PRIMERO. El chisme fresco no tiene precio: es mi plan de retiro."
+          },
+          {"speaker":"Tú","text":"Trato hecho."}
+        ],
         [
           {
             "speaker": "Giuli",
