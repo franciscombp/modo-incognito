@@ -532,7 +532,9 @@ esquinas:
   abrir nada, su distancia, su progreso y **la misma medalla que flota sobre
   el sitio en el piso** — la lista y el escenario hablan el mismo idioma. El
   color dice el tipo: ámbar los Qués, cian los Cómos.
-- **Centro arriba · el reloj**, que es la única moneda del juego.
+- **Centro arriba · el reloj**, que dice por dónde va la jornada. Su
+  compañera es la barra de ENERGÍA de la placa: el reloj te guía, la
+  energía es lo que te hace falta para llegar a las seis.
 - **Inf. der. · el nombre de zona**, texto pelado que sale al entrar y se va
   solo.
 - **Notificaciones:** caen desde arriba y se van solas. Nunca roban el foco.
@@ -603,13 +605,25 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
 
 ## Invariantes que no debes romper
 
-- **La moneda es la ENERGÍA, no el reloj.** La jornada dura lo que dura
-  (`rules.duration`, dos minutos) y no se compra: lo que se gasta y se
-  repone es la energía de aguantar el día. Baja sola —y **fingir que
-  trabajas cansa MÁS que no hacer nada**, que es el chiste— y la reponen las
-  actividades. Ojo con los dos campos de una actividad, que se confunden
-  solos: **`time` es lo que TARDA** en hacerse y **`reward` es la ENERGÍA
-  que DA** (el número del JSON no cambió, cambió la moneda que mide).
+- **DOS MEDIDORES, y la energía NO sustituyó al reloj.** Responden a
+  preguntas distintas y hay que servir a los dos:
+  - **EL RELOJ te GUÍA**: por dónde va el día (9:00 → 6:00) y cuándo toca
+    salir por el ascensor. Lo alarga hacer tu TRABAJO — las misiones siguen
+    pagando en segundos por `_grantTime()`.
+  - **LA ENERGÍA es lo que HACE FALTA** para llegar al final
+    (`rules.duration`, dos minutos). Baja sola —y **fingir que trabajas
+    cansa MÁS que no hacer nada**, que es el chiste— y solo la reponen los
+    escaqueos. Se arranca a 75 de 100 y eso da ~44 s de los 120: **la
+    jornada NO se puede terminar sin reponer**, y por eso todos los días
+    hay que bajar a por un café.
+  Cumplir te compra DÍA, escaquearte te compra AGUANTE, y no se puede vivir
+  de una sola de las dos cosas. Ojo con los TRES campos de una actividad,
+  que se confunden solos: **`time` es lo que TARDA** en hacerse, **`energy`
+  es la ENERGÍA que DA**, y **`reward` es el reloj que daba antes** — se
+  queda de suelo por si una escena no declara `energy`. Son campos aparte a
+  propósito: en la escala de `reward` el café era el escaqueo más barato
+  (17) y en energía tiene que ser **la mejor recarga del piso** (45), que es
+  lo que lo vuelve obligatorio.
   - **A cero te DUERMES** unos segundos sin control, plantada donde estabas
     (`SLEEP_SECONDS`). Dormirse no castiga por sí solo: castiga dormirse
     DONDE TE VEN. Con el jefe a la vista es amonestación; en un lugar seguro
@@ -617,10 +631,10 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
     sitio no.
   - Al despertar se recupera un mínimo (25%) a propósito: con cero se
     volvería a dormir al cuadro siguiente, en bucle.
-  - `_grantTime()` sigue existiendo para los secretos y bonos sueltos, y
-    sigue siendo el único sitio por el que se regala reloj (mantiene
-    `timeGained` en sincronía con `timeLeft`). Lo que ya no pasa por ahí son
-    las tareas.
+  - `_grantTime()` sigue siendo **el único sitio por el que se regala
+    reloj** (misiones, secretos, distracciones y el bono de jugar limpio el
+    pulso), y es quien mantiene `timeGained` en sincronía con `timeLeft`.
+    Lo que ya no pasa por ahí son las actividades, que pagan en energía.
   Lo vigila `npm run check:energia`.
 - **`scenes/piso7.json` → `areas`**: los rectángulos de zona no deben
   solaparse. Si añades o mueves una zona, revisa `x/z/w/d` contra las

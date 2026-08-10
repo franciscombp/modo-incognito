@@ -52,15 +52,30 @@ no lo pasas avanzando. Ese es todo el juego. Cualquier regla que rompa ese
 intercambio —que fingir sea gratis, o que esconderse no cueste tiempo— vacía
 el bucle aunque cada pieza por separado funcione.
 
-### 1.1 No hay puntos: la moneda es el RELOJ
+### 1.1 No hay puntos: hay DOS MEDIDORES
 
-No existe una puntuación. Todo lo que "premia" **alarga la jornada**, y todo
-el reloj regalado pasa por `Game._grantTime()`, que mantiene el contador del
-HUD en sincronía. Si sumas a `timeLeft` por tu cuenta, el HUD miente y nadie
-se entera.
+No existe una puntuación. Lo que se lleva la cuenta son dos cosas distintas,
+y hay que atender a las dos:
 
-⚠️ **Dos campos que se confunden solos** en una actividad:
-`time` es lo que TARDA en hacerse · `reward` es el reloj que DA.
+| | Qué pregunta responde | Qué lo mueve |
+|---|---|---|
+| **El RELOJ** | Por dónde va el día (9:00 → 6:00) y cuándo salir | Lo alarga **cumplir**: misiones, secretos, distracciones, jugar limpio el pulso |
+| **La ENERGÍA** | Si vas a poder llegar al final | Baja sola; solo la reponen los **escaqueos** |
+
+Todo el reloj regalado pasa por `Game._grantTime()`, que mantiene el contador
+del HUD en sincronía. Si sumas a `timeLeft` por tu cuenta, el HUD miente y
+nadie se entera.
+
+La energía se arranca a **75 de 100** y baja a 1,7/s (2,6/s fingiendo): eso
+son ~44 s de los 120 de jornada, así que **el día no se puede terminar sin
+reponer**. De ahí que todos los días haya que bajar a por un café — el café
+es la mejor recarga del piso (45) y es lo que lo vuelve obligatorio. A cero
+te DUERMES unos segundos sin control, y si el jefe te ve dormida es
+amonestación; en un lugar seguro es una cabezada y ya.
+
+⚠️ **Tres campos que se confunden solos** en una actividad:
+`time` es lo que TARDA en hacerse · `energy` es la ENERGÍA que DA ·
+`reward` es el reloj que daba antes, hoy solo el suelo si falta `energy`.
 
 ---
 

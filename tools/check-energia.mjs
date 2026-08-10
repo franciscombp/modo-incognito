@@ -4,9 +4,13 @@ import { chromium } from "playwright";
 // las haces.
 //
 // Lo que vigila:
-//  1. La jornada dura DOS MINUTOS y ya no se alarga: una tarea no toca el
-//     reloj, toca la energía.
+//  1. La jornada dura DOS MINUTOS y una tarea no toca el reloj: toca la
+//     energía. El reloj sigue existiendo — te guía — pero lo alargan las
+//     misiones, no los escaqueos.
 //  2. La energía baja sola, y fingir cansa MÁS que no hacer nada.
+//  2b. NI CON EL TANQUE LLENO se aguanta el día entero, que es lo que
+//     vuelve obligatorio bajar a por un café. Y el café es la mejor
+//     recarga del piso: si deja de serlo, deja de ser obligatorio.
 //  3. A cero te duermes: unos segundos sin control, y los mandos no
 //     responden (que no se lea como un cuelgue).
 //  4. Dormirse a la vista del jefe cuesta una AMONESTACIÓN; dormirse en un
@@ -86,6 +90,22 @@ const out = await p.evaluate(() => {
     return g.energy <= g.energyMax;
   })();
 
+  // ── 2b · El café es obligatorio, y hay que poder demostrarlo ───────
+  // Autonomía = tanque lleno / lo que se gasta por segundo. Si diera para
+  // los 120 s, la energía sería un adorno: se entraría y se saldría sin
+  // pasar por la cafetera ni una vez.
+  const gasto = 100 - r.trasUnSegundo;
+  r.autonomia = Number((g.energyMax / gasto).toFixed(1));
+
+  const escaqueos = (g._allStations ?? []).map((s) => ({
+    id: s.id,
+    energia: s.energy ?? s.reward ?? 0,
+  }));
+  const cafe = escaqueos.find((s) => s.id === "coffee");
+  r.cafe = cafe?.energia ?? 0;
+  r.mejorRecarga = Math.max(0, ...escaqueos.map((s) => s.energia));
+  r.declaranEnergia = (g._allStations ?? []).every((s) => s.energy != null);
+
   return r;
 });
 
@@ -99,6 +119,17 @@ check(
 check(out.relojIntacto === true, "una tarea NO toca el reloj");
 check(out.energiaSubio === true, "una tarea sube la energía");
 check(out.energiaTopada === true, "y la energía no pasa de su tope");
+check(
+  out.autonomia < out.duracion,
+  "ni con el tanque lleno se aguanta el día sin reponer",
+  `${out.autonomia}s de ${out.duracion}s`
+);
+check(out.declaranEnergia === true, "cada escaqueo declara su `energy`");
+check(
+  out.cafe > 0 && out.cafe === out.mejorRecarga,
+  "y el café es la mejor recarga del piso",
+  `café ${out.cafe} · máximo ${out.mejorRecarga}`
+);
 
 // ── 3 · A cero te duermes, y los mandos no responden ────────────────
 const dormida = await p.evaluate(() => {

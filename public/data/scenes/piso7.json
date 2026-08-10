@@ -22,8 +22,14 @@
     "es solo decorado, pero se ve igual.",
     "",
     "activities[].time: cuanto SE TARDA en hacerla (segundos de aguante).",
-    "activities[].reward: cuanto RELOJ regala al completarla. No hay puntos:",
-    "la unica moneda del juego es la jornada, y cada escaqueo la alarga.",
+    "activities[].energy: cuanta ENERGIA repone al completarla, que es lo",
+    "que de verdad hace falta para llegar a las seis. Es un campo PROPIO y",
+    "no se reutiliza `reward`: en aquella escala el cafe era el escaqueo mas",
+    "barato (17) y aqui tiene que ser la mejor recarga del piso, porque bajar",
+    "a por un cafe es el requisito de todos los dias.",
+    "activities[].reward: lo que pagaba cuando esto daba RELOJ. Se queda de",
+    "suelo por si una escena no declara `energy`; el reloj hoy lo alargan las",
+    "misiones, no los escaqueos.",
     "activities[].riskRate: sospecha por segundo mientras la haces.",
     "activities[].icon: NOMBRE de icono, no un emoji — se dibuja en SVG (ver",
     "src/ui/icons.js). Un emoji lo pinta la fuente del sistema y sale distinto",
@@ -649,6 +655,7 @@
       "perk": "caffeine",
       "pose": "coffee",
       "reward": 17,
+      "energy": 45,
       "pulso": {
         "periodo": 1.7,
         "zona": 0.3,
@@ -667,6 +674,7 @@
       "time": 5,
       "pose": "shrug",
       "reward": 27,
+      "energy": 12,
       "pulso": {
         "periodo": 1.4,
         "zona": 0.26,
@@ -685,6 +693,7 @@
       "time": 6,
       "pose": "movie",
       "reward": 43,
+      "energy": 18,
       "pulso": {
         "periodo": 2.2,
         "zona": 0.38,
@@ -704,6 +713,7 @@
       "time": 2.5,
       "pose": "sleep",
       "reward": 37,
+      "energy": 35,
       "pulso": {
         "periodo": 2.4,
         "zona": 0.34,
@@ -723,6 +733,7 @@
       "time": 4,
       "pose": "eat",
       "reward": 32,
+      "energy": 25,
       "pulso": {
         "periodo": 1.0,
         "zona": 0.2,
@@ -742,6 +753,7 @@
       "time": 3.5,
       "pose": "sleep",
       "reward": 25,
+      "energy": 15,
       "pulso": {
         "periodo": 1.8,
         "zona": 0.32,
@@ -760,6 +772,7 @@
       "time": 5,
       "pose": "movie",
       "reward": 38,
+      "energy": 10,
       "pulso": {
         "periodo": 1.3,
         "zona": 0.24,
@@ -778,6 +791,7 @@
       "time": 4,
       "pose": "coffee",
       "reward": 28,
+      "energy": 12,
       "pulso": {
         "periodo": 2.0,
         "zona": 0.36,

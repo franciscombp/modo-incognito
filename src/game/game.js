@@ -137,27 +137,39 @@ const DAY_END_HOUR = 19; // 7:00 p.m.
 // una amonestación. Castigo con nombre y cara, no una pantalla de derrota.
 const CLOSING_HOUR = 18; // 6:00 p.m.
 
-// ── LA ENERGÍA: LO QUE DE VERDAD DAN LAS TAREAS ──────────────────────
+// ── DOS MEDIDORES, DOS TRABAJOS DISTINTOS ────────────────────────────
 //
-// El reloj dejó de ser la moneda. La jornada dura lo que dura y no se
-// compra; lo que se gasta y se repone es la ENERGÍA de aguantar el día.
-// Baja sola desde que entras y cada cosa prohibida que haces —el café, la
-// película, el chisme— te repone un poco.
+// La energía NO sustituyó al reloj. Son dos medidores a la vez, y cada uno
+// responde a una pregunta distinta:
+//
+// EL RELOJ te GUÍA: dice por dónde va el día (9:00 → 6:00) y cuándo toca
+// salir por el ascensor. Es el mapa de la jornada, y lo que lo alarga es
+// hacer tu TRABAJO — las misiones siguen pagando en segundos.
+//
+// LA ENERGÍA es lo que HACE FALTA para llegar al final. Baja sola desde
+// que entras y solo la reponen los escaqueos — el café, sobre todo. De ahí
+// que todos los días haya que bajar por un café: no es un adorno del día,
+// es el requisito para terminarlo.
+//
+// El reparto es el chiste entero: cumplir te compra DÍA, escaquearte te
+// compra AGUANTE, y no puedes vivir de una sola de las dos cosas.
 //
 // A cero te DUERMES en el sitio, y ahí está el chiste: dormirse en la
 // oficina no te mata, te deja tirada a la vista de todos. Si el jefe te
 // pilla dormida, amonestación. Despertarte cuesta unos segundos en los que
 // no controlas nada, que es la peor moneda posible con alguien rondando.
 //
-// Por qué es mejor que alargar el reloj: regalar tiempo hacía que ir bien
-// se pareciera a jugar MÁS, y el premio de una buena racha era una partida
-// más larga. La energía convierte lo mismo en un ciclo — te desgastas,
-// buscas dónde reponerte, y ese "dónde" es justo el sitio donde te pueden
-// ver. Es el bucle del juego, no un contador al lado.
+// ── LOS NÚMEROS, Y POR QUÉ ESTOS ─────────────────────────────────────
+// Estuvieron en 4,5/s con 70 de salida, o sea que se aguantaban 15 de los
+// 120 segundos de jornada: OCHO siestas por día, injugable. La cuenta que
+// manda es esta: con el arranque (75) aguantas ~44 s de los 120, así que
+// la jornada NO se termina sin reponer — pero un café (+45) compra otros
+// ~26 s y dos o tres paradas bien puestas la cubren de sobra. Necesario
+// pero no asfixiante, que es donde vive la decisión.
 const ENERGY_MAX = 100;
-const ENERGY_START = 70; // se entra con sueño, no a tope: hay que ir a por el café
-const ENERGY_DRAIN = 4.5; // por segundo de jornada
-const ENERGY_DRAIN_PRETEND = 7; // fingir cansa MÁS que trabajar, y ese es el chiste
+const ENERGY_START = 75; // se entra con sueño, no a tope: hay que ir a por el café
+const ENERGY_DRAIN = 1.7; // por segundo — 100 de energía dan ~59 s de jornada
+const ENERGY_DRAIN_PRETEND = 2.6; // fingir cansa MÁS que trabajar, y ese es el chiste
 const SLEEP_SECONDS = 4; // lo que tardas en espabilar
 
 /** La primera zona de un tipo (los ascensores, para la salida). */
@@ -477,8 +489,9 @@ export class Game {
       this.nearStation.progress = Math.min(this.nearStation.time, this.nearStation.progress + dt);
       if (this.nearStation.progress >= this.nearStation.time && !this.nearStation.done) {
         this.nearStation.done = true;
-        // Lo limpio que fuiste paga en RELOJ, que es la única moneda. Se cobra
-        // ANTES de soltar el pulso, que es quien lleva la cuenta.
+        // Lo limpio que fuiste paga en RELOJ, no en energía: la actividad ya
+        // te repuso el aguante, y lo que compra jugarla bien es DÍA para
+        // gastarlo. Se cobra ANTES de soltar el pulso, que lleva la cuenta.
         const bonus = this.pulse.bonusReloj();
         this._completeActivity(this.nearStation);
         if (bonus > 0) {
@@ -771,14 +784,16 @@ export class Game {
       nerveLabel = " · con el jefe cerca";
     }
 
-    // `reward`, no `time`: `time` es lo que TARDA la actividad, no lo que da.
+    // `energy`, no `time` ni `reward`: `time` es lo que TARDA la actividad y
+    // `reward` era lo que pagaba cuando esto daba reloj.
     //
-    // Y lo que da es ENERGÍA, no reloj. El número del JSON se queda como
-    // está —los 17 del café, los 43 de la película— pero ahora se lee en la
-    // otra moneda: el café te espabila un poco y escaquearte a ver una peli
-    // te repone media jornada. El descaro sigue pagando (el combo y el
-    // `nerve` de hacerlo con el jefe cerca multiplican igual).
-    const bruto = (station.reward ?? 20) * (this.combo + nerve);
+    // Un escaqueo paga en ENERGÍA, y cuánto es un campo PROPIO porque las dos
+    // escalas no se parecen: reutilizar `reward` dejaba al café —el más
+    // barato de la lista, 17— como la peor recarga del piso, justo lo
+    // contrario de lo que tiene que ser. `reward` se queda de suelo por si
+    // una escena vieja no declara `energy`. El descaro sigue pagando: el
+    // combo y el `nerve` de hacerlo con el jefe cerca multiplican igual.
+    const bruto = (station.energy ?? station.reward ?? 20) * (this.combo + nerve);
     const gained = this.grantEnergy(bruto, station);
 
     this.combo = Math.min(COMBO_MAX, this.combo + COMBO_STEP);
