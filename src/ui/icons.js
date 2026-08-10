@@ -69,6 +69,7 @@ import volume2 from "@phosphor-icons/core/assets/regular/speaker-high.svg?raw";
 import plus from "@phosphor-icons/core/assets/regular/plus.svg?raw";
 import minus from "@phosphor-icons/core/assets/regular/minus.svg?raw";
 import pause from "@phosphor-icons/core/assets/regular/pause.svg?raw";
+import notebook from "@phosphor-icons/core/assets/regular/notebook.svg?raw";
 
 const S = 24;
 
@@ -125,6 +126,7 @@ const RAW = {
   hand,
   plant,
   person,
+  notebook,
   calendar,
   stairs,
   elevator,

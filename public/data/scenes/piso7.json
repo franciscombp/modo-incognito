@@ -865,6 +865,65 @@
           "text": "Un muro con puerta en la mitad del piso. Muy de aquí: no lo cierran, solo lo hacen incómodo."
         }
       ]
+    },
+    {
+      "id": "egg_vending",
+      "x": 16.5,
+      "z": 13.2,
+      "radius": 1.8,
+      "dwell": 3,
+      "scene": [
+        {
+          "speaker": "Máquina expendedora",
+          "text": "«FUERA DE SERVICIO desde 2023.» Adentro, un snack quedó colgando a medio caer. Generaciones enteras han venido a mirarlo."
+        },
+        {"speaker":"Tú","text":"Algún día va a caer. Y ese día habrá fila."}
+      ]
+    },
+    {
+      "id": "egg_impresora",
+      "x": -5.5,
+      "z": 1.2,
+      "radius": 1.8,
+      "dwell": 3,
+      "scene": [
+        {
+          "speaker": "Impresora",
+          "text": "En la bandeja: la hoja de vida de alguien de la Célula, «abierto a nuevas oportunidades». Impresa aquí, en la impresora de la oficina."
+        },
+        {"speaker":"Tú","text":"Valentía es imprimir tu CV donde te pueden ver. Respeto. Y lo anoto."}
+      ]
+    },
+    {
+      "id": "egg_servidor",
+      "x": -12.6,
+      "z": 8.4,
+      "radius": 1.8,
+      "dwell": 3.5,
+      "scene": [
+        {
+          "speaker": "Computadora encendida",
+          "text": "Compila algo desde las 3 a.m. Pantalla apagada, ventilador a tope. En el post-it: «NO TOCAR — preguntar a M. o a C.»."
+        },
+        {
+          "speaker": "Tú",
+          "text": "¿Qué compila una oficina de DISEÑO a las tres de la mañana? Esto va directo a la libreta."
+        }
+      ]
+    },
+    {
+      "id": "egg_planta",
+      "x": 33,
+      "z": 13.5,
+      "radius": 1.8,
+      "dwell": 3,
+      "scene": [
+        {
+          "speaker": "Planta de oficina",
+          "text": "En la maceta hay una regla escrita a mano: «Riego: cada vez que alguien renuncie». Está verdísima."
+        },
+        {"speaker":"Tú","text":"La planta mejor cuidada del edificio. Qué mal augurio tan bien regado."}
+      ]
     }
   ],
   "routes": {

@@ -34,6 +34,7 @@ export const CONTROLES = [
   { teclas: ["WASD", "↑↓←→"], que: "Ajustar la acción (bajar el volumen…)", corto: "WASD ajustar acción", tactil: "joystick", donde: "game/gestures.js" },
   { teclas: ["1", "2", "3"], que: "Seguir una misión", corto: "1–3 seguir misión", donde: "ui/gamehud.js" },
   { teclas: ["M"], que: "Inspeccionar el plano", corto: "M plano", tactil: "botón MAPA", donde: "main.js" },
+  { teclas: ["L"], que: "La libreta (chismes y pistas)", corto: "L libreta", donde: "game/engine.js" },
   { teclas: ["V"], que: "Silenciar el sonido", corto: "V sonido", donde: "main.js" },
   { teclas: ["Esc"], que: "Pausa", corto: "Esc pausa", tactil: "botón de pausa", donde: "game/engine.js" },
 ];

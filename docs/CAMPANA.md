@@ -21,6 +21,8 @@ encima, tacha, contesta las preguntas.
 | Pantalla de evaluación (PANTALLAS §3) | ✅ | `src/ui/review.js`: los dos ejes por separado, con barra y comentario del evaluador |
 | Temporada 1 con arco completo (14 misiones) | ✅ | `temporada-1.json`: el arco César → Manu → Giuli abre chat, sleep, window y meeting como únicas encadenadas; sus escenas van al frente del pozo en `dialogues.json` |
 | El historial de evaluaciones en el expediente | ✅ | `save.cv.historial`: cada evaluación se firma en `finishDay`; la hoja de vida enseña la nota vigente (`menus.js` → `cvExperience`) |
+| LA LIBRETA: chismes coleccionables (tecla L) | ✅ | `data/libreta.json` + `src/ui/libreta.js`; los enganches (charla/misión/secreto → página) en `engine.js` → `anotarPista`. Lo vigila `npm run check:libreta` |
+| El SECRETO FINAL por piezas (estilo Sasquatch) | ✅ | `libreta.json` → `proyecto`: 9 piezas, cada una con su letra; completo, la libreta deletrea el código y su `cierre` dice dónde escribirlo — la REVELACIÓN sigue viviendo solo en el egg |
 
 > ⚠️ **Esto reemplaza el modelo de juego actual.** El día 1 era una jornada
 > suelta con tres actividades libres; ahora esas tres actividades son

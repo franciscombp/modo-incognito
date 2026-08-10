@@ -127,6 +127,7 @@ export async function loadGameData(onProgress) {
     modesRaw,
     bossConfigRaw,
     campaignRaw,
+    libretaRaw,
     sceneList,
     levelList,
     rigList,
@@ -144,6 +145,9 @@ export async function loadGameData(onProgress) {
     // La temporada de campaña (docs/CAMPANA.md). Sin archivo, el juego cae
     // al modelo de días sueltos de siempre: la campaña es opt-in por datos.
     getJSON(manifest.campaign ?? "campaign/temporada-1.json").catch(() => null),
+    // La libreta de chismes y pistas. Sin archivo, sencillamente no hay
+    // libreta: ningún enganche escribe páginas y la tecla no abre nada.
+    getJSON(manifest.libreta ?? "libreta.json").catch(() => null),
     Promise.all((manifest.scenes ?? []).map((id) => getJSON(`scenes/${id}.json`))),
     Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
     // Rigs de personaje: qué poses usa cada uno y cómo se queda esperando.
@@ -184,6 +188,7 @@ export async function loadGameData(onProgress) {
     modes: modesRaw.characters ?? {},
     bossConfig: bossConfigRaw,
     campaign: campaignRaw,
+    libreta: libretaRaw,
     scenes,
     levels,
     rigs: new Map(rigList.map((r) => [r.id, r])),

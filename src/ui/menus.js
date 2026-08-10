@@ -722,6 +722,9 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   const pauseMenu = el("div", "inc-menu-menu-list", pauseScreen);
   button(pauseMenu, "Continuar", { primary: true, icon: "play", onClick: () => actions.resume() });
   button(pauseMenu, "Reiniciar día", { icon: "back", onClick: () => actions.restart() });
+  // LA LIBRETA también se abre desde aquí: en táctil no hay tecla L, y la
+  // pausa es donde se consulta lo que no urge.
+  button(pauseMenu, "La libreta", { icon: "notebook", onClick: () => actions.openLibreta?.() });
   button(pauseMenu, "Ajustes", { icon: "gear", onClick: () => show("settings") });
   button(pauseMenu, "Menú principal", { icon: "grid", onClick: () => actions.toTitle() });
   // LA LEYENDA DE MANDOS, aquí y permanente (HUD.md §4.5). La píldora de

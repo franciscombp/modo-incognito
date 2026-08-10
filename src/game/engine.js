@@ -15,6 +15,7 @@ import { createCampaign } from "./campaign.js";
 import { createHrCourse } from "../ui/hrCourse.js";
 import { createReview } from "../ui/review.js";
 import { createLevelling } from "../ui/levelling.js";
+import { createLibreta } from "../ui/libreta.js";
 import { createEggReveal } from "../ui/eggReveal.js";
 import { createMinigameRegistry } from "./minigames.js";
 import {
@@ -59,6 +60,7 @@ export function createEngine({
   modes = {},
   bossConfig = null,
   campaignData = null,
+  libretaData = null,
   playerSheet = "npc-camina",
   playerName = "Tú",
   minions = new Map(),
@@ -98,6 +100,49 @@ export function createEngine({
   const campaign = createCampaign({ save, data: campaignData });
   const hrCourse = createHrCourse(app);
   const review = createReview(app);
+  // LA LIBRETA (data/libreta.json): el diario de chismes. Solo LEE el save;
+  // quien escribe páginas es `anotarPista`, más abajo.
+  const libreta = createLibreta(app, { save, data: libretaData });
+
+  // Índices de la libreta por fuente, para que anotar sea O(1) y el dato
+  // decida qué charla/misión/secreto tiene página — el motor no sabe nada.
+  const pistaPorFuente = new Map(
+    (libretaData?.pistas ?? []).map((p) => [`${p.fuente?.tipo}:${p.fuente?.ref}`, p])
+  );
+
+  /**
+   * Algo pasó que podría merecer página: si el dato la tiene y aún no está
+   * anotada, se escribe (permanente, por ranura) y cae el aviso. Si la
+   * página completa EL PROYECTO, se anuncia — es el momento Sasquatch de
+   * juntar la última pieza.
+   */
+  function anotarPista(tipo, ref) {
+    const p = pistaPorFuente.get(`${tipo}:${ref}`);
+    if (!p || !save.addPista(p.id)) return;
+    hud.menuBar?.notify?.({ icon: "notebook", text: `La libreta: «${p.titulo}»`, tone: "info" });
+    const { hechas, total } = libreta.piezasProyecto();
+    const esPieza = (libretaData?.proyecto?.piezas ?? []).some((x) => x.pista === p.id);
+    if (esPieza && hechas === total) {
+      hud.menuBar?.notify?.({
+        icon: "notebook",
+        text: "EL PROYECTO: última pieza. Léelo todo junto en la libreta (L).",
+        tone: "warn",
+        ttl: 7000,
+      });
+    } else if (esPieza) {
+      hud.menuBar?.notify?.({
+        icon: "search",
+        text: `El proyecto: ${hechas}/${total} piezas`,
+        tone: "info",
+      });
+    }
+  }
+
+  /** Abrir la libreta pausa el piso, como cualquier lectura. */
+  async function openLibreta() {
+    if (!libreta.disponible) return;
+    await withPause(() => libreta.show());
+  }
   const levelling = createLevelling(app, {
     minigames,
     render: (s, c) => pixels?.render(s, c),
@@ -273,6 +318,7 @@ export function createEngine({
       resume: () => resumeFromMenu(),
       restart: () => startDay(dayIndex),
       toTitle: () => openTitle(),
+      openLibreta: () => openLibreta(),
       // Abrir una hoja de vida: se carga esa carrera y, si ya trae
       // personaje, se pone su cara antes de entrar — si no lo hiciéramos
       // aquí, la primera partida de la sesión arrancaría con el muñeco por
@@ -364,6 +410,18 @@ export function createEngine({
     // tráfico todavía en marcha.
     if (menus.isOpen || crossingActive) return;
 
+    // LA LIBRETA con su tecla (ver ui/controls.js, la lista única). Solo en
+    // partida, sin diálogo delante y con el piso VIVO: si el juego ya está
+    // en pausa es que otra cosa lo pausó (la alarma de nivel 3, una escena)
+    // — abrir la libreta encima y cerrarla reanudaría por debajo de ese
+    // aviso. Desde la pausa del menú se entra por su botón, que sí sabe
+    // devolver la pausa como estaba.
+    if (key === "l" && inLevel && !dialogue.isOpen && !game?.gameOver && !game?.paused) {
+      e.preventDefault();
+      openLibreta();
+      return;
+    }
+
     codeBuffer.push(key);
     if (codeBuffer.length > 12) codeBuffer.shift();
     for (const egg of codeEggs) {
@@ -378,6 +436,8 @@ export function createEngine({
 
   async function triggerEgg(egg) {
     if (!save.findEgg(egg.id)) return;
+    // Un secreto hallado puede tener página en la libreta (data/libreta.json).
+    anotarPista("secreto", egg.id);
     if (egg.perk) PERKS[egg.perk]?.();
     // El bono de reloj ya lo enseña el popup flotante de game._grantTime();
     // esta tarjeta es solo la celebración del hallazgo, no una repetición
@@ -663,6 +723,8 @@ export function createEngine({
           obj.progress = obj.time ?? 1;
         }
         const nuevas = campaign.complete(id);
+        // Un encargo del arco puede tener su página en la libreta.
+        anotarPista("mision", id);
         if (!nuevas.length) return;
         game.addCampaignObjectives(nuevas);
         for (const n of nuevas) {
@@ -842,6 +904,9 @@ export function createEngine({
     // Hablar con un colega puede SER la misión (un "cómo" de la campaña):
     // se cumple al cerrar la charla, no al abrirla — interrumpirla no vale.
     if (!opts?.caught) game?.completeTalk?.(npc.cast);
+    // Y puede escribir su página de chisme en la libreta. Un interrogatorio
+    // NO cuenta: es castigo, no chisme.
+    if (!opts?.caught) anotarPista("charla", npc.cast);
   }
 
   // Segundos que el jefe pasa sin observar justo después de amonestar, para

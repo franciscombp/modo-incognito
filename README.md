@@ -64,6 +64,7 @@ código**.
 | **Qué tareas te piden, y en qué orden** (misiones encadenadas, Qués y Cómos) | [`campaign/temporada-N.json`](https://github.com/franciscombp/modo-incognito/tree/main/public/data/campaign) — ver [`docs/CAMPANA.md`](https://github.com/franciscombp/modo-incognito/blob/main/docs/CAMPANA.md) |
 | El guion de un día concreto (reloj, prólogo, correa, secuaces de turno) | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/tree/main/public/data/levels) |
 | El plano de la oficina (zonas, escondites, distracciones, secretos) | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/scenes/piso7.json) |
+| **La LIBRETA** (páginas de chismes y el secreto final por piezas) | [`libreta.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/libreta.json) — la pantalla, en [`src/ui/libreta.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/ui/libreta.js) |
 | El balance de IA del jefe / sospecha | [`boss-config.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/boss-config.json) |
 | Qué puede hacer una opción de diálogo (`effect`) | [`src/game/effects.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/effects.js) |
 | Registrar un minijuego nuevo (antes de la jornada) | [`src/game/minigames.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/minigames.js) |

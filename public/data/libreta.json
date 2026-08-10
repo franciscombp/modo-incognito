@@ -1,0 +1,197 @@
+{
+  "$comment": [
+    "LA LIBRETA (src/ui/libreta.js, enganches en src/game/engine.js).",
+    "",
+    "El diario de la jugadora, al estilo Sneaky Sasquatch: cada chisme que te",
+    "cuentan, cada encargo del arco y cada secreto del piso ESCRIBE UNA",
+    "PÁGINA. Lo descubierto se guarda por ranura (save.libreta, ids de",
+    "pista) y es permanente: la libreta es memoria de la carrera, no del día.",
+    "",
+    "pistas[]: una página posible.",
+    "  id      único (el que guarda el save).",
+    "  titulo  el rótulo de la página.",
+    "  texto   la ANOTACIÓN de la jugadora, en su voz — no repite la escena",
+    "          que la desbloqueó: la comenta.",
+    "  fuente  qué la escribe:",
+    "    tipo 'charla'  -> ref = id del cast (dialogues.json): la primera",
+    "                      conversación real con ese personaje (un",
+    "                      interrogatorio NO cuenta: es castigo, no chisme).",
+    "    tipo 'mision'  -> ref = id de misión de campaña: se escribe al",
+    "                      completarla.",
+    "    tipo 'secreto' -> ref = id de egg (scenes/*.json -> eggs, o",
+    "                      manifest.json -> codeEggs): se escribe al hallarlo.",
+    "",
+    "proyecto: EL SECRETO FINAL, que se ARMA con piezas — como el final de",
+    "  Sasquatch. Cada pieza es una pista concreta y aporta UNA LETRA; la",
+    "  página del proyecto enseña los huecos y se va rellenando. Completa,",
+    "  el `cierre` dice dónde escribir la palabra. ⚠️ REGLA DE LORE",
+    "  (CLAUDE.md): la libreta INSINÚA y deletrea, pero NUNCA revela el",
+    "  meta-chiste — la revelación sigue viviendo únicamente en el egg",
+    "  `egg_incognito` y en el cierre del día 5. No escribas aquí qué ES el",
+    "  proyecto."
+  ],
+  "titulo": "La libreta",
+  "sub": "Chismes, sospechas y cosas que nadie me contó a mí",
+  "pistas": [
+    {
+      "id": "p_chisme",
+      "titulo": "El chisme de Fran",
+      "texto": "Fran dice que en este piso hay un proyecto que no está en ningún tablero. Que lleva meses. Que no pregunte quién, porque «todos y ninguno».",
+      "fuente": {"tipo":"mision","ref":"chisme-fran"}
+    },
+    {
+      "id": "p_cesar",
+      "titulo": "César trama algo",
+      "texto": "César va a arreglar TODO: la silla, el aire, el jefe. Cuando alguien promete arreglar el aire acondicionado, o miente o está construyendo otra cosa.",
+      "fuente": {"tipo":"mision","ref":"cesar-idea"}
+    },
+    {
+      "id": "p_manu",
+      "titulo": "La idea fue de Manu (dice Manu)",
+      "texto": "Manu jura que la idea fue suya. No dice cuál idea. «Si no hay nada concreto, no hay nada que reportar.» El plan perfecto, la verdad.",
+      "fuente": {"tipo":"mision","ref":"manu-plan"}
+    },
+    {
+      "id": "p_giuli",
+      "titulo": "El trato con Giuli",
+      "texto": "Giuli mira para otro lado a cambio de enterarse primero cuando esto explote. O sea: Giuli sabe más que yo. Como siempre.",
+      "fuente": {"tipo":"mision","ref":"giuli-cover"}
+    },
+    {
+      "id": "p_kickoff",
+      "titulo": "El kickoff fantasma",
+      "texto": "Me colé a la reunión. Sala reservada, cero agenda, cero actas, gente que no levanta la vista. Ahí no se decide nada — ahí se ESCONDE algo.",
+      "fuente": {"tipo":"mision","ref":"reunion-fantasma"}
+    },
+    {
+      "id": "p_sala6",
+      "titulo": "Sala 6: tres años reservada",
+      "texto": "«Reservada indefinidamente por Gaps 1.» Tres años. Nadie ha visto entrar a nadie. Las salas no se reservan solas — alguien necesita que NO se use.",
+      "fuente": {"tipo":"secreto","ref":"egg_sala6"}
+    },
+    {
+      "id": "p_auditorio",
+      "titulo": "Diapositiva 4: Quick wins",
+      "texto": "El proyector lleva dos años clavado en el mismo deck. Nadie proyecta nada nuevo porque nadie está presentando lo que de verdad hace.",
+      "fuente": {"tipo":"secreto","ref":"egg_auditorio"}
+    },
+    {
+      "id": "p_servidor",
+      "titulo": "Compila de madrugada",
+      "texto": "Una computadora del ala sur compila algo desde las 3 a.m. Post-it: «NO TOCAR — preguntar a M. o a C.». ¿Qué compila una oficina de DISEÑO de madrugada?",
+      "fuente": {"tipo":"secreto","ref":"egg_servidor"}
+    },
+    {
+      "id": "p_muro",
+      "titulo": "El muro que no remodela nada",
+      "texto": "Dos años de «remodelación» y ni un obrero. Ese muro no tapa una obra: tapa media planta. Espacio de sobra para algo que nadie debe ver.",
+      "fuente": {"tipo":"secreto","ref":"egg_muro_alas"}
+    },
+    {
+      "id": "p_gabo",
+      "titulo": "La familia ficha",
+      "texto": "Gabo dice «somos una familia» y después cuenta los minutos que tardas del baño al puesto. Las familias no fichan, Gabo.",
+      "fuente": {"tipo":"charla","ref":"jefe"}
+    },
+    {
+      "id": "p_enriquetta",
+      "titulo": "Actas por si acaso",
+      "texto": "Enriquetta guarda actas de reuniones que no existieron. «Por si acaso», dice. ¿Por si acaso QUÉ, Enriquetta?",
+      "fuente": {"tipo":"charla","ref":"enriquetta"}
+    },
+    {
+      "id": "p_parce",
+      "titulo": "El Parce y los apodos",
+      "texto": "El Parce saluda a todo el mundo con un apodo distinto y nadie sabe cómo se llama él. Eso no es descuido: es estrategia.",
+      "fuente": {"tipo":"charla","ref":"parce"}
+    },
+    {
+      "id": "p_crispo",
+      "titulo": "Urgencias de Crispo",
+      "texto": "Crispo aborda con temas «urgentes» que nunca lo son. No conversa: escanea. Es el radar del jefe con forma de charla.",
+      "fuente": {"tipo":"charla","ref":"crispo"}
+    },
+    {
+      "id": "p_chispita",
+      "titulo": "El registro de Chispita",
+      "texto": "Chispita reporta TODO. Hasta lo que no pasó. Sobre todo lo que no pasó. Si un día no hay nada que contar, lo inventa con hora y testigos.",
+      "fuente": {"tipo":"charla","ref":"chispita"}
+    },
+    {
+      "id": "p_washo",
+      "titulo": "La zona de Washo",
+      "texto": "Washo casi no se mueve, pero donde mira, pesa. No es lentitud: es cobertura de zona. Los porteros buenos tampoco corren.",
+      "fuente": {"tipo":"charla","ref":"washo"}
+    },
+    {
+      "id": "p_escaleras",
+      "titulo": "La excusa del piso 8",
+      "texto": "«Si el jefe pregunta, estoy en el piso 8.» La excusa perfecta existe, es de dominio público y está pegada en una puerta.",
+      "fuente": {"tipo":"secreto","ref":"egg_escaleras"}
+    },
+    {
+      "id": "p_bano",
+      "titulo": "El cajero millonario",
+      "texto": "El cajero de pruebas tiene saldo infinito. QA es el único rincón de esta empresa donde sobra la plata.",
+      "fuente": {"tipo":"secreto","ref":"egg_bano"}
+    },
+    {
+      "id": "p_cafetera",
+      "titulo": "El filtro de la cafetera",
+      "texto": "La cafetera «dañada» funciona con dos golpes. El cartel no es una avería: es un filtro de personal. Quien pregunta, no merece café.",
+      "fuente": {"tipo":"secreto","ref":"egg_cafetera"}
+    },
+    {
+      "id": "p_vending",
+      "titulo": "El snack de Schrödinger",
+      "texto": "Hay un snack colgando en la vending desde 2023. La empresa entera esperando que caiga algo que pagó otro. Metáfora gratis.",
+      "fuente": {"tipo":"secreto","ref":"egg_vending"}
+    },
+    {
+      "id": "p_impresora",
+      "titulo": "Un CV en la bandeja",
+      "texto": "Alguien imprimió su hoja de vida en la impresora de la ofi. «Abierto a nuevas oportunidades.» Todos lo vimos. Nadie dijo nada. Solidaridad.",
+      "fuente": {"tipo":"secreto","ref":"egg_impresora"}
+    },
+    {
+      "id": "p_planta",
+      "titulo": "La planta de las renuncias",
+      "texto": "La maceta tiene una regla escrita: «Riego: cada vez que alguien renuncie». Es la planta más sana que he visto en mi vida.",
+      "fuente": {"tipo":"secreto","ref":"egg_planta"}
+    },
+    {
+      "id": "p_konami",
+      "titulo": "La secuencia vieja",
+      "texto": "Una secuencia de gamer de los de antes funciona EN ESTE PISO. No voy a preguntar por qué. Solo sé que hoy camino más segura.",
+      "fuente": {"tipo":"secreto","ref":"egg_konami"}
+    },
+    {
+      "id": "p_nomina",
+      "titulo": "Nómina denegada",
+      "texto": "Escribí «nómina» y el sistema me negó la consulta, como a todos, siempre, cada mes. Al menos es coherente.",
+      "fuente": {"tipo":"secreto","ref":"egg_nomina"}
+    },
+    {
+      "id": "p_incognito",
+      "titulo": "La última página",
+      "texto": "Ya está. Ya lo sé. Y no lo voy a escribir ni aquí — hay chismes que se cuidan mejor que un sueldo.",
+      "fuente": {"tipo":"secreto","ref":"egg_incognito"}
+    }
+  ],
+  "proyecto": {
+    "titulo": "EL PROYECTO",
+    "sub": "Algo se construye en este piso. Las piezas están regadas.",
+    "piezas": [
+      {"pista":"p_chisme","letra":"I"},
+      {"pista":"p_cesar","letra":"N"},
+      {"pista":"p_manu","letra":"C"},
+      {"pista":"p_giuli","letra":"O"},
+      {"pista":"p_kickoff","letra":"G"},
+      {"pista":"p_sala6","letra":"N"},
+      {"pista":"p_auditorio","letra":"I"},
+      {"pista":"p_servidor","letra":"T"},
+      {"pista":"p_muro","letra":"O"}
+    ],
+    "cierre": "Nueve piezas, una sola conclusión: en este piso se construye algo — en horario laboral, delante de todos, con la coartada perfecta. Las letras de mi libreta lo deletrean solas. Escribirlo TAL CUAL, en el piso, sin que nadie me vea teclear."
+  }
+}

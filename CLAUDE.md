@@ -57,6 +57,17 @@ este mismo juego — idea original de César y Manu, programado de verdad por
 Fran con Claude Code de copiloto. No reveles el chiste fuera de esos dos
 momentos.
 
+**LA LIBRETA (`public/data/libreta.json`) orbita ese chiste sin tocarlo.**
+Es el diario de chismes estilo Sasquatch: charlas, encargos del arco y
+secretos del piso escriben páginas (enganches en `engine.js` →
+`anotarPista`, guardado por ranura en `save.libreta`), y EL PROYECTO — el
+secreto final — se arma con 9 piezas que deletrean el código `incognito`.
+La regla: la libreta INSINÚA y deletrea, pero NUNCA cuenta qué es el
+proyecto; la revelación sigue viviendo solo en el egg y en el día 5. Si
+escribes pistas nuevas, `npm run check:libreta` vigila que toda fuente
+exista (una ref con typo compila y esa página no se escribe jamás) y que
+las piezas sigan deletreando exactamente las teclas del egg.
+
 **EL CORAZÓN DEL JUEGO, y lo primero que no se puede romper:** evitar
 trabajar mientras el jefe y sus secuaces te molestan. Todo lo demás —la
 interfaz, la luz, los modelos— está al servicio de eso. Antes de dar por

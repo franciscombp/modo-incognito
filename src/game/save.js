@@ -48,6 +48,10 @@ const EMPTY = {
   // cerrada. Es la memoria larga de la carrera de ESTA ranura — la hoja de
   // vida lo lee para escribirse sola.
   cv: { historial: [] },
+  // LA LIBRETA (data/libreta.json): ids de las pistas ya anotadas. Es
+  // memoria de la CARRERA, no del día — un chisme apuntado no se olvida
+  // aunque las charlas se reinicien cada mañana.
+  libreta: [],
   // Cuándo se tocó por última vez, para que la ranura pueda decir "ayer".
   playedAt: null,
 };
@@ -65,6 +69,7 @@ function freshEmpty() {
     bestSpare: {},
     campaign: { temporada: 1, dia: 1, unicas: [] },
     cv: { historial: [] },
+    libreta: [],
   };
 }
 
@@ -237,6 +242,16 @@ export function createSave() {
       while (historial.length > 60) historial.shift();
       state.cv = { ...(state.cv ?? {}), historial };
       write(state);
+    },
+    get libreta() {
+      return state.libreta ?? [];
+    },
+    /** Anota una pista en la libreta. Devuelve true solo si es NUEVA. */
+    addPista(id) {
+      if ((state.libreta ?? []).includes(id)) return false;
+      state.libreta = [...(state.libreta ?? []), id];
+      write(state);
+      return true;
     },
     /**
      * Entrar en una ranura: se guarda lo que hubiera abierto, se mueve el
