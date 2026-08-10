@@ -111,6 +111,19 @@ const PERK_DURATION = 15;
 const AGUANTE_RATE = 1.6; // segundos de reloj por segundo aguantado
 const AGUANTE_MAX = 12; // techo: a partir de aquí se banca sola
 
+// EL SABOR DE FINGIR: solo texto, nunca mecánica — fingir sigue siendo
+// gratis e inmediato (es el colchón del juego, no puede tener fricción).
+// Un toast rotativo al empezar cada sesión de fingir, para que "mantén
+// espacio" no se sienta un gesto vacío: estás borrando mails, cerrando
+// pestañas, lo de siempre.
+const PRETEND_FLAVOR = [
+  "Borras unos mails viejos. Se ve productivo.",
+  "Cierras diecisiete pestañas de un timeline que no ibas a leer.",
+  "Archivas correos sin abrir. El bandeja de entrada baja de número, que es lo que importa.",
+  "Mueves el mouse cada tanto para que la lucecita del chat siga en verde.",
+  "Reescribes el mismo asunto de correo tres veces sin mandarlo.",
+];
+
 const DEFAULT_RULES = {
   // DOS MINUTOS, y son FIJOS. La jornada ya no se alarga: dura lo que dura
   // y a las seis se sale (ver CLOSING_HOUR). Lo que dan las tareas ahora es
@@ -408,6 +421,7 @@ export class Game {
     // y DESPUÉS (el aguante, con el mundo ya vivo).
     this.worldFrozen = false;
     this._faltaToastAt = new Map();
+    this._wasPretending = false;
   }
 
   /**
@@ -502,6 +516,13 @@ export class Game {
     // SPACE/ENTER es la tecla unificada para acciones y fingir (según contexto)
     const holdingSpace = this.player.keys.has(" ") || this.player.keys.has("enter");
     this.player.isPretending = holdingSpace && this._standingInUsableSafeSpot(pos);
+    // El sabor, en la TRANSICIÓN a false→true — una vez por sesión de fingir,
+    // no cada frame que mantienes la tecla. Puro texto: no toca timeLeft,
+    // energy ni suspicion, así que fingir sigue siendo el colchón gratis.
+    if (this.player.isPretending && !this._wasPretending) {
+      this.toast(PRETEND_FLAVOR[Math.floor(Math.random() * PRETEND_FLAVOR.length)]);
+    }
+    this._wasPretending = this.player.isPretending;
 
     this.inSafeSpot = this._updateSafeSpot(dt, pos);
     // Estar en un lugar seguro es la ÚNICA forma de quitarte de encima una

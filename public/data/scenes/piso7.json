@@ -693,7 +693,13 @@
       "pose": "eat",
       "reward": 32,
       "energy": 25,
-      "pulso": {"periodo":1,"zona":0.2,"aciertos":4,"ruido":9}
+      "pulso": {"periodo":1,"zona":0.2,"aciertos":4,"ruido":9},
+      "objeto": {
+        "id": "snack_cesar",
+        "nombre": "Snack del alijo de César",
+        "de": "cesar",
+        "pista": "César tiene un alijo secreto — habla con él"
+      }
     },
     {
       "id": "stretch",
