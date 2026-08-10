@@ -74,6 +74,17 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const meter = el("div", "inc-plate-meter", plateBody);
   const meterFill = el("i", null, meter);
 
+  // La ENERGÍA, debajo de la sospecha y en la misma placa: las dos son "cómo
+  // estoy yo", y separarlas en dos tarjetas volvería a partir en pedazos lo
+  // que la placa junta a propósito. Es la que se vacía sola, así que se lee
+  // al revés que la otra — llena es buena.
+  const energyLabel = el("div", "inc-plate-meter-label", plateBody);
+  const energyLabelText = el("span", null, energyLabel);
+  const energyLabelPct = el("b", null, energyLabel);
+  energyLabelText.textContent = "ENERGÍA";
+  const energyMeter = el("div", "inc-plate-meter inc-plate-meter--energy", plateBody);
+  const energyFill = el("i", null, energyMeter);
+
   // La cara viva. Dibuja SIEMPRE durante la partida (no solo en diálogo):
   // es un render extra pequeño (128px) y es lo que hace que la placa sea un
   // personaje y no un icono. Si no hay WebGL para el segundo contexto, la
@@ -214,9 +225,21 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     if (pct - lastHeatPct >= 12) pulse(plate, "mi-shake", 420);
     lastHeatPct = pct;
 
+    // La energía: llena es buena, así que avisa cuando BAJA. Y dormida lo
+    // dice con todas las letras, porque es el único estado en el que los
+    // mandos no responden y hay que saber que no es un cuelgue.
+    const ePct = Math.round((state.energy / (state.energyMax || 100)) * 100);
+    energyFill.style.width = `${ePct}%`;
+    energyMeter.classList.toggle("warn", ePct <= 35 && ePct > 15);
+    energyMeter.classList.toggle("danger", ePct <= 15);
+    energyLabelPct.textContent = `${ePct}%`;
+    energyLabelText.textContent = state.asleep ? "DORMIDA" : ePct <= 20 ? "SIN FUERZAS" : "ENERGÍA";
+    energyMeter.classList.toggle("mi-critical", ePct <= 15 && !state.gameOver);
+
     // La cara sigue a la presión. Los umbrales van holgados para que no
     // parpadee en la frontera.
-    if (state.gameOver) setFaceMood(state.win ? "happy" : "sad");
+    if (state.asleep) setFaceMood("sad");
+    else if (state.gameOver) setFaceMood(state.win ? "happy" : "sad");
     else if (state.bossState === "CHASE" || state.bossState === "SEARCH") setFaceMood("scared");
     else if (pct >= 55) setFaceMood("surprised");
     else if (pct >= 25) setFaceMood("neutral");

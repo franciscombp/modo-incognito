@@ -6,7 +6,7 @@
   "scene": "piso7",
   "theme": "morning",
   "rules": {
-    "duration": 60,
+    "duration": 120,
     "maxWarnings": 3,
     "objectives": [
       "coffee",

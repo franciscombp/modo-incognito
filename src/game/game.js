@@ -98,14 +98,10 @@ const SEEN_NERVE_BONUS = 1.4; // ...and in his cone, which is madness
 const PERK_DURATION = 15;
 
 const DEFAULT_RULES = {
-  // UN MINUTO. La jornada ya no viene dada: arranca en 60 segundos reales y
-  // la ALARGAS tú, con lo que haces. Cada actividad prohibida devuelve entre
-  // 17 y 43 segundos (`reward` en el JSON de la escena), así que la primera
-  // taza de café casi duplica lo que te queda y encadenar tres te da una
-  // jornada larga. Estaba en 240 y el reloj no apretaba nunca: con cuatro
-  // minutos de partida y las mismas recompensas, la única moneda del juego
-  // no significaba nada hasta el final.
-  duration: 60,
+  // DOS MINUTOS, y son FIJOS. La jornada ya no se alarga: dura lo que dura
+  // y a las seis se sale (ver CLOSING_HOUR). Lo que dan las tareas ahora es
+  // ENERGÍA, no reloj — ver ENERGY_* más abajo.
+  duration: 120,
   maxWarnings: 3,
   objectives: null, // null = every forbidden activity
   decayMul: 1,
@@ -140,6 +136,29 @@ const DAY_END_HOUR = 19; // 7:00 p.m.
 // Quedarte encerrada NO es un despido: baja el guardia, te saca, y eso es
 // una amonestación. Castigo con nombre y cara, no una pantalla de derrota.
 const CLOSING_HOUR = 18; // 6:00 p.m.
+
+// ── LA ENERGÍA: LO QUE DE VERDAD DAN LAS TAREAS ──────────────────────
+//
+// El reloj dejó de ser la moneda. La jornada dura lo que dura y no se
+// compra; lo que se gasta y se repone es la ENERGÍA de aguantar el día.
+// Baja sola desde que entras y cada cosa prohibida que haces —el café, la
+// película, el chisme— te repone un poco.
+//
+// A cero te DUERMES en el sitio, y ahí está el chiste: dormirse en la
+// oficina no te mata, te deja tirada a la vista de todos. Si el jefe te
+// pilla dormida, amonestación. Despertarte cuesta unos segundos en los que
+// no controlas nada, que es la peor moneda posible con alguien rondando.
+//
+// Por qué es mejor que alargar el reloj: regalar tiempo hacía que ir bien
+// se pareciera a jugar MÁS, y el premio de una buena racha era una partida
+// más larga. La energía convierte lo mismo en un ciclo — te desgastas,
+// buscas dónde reponerte, y ese "dónde" es justo el sitio donde te pueden
+// ver. Es el bucle del juego, no un contador al lado.
+const ENERGY_MAX = 100;
+const ENERGY_START = 70; // se entra con sueño, no a tope: hay que ir a por el café
+const ENERGY_DRAIN = 4.5; // por segundo de jornada
+const ENERGY_DRAIN_PRETEND = 7; // fingir cansa MÁS que trabajar, y ese es el chiste
+const SLEEP_SECONDS = 4; // lo que tardas en espabilar
 
 /** La primera zona de un tipo (los ascensores, para la salida). */
 function areaByKind(kind) {
@@ -231,6 +250,11 @@ export class Game {
     // ya te mete ahí, así que dejó de ser un caso raro. Este contador solo
     // sube, y el reloj con él.
     this.timeSpent = 0;
+    // La energía de aguantar el día. A cero te duermes de pie (ver
+    // `_updateEnergy`), y dormida eres presa fácil.
+    this.energy = ENERGY_START;
+    this.energyMax = ENERGY_MAX;
+    this.asleepFor = 0;
     this.combo = 1;
     this.comboLeft = 0;
     this.perk = null;
@@ -679,10 +703,20 @@ export class Game {
     // seguro de verdad corta la persecución. `pretendAlways` (un modo de
     // personaje futuro) es la única excepción explícita a esa regla.
     const pretendAlwaysImmune = this.player.isPretending && this.rules.pretendAlways;
+    // ── POR QUÉ NO SOLO `isHunting` ──────────────────────────────────
+    // Esto exigía que el jefe estuviera CAZANDO (CHASE/SEARCH), y por
+    // debajo de `chaseSuspicionFloor` no caza nunca: se plantaba encima de
+    // ti mientras hacías algo prohibido y no pasaba absolutamente nada.
+    // Con la correa del día 1 —que lo mantiene rondándote— eso es la mitad
+    // de la jornada, y se leía como que el juego a veces no amonesta.
+    //
+    // `redAlert` cierra el hueco sin tocar el respiro: sigue sin CORRER a
+    // por ti con la sospecha baja, pero si te tiene delante y te está
+    // viendo en falta, te amonesta. Que es lo que haría un jefe.
     const caught =
       !this.rules.explore &&
       this._caughtCooldown <= 0 &&
-      this.boss.isHunting &&
+      (this.boss.isHunting || this.boss.redAlert) &&
       !this.inSafeSpot &&
       !pretendAlwaysImmune &&
       this.boss.catches(pos, this.player.radius);
@@ -699,6 +733,8 @@ export class Game {
     // punta"), y en la práctica se sentía arbitrario: te caía el castigo sin
     // que nadie llegara. Al 100% el jefe ya viene a por ti con el nivel de
     // búsqueda al máximo; que tenga que alcanzarte ES el juego.
+
+    this._updateEnergy(dt, caught);
 
     if (!this.gameOver && !this.rules.explore) {
       this._updateClosingTime();
@@ -736,12 +772,14 @@ export class Game {
     }
 
     // `reward`, no `time`: `time` es lo que TARDA la actividad, no lo que da.
-    const gained = this._grantTime(station.reward ?? 20, {
-      at: station,
-      sub: this.combo > 1 ? `x${this.combo.toFixed(1)}` : "",
-      kind: nerve ? "nerve" : "score",
-      extraMul: nerve,
-    });
+    //
+    // Y lo que da es ENERGÍA, no reloj. El número del JSON se queda como
+    // está —los 17 del café, los 43 de la película— pero ahora se lee en la
+    // otra moneda: el café te espabila un poco y escaquearte a ver una peli
+    // te repone media jornada. El descaro sigue pagando (el combo y el
+    // `nerve` de hacerlo con el jefe cerca multiplican igual).
+    const bruto = (station.reward ?? 20) * (this.combo + nerve);
+    const gained = this.grantEnergy(bruto, station);
 
     this.combo = Math.min(COMBO_MAX, this.combo + COMBO_STEP);
     this.comboLeft = COMBO_WINDOW;
@@ -750,7 +788,7 @@ export class Game {
 
     buzz([12, 40, 18]);
     sfxComplete();
-    this.toast(`${station.label}${nerveLabel} · +${gained}s`);
+    this.toast(`${station.label}${nerveLabel} · +${gained} energía`);
     this._actionFlash = {
       icon: station.icon ?? "question",
       label: station.label,
@@ -1324,6 +1362,77 @@ export class Game {
   }
 
   /**
+   * LA ENERGÍA, Y EL SUEÑO.
+   *
+   * Baja sola mientras juegas —más deprisa fingiendo que trabajas, que es
+   * lo que más cansa— y la reponen las actividades. A cero te duermes: unos
+   * segundos sin control, plantada donde estabas.
+   *
+   * Dormirse no castiga por sí solo. Lo que castiga es dormirse DONDE TE
+   * VEN: si el jefe te tiene a la vista mientras roncas, amonestación. En
+   * un lugar seguro puedes dar una cabezada y no pasa nada, que es
+   * exactamente el tipo de decisión que el juego quiere que tomes — echarte
+   * una siesta es legítimo, elegir mal el sitio no.
+   *
+   * @param {boolean} yaAmonestada Si el jefe ya te pilló ESTE cuadro por
+   *   otra vía, para no cobrar dos amonestaciones por el mismo instante.
+   */
+  _updateEnergy(dt, yaAmonestada) {
+    if (this.rules.explore || this.gameOver) return;
+
+    if (this.asleepFor > 0) {
+      this.asleepFor -= dt;
+      this.player.isAsleep = true;
+      this.player.pose = "sleep";
+      // Dormida no se anda: se sueltan las teclas para que no siga
+      // caminando sola mientras dura la cabezada.
+      this.player.keys.clear();
+      this.player.touchAxis.x = 0;
+      this.player.touchAxis.z = 0;
+      // Y si te ven así, te cae. Una por siesta: `_caughtCooldown` lo cubre.
+      if (
+        !yaAmonestada &&
+        this._caughtCooldown <= 0 &&
+        !this.inSafeSpot &&
+        this.boss.playerVisible
+      ) {
+        this.toast("Te durmió el turno y Gabo estaba mirando.");
+        this._warn();
+      }
+      if (this.asleepFor <= 0) {
+        this.player.isAsleep = false;
+        this.player.pose = null;
+        // Se despierta con lo justo para llegar a la máquina de café. Con
+        // cero se volvería a dormir en el cuadro siguiente, en bucle.
+        this.energy = Math.max(this.energy, ENERGY_MAX * 0.25);
+      }
+      return;
+    }
+
+    this.player.isAsleep = false;
+    const gasto = this.player.isPretending ? ENERGY_DRAIN_PRETEND : ENERGY_DRAIN;
+    this.energy = Math.max(0, this.energy - gasto * dt);
+
+    if (this.energy <= 0) {
+      this.asleepFor = SLEEP_SECONDS;
+      this.toast("Te quedaste dormida.");
+      sfxWarn();
+      buzz([30, 40, 30]);
+    }
+  }
+
+  /** Reponer energía. Lo llaman las actividades al completarse. */
+  grantEnergy(amount, at) {
+    const antes = this.energy;
+    this.energy = Math.min(ENERGY_MAX, this.energy + amount);
+    const ganado = Math.round(this.energy - antes);
+    if (ganado > 0 && at) {
+      this.onPopup?.({ text: `+${ganado} energía`, x: at.x, z: at.z, kind: "nerve" });
+    }
+    return ganado;
+  }
+
+  /**
    * Las seis de la tarde. Abre la salida y manda a todo el mundo a casa.
    *
    * La salida se abre por DOS caminos, y basta uno: terminar tus tareas (te
@@ -1646,6 +1755,10 @@ export class Game {
       // hecha porque siempre quedaría una tarea sin cumplir.
       closing: this.closingAnnounced,
       exitOpen: this.exitOpen,
+      // La energía y la siesta: lo que de verdad gasta la jornada ahora.
+      energy: this.energy,
+      energyMax: this.energyMax,
+      asleep: this.asleepFor > 0,
       inWorkspace: this.inWorkspace,
       minionAlert: this.minions.some((m) => m.redAlert),
       minionPositions: this.minions.map((m) => m.position),

@@ -603,13 +603,25 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
 
 ## Invariantes que no debes romper
 
-- **No hay puntos: la única moneda es el RELOJ.** Todo lo que antes puntuaba
-  ahora alarga la jornada, y todo el reloj que se regala pasa por
-  `Game._grantTime()` — que es quien mantiene `timeGained` (lo que enseña el
-  HUD) en sincronía con `timeLeft`. Si sumas a `timeLeft` por tu cuenta, el
-  HUD se queda corto y nadie se entera. Ojo con los dos campos de una
-  actividad, que se confunden solos: **`time` es lo que TARDA** en hacerse y
-  **`reward` es el reloj que DA**.
+- **La moneda es la ENERGÍA, no el reloj.** La jornada dura lo que dura
+  (`rules.duration`, dos minutos) y no se compra: lo que se gasta y se
+  repone es la energía de aguantar el día. Baja sola —y **fingir que
+  trabajas cansa MÁS que no hacer nada**, que es el chiste— y la reponen las
+  actividades. Ojo con los dos campos de una actividad, que se confunden
+  solos: **`time` es lo que TARDA** en hacerse y **`reward` es la ENERGÍA
+  que DA** (el número del JSON no cambió, cambió la moneda que mide).
+  - **A cero te DUERMES** unos segundos sin control, plantada donde estabas
+    (`SLEEP_SECONDS`). Dormirse no castiga por sí solo: castiga dormirse
+    DONDE TE VEN. Con el jefe a la vista es amonestación; en un lugar seguro
+    es una cabezada y ya. Echarse una siesta es legítimo, elegir mal el
+    sitio no.
+  - Al despertar se recupera un mínimo (25%) a propósito: con cero se
+    volvería a dormir al cuadro siguiente, en bucle.
+  - `_grantTime()` sigue existiendo para los secretos y bonos sueltos, y
+    sigue siendo el único sitio por el que se regala reloj (mantiene
+    `timeGained` en sincronía con `timeLeft`). Lo que ya no pasa por ahí son
+    las tareas.
+  Lo vigila `npm run check:energia`.
 - **`scenes/piso7.json` → `areas`**: los rectángulos de zona no deben
   solaparse. Si añades o mueves una zona, revisa `x/z/w/d` contra las
   vecinas antes de dar por bueno el cambio.

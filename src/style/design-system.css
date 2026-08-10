@@ -10938,3 +10938,26 @@ body {
    una columna en el lienzo compacto fue el primer intento y salía una sola
    hoja por pantalla con la tercera cortada abajo — responsive de costumbre
    aplicado donde no hay nada a lo que responder. */
+
+/* ── LA ENERGÍA, en la misma placa que la sospecha ──────────────────────
+   Se lee AL REVÉS que la de sospecha: llena es buena y vacía es el
+   problema, así que sus estados de aviso saltan cuando BAJA. Comparte
+   geometría con `.inc-plate-meter` a propósito — son dos lecturas de "cómo
+   estoy yo", y darle forma propia las separaría en dos cosas distintas.
+   Solo cambia el color base, que es lo que las distingue de un vistazo. */
+.inc-plate-meter--energy {
+  margin-top: 2px;
+}
+
+.inc-plate-meter--energy > i {
+  background: hsl(var(--p-accent-bright));
+  box-shadow: 0 0 8px hsl(var(--p-accent-bright) / 0.35);
+}
+
+.inc-plate-meter--energy.warn > i {
+  background: var(--warn);
+}
+
+.inc-plate-meter--energy.danger > i {
+  background: var(--danger);
+}

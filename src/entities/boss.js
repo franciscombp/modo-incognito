@@ -45,6 +45,12 @@ const HALO_PRESENCE_HOT = 1; // cazando o viéndote en falta
 // frame exacto en que cambió el estado interno y se lee como un parpadeo.
 const HALO_PRESENCE_EASE = 4;
 
+// Los TRES colores del halo, y no hay más: azul claro = no te ha visto,
+// ámbar = te tiene fichada, rojo = viene a por ti. Ver `update()`.
+const HALO_CALM = 0x6fb2e0;
+const HALO_AMBER = 0xe0a03c;
+const HALO_RED = 0xe6483f;
+
 // Radianes por segundo a los que gira la mirada. Persiguiendo gira casi al
 // doble: está pendiente de ti, no paseando.
 const TURN_RATE_CALM = 3.2;
@@ -537,26 +543,39 @@ export class Boss {
     this.cone.rotation.y = facingRotationY(this.facingDir.x, this.facingDir.z);
 
     const hot = this.redAlert || this.state === CHASE;
-    // El halo es un TERMÓMETRO: con la sospecha baja conserva su color base
-    // tranquilo, y según sube se va tiñendo a ámbar y luego a rojo — el
-    // nivel se lee del suelo sin abrir el HUD. Cazando (o viéndote en falta)
-    // se planta en rojo pleno, y buscando en ámbar, pase lo que pase con el
-    // medidor.
+    // ── EL HALO DICE EN QUÉ FASE ESTÁS, EN TRES COLORES ──────────────
+    //
+    //   AZUL CLARO — no te ha visto. Está a lo suyo.
+    //   ÁMBAR      — te tiene fichada: te vio, sospecha, o va a mirar.
+    //   ROJO       — viene a por ti.
+    //
+    // Antes el color de reposo era el de CADA vigilante (`baseConeColor`:
+    // Chispita amarillo, Washo turquesa, Crispo cobre), así que el amarillo
+    // de Chispita en calma era indistinguible del ámbar de "te vi" de
+    // cualquier otro. Un código de color que quiere decir peligro no puede
+    // compartir tono con la identidad de nadie: quién es quién se sabe por
+    // el cuerpo, que para eso cada uno tiene el suyo.
+    //
+    // El azul es además el único de los tres que NO alarma, que es justo lo
+    // que tiene que comunicar el estado en el que pasas casi toda la
+    // jornada.
     const ratio = THREE.MathUtils.clamp(this.localHeat ?? 0, 0, 1);
     if (hot) {
-      this.coneMaterial.color.set(0xe6483f);
-    } else if (this.state === SEARCH) {
-      this.coneMaterial.color.set(0xe0a03c);
+      this.coneMaterial.color.set(HALO_RED);
+    } else if (this.state === SEARCH || this.state === INVESTIGATE) {
+      // Buscando o yendo a mirar: te tiene fichada aunque no te vea ahora.
+      this.coneMaterial.color.set(HALO_AMBER);
     } else {
       this._heatColor = this._heatColor ?? new THREE.Color();
-      this._heatColor.set(this.baseConeColor);
-      if (ratio > 0.35) {
-        // 35%→70% funde hacia ámbar; 70%→100% de ámbar a rojo.
-        const amber = this._amberColor ?? (this._amberColor = new THREE.Color(0xe0a03c));
-        const red = this._redColor ?? (this._redColor = new THREE.Color(0xe6483f));
-        if (ratio < 0.7) this._heatColor.lerp(amber, (ratio - 0.35) / 0.35);
-        else this._heatColor.copy(amber).lerp(red, (ratio - 0.7) / 0.3);
-      }
+      this._calmColor = this._calmColor ?? new THREE.Color(HALO_CALM);
+      this._amberColor = this._amberColor ?? new THREE.Color(HALO_AMBER);
+      this._heatColor.copy(this._calmColor);
+      // Del azul al ámbar según SU propia vigilancia. Que te esté viendo
+      // ahora mismo cuenta como medio camino aunque el medidor vaya frío:
+      // el halo tiene que reaccionar en el momento en que entras en él, no
+      // dos segundos después.
+      const visto = Math.max(ratio, this.playerVisible ? 0.5 : 0);
+      if (visto > 0) this._heatColor.lerp(this._amberColor, Math.min(1, visto));
       this.coneMaterial.color.copy(this._heatColor);
     }
 
@@ -599,7 +618,9 @@ export class Boss {
   _updateWaves(dt, hot, presence = 1) {
     if (!this._waves) return;
     this._waveTime += dt;
-    const color = hot ? 0xe6483f : this.baseConeColor;
+    // Las ondas del radar hablan el MISMO idioma que el cono, o Washo sería
+    // el único vigilante cuyo color no significa nada.
+    const color = hot ? HALO_RED : this.playerVisible ? HALO_AMBER : HALO_CALM;
     for (const wave of this._waves) {
       const t = (this._waveTime / WAVE_PERIOD + wave.phase) % 1;
       // Arranca pegado a él y se expande hasta el borde de su alcance.
