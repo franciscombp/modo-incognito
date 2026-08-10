@@ -35,6 +35,17 @@
     "src/ui/icons.js). Un emoji lo pinta la fuente del sistema y sale distinto",
     "en cada plataforma, que es justo lo que no se puede controlar desde aquí.",
     "",
+    "",
+    "activities[].objeto: el bucle v2 — CONSEGUIR antes de activar. Campos:",
+    "  id (lo que guarda el inventario del día), nombre, pista (el toast de",
+    "  'te falta'), y UNA fuente: `en.sala` (id de safeSpots: se recoge ahí,",
+    "  solo con la sala vacía — una distracción la vacía) o `de` (id de cast:",
+    "  se consigue hablándole). Sin `objeto`, la actividad arranca directo.",
+    "",
+    "ACTIVAR CONGELA EL MUNDO: el minijuego es su propio modo (jefe, reloj y",
+    "sospecha pasiva quietos) y `limite` es SU temporizador — no puedes",
+    "quedarte a vivir dentro. Encendida, el mundo VIVE y empieza el AGUANTE:",
+    "cada segundo sostenida a la vista paga extra (game.js → AGUANTE_*).",
     "activities[].limite: la CUENTA ATRAS, en segundos. Arranca cuando te",
     "pones y ya no para — dejarla a medias para huir del jefe no la congela.",
     "Si se acaba pierdes lo hecho, la sospecha pega un salto y el jefe se",
@@ -583,7 +594,13 @@
       "perk": "caffeine",
       "pose": "coffee",
       "reward": 17,
-      "energy": 45
+      "energy": 45,
+      "objeto": {
+        "id": "cafe_parce",
+        "nombre": "Café del Parce",
+        "de": "parce",
+        "pista": "el Parce vende de contrabando — háblale"
+      }
     },
     {
       "id": "chat",
@@ -638,7 +655,13 @@
       },
       "pose": "movie",
       "reward": 43,
-      "energy": 18
+      "energy": 18,
+      "objeto": {
+        "id": "hdmi",
+        "nombre": "Cable HDMI",
+        "en": {"sala":"sala4"},
+        "pista": "hay uno en la Sala 4 (si no hay gente dentro)"
+      }
     },
     {
       "id": "sleep",

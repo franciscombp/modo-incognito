@@ -105,6 +105,12 @@ const TIMEOUT_HEAT = 26;
 const TIMEOUT_HEAT_MARGIN = 14;
 const PERK_DURATION = 15;
 
+// EL AGUANTE: activada la actividad (minijuego superado), el mundo vuelve a
+// correr y cada segundo que la sostienes A LA VISTA paga extra. Es la
+// calificación por atreverse: activar ya cumple la misión, aguantar la borda.
+const AGUANTE_RATE = 1.6; // segundos de reloj por segundo aguantado
+const AGUANTE_MAX = 12; // techo: a partir de aquí se banca sola
+
 const DEFAULT_RULES = {
   // DOS MINUTOS, y son FIJOS. La jornada ya no se alarga: dura lo que dura
   // y a las seis se sale (ver CLOSING_HOUR). Lo que dan las tareas ahora es
@@ -376,6 +382,64 @@ export class Game {
     this._caughtCooldown = 0;
     this._eggDwell = new Map();
     this._foundEggs = new Set();
+
+    // ── EL BUCLE v2 DE LAS ACTIVIDADES: conseguir → activar → aguantar ──
+    // Una actividad puede pedir un OBJETO antes (activities[].objeto en el
+    // JSON de escena): el HDMI para la peli está en una sala, el café se le
+    // compra a alguien. El inventario es del DÍA — mañana vuelves a
+    // conseguirlo, que es donde vive la dinámica.
+    this.inventario = new Set();
+    this.nearItem = null;
+    // Los puntos de recogida: cada objeto con `en.sala` apunta a un lugar
+    // seguro del plano; robarlo exige que la sala NO esté ocupada (una
+    // distracción la vacía — ver _triggerDistraction).
+    this._itemSpots = [];
+    for (const st of this.objectives) {
+      const o = st.objeto;
+      if (!o?.en?.sala) continue;
+      const idx = safeSpots.findIndex((s) => s.id === o.en.sala);
+      if (idx < 0) continue;
+      this._itemSpots.push({ ...o, x: safeSpots[idx].x, z: safeSpots[idx].z, salaIndex: idx });
+    }
+    // MIENTRAS SE ACTIVA una actividad, el mundo se CONGELA (jefe, secuaces,
+    // reloj, sospecha pasiva) y lo único que corre es el minijuego y su
+    // cuenta atrás (`limite`) — el temporizador es lo que impide quedarse a
+    // vivir en la activación. La exposición vive ANTES (conseguir el objeto)
+    // y DESPUÉS (el aguante, con el mundo ya vivo).
+    this.worldFrozen = false;
+    this._faltaToastAt = new Map();
+  }
+
+  /**
+   * BANCAR una actividad encendida: la misión cae y el AGUANTE pagado.
+   * Cuanto más tiempo la sostuviste con el mundo vivo, más reloj — la
+   * calificación por aguantar que pide el diseño.
+   */
+  _bankActivity(st) {
+    if (st.done) return;
+    st.done = true;
+    st.progress = st.time;
+    st.limiteLeft = null;
+    const held = st.aguante ?? 0;
+    this._completeActivity(st);
+    const extra = Math.round(held * AGUANTE_RATE);
+    if (extra > 0) {
+      this._grantTime(extra, {
+        at: this.player.position,
+        sub: `aguantaste ${Math.round(held)}s`,
+        kind: "nerve",
+      });
+    }
+    this.onMissionDone?.(st.id);
+  }
+
+  /** El aviso de "te falta el objeto", sin ametrallar: uno cada pocos segundos. */
+  _faltaObjeto(st) {
+    const now = performance.now();
+    if (now - (this._faltaToastAt.get(st.id) ?? 0) < 4000) return;
+    this._faltaToastAt.set(st.id, now);
+    const o = st.objeto;
+    this.toast(`Necesitas: ${o.nombre}${o.pista ? ` — ${o.pista}` : ""}`);
   }
 
   /** Story beats and menus freeze the world without tearing the level down. */
@@ -406,10 +470,14 @@ export class Game {
       return;
     }
 
-    // El tiempo pasa más rápido cuando finges trabajo
+    // El tiempo pasa más rápido cuando finges trabajo — y NO pasa mientras
+    // ACTIVAS una actividad (worldFrozen): el modo de juego tiene su propio
+    // reloj (`limite`), y cobrar jornada encima sería pagar dos veces.
     const effectiveDt = dt * (this.player.isPretending ? PRETEND_TIME_SPEED : 1);
-    this.timeLeft = Math.max(0, this.timeLeft - effectiveDt);
-    this.timeSpent += effectiveDt;
+    if (!this.worldFrozen) {
+      this.timeLeft = Math.max(0, this.timeLeft - effectiveDt);
+      this.timeSpent += effectiveDt;
+    }
     if (this._caughtCooldown > 0) this._caughtCooldown -= dt;
 
     if (this.revealBossUntil > 0) this.revealBossUntil -= dt;
@@ -455,9 +523,15 @@ export class Game {
     // Con la puerta sin superar no hay estación que valga: las tareas reales
     // ni existen todavía para la jugadora (ver `_snapshot`, que en su lugar
     // enseña la tarea de conocer al jefe).
+    // SOLO estaciones de verdad: una misión DINÁMICA (fingir, hablar con
+    // alguien) ancla su marcador a lo que tenga más cerca — el fingir-101 se
+    // pegaba al lugar seguro en el que estuvieras y, como "nearStation",
+    // bloqueaba recoger objetos y hablaba en nombre de una estación que no
+    // existe. Las dinámicas se cumplen por su propio camino
+    // (_updateCampaignObjectives / completeTalk), no por esta vía.
     this.nearStation = this.metGabo
       ? this.objectives.find(
-          (s) => !s.done && Math.hypot(s.x - pos.x, s.z - pos.z) < INTERACT_RADIUS
+          (s) => !s.done && !s.dynamic && Math.hypot(s.x - pos.x, s.z - pos.z) < INTERACT_RADIUS
         ) ?? null
       : null;
 
@@ -493,70 +567,87 @@ export class Game {
       }
     }
 
+    this.worldFrozen = false;
     if (this.nearStation && holdingSpace && !this.player.isPretending && this.metGabo) {
-      this.canvas?.focus?.();
-      this.player.isDoingActivity = true;
-      // La pose sale del JSON de la actividad (`pose`, ver scenes/*.json); si
-      // el personaje no tiene hoja de acciones, sprite.js la ignora.
-      this.player.pose = this.nearStation.pose ?? null;
-      // DE CARA A LA CÁMARA, con su giro normal de andar (setHeading hace
-      // el tween — nada se teletransporta). La cámara ya NO orbita durante
-      // las acciones (solo se acerca): el que se mueve para que la pose se
-      // vea de frente es el personaje, que es más barato y nunca marea.
-      const camYaw = (getCameraSettings().yawDeg * Math.PI) / 180;
-      this.player.sprite.setHeading(Math.sin(camYaw), Math.cos(camYaw));
-
-      // EL SUELO, y no se toca: mantener pulsado termina la tarea igual, solo
-      // que lento. Quien no quiera jugar —o esté a la vez huyendo del jefe— la
-      // acaba de todas formas. El minijuego es un ATAJO con riesgo, no un
-      // peaje: si fuera obligatorio, un mal jugador se quedaría encallado en la
-      // primera tarea del día 1.
-      //
-      // Una estación juega al GESTO o al PULSO, según lo que declare su JSON.
-      // Nunca a los dos: pedir ritmo y pulso firme a la vez con el jefe
-      // rondando no es difícil, es ruido.
-      const conGesto = !!this.nearStation.gesto;
-      let ritmo = 1;
-      if (conGesto) {
-        this.pulse.end();
-        this.gesture.begin(this.nearStation);
-        // El paso se bloquea MIENTRAS dura el gesto: así el eje del mando
-        // queda libre para el gesto y no hace falta una tecla nueva. Se sale
-        // soltando la tecla de acción (ver la rama `else`, que lo devuelve).
-        this.player.inputLocked = true;
-        ritmo = this.gesture.update(dt, this.player.readIntent());
-      } else {
-        this.gesture.end();
-        this.pulse.begin(this.nearStation);
-        this.pulse.update(dt);
-      }
-
-      this._updateActivityDeadline(dt, this.nearStation);
-      this.nearStation.progress = Math.min(
-        this.nearStation.time,
-        this.nearStation.progress + dt * ritmo
-      );
-      if (this.nearStation.progress >= this.nearStation.time && !this.nearStation.done) {
-        this.nearStation.done = true;
-        // Lo limpio que fuiste paga en RELOJ, no en energía: la actividad ya
-        // te repuso el aguante, y lo que compra jugarla bien es DÍA para
-        // gastarlo. Se cobra ANTES de soltar el minijuego, que lleva la cuenta.
-        const bonus = conGesto ? this.gesture.bonusReloj() : this.pulse.bonusReloj();
-        this._completeActivity(this.nearStation);
-        if (bonus > 0) {
-          this._grantTime(bonus, {
-            at: this.player.position,
-            sub: "sin que se note",
-            kind: "nerve",
-          });
-        }
+      const st = this.nearStation;
+      // ── CONSEGUIR primero: sin el objeto no hay actividad ──
+      if (st.objeto && !this.inventario.has(st.objeto.id)) {
+        this._faltaObjeto(st);
         this.pulse.end();
         this.gesture.end();
         this.player.inputLocked = false;
-        this.nearStation.limiteLeft = null;
-        // La campaña escucha: una estación cumplida puede desbloquear la
-        // siguiente misión de la cadena (ver engine.js -> campaign).
-        this.onMissionDone?.(this.nearStation.id);
+        this.player.isDoingActivity = false;
+        this._updatePretendPose();
+      } else {
+        this.canvas?.focus?.();
+        this.player.isDoingActivity = true;
+        // La pose sale del JSON de la actividad (`pose`, ver scenes/*.json); si
+        // el personaje no tiene hoja de acciones, sprite.js la ignora.
+        this.player.pose = st.pose ?? null;
+        // DE CARA A LA CÁMARA, con su giro normal de andar (setHeading hace
+        // el tween — nada se teletransporta). La cámara ya NO orbita durante
+        // las acciones (solo se acerca): el que se mueve para que la pose se
+        // vea de frente es el personaje, que es más barato y nunca marea.
+        const camYaw = (getCameraSettings().yawDeg * Math.PI) / 180;
+        this.player.sprite.setHeading(Math.sin(camYaw), Math.cos(camYaw));
+
+        if (st.encendida && !st.done) {
+          // ── AGUANTAR: la actividad YA está activada y el mundo VIVE ──
+          // Cada segundo sostenida a la vista paga extra; al techo se banca
+          // sola (soltar o irte también banca — ver el barrido de abajo).
+          this.pulse.end();
+          this.gesture.end();
+          this.player.inputLocked = false;
+          st.aguante = Math.min(AGUANTE_MAX, (st.aguante ?? 0) + dt);
+          if (st.aguante >= AGUANTE_MAX) this._bankActivity(st);
+        } else if (!st.done) {
+          // ── ACTIVAR: el minijuego, con el MUNDO CONGELADO y su reloj ──
+          // Entrar al modo de juego pausa el piso (jefe, secuaces, reloj,
+          // sospecha pasiva); lo único que corre es el minijuego y su cuenta
+          // atrás (`limite`) — el temporizador que impide quedarse a vivir
+          // aquí. La exposición vive antes (conseguir) y después (aguantar).
+          this.worldFrozen = true;
+          // Una estación juega al GESTO o al PULSO, según su JSON. Nunca a
+          // los dos: pedir ritmo y pulso firme a la vez no es difícil, es
+          // ruido.
+          const conGesto = !!st.gesto;
+          let ritmo = 1;
+          if (conGesto) {
+            this.pulse.end();
+            this.gesture.begin(st);
+            // El paso se bloquea MIENTRAS dura el gesto: el eje del mando
+            // queda libre y no hace falta tecla nueva. Se sale soltando la
+            // tecla de acción (la rama `else` de fuera lo devuelve).
+            this.player.inputLocked = true;
+            ritmo = this.gesture.update(dt, this.player.readIntent());
+          } else {
+            this.gesture.end();
+            this.pulse.begin(st);
+            this.pulse.update(dt);
+          }
+
+          this._updateActivityDeadline(dt, st);
+          st.progress = Math.min(st.time, st.progress + dt * ritmo);
+          if (st.progress >= st.time && !st.encendida) {
+            // ¡ENCENDIDA! El minijuego cobró su limpieza; el mundo vuelve a
+            // correr y empieza el aguante. La misión cae al BANCAR, no aquí.
+            st.encendida = true;
+            st.aguante = 0;
+            const bonus = conGesto ? this.gesture.bonusReloj() : this.pulse.bonusReloj();
+            if (bonus > 0) {
+              this._grantTime(bonus, {
+                at: this.player.position,
+                sub: "sin que se note",
+                kind: "nerve",
+              });
+            }
+            this.pulse.end();
+            this.gesture.end();
+            this.player.inputLocked = false;
+            st.limiteLeft = null;
+            this.toast(`${st.label}: en marcha. AGUANTA para que cuente más.`);
+          }
+        }
       }
     } else {
       this.pulse.end();
@@ -564,6 +655,15 @@ export class Game {
       this.player.inputLocked = false;
       this.player.isDoingActivity = false;
       this._updatePretendPose();
+    }
+
+    // BANCAR lo encendido que ya no sostienes: soltaste la tecla, te fuiste
+    // o te sacaron — el aguante acumulado se cobra y la misión cae. Vive
+    // fuera de la rama para cubrir TODAS las formas de soltar.
+    for (const o of this.objectives) {
+      if (!o.encendida || o.done) continue;
+      if (o === this.nearStation && this.player.isDoingActivity) continue;
+      this._bankActivity(o);
     }
 
     // LA CUENTA ATRÁS SIGUE CORRIENDO AUNQUE TE VAYAS. Es lo que la convierte
@@ -610,11 +710,34 @@ export class Game {
           Math.hypot(n.position.x - pos.x, n.position.z - pos.z) < INTERACT_RADIUS * 1.3
       ) ?? guardApproachable;
 
+    // Los OBJETOS por recoger (bucle v2: conseguir → activar → aguantar).
+    // El punto de recogida es la sala que los guarda; robarlo exige que NO
+    // esté ocupada — con gente dentro, alguien te vería llevártelo.
+    this.nearItem = null;
+    if (this.metGabo) {
+      for (const it of this._itemSpots) {
+        if (this.inventario.has(it.id)) continue;
+        if (Math.hypot(it.x - pos.x, it.z - pos.z) < INTERACT_RADIUS * 1.2) {
+          this.nearItem = it;
+          break;
+        }
+      }
+    }
+
     if (holdingSpace && !this._prevInteractKey && this.nearNpc && !this.nearStation) {
       this.canvas?.focus?.();
       const npc = this.nearNpc;
       this.talkCooldowns.set(npc.id ?? npc.cast, npc.talkCooldown ?? 40);
       this.onTalk?.(npc);
+    } else if (holdingSpace && !this._prevInteractKey && this.nearItem && !this.nearStation) {
+      const it = this.nearItem;
+      if (this.safeSpotState[it.salaIndex]?.busyLeft > 0) {
+        this.toast(`${it.nombre}: la sala está OCUPADA. Una distracción los sacaría…`);
+      } else {
+        this.inventario.add(it.id);
+        this.toast(`Conseguiste: ${it.nombre}`);
+        sfxComplete();
+      }
     } else if (holdingSpace && !this._prevInteractKey && this.nearDistraction && !this.nearStation) {
       const target = { x: this.nearDistraction.x, z: this.nearDistraction.z };
       if (this.boss.distract(target, DISTRACTION_EFFECT_DURATION)) {
@@ -622,6 +745,16 @@ export class Game {
         this.toast(`Distracción: ${this.nearDistraction.label}`);
         sfxDistraction();
         this.award(40, "Distracción", this.player.position);
+        // Y LA GENTE SALE A MIRAR: las salas ocupadas cercanas se vacían un
+        // rato — la ventana para robarte lo que guardan (el HDMI de la peli).
+        safeSpots.forEach((s, i) => {
+          const st = this.safeSpotState[i];
+          if (st.busyLeft > 0 && Math.hypot(s.x - target.x, s.z - target.z) < 12 * S) {
+            st.busyLeft = 0;
+            st.nextBusy = (s.busyEvery ?? 60) * (0.6 + Math.random() * 0.5);
+            this.toast(`${s.label}: salieron a mirar el alboroto.`);
+          }
+        });
       } else {
         this.toast("¡Ya te vio! Una distracción no lo detiene ahora.");
       }
@@ -657,15 +790,20 @@ export class Game {
     const liveNpcs = this._liveNpcsBuf;
     // Boss is inactive (won't pursue) until player meets them
     this.boss._playerMetBoss = this.metGabo;
-    this.boss.update(dt, this.player, liveNpcs);
-    this.minions.forEach((m) => {
-      if (m.id === "crispo") {
-        m._playerMetMinion = this.metGabo;
-      }
-      m.update(dt, this.player, liveNpcs);
-    });
-    this._updateMinionCatch();
-    this._updateMinionApproach();
+    // CON EL MUNDO CONGELADO (activando una actividad) los vigilantes no se
+    // mueven ni abordan: el modo de juego es suyo, y su amenaza es el
+    // temporizador — la caza vuelve en cuanto la actividad se enciende.
+    if (!this.worldFrozen) {
+      this.boss.update(dt, this.player, liveNpcs);
+      this.minions.forEach((m) => {
+        if (m.id === "crispo") {
+          m._playerMetMinion = this.metGabo;
+        }
+        m.update(dt, this.player, liveNpcs);
+      });
+      this._updateMinionCatch();
+      this._updateMinionApproach();
+    }
     this._updateEggs(dt);
     this._updateBumps(dt);
     this._updateCrowdSeparation();
@@ -673,7 +811,11 @@ export class Game {
 
     // ---- Suspicion ----
     const susCfg = this.suspicionConfig;
-    if (this.gate && !this.metGabo) {
+    if (this.worldFrozen) {
+      // Mundo congelado (activando): la sospecha pasiva ni sube ni baja. El
+      // RUIDO del minijuego sí entra (onNoise suma directo) — fallar sigue
+      // costando, pero nadie te "ve" mientras el piso está detenido.
+    } else if (this.gate && !this.metGabo) {
       // Antes de conocer al guardián de la puerta del día no hay nada que
       // reprochar todavía: ni tareas que hacer mal, ni vigilancia activa.
       this.suspicion = 0;
@@ -771,7 +913,10 @@ export class Game {
       this._coldFor = 0;
     }
 
-    this._updateHeat(dt);
+    // El nivel de búsqueda tampoco corre congelado: sus soplos mandan al
+    // jefe a tu posición, y un jefe quieto recibiendo chivatazos los
+    // ejecutaría todos de golpe al descongelar.
+    if (!this.worldFrozen) this._updateHeat(dt);
 
     // Fingiendo con poca sospecha eres intocable, y un escondite o un lugar
     // seguro te cubren MIENTRAS el jefe todavía no te tiene en la mira ni te
@@ -1872,6 +2017,15 @@ export class Game {
 
   /** El diálogo con un NPC cumple su misión "como", si estaba pendiente. */
   completeTalk(npcId) {
+    // COMPRAR POR CHARLA: un objeto con `de` se consigue hablando con ese
+    // personaje — el café no se sirve, se le compra al Parce.
+    for (const st of this.objectives) {
+      const ob = st.objeto;
+      if (ob?.de === npcId && !this.inventario.has(ob.id)) {
+        this.inventario.add(ob.id);
+        this.toast(`Conseguiste: ${ob.nombre}`);
+      }
+    }
     const o = this.objectives.find((x) => x.npcId === npcId && !x.done);
     if (!o) return false;
     o.done = true;
@@ -1906,6 +2060,14 @@ export class Game {
       // desincronizar del motor.
       pulse: this.pulse.snapshot(),
       gesture: this.gesture.snapshot(),
+      // El bucle v2: qué llevas encima, si el mundo está congelado
+      // (activando) y qué actividad está encendida aguantando.
+      inventario: [...this.inventario],
+      worldFrozen: this.worldFrozen,
+      aguantando: (() => {
+        const st = this.objectives.find((o) => o.encendida && !o.done);
+        return st ? { id: st.id, label: st.label, aguante: st.aguante ?? 0, max: AGUANTE_MAX } : null;
+      })(),
       // La cuenta atrás de la tarea que tienes entre manos. Se enseña la de
       // la estación en curso; las que dejaste a medias siguen corriendo por
       // dentro y se ven al volver.

@@ -1,11 +1,16 @@
 /**
  * EL GESTO Y LA CUENTA ATRÁS (src/game/gestures.js, docs/MOTOR.md §1.2).
  *
- * Lo que hay que proteger aquí es lo mismo que en el pulso, y por lo mismo:
- * una tarea que pausa el mundo convierte las estaciones en el sitio más
- * seguro del piso. Así que la primera comprobación —y la que de verdad
- * importa— es que EL JEFE SIGUE CAMINANDO mientras juegas al gesto, aunque
- * el panel esté "en primer plano".
+
+ * EL CONTRATO CAMBIÓ con el bucle v2 (conseguir → activar → aguantar):
+ * activar una actividad ES su propio modo — el mundo se CONGELA (jefe,
+ * reloj, sospecha pasiva) y lo único que corre es el minijuego y su cuenta
+ * atrás. Lo que impide que la estación sea "el sitio más seguro del piso"
+ * ya no es el jefe caminando por detrás: es el TEMPORIZADOR (no puedes
+ * quedarte a vivir dentro), el objeto que hubo que conseguir ANTES con el
+ * piso vivo, y el AGUANTE de después, a la vista de todos. La primera
+ * comprobación es ese congelado: jefe quieto, `limite` corriendo, reloj de
+ * jornada parado.
  *
  * Las otras dos que sostienen el diseño:
  *
@@ -87,6 +92,9 @@ const arranque = await p.evaluate(async () => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const st = g.objectives.find((o) => o.gesto && !o.dynamic);
   if (!st) return { error: "el día no trae ninguna estación con gesto" };
+  // El bucle v2 pide CONSEGUIR antes de activar: aquí se mide el gesto, no
+  // la búsqueda del objeto (esa la mira check-objetos), así que se concede.
+  if (st.objeto) g.inventario.add(st.objeto.id);
   g.player.position.x = st.x;
   g.player.position.z = st.z;
   g.player.keys.add(" ");
@@ -111,27 +119,37 @@ assert("y su cuenta atrás", arranque.cuenta === true, JSON.stringify(arranque))
 assert("el panel NO roba clics", arranque.robaClics === false, JSON.stringify(arranque));
 assert("mientras dura el gesto no se camina", arranque.pasoBloqueado === true, JSON.stringify(arranque));
 
-// ── 2 · LA REGLA QUE NO SE ROMPE: el mundo no se pausa ─────────────────
+// ── 2 · EL CONTRATO NUEVO: activar es SU PROPIO MODO ───────────────────
+// El mundo se CONGELA mientras juegas (jefe quieto, reloj de jornada
+// parado) y lo único que corre es el minijuego y su cuenta atrás — el
+// temporizador es lo que impide quedarse a vivir dentro. La exposición
+// vive antes (conseguir el objeto) y después (el aguante, mundo vivo).
 const vivo = await p.evaluate(async () => {
   const g = window.__game.engine.game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  // Lejos y con la captura vetada: aquí se mide que el mundo sigue vivo, no
-  // la captura (esa la prueban check-catch y check-pursuit).
   g._caughtCooldown = 999;
   g.boss.position.x = g.player.position.x + 30;
   g.boss.position.z = g.player.position.z;
-  g.suspicion = Math.max(g.suspicion, g.boss.chaseSuspicionFloor + 15);
-  g.boss.suspicion = g.suspicion;
   const antes = { x: g.boss.position.x, z: g.boss.position.z };
+  const st = g.objectives.find((o) => o.gesto && !o.dynamic);
+  const limite0 = st.limiteLeft ?? st.limite;
+  const reloj0 = g.timeLeft;
   await sleep(900);
   return {
+    // No es la pausa de menú: el juego no está `paused` — está en SU modo.
     pausado: g.paused,
-    jefeSeMovio:
-      Math.hypot(g.boss.position.x - antes.x, g.boss.position.z - antes.z) > 0.01,
+    congelado: g.worldFrozen,
+    jefeQuieto:
+      Math.hypot(g.boss.position.x - antes.x, g.boss.position.z - antes.z) < 0.01,
+    limiteCorre: (st.limiteLeft ?? st.limite) < limite0,
+    relojParado: g.timeLeft === reloj0,
   };
 });
-assert("el mundo NO se pausa durante el gesto", vivo.pausado === false, JSON.stringify(vivo));
-assert("el jefe sigue caminando mientras juegas", vivo.jefeSeMovio === true, JSON.stringify(vivo));
+assert("activar NO es la pausa de menú", vivo.pausado === false, JSON.stringify(vivo));
+assert("pero el mundo queda CONGELADO", vivo.congelado === true, JSON.stringify(vivo));
+assert("el jefe, quieto mientras juegas", vivo.jefeQuieto === true, JSON.stringify(vivo));
+assert("la cuenta atrás del minijuego SÍ corre", vivo.limiteCorre === true, JSON.stringify(vivo));
+assert("y el reloj de la jornada, parado", vivo.relojParado === true, JSON.stringify(vivo));
 
 // ── 3 · Dentro de la zona acelera; el extremo hace RUIDO ────────────────
 // Se llama a `gesture.update()` DIRECTAMENTE, con el eje a mano: por el bucle
@@ -283,7 +301,7 @@ assert("sin errores de página", errores.length === 0, errores.join(" | "));
 await b.close();
 console.log(
   fallos === 0
-    ? "\nEl gesto se juega en primer plano sin pausar el mundo, y la cuenta atrás convoca de verdad"
+    ? "\nEl gesto es su propio modo — congelado el mundo, corriendo su reloj — y la cuenta atrás convoca"
     : `\n${fallos} fallo(s) en el gesto`
 );
 process.exit(fallos === 0 ? 0 : 1);

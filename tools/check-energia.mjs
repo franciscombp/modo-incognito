@@ -109,7 +109,10 @@ const out = await p.evaluate(() => {
   return r;
 });
 
-check(out.duracion === 120, "la jornada dura dos minutos", `${out.duracion}s`);
+// CUATRO minutos por decisión de diseño (antes 120): el bucle v2 mete
+// conseguir-activar-aguantar en cada actividad y la jornada corta se
+// quedaba sin sitio para la vuelta al ascensor.
+check(out.duracion === 240, "la jornada dura cuatro minutos", `${out.duracion}s`);
 check(out.trasUnSegundo < 100, "la energía baja sola", `100 → ${out.trasUnSegundo}`);
 check(
   out.fingiendoUnSegundo < out.trasUnSegundo,

@@ -84,36 +84,36 @@ const arranque = await p.evaluate(async () => {
 assert("el pulso arranca al empezar la actividad", arranque.activo === true, JSON.stringify(arranque));
 assert("y el HUD lo pinta", arranque.pintado === true, JSON.stringify(arranque));
 
-// ── 2 · LA REGLA QUE NO SE ROMPE: el mundo no se pausa ──
+// ── 2 · EL CONTRATO NUEVO (bucle v2): activar CONGELA el mundo ──
+// El minijuego es su propio modo: jefe quieto, reloj de jornada parado,
+// sospecha pasiva congelada — y lo único que corre es el pulso con su
+// cuenta atrás. Lo que impide vivir aquí dentro es el temporizador, no el
+// jefe caminando por detrás; la exposición vive antes (conseguir) y
+// después (aguantar, con el mundo vivo).
 const vivo = await p.evaluate(async () => {
   const g = window.__game.engine.game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  // El jefe, LEJOS de verdad y con la captura vetada. La primera versión
-  // solo subía la sospecha para que caminara — y según dónde le pillara la
-  // ronda, a veces LLEGABA: te atrapaba, el interrogatorio pausaba la
-  // partida y el pulso se apagaba justo antes de la fase siguiente, que
-  // encontraba `station` en null y devolvía {}. Una de cada tantas, según
-  // el azar de su ruta. Aquí se mide que el mundo sigue vivo, no la captura
-  // (esa la prueban check-catch y check-pursuit).
   g._caughtCooldown = 999;
   g.boss.position.x = g.player.position.x + 30;
   g.boss.position.z = g.player.position.z;
-  g.suspicion = Math.max(g.suspicion, g.boss.chaseSuspicionFloor + 15);
-  g.boss.suspicion = g.suspicion;
   const antes = { x: g.boss.position.x, z: g.boss.position.z };
   const marcaAntes = g.pulse.snapshot()?.pos ?? null;
+  const reloj0 = g.timeLeft;
   await sleep(900);
   const dsp = { x: g.boss.position.x, z: g.boss.position.z };
   return {
     pausado: g.paused,
-    jefeSeMovio: Math.hypot(dsp.x - antes.x, dsp.z - antes.z) > 0.01,
+    congelado: g.worldFrozen,
+    jefeQuieto: Math.hypot(dsp.x - antes.x, dsp.z - antes.z) < 0.01,
     marcaSeMueve: (g.pulse.snapshot()?.pos ?? null) !== marcaAntes,
-    relojCorre: g.timeLeft,
+    relojParado: g.timeLeft === reloj0,
   };
 });
-assert("el mundo NO se pausa durante el pulso", vivo.pausado === false, JSON.stringify(vivo));
-assert("el jefe sigue caminando mientras juegas", vivo.jefeSeMovio === true, JSON.stringify(vivo));
-assert("el marcador del pulso se mueve", vivo.marcaSeMueve === true, JSON.stringify(vivo));
+assert("activar NO es la pausa de menú", vivo.pausado === false, JSON.stringify(vivo));
+assert("pero el mundo queda CONGELADO", vivo.congelado === true, JSON.stringify(vivo));
+assert("el jefe, quieto mientras juegas", vivo.jefeQuieto === true, JSON.stringify(vivo));
+assert("el marcador del pulso SÍ se mueve", vivo.marcaSeMueve === true, JSON.stringify(vivo));
+assert("y el reloj de la jornada, parado", vivo.relojParado === true, JSON.stringify(vivo));
 
 // ── 3 · Un fallo hace RUIDO (sube la sospecha), un acierto avanza ──
 // Hay que ESPERAR AL MOMENTO de cada caso en vez de golpear a ciegas: la
@@ -208,13 +208,15 @@ const suelo = await p.evaluate(async () => {
     g.objectives.find((o) => !o.dynamic && !o.gesto);
   st.done = false;
   st.progress = 0;
+  st.encendida = false;
   g.player.keys.delete(" ");
   await sleep(120);
   g.player.position.x = st.x;
   g.player.position.z = st.z;
   g.player.keys.add(" ");
-  // Nunca se llama a hit(): solo se mantiene. Debe completarse igual.
-  for (let i = 0; i < 90 && !st.done; i++) {
+  // Nunca se llama a hit(): solo se mantiene. Debe ENCENDERSE igual — el
+  // suelo del bucle v2 es que la ACTIVACIÓN nunca exige jugar bien.
+  for (let i = 0; i < 90 && !st.encendida && !st.done; i++) {
     // Se reanuda dentro del bucle: `_heatAlertShown` se rearma sola y una
     // alerta a mitad de cuenta volvería a congelar la tarea.
     g.setPaused(false);
@@ -223,11 +225,23 @@ const suelo = await p.evaluate(async () => {
     g.player.position.z = st.z;
     await sleep(100);
   }
+  const encendida = st.encendida || st.done;
+  // Y AL SOLTAR SE BANCA: el aguante acumulado se cobra y la misión cae.
   g.player.keys.delete(" ");
-  return { hecha: st.done, id: st.id, progreso: +st.progress.toFixed(2), time: st.time };
+  for (let i = 0; i < 20 && !st.done; i++) {
+    g.setPaused(false);
+    g.suspicion = 0;
+    await sleep(100);
+  }
+  return { encendida, hecha: st.done, id: st.id, progreso: +st.progress.toFixed(2), time: st.time };
 });
 assert(
-  "manteniendo pulsado se termina la tarea SIN jugar al pulso",
+  "manteniendo pulsado la actividad se ENCIENDE sin jugar al pulso",
+  suelo.encendida === true,
+  JSON.stringify(suelo),
+);
+assert(
+  "y al soltar se BANCA: la misión cae",
   suelo.hecha === true,
   JSON.stringify(suelo),
 );

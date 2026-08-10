@@ -149,17 +149,29 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
   declara `gesto`, juega al gesto; si no, al pulso. Pedir ritmo y pulso firme
   a la vez con el jefe rondando no es difícil, es ruido.
 
-**Y la regla que decidió cómo son los dos: un minijuego de TAREA no puede
-pausar el mundo.** Era lo tentador y habría roto el juego: hacer una tarea
-tiene que EXPONERTE, y si mientras juegas el jefe se congela, las estaciones
-pasan a ser el sitio más seguro del piso — lo contrario de su función. Por eso
-esto vive en la banda baja de la pantalla y no en un panel que tape el piso:
-**«primer plano» es PRESENCIA, no pantalla completa.** Mantener espacio termina
-la tarea igual (ese es el suelo, y no se toca: obligar a jugarlo dejaría a
-alguien encallado en la primera tarea del día 1); jugar bien la termina antes,
-y jugar mal hace RUIDO, que sube la sospecha. Lo vigilan `npm run check:pulse`
-y `npm run check:gesto`, y la primera comprobación de los dos es que el jefe
-SIGUE CAMINANDO mientras se juega.
+**EL BUCLE v2 DE UNA ACTIVIDAD: conseguir → activar → aguantar.** El contrato
+cambió (decisión de diseño explícita, agosto 2026) y las tres fases se
+reparten la exposición:
+
+1. **CONSEGUIR** (`activities[].objeto` en el JSON de escena): la peli pide
+   robar el HDMI de una sala (solo si está vacía — una distracción la vacía:
+   la gente sale a mirar), el café se le compra al Parce hablándole. El
+   inventario es del DÍA (`game.inventario`). Sin el objeto, la estación
+   avisa qué falta y el minijuego ni arranca.
+2. **ACTIVAR = el minijuego, y CONGELA el mundo** (`game.worldFrozen`): jefe,
+   secuaces, reloj de jornada y sospecha pasiva quietos; lo único que corre
+   es el pulso/gesto y su cuenta atrás (`limite`) — el temporizador es lo que
+   impide quedarse a vivir dentro; agotarlo pierde lo hecho y convoca al
+   jefe. Mantener espacio ENCIENDE la actividad igual, sin jugar (el suelo
+   no se toca); jugar bien paga extra y jugar mal hace RUIDO.
+3. **AGUANTAR**: encendida, el mundo VIVE otra vez y cada segundo que la
+   sostienes a la vista paga más (`AGUANTE_RATE`/`AGUANTE_MAX` en game.js).
+   Soltar, irte o llegar al techo la BANCA: ahí cae la misión.
+
+Lo vigilan `npm run check:pulse`, `npm run check:gesto` y
+`npm run check:objetos` — la primera comprobación es el congelado (jefe
+quieto, `limite` corriendo, reloj parado) y la última, que el aguante se
+paga al bancar.
 
 **Mientras dura un gesto no se camina** (`player.inputLocked`). No es una
 restricción caprichosa: es lo que deja libre el eje del mando para el gesto, y

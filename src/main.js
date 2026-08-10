@@ -764,7 +764,10 @@ async function boot() {
     if (!engine.crossingActive) {
       if (!engine.isPaused) {
         player.update(dt, world);
-        npcs.forEach((npc) => npc.update(dt, t));
+        // Con el mundo congelado (activando una actividad) los compañeros
+        // también se quedan quietos: un piso donde solo tú existes es la
+        // señal visual de que estás DENTRO del modo de juego.
+        if (!engine.game?.worldFrozen) npcs.forEach((npc) => npc.update(dt, t));
       }
 
       bobbingMeshes.forEach((m) => {

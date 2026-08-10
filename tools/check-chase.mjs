@@ -87,7 +87,15 @@ const log = await page.evaluate(async () => {
   station.x = px;
   station.z = z;
   station.done = false;
-  station.progress = 0;
+  // EL BUCLE v2 movió la exposición: ACTIVAR congela el mundo (el jefe ni
+  // te ve mientras juegas el minijuego), así que la fase que el jefe puede
+  // pillar es el AGUANTE — la actividad ya encendida, sostenida a la vista
+  // con el piso vivo. Se planta encendida, con su objeto concedido si lo
+  // pide: aquí se prueba la caza, no la búsqueda del objeto (check-objetos).
+  if (station.objeto) game.inventario.add(station.objeto.id);
+  station.progress = station.time;
+  station.encendida = true;
+  station.aguante = 0;
   player.keys.add(" "); // la tecla de acción es espacio, no "e"
 
   await sleep(350);

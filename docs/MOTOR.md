@@ -116,12 +116,17 @@ antes a un lugar seguro no pasa nada — esa carrera es justo el juego.
 poder terminar la tarea y el suelo se caería sin que nada fallara a la vista.
 Lo vigila `npm run check:gesto`.
 
-⚠️ **Y la regla que manda sobre las tres:** un minijuego de tarea **no puede
-pausar el mundo**. «Primer plano» es una tarjeta con presencia en la banda baja,
-no una pantalla que tape el piso. Si el jefe se congelara mientras juegas, las
-estaciones pasarían a ser el sitio más seguro de la planta — lo contrario de su
-función. La primera comprobación de `check:gesto` y de `check:pulse` es esa: que
-el jefe SIGUE CAMINANDO.
+⚠️ **El contrato del mundo cambió con el bucle v2 (conseguir → activar →
+aguantar):** activar una actividad **CONGELA el mundo** (`game.worldFrozen`:
+jefe, secuaces, reloj de jornada y sospecha pasiva quietos) y el minijuego
+corre como su propio modo con `limite` de temporizador. Lo que impide que la
+estación sea «el sitio más seguro de la planta» ya no es el jefe caminando
+por detrás: es el temporizador, el **objeto** que hubo que conseguir ANTES
+con el piso vivo (`activities[].objeto`: robar el HDMI de una sala vacía —
+una distracción la vacía—, comprarle el café al Parce), y el **AGUANTE** de
+después — encendida la actividad, el mundo vive y cada segundo sostenida a
+la vista paga extra; soltar la banca (`AGUANTE_*` en game.js). Lo vigilan
+`check:pulse`, `check:gesto` y `check:objetos`.
 
 ---
 

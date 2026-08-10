@@ -64,6 +64,10 @@ const result = await page.evaluate(async () => {
   // que plantarse encima de una estación que la cadena aún no ha desbloqueado
   // no dispara ninguna pose. Aquí se prueban las poses, no la cadena.
   game.objectives = stations;
+  // El bucle v2 pide CONSEGUIR antes de activar: sin su objeto, la estación
+  // ni arranca y la pose no llega a ponerse. Se conceden todos — aquí se
+  // prueban las poses, no la búsqueda (esa es de check-objetos).
+  for (const st of stations) if (st.objeto) game.inventario.add(st.objeto.id);
   for (const station of stations) {
     player.keys.clear();
     player.position.x = station.x;
