@@ -4969,8 +4969,22 @@ body.crossing-open .hud-root,
 body.crossing-open .radar,
 body.crossing-open .wprompt,
 body.crossing-open .compass-layer,
-body.crossing-open .touch-controls,
 body.crossing-open #hint {
+  display: none !important;
+}
+
+/* EL STICK SE QUEDA. Estaba en la lista de arriba, escondido, y el cruce
+   montaba en su lugar cuatro flechas propias: dos formas distintas de
+   mover al mismo personaje en el mismo juego, y la del cruce peor. Ahora
+   se mueve igual en la calle que en el piso — mismo pulgar, mismo sitio,
+   misma respuesta. El mando propio del cruce se retiro entero. */
+body.crossing-open .touch-controls {
+  display: block;
+}
+
+/* Y de los botones de acción no hace falta ninguno: en el cruce solo se
+   camina. Se dejan fuera para que el pulgar derecho no busque nada. */
+body.crossing-open .touch-actions {
   display: none !important;
 }
 
@@ -5026,39 +5040,8 @@ body.crossing-open #hint {
   box-shadow: 0 4px 14px rgba(var(--ink-rgb), 0.16);
 }
 
-.crossing-touchpad {
-  flex: 0 0 auto;
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  pointer-events: auto;
-}
-
-.crossing-touchpad-row {
-  display: flex;
-  gap: 6px;
-}
-
-.crossing-btn {
-  width: 52px;
-  height: 52px;
-  font-size: 20px;
-  color: var(--ink);
-  background: rgba(var(--cyan-rgb), 0.14);
-  border: 2px solid var(--cyan);
-  border-radius: 10px;
-}
-
-.crossing-btn:active {
-  background: rgba(var(--cyan-rgb), 0.32);
-}
-
 @media (pointer: coarse) {
-  .crossing-touchpad {
-    display: flex;
   }
-}
 
 /* ================= Vestíbulo de ascensores ================= */
 /* Segunda "escena": tapa el lienzo 3D del todo durante el prólogo de cada
@@ -8710,7 +8693,6 @@ body.inc-game-active .inc-menu-scrim {
 .inc-menu-tab,
 .inc-login-mini,
 .hud-overlay-btn,
-.crossing-btn,
 .inc-review-ok,
 .inc-level-ok,
 .wprompt-key {
@@ -8740,11 +8722,6 @@ body.inc-game-active .inc-menu-scrim {
 .inc-menu-tab:hover,
 .inc-login-mini:hover,
 .hud-overlay-btn:hover,
-.crossing-btn:hover {
-  border-color: var(--line-strong);
-  color: var(--cyan);
-}
-
 .inc-btn:active,
 .px-btn:active,
 .px-tab:active,
@@ -8756,11 +8733,6 @@ body.inc-game-active .inc-menu-scrim {
 .inc-menu-tab:active,
 .inc-login-mini:active,
 .hud-overlay-btn:active,
-.crossing-btn:active {
-  transform: translateY(var(--btn-sink));
-  box-shadow: 0 calc(var(--btn-drop) - var(--btn-sink)) 0 0 var(--line);
-}
-
 /* Foco de teclado: visible sobre marino y sin halo de neón. */
 .inc-btn:focus-visible,
 .px-btn:focus-visible,

@@ -174,14 +174,21 @@ export function createCampaign({ save, data }) {
         detalle = "La temporada sigue: mañana, más.";
       }
 
-      // Avance de calendario. La temporada salta con el ascenso; si no, el
-      // día avanza hasta el 5 y ahí se queda (la nivelación no expulsa).
-      if (win || nota === "AAA") {
-        if (ascenso) {
-          save.campaign = { temporada: c.temporada + 1, dia: 1, unicas: [] };
-        } else {
-          save.campaign = { ...c, dia: Math.min(5, c.dia + 1) };
-        }
+      // ── EL CALENDARIO CORRE PASE LO QUE PASE ────────────────────────
+      // Antes el día solo avanzaba `if (win || nota === "AAA")`: fallar
+      // congelaba la fecha y repetir el nivel te devolvía al MISMO día una y
+      // otra vez, así que la carrera no avanzaba mientras no ganaras. Es lo
+      // contrario de lo que cuenta el juego — un día malo en la oficina
+      // sigue siendo un día que pasó, y el lunes siguiente llega igual.
+      //
+      // Ahora la fecha avanza siempre y lo único que se gana ganando es el
+      // ASCENSO (saltar de temporada). Perder cuesta lo que tiene que
+      // costar: un día menos de los cinco antes de que salte el plan de
+      // nivelación, que es la red y no un castigo (§8).
+      if (ascenso) {
+        save.campaign = { temporada: c.temporada + 1, dia: 1, unicas: [] };
+      } else {
+        save.campaign = { ...c, dia: Math.min(5, c.dia + 1) };
       }
       return {
         nota,

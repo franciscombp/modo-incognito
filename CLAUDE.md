@@ -772,6 +772,33 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   lienzo pequeño — el lienzo es fijo y siempre 16:9, así que las tres hojas
   caben en los dos tamaños; apilarlas en una columna fue el primer intento
   y dejaba la tercera cortada abajo.
+- **A LAS SEIS SE SALE POR EL ASCENSOR.** La jornada ya no termina donde
+  estés parada: a las 18:00 del reloj de pared (`CLOSING_HOUR` en `game.js`)
+  el piso se vacía, se abre la SALIDA y hay que llegar a los ascensores.
+  Terminar las tareas antes también la abre — el premio de ir rápido es
+  poder irte antes, no ganar en el sitio. Quedarte dentro cuando se acaba el
+  reloj es una AMONESTACIÓN («baja el guardia y te saca»), no un despido,
+  salvo que sea la que colma el vaso. Tres cosas que no se pueden romper:
+  - **La tarea de irse NO va en `this.objectives`**, solo se añade en el
+    snapshot (`exitTask`): metida ahí, `objectives.every(o => o.done)` nunca
+    sería cierto y la jornada no podría darse por hecha jamás.
+  - **Los compañeros que se van NO usan el navmesh.** Caminan derechos a la
+    puerta y se retiran al llegar o a los 15 s. Pedía ruta con A* y estaba
+    medido: **~3 s por compañero**, porque es un trayecto que cruza el piso
+    entero (rejilla de 152×55); con diez saliendo a la vez el juego se
+    congelaba **más de treinta segundos** justo al dar las seis. Un figurante
+    que se va a casa no necesita ruta — nadie va a comprobar si rozó una mesa
+    camino del ascensor, y lo que hay que leer es que la oficina se VACÍA.
+  - **El jefe y sus secuaces NO se van.** El último en irse es siempre el que
+    vigila, y quedarte sola en un piso vacío CON él es mejor final de jornada
+    que quedarte sola a secas.
+  Lo vigila `npm run check:cierre`, que corre **un proceso por caso** a
+  propósito: dos de los tres terminan el día, y una pestaña que acaba de
+  terminarlo deja la evaluación y su bucle de render vivos — encadenar los
+  casos en un mismo proceso se colgaba al arrancar el siguiente, con todas
+  las variantes probadas (reutilizar, recargar, navegador nuevo, cerrar con
+  plazo, `about:blank`). Que el proceso MUERA entre caso y caso es lo único
+  que lo corta.
 - **El día 1 arranca en el ascensor.** El cruce de la avenida está desactivado
   a propósito: en `levels/dia-1.json` su bloque se llama `$minigame`, y
   recuperarlo es devolverle el nombre `minigame`. El piso se monta CON LAS

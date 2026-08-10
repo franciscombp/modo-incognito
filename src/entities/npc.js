@@ -124,6 +124,45 @@ export class NPC {
     this._state = "roll";
   }
 
+  /**
+   * LAS SEIS: a casa. Se levanta, deja su puesto y camina a los ascensores;
+   * al llegar, desaparece del piso.
+   *
+   * El `delay` escalona las salidas. Con todos saliendo en el mismo cuadro
+   * el piso se vacía de golpe, que se lee como un fallo del juego y no como
+   * una oficina cerrando — igual que los relojes desfasados del paseo, la
+   * gracia está en que no se muevan a la vez.
+   */
+  leaveFloor(exit, delay = 0) {
+    if (!exit || this._state === "leaving" || this._state === "gone") return;
+    // La silla vuelve a su sitio: se va de la oficina, no se lleva el
+    // mobiliario (ver moveSeatChair).
+    this._moveSeatChair?.(this.seat, null);
+    this.sprite.setPose(null);
+    // Un punto a la redonda de la puerta, para que no se apilen los diez en
+    // el mismo metro cuadrado esperando su turno.
+    //
+    // SNAP AL NAVMESH, y no es un detalle: el centro de la zona de
+    // ascensores (más el desperdigado) cae fácilmente dentro del hueco del
+    // ascensor o contra un muro, o sea en una casilla NO transitable. Pedir
+    // ruta a un punto inalcanzable hace que el A* recorra la rejilla ENTERA
+    // antes de rendirse — medido, ~12 segundos por compañero. Con diez
+    // saliendo a la vez, el juego se congelaba varios segundos justo al dar
+    // las seis, que es el peor momento posible para congelarse.
+    const suelto = {
+      x: exit.x + (Math.random() - 0.5) * (exit.w ?? 2) * 0.6,
+      z: exit.z + (Math.random() - 0.5) * (exit.d ?? 2) * 0.6,
+    };
+    this._exit = this.navmesh?.snap(suelto.x, suelto.z) ?? suelto;
+    this._leaveIn = delay;
+    // Techo de paciencia: si a los quince segundos sigue por el pasillo
+    // (le tocó salir desde el otro extremo del ala), se le retira igual. La
+    // oficina tiene que quedar vacía; nadie está contando cabezas.
+    this._leaveLeft = 15;
+    this._state = "leaving";
+    this._path = null;
+  }
+
   /** Un punto alcanzable a un par de mesas de distancia, o null. */
   _pickStrollTarget() {
     if (!this.navmesh) return null;
@@ -171,6 +210,51 @@ export class NPC {
       if (this._stumbleLeft <= 0) this.sprite.object.rotation.z = 0;
     }
     switch (this._state) {
+      case "leaving": {
+        // Espera su turno para levantarse y luego enfila hacia la puerta.
+        if (this._leaveIn > 0) {
+          this._leaveIn -= dt;
+          this.sprite.setMoving(false);
+          break;
+        }
+        // ── SIN NAVMESH, Y A PROPÓSITO ───────────────────────────────
+        // Esto pedía ruta al ascensor con A*. Medido: ~3 segundos por
+        // compañero, porque es un trayecto que cruza el piso ENTERO
+        // (rejilla de 152x55). Con diez saliendo a la vez, el juego se
+        // congelaba más de treinta segundos justo al dar las seis — el
+        // peor momento posible para congelarse.
+        //
+        // Un figurante que se va a casa no necesita ruta: nadie va a
+        // seguirle para ver si rozó una mesa camino del ascensor. Camina
+        // derecho, y se le retira en cuanto llega o al cabo de un rato.
+        // Lo que tiene que leerse es que la oficina se VACÍA, y eso se lee
+        // igual de bien sin gastar un pathfinding por cabeza.
+        this._leaveLeft -= dt;
+        const dx = this._exit.x - this.position.x;
+        const dz = this._exit.z - this.position.z;
+        const d = Math.hypot(dx, dz);
+        if (d < ARRIVE_EPS || this._leaveLeft <= 0) {
+          this._state = "gone";
+          break;
+        }
+        const step = Math.min(d, STROLL_SPEED * dt);
+        this.position.x += (dx / d) * step;
+        this.position.z += (dz / d) * step;
+        this.sprite.setHeading(dx / d, dz / d);
+        this.sprite.setMoving(true);
+        this.sprite.setPosition(this.position.x, this.position.z);
+        break;
+      }
+      case "gone": {
+        // Fuera del piso: ni se ve, ni tapa la vista del jefe, ni ocupa
+        // sitio. `active = false` es lo que ya usa el resto del motor para
+        // "este no está" (ver game._liveNpcsBuf).
+        if (this.active !== false) {
+          this.active = false;
+          this.sprite.object.visible = false;
+        }
+        break;
+      }
       case "roll": {
         // La silla de rueditas se lo lleva: sigue SENTADO (la silla es hija
         // suya y rueda con él; el escritorio y la computadora, ancladas al

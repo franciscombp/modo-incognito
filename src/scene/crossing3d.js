@@ -274,6 +274,10 @@ function el(tag, className, parent) {
  * ser atropellada) y un puñado de hojas de compañeros para poblar las aceras.
  */
 export function createCrossing3D(root, playerLook, sheets = {}) {
+  // El eje del stick de siempre (`game/touchControls.js`). Llega como
+  // función y no como objeto porque el cruce se monta ANTES que la jugadora
+  // del piso, que es de quien cuelga ese eje.
+  const getTouchAxis = sheets.getTouchAxis ?? null;
   // Cromo mínimo en HTML por encima del lienzo 3D: el pie de foto y los
   // botones táctiles no necesitan ser parte de la escena.
   const ui = el("div", "crossing-ui hidden", root);
@@ -281,16 +285,13 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
   clock.textContent = "8:45 a.m.";
   const hint = el("div", "crossing-hint", ui);
   hint.textContent = "CRUZA LA AMAZONAS — WASD / flechas";
-  const touchPad = el("div", "crossing-touchpad", ui);
-  const btnUp = el("button", "crossing-btn crossing-btn-up", touchPad);
-  btnUp.textContent = "▲";
-  const midRow = el("div", "crossing-touchpad-row", touchPad);
-  const btnLeft = el("button", "crossing-btn", midRow);
-  btnLeft.textContent = "◀";
-  const btnDown = el("button", "crossing-btn", midRow);
-  btnDown.textContent = "▼";
-  const btnRight = el("button", "crossing-btn", midRow);
-  btnRight.textContent = "▶";
+  // SIN MANDO PROPIO. Aquí había cuatro flechas (▲◀▼▶) montadas solo para
+  // esta escena, mientras el piso se juega con el stick flotante de
+  // `game/touchControls.js`: dos formas distintas de mover al mismo
+  // personaje en el mismo juego, y la de aquí peor — un pulgar que ya sabe
+  // dónde está su stick tenía que buscar cuatro botones nuevos justo en el
+  // momento en que hay tráfico encima. Ahora el cruce lee ESE stick (ver
+  // `readStick` más abajo) y el CSS deja de esconderlo con `crossing-open`.
 
   // ── LA MISMA MAÑANA QUE EL PISO, NO OTRA ────────────────────────────────
   // Esta escena tenía su propio cielo liso y su propio sol sin sombra —
@@ -677,15 +678,44 @@ export function createCrossing3D(root, playerLook, sheets = {}) {
     e.preventDefault();
   }
   window.addEventListener("keydown", onKey);
-  btnUp.addEventListener("click", () => tryMove(1, 0));
-  btnDown.addEventListener("click", () => tryMove(-1, 0));
-  btnLeft.addEventListener("click", () => tryMove(0, -1));
-  btnRight.addEventListener("click", () => tryMove(0, 1));
+
+  /**
+   * EL MISMO STICK QUE EL PISO. `getTouchAxis` devuelve el eje que escribe
+   * `game/touchControls.js` (el mismo objeto que mueve a la jugadora dentro
+   * de la oficina), y aquí se traduce a un paso de casilla.
+   *
+   * Se manda el eje DOMINANTE, no los dos: en una rejilla, un empujón en
+   * diagonal que mueva a la vez de fila y de columna hace imposible medir
+   * el hueco entre dos coches. Y el umbral es alto (0.5) porque el stick
+   * flotante descansa cerca del centro — con uno bajo, el pulgar apoyado
+   * caminaba solo hacia el tráfico.
+   *
+   * El enfriamiento de `tryMove` (105 ms) es lo que convierte "mantener" en
+   * pasos seguidos, igual que la repetición del teclado. No hace falta
+   * soltar entre paso y paso.
+   */
+  const STICK_DEADZONE = 0.5;
+  function readStick() {
+    const axis = getTouchAxis?.();
+    if (!axis) return;
+    const { x, z } = axis;
+    if (Math.abs(z) >= Math.abs(x)) {
+      // -z en pantalla es "hacia el fondo", que aquí es AVANZAR.
+      if (z <= -STICK_DEADZONE) tryMove(1, 0);
+      else if (z >= STICK_DEADZONE) tryMove(-1, 0);
+    } else if (x >= STICK_DEADZONE) tryMove(0, 1);
+    else if (x <= -STICK_DEADZONE) tryMove(0, -1);
+  }
 
   function frame(t) {
     if (!running) return;
     const dt = lastTime ? Math.min(0.05, (t - lastTime) / 1000) : 0;
     lastTime = t;
+
+    // El stick se lee por CUADRO (el teclado llega por evento). Va antes que
+    // el tráfico para que el paso y la colisión de este cuadro miren la
+    // misma posición.
+    readStick();
 
     vehicles.forEach((v) => {
       v.x += v.dir * v.speed * dt;

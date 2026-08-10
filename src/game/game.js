@@ -6,6 +6,7 @@ import {
   locationEggs,
   nearestArea,
   areaAt,
+  areas,
 } from "../scene/floorplan.js";
 import { nearestFreeSeat } from "../scene/furniture.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
@@ -125,6 +126,26 @@ const PRETEND_TIME_SPEED = 1.5; // 50% más rápido cuando finges
 const DAY_START_HOUR = 9;
 const DAY_END_HOUR = 19; // 7:00 p.m.
 
+// ── LAS SEIS: TODO EL MUNDO A CASA ───────────────────────────────────
+// A las 6 el piso se vacía y la jornada deja de ir de hacer tareas: va de
+// SALIR. Los compañeros recogen y se van por los ascensores, y tú tienes
+// que llegar a los tuyos antes de que se acabe el reloj.
+//
+// Es lo que le faltaba al reloj: un DESTINO. Antes la jornada se terminaba
+// sola en el sitio donde estuvieras —terminar las tareas ganaba al
+// instante— así que los últimos segundos no se jugaban, se miraban. Ahora
+// el último tramo es una carrera hacia la puerta con el jefe todavía
+// dentro.
+//
+// Quedarte encerrada NO es un despido: baja el guardia, te saca, y eso es
+// una amonestación. Castigo con nombre y cara, no una pantalla de derrota.
+const CLOSING_HOUR = 18; // 6:00 p.m.
+
+/** La primera zona de un tipo (los ascensores, para la salida). */
+function areaByKind(kind) {
+  return areas.find((a) => a.kind === kind) ?? null;
+}
+
 /**
  * One workday. Owns the suspicion meter, the forbidden activities, scoring,
  * hiding/pretending, distractions and the win/lose conditions. Everything
@@ -196,6 +217,10 @@ export class Game {
     this.win = false;
     this.paused = false;
     this._finished = false;
+    // Las seis: la salida abierta y la tarea de irse (ver _updateClosingTime).
+    this.closingAnnounced = false;
+    this.exitOpen = false;
+    this.exitTask = null;
 
     this.timeGained = 0; // reloj regalado hoy; es lo que enseña el HUD
     // Segundos de jornada CONSUMIDOS. El reloj de pared (9:00 → 7:00) sale
@@ -676,8 +701,9 @@ export class Game {
     // búsqueda al máximo; que tenga que alcanzarte ES el juego.
 
     if (!this.gameOver && !this.rules.explore) {
-      if (this.objectives.length > 0 && this.objectives.every((o) => o.done)) this._finish(true);
-      else if (this.timeLeft <= 0) this._finish(false);
+      this._updateClosingTime();
+      if (this.exitOpen && this.currentArea?.kind === "elevator") this._finish(true);
+      else if (this.timeLeft <= 0) this._lockedIn();
     }
 
     if (this.message) {
@@ -1297,6 +1323,55 @@ export class Game {
     if (final) this._finish(false);
   }
 
+  /**
+   * Las seis de la tarde. Abre la salida y manda a todo el mundo a casa.
+   *
+   * La salida se abre por DOS caminos, y basta uno: terminar tus tareas (te
+   * puedes ir antes, que es el premio de ir rápido) o que den las seis (te
+   * vas hayas hecho lo que hayas hecho). Lo que no cambia es que hay que
+   * llegar al ascensor: la jornada ya no se acaba donde estés parada.
+   */
+  _updateClosingTime() {
+    const tareasHechas = this.objectives.length > 0 && this.objectives.every((o) => o.done);
+    const sonLasSeis = this.getCurrentHour() >= CLOSING_HOUR;
+
+    if (sonLasSeis && !this.closingAnnounced) {
+      this.closingAnnounced = true;
+      this.toast("Las seis. Todo el mundo a casa — sal por el ascensor.");
+      sfxWarn();
+      // Los compañeros recogen y se van. El jefe y sus secuaces NO: el
+      // último en irse es siempre el que vigila, y quedarte sola en un piso
+      // vacío CON él es mejor final de jornada que quedarte sola a secas.
+      const salida = areaByKind("elevator");
+      this.npcs.forEach((n, i) => n.leaveFloor?.(salida, 0.35 * i));
+    }
+
+    if ((tareasHechas || sonLasSeis) && !this.exitOpen) {
+      this.exitOpen = true;
+      const salida = areaByKind("elevator");
+      this.exitTask = {
+        id: "__salida",
+        label: "Salir por el ascensor",
+        icon: "elevator",
+        x: salida?.x ?? this.player.position.x,
+        z: salida?.z ?? this.player.position.z,
+        done: false,
+      };
+      if (!sonLasSeis) this.toast("Tareas listas. Puedes irte por el ascensor.");
+    }
+  }
+
+  /**
+   * Se acabó el reloj y sigues dentro: baja el guardia y te saca. Es una
+   * AMONESTACIÓN, no un despido — salvo que sea la que colma el vaso, en
+   * cuyo caso `_warn()` ya se encarga de cerrar el día por su cuenta.
+   */
+  _lockedIn() {
+    this.toast("Te quedaste encerrada. Baja el guardia y te saca del piso.");
+    this._warn();
+    if (!this._finished) this._finish(false);
+  }
+
   _finish(win) {
     if (this._finished) return;
     this._finished = true;
@@ -1543,7 +1618,13 @@ export class Game {
       currentTime: this.formatTime(),
       // Mientras la puerta del día no esté superada, el HUD no enseña tareas
       // que todavía no se pueden hacer: solo la de encontrar al guardián.
-      objectives: this.metGabo ? this.objectives : this._gateObjectives,
+      // Y con la salida abierta, IRSE es una tarea más de la lista — se
+      // añade solo aquí (ver `exitTask`), nunca a `this.objectives`.
+      objectives: !this.metGabo
+        ? this._gateObjectives
+        : this.exitTask
+          ? [...this.objectives, this.exitTask]
+          : this.objectives,
       nearStation: this.nearStation,
       // El pulso de la actividad en marcha, o null. Va por el MISMO snapshot
       // por frame que todo lo demás: no hay una segunda verdad que se pueda
@@ -1560,6 +1641,11 @@ export class Game {
       ),
       heat: this.heat,
       maxHeat: HEAT_THRESHOLDS.length,
+      // La salida se AÑADE aquí y no a `this.objectives`, que es lo que mira
+      // "ya terminaste todo": metida ahí, la jornada nunca podría darse por
+      // hecha porque siempre quedaría una tarea sin cumplir.
+      closing: this.closingAnnounced,
+      exitOpen: this.exitOpen,
       inWorkspace: this.inWorkspace,
       minionAlert: this.minions.some((m) => m.redAlert),
       minionPositions: this.minions.map((m) => m.position),

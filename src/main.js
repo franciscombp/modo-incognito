@@ -261,6 +261,10 @@ async function boot() {
     // Gente llenando la acera: las mismas variantes de relleno que pueblan el
     // piso, así que la calle y la oficina parecen la misma ciudad.
     crowd: [0, 1, 2, 3, 4, 5].map((i) => looks.extra(i)),
+    // El MISMO stick que mueve a la jugadora en el piso. Va como función
+    // porque `player` se crea unas líneas más abajo, y esto solo se llama
+    // con el cruce ya en marcha.
+    getTouchAxis: () => player?.touchAxis,
   });
   crossing3D.resize(STAGE_W / STAGE_H);
 
