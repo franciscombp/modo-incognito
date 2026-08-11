@@ -173,7 +173,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     "div",
     "inc-pulse-hint",
     pulseBar,
-    "TOCA ESPACIO cuando la barra pase por la ZONA CLARA · fallar hace RUIDO"
+    "MANTÉN espacio: avanza · SUELTA y TOCA en la ZONA CLARA: avanza rápido · fuera: RUIDO"
   );
   let pulseHits = -1;
   let pulseWasOn = false;
@@ -407,13 +407,17 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
         const key = el("span", "inc-quest-key", node, String(i + 1));
         const main = el("div", "inc-quest-main", node);
         const title = el("div", "inc-quest-title", main, o.label);
+        // LA GUÍA: el siguiente paso de ESTA misión, con todas las letras.
+        // Solo la fila seguida la enseña (ver abajo) — es la mano que
+        // lleva, no tres párrafos compitiendo.
+        const guide = el("div", "inc-quest-guide", main);
         const bar = el("div", "inc-quest-bar", main);
         const fill = el("i", null, bar);
         const side = el("div", "inc-quest-side", node);
         const dist = el("span", "inc-quest-dist", side);
         const badge = el("span", "inc-quest-badge", side);
         badge.appendChild(iconEl(o.icon || "star"));
-        row = { node, key, title, bar, fill, dist };
+        row = { node, key, title, guide, bar, fill, dist };
         questRows.set(o.id, row);
       }
       row.key.textContent = String(i + 1);
@@ -433,6 +437,11 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       const followed = preferredId ? preferredId === o.id : i === 0;
       row.node.classList.toggle("followed", followed);
       row.node.classList.toggle("only", chase && !followed);
+      // La guía viene del snapshot (game._guiaSeguida) atada por id: solo
+      // se pinta en la fila que corresponde, y solo si está seguida.
+      const guia = followed && state.guia?.id === o.id ? state.guia.text : "";
+      if (row.guide.textContent !== guia) row.guide.textContent = guia;
+      row.guide.classList.toggle("on", !!guia);
     });
     for (const [id, row] of questRows) {
       if (!seen.has(id)) {

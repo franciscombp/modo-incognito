@@ -9501,6 +9501,23 @@ body {
 .inc-quest.q-como .inc-quest-title {
   color: var(--text-accent);
 }
+/* LA GUÍA de la misión seguida: el siguiente paso, dicho entero. Cian y
+   pequeña — es la voz que lleva de la mano, no otro titular. El repliegue
+   por tensión también la esconde: con el jefe detrás no se lee. */
+.inc-quest-guide {
+  display: none;
+  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--text-accent);
+  text-shadow: 0 2px 0 hsl(var(--p-shadow-hue) / 0.6);
+}
+.inc-quest-guide.on { display: block; }
+.inc-quests.folded .inc-quest-guide { display: none; }
+/* En persecución la guía SÍ se queda: en ese momento dice "corre a un
+   lugar seguro", que es exactamente lo único que hay que leer. */
+
 .inc-quest-bar {
   height: 4px;
   margin-top: 5px;

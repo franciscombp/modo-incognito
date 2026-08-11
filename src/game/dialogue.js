@@ -192,14 +192,26 @@ export function createDialogue(root, { looks = null } = {}) {
       // La boca se abre mientras corre la máquina de escribir y se cierra al
       // acabar la línea: el retrato deja de ser una foto y "dice" el texto.
       portrait3d.setTalking(true, portraitMood);
-      let i = 0;
+      // POR TIEMPO, no por tick: cuántas letras van se calcula del reloj
+      // (18 ms por letra), y cada disparo del timer PONE AL DÍA el texto.
+      // Contando ticks (una letra por setTimeout), cualquier dispositivo
+      // que estrangule los timers encadenados —un teléfono con la CPU
+      // ocupada, una pestaña a medio gas— dejaba el diálogo goteando a dos
+      // letras por segundo: una línea de 80 letras tardaba MEDIO MINUTO y
+      // el juego parecía colgado. Así, la línea entera dura siempre
+      // text.length × 18 ms de reloj de pared, llegue el timer cuando llegue.
+      const t0 = performance.now();
+      let shown = 0;
       const step = () => {
-        i += 1;
-        textEl.textContent = text.slice(0, i);
-        // Un tick por letra sería un ruido continuo; uno cada pocas basta
-        // para el efecto "máquina de escribir" sin saturar el oído.
-        if (i % 2 === 0) sfxType();
-        if (i >= text.length) {
+        const target = Math.min(text.length, Math.floor((performance.now() - t0) / 18) + 1);
+        if (target > shown) {
+          shown = target;
+          textEl.textContent = text.slice(0, shown);
+          // Un tick de sonido por LOTE pintado, no por letra: el efecto se
+          // oye igual y no ametralla el oído si el lote vino grande.
+          sfxType();
+        }
+        if (shown >= text.length) {
           typingTimer = null;
           typingResolve = null;
           portrait3d.setTalking(false, portraitMood);
@@ -411,9 +423,7 @@ export function createDialogue(root, { looks = null } = {}) {
     }
   }
 
-  /** Runs a scene to completion. Resolves once the last node is dismissed. */
-  async function play(nodes, ctx = {}) {
-    if (!nodes || !nodes.length) return;
+  async function playScene(nodes, ctx) {
     active = true;
     layer.classList.remove("inc-hidden");
     document.body.classList.add("inc-dialogue-open");
@@ -430,6 +440,24 @@ export function createDialogue(root, { looks = null } = {}) {
       optionsEl.innerHTML = "";
       optionButtons = [];
     }
+  }
+
+  // LA COLA: los diálogos se reproducen DE UNO EN UNO, pase lo que pase.
+  // Dos `play()` concurrentes comparten la misma caja, el mismo `awaiting`
+  // y el mismo typewriter: se pisaban las líneas y la caja quedaba colgada
+  // esperando un clic que ya se consumió. Y no es un caso raro — pasa en
+  // el juego real cada vez que un secuaz te aborda en el mismo instante en
+  // que el jefe te atrapa (su interrogatorio y el regaño llegan a la vez).
+  // Encadenarlos hace que el segundo espere al primero, que es exactamente
+  // lo que haría una conversación de verdad.
+  let queue = Promise.resolve();
+
+  /** Runs a scene to completion. Resolves once the last node is dismissed. */
+  function play(nodes, ctx = {}) {
+    if (!nodes || !nodes.length) return Promise.resolve();
+    const run = queue.then(() => playScene(nodes, ctx));
+    queue = run.catch(() => {});
+    return run;
   }
 
   return {

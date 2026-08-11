@@ -70,8 +70,11 @@ La energía se arranca a **75 de 100** y baja a 1,7/s (2,6/s fingiendo): eso
 son ~44 s de los 120 de jornada, así que **el día no se puede terminar sin
 reponer**. De ahí que todos los días haya que bajar a por un café — el café
 es la mejor recarga del piso (45) y es lo que lo vuelve obligatorio. A cero
-te DUERMES unos segundos sin control, y si el jefe te ve dormida es
-amonestación; en un lugar seguro es una cabezada y ya.
+te DUERMES unos segundos sin control, y si el jefe te ve dormida VIENE A
+DESPERTARTE: la sospecha salta al piso de caza y cruza el piso hacia ti —
+la amonestación cae cuando llega y te TOCA (dormida no puedes huir, así
+que llega), nunca por verte a distancia. Era la última vía que amonestaba
+de lejos y rompía la regla de §8. En un lugar seguro es una cabezada y ya.
 
 ⚠️ **Tres campos que se confunden solos** en una actividad:
 `time` es lo que TARDA en hacerse · `energy` es la ENERGÍA que DA ·

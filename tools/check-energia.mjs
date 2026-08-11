@@ -161,28 +161,86 @@ check(dormida.pose === "sleep", "con la pose de dormir");
 check(dormida.teclas === 0, "y los mandos dejan de responder");
 check(dormida.enSnapshot === true, "el HUD se entera");
 
-// ── 4 · Dormirse a la vista del jefe cuesta amonestación ────────────
+// ── 3bis · El Zzz SE VE, no solo existe ─────────────────────────────
+// La lección cara: el globo estuvo con material.opacity = 0 y todos los
+// tests miraban `visible`, que daba true — un sprite que existe, se
+// actualiza y no pinta un píxel. Aquí se comprueban las TRES cosas que
+// pueden apagarlo en silencio: visible, opacidad y estar EN la escena
+// (parent). Y de paso, las mismas tres del globo de alerta del jefe,
+// que nació con el mismo defecto en el mismo archivo.
+const zzz = await p.evaluate(() => {
+  const player = window.__game.player;
+  const boss = window.__game.boss;
+  // El bloque anterior la dejó dormida (asleepFor > 0); un frame del bucle
+  // real posiciona el globo.
+  window.__game.engine.game.update(1 / 60);
+  player.update(1 / 60, window.__game.world);
+  return {
+    zzzVisible: player.sleepIcon.visible,
+    zzzOpacity: player.sleepIcon.material.opacity,
+    zzzEnEscena: !!player.sleepIcon.parent,
+    alertaOpacity: boss.alertIcon.material.opacity,
+    alertaEnEscena: !!boss.alertIcon.parent,
+  };
+});
+check(
+  zzz.zzzVisible === true && zzz.zzzOpacity > 0.5 && zzz.zzzEnEscena === true,
+  "el Zzz dormida SE VE: visible, opaco y dentro de la escena",
+  JSON.stringify(zzz)
+);
+check(
+  zzz.alertaOpacity > 0.5 && zzz.alertaEnEscena === true,
+  "y el globo de alerta del jefe también pinta de verdad",
+  JSON.stringify(zzz)
+);
+
+// ── 4 · Dormirse a la vista del jefe: VIENE a despertarte, y la
+// amonestación cae cuando llega y te TOCA — nunca por verte a distancia.
+// (La regla de MOTOR.md §8: la amonestación es SIEMPRE física. Este era
+// el último atajo que la disparaba de lejos.)
 const pillada = await p.evaluate(() => {
   const g = window.__game.engine.game;
   g.warnings = 0;
   g._caughtCooldown = 0;
-  g.asleepFor = 3;
+  g.asleepFor = 6;
   g.inSafeSpot = false;
-  // Que el jefe la vea, sin depender del raycast real.
+  g.suspicion = 0;
+  g.boss.suspicion = 0;
+  g.boss.resetToPatrol();
+  // Lejos: la ve dormida desde la otra punta. NO debe amonestar aún —
+  // debe ARRANCAR la caza hacia ella.
+  const S = window.__floorplan.WORLD_SCALE;
+  g.boss.position.x = g.player.position.x + 6 * S;
+  g.boss.position.z = g.player.position.z;
   g.boss._updateVision = () => {
     g.boss.playerVisible = true;
     g.boss.redAlert = false;
   };
   for (let i = 0; i < 5; i++) g.update(1 / 60);
-  return g.warnings;
+  const sinTocar = { warnings: g.warnings, cazando: g.boss.isHunting === true };
+  // Y cuando LLEGA (se le planta encima), el toque amonesta.
+  g.boss.position.x = g.player.position.x + 0.1;
+  for (let i = 0; i < 5; i++) g.update(1 / 60);
+  return { ...sinTocar, alTocar: g.warnings };
 });
-check(pillada === 1, "dormirte a la vista del jefe cuesta una amonestación", `${pillada}`);
+check(
+  pillada.warnings === 0 && pillada.cazando === true,
+  "verte dormida NO amonesta de lejos: arranca la caza hacia ti",
+  JSON.stringify(pillada)
+);
+check(pillada.alTocar === 1, "y la amonestación cae cuando llega y te TOCA", `${pillada.alTocar}`);
 
 const enSalaSegura = await p.evaluate(() => {
   const g = window.__game.engine.game;
   g.warnings = 0;
   g._caughtCooldown = 0;
   g.asleepFor = 3;
+  // El bloque anterior dejó al jefe ENCIMA y cazando: aquí se mide la
+  // cabezada a cubierto, así que se le manda lejos y a su ronda.
+  g.boss.resetToPatrol();
+  g.boss.position.x = g.player.position.x + 40;
+  g.suspicion = 0;
+  g.boss.suspicion = 0;
   for (let i = 0; i < 5; i++) {
     g.update(1 / 60);
     // `inSafeSpot` lo recalcula update() cada cuadro, así que se fuerza

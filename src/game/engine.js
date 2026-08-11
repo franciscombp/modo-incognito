@@ -930,8 +930,15 @@ export function createEngine({
   /** El jefe te aborda de verdad: diálogo de regaño y luego un respiro. */
   async function handleWarn({ warnings }) {
     if (warnings === game.rules.maxWarnings) return; // el outro de "despedida" ya cubre este caso
+    // Si la ALARMA de nivel 3 estaba en pantalla, se cierra sola: acaban de
+    // atraparte, así que "te están buscando" ya no informa de nada — y su
+    // tarjeta quedaba ENCIMA del regaño comiéndose los clics del diálogo.
+    hud.hideResult?.();
     const encounter = dialogues.encounters.jefe;
     if (!encounter?.scenes?.length) {
+      // Sin regaño escrito, el tercer tiempo del tacleo llega igual: te
+      // sienta a trabajar (ver game.seatAtDesk) y él vuelve a su ronda.
+      game.seatAtDesk();
       boss.grantGrace(BOSS_GRACE_AFTER_WARN);
       return;
     }
@@ -971,6 +978,11 @@ export function createEngine({
         ctx
       )
     );
+    // El tercer tiempo del tacleo: cerrado el regaño, te sienta a trabajar
+    // en tu puesto (con su anuncio) y el jefe vuelve a su ronda sin mirarte
+    // unos segundos. El orden importa — sentarla ANTES del diálogo era un
+    // teletransporte tapado por la caja que nadie entendía.
+    game.seatAtDesk();
     boss.grantGrace(BOSS_GRACE_AFTER_WARN);
   }
 

@@ -246,6 +246,67 @@ assert(
   JSON.stringify(suelo),
 );
 
+// ── 4bis · EL TOQUE POR TECLAS, el camino REAL de la jugadora ──
+// La prueba (a) de arriba llama a `pulse.hit()` directo, y eso TAPÓ un bug
+// entero: soltar espacio un frame mataba el pulso (pulse.end) y el re-toque
+// lo reiniciaba de cero (begin resetea aciertos) — «tocar al ritmo», lo que
+// el juego te pide, era imposible por teclado y el test seguía verde. Aquí
+// se juega como se juega de verdad: SOLTAR y VOLVER A TOCAR con la tecla,
+// esperando la zona buena, y los aciertos tienen que ACUMULARSE.
+const toqueReal = await p.evaluate(async () => {
+  const g = window.__game.engine.game;
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  g.suspicion = 0;
+  g.boss.suspicion = 0;
+  g.boss.resetToPatrol();
+  g.boss.position.x = g.player.position.x + 40;
+  g.setPaused(false);
+  const st =
+    g.objectives.find((o) => !o.dynamic && !o.gesto && !o.done) ??
+    g.objectives.find((o) => !o.dynamic && !o.gesto);
+  st.done = false;
+  st.progress = 0;
+  st.encendida = false;
+  if (st.objeto) g.inventario.add(st.objeto.id);
+  st.time = 999; // que no se encienda por el suelo a mitad de la medición
+  g.player.position.x = st.x;
+  g.player.position.z = st.z;
+  g.player.keys.add(" ");
+  await sleep(450); // pasada la gracia inicial de hit() (t < 0.25)
+
+  let aciertos = 0;
+  for (let intento = 0; intento < 8 && aciertos < 2; intento++) {
+    // Espera la zona buena CON la tecla puesta…
+    for (let i = 0; i < 200; i++) {
+      const s = g.pulse.snapshot();
+      if (s && Math.abs(s.pos - s.zonaAt) <= s.zona / 2 - 0.03) break;
+      g.setPaused(false);
+      g.suspicion = 0;
+      await sleep(16);
+    }
+    // …y el TOQUE de verdad: soltar un frame y volver a pulsar.
+    g.player.keys.delete(" ");
+    await sleep(40);
+    g.player.keys.add(" ");
+    await sleep(60);
+    aciertos = g.pulse.snapshot()?.aciertos ?? 0;
+  }
+  const activoTrasToques = g.pulse.active;
+  g.player.keys.delete(" ");
+  st.time = 20;
+  return { aciertos, activoTrasToques };
+});
+assert(
+  "SOLTAR y TOCAR con la tecla acumula aciertos (el pulso se juega de verdad)",
+  toqueReal.aciertos >= 2,
+  JSON.stringify(toqueReal),
+);
+assert(
+  "y el pulso SOBREVIVE al toque: la gracia cubre el frame suelto",
+  toqueReal.activoTrasToques === true,
+  JSON.stringify(toqueReal),
+);
+
 // ── 5 · Al soltar, el pulso se apaga sin castigo ──
 const apagado = await p.evaluate(async () => {
   const g = window.__game.engine.game;

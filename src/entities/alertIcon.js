@@ -80,7 +80,12 @@ export function createAlertIcon(bodyHeight) {
     depthWrite: false,
     depthTest: false,
     toneMapped: false,
-    opacity: 0,
+    // OJO: la opacidad va a 1 y el apagado lo hace `visible`. Nació en 0
+    // "para fundirlo luego"… y nadie la subía nunca: los globos estuvieron
+    // INVISIBLES en pantalla mientras todos los tests miraban `visible` y
+    // daban verde. Un material transparente con opacity 0 es un sprite que
+    // existe, se actualiza y no pinta un solo píxel.
+    opacity: 1,
   });
   const sprite = new THREE.Sprite(mat);
   const size = 0.42 * S;
@@ -127,7 +132,12 @@ export function createSleepIcon(bodyHeight) {
     depthWrite: false,
     depthTest: false,
     toneMapped: false,
-    opacity: 0,
+    // OJO: la opacidad va a 1 y el apagado lo hace `visible`. Nació en 0
+    // "para fundirlo luego"… y nadie la subía nunca: los globos estuvieron
+    // INVISIBLES en pantalla mientras todos los tests miraban `visible` y
+    // daban verde. Un material transparente con opacity 0 es un sprite que
+    // existe, se actualiza y no pinta un solo píxel.
+    opacity: 1,
   });
   const sprite = new THREE.Sprite(mat);
   const size = 0.4 * S;

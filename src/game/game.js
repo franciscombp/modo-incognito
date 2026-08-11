@@ -353,6 +353,10 @@ export class Game {
     // gana a la más cercana. null = automático de siempre.
     this.preferredObjectiveId = null;
     this.message = null;
+    // El interruptor de fingir (un toque sienta, otro levanta). Nace en
+    // false EXPLÍCITO: sin esto, `player.isPretending` era undefined los
+    // primeros frames — falsy de chiripa, pero mentira como dato.
+    this._pretendToggle = false;
     // El ANUNCIO a pantalla, estilo "¡RANGER PELIGROSO!" de Sasquatch:
     // texto grande centrado para los golpes que hay que leer SÍ o SÍ
     // (te vieron, amonestación, te falta el objeto). El toast queda para
@@ -629,7 +633,31 @@ export class Game {
     }
 
     this.worldFrozen = false;
-    if (this.nearStation && holdingSpace && !this.player.isPretending && this.metGabo) {
+    // ── LA GRACIA DEL TOQUE ──────────────────────────────────────────
+    // El pulso se juega SOLTANDO y volviendo a tocar la MISMA tecla que
+    // sostiene la actividad. Sin esta gracia, el frame en que sueltas caía
+    // en la rama de "te fuiste": pulse.end(), y el begin() del re-toque
+    // reseteaba los aciertos — o sea que tocar al ritmo, lo que el juego
+    // te PIDE hacer, era literalmente imposible por teclado. El test lo
+    // tapaba llamando a hit() directo. Solo aplica al PULSO (el gesto se
+    // suelta en el acto, como siempre): 0.35 s de margen entre toques, y
+    // se anula al agotarse el plazo de la activación (_activityTimeout).
+    const TAP_GRACE = 0.35;
+    const enActividad = this.nearStation && !this.player.isPretending && this.metGabo;
+    if (enActividad && holdingSpace) {
+      this._tapGrace = TAP_GRACE;
+    } else if (
+      enActividad &&
+      this.player.isDoingActivity &&
+      !this.nearStation.gesto &&
+      (this._tapGrace ?? 0) > 0
+    ) {
+      this._tapGrace -= dt;
+    } else {
+      this._tapGrace = 0;
+    }
+    const sosteniendoActividad = enActividad && (holdingSpace || this._tapGrace > 0);
+    if (sosteniendoActividad) {
       const st = this.nearStation;
       // ── CONSEGUIR primero: sin el objeto no hay actividad ──
       if (st.objeto && !this.inventario.has(st.objeto.id)) {
@@ -1040,9 +1068,13 @@ export class Game {
 
     // "¡GABO TE VIO!": el momento en que arranca una caza es EL golpe del
     // juego, y merece el anuncio grande — no un cambio de color que hay que
-    // notar de reojo. Solo en la TRANSICIÓN a CHASE, nunca cada frame.
+    // notar de reojo. Solo en la TRANSICIÓN a CHASE, nunca cada frame. Y si
+    // ESTE MISMO frame ya gritó otra cosa (el ¡TE ATRAPÓ! de una captura a
+    // bocajarro: caza y toque en el mismo instante), esa gana — anunciar
+    // "te vio" cuando ya te tiene era pisar el golpe grande con el chico.
     if (this.boss.state !== this._prevBossState) {
-      if (this.boss.state === BOSS_STATES.CHASE && this.metGabo && !this.gameOver) {
+      const yaGrito = this.bigMessage && this.bigMessage.timer > 2.1;
+      if (this.boss.state === BOSS_STATES.CHASE && this.metGabo && !this.gameOver && !yaGrito) {
         this.announce(`¡${(this.boss.displayName ?? "GABO").toUpperCase()} TE VIO!`, "danger");
       }
       this._prevBossState = this.boss.state;
@@ -1103,6 +1135,10 @@ export class Game {
     // fallo: espacio deja de sostener nada hasta que vuelva a pulsarlo.
     this.player.keys.delete(" ");
     this.player.keys.delete("enter");
+    // Y la GRACIA del toque también se anula: si no, el mundo seguía
+    // congelado sus últimas décimas después de agotarse el plazo — el
+    // mismo agujero que las teclas, por la puerta de al lado.
+    this._tapGrace = 0;
 
     const floor = this.boss.chaseSuspicionFloor ?? 0;
     this.suspicion = Math.min(
@@ -1748,39 +1784,60 @@ export class Game {
     this._caughtCooldown = 3;
     this.combo = 1;
     this.comboLeft = 0;
-    this.boss.resetToPatrol();
     buzz([40, 60, 40]);
     sfxWarn();
 
-    // Tras la amonestación te manda derecha a tu puesto, ya fingiendo: no te
-    // deja plantada donde te pilló, con el jefe recién alejado y el reflejo
-    // obvio (sentarte) todavía por hacer a mano. `_pretendSeat` se limpia
-    // para que `_updatePretendPose` busque una silla desde la posición
-    // nueva, no desde donde estabas antes del teletransporte.
-    const desk = safeSpots.find((s) => s.kind === "desk");
-    if (desk) {
-      this.player.position.x = desk.x;
-      this.player.position.z = desk.z;
-      this.player.keys.clear();
-      this.player.touchAxis.x = 0;
-      this.player.touchAxis.z = 0;
-      this._pretendSeat = null;
-      this._pretendToggle = true;
-      this.player.isPretending = true;
-    }
+    // EL TACLEO, en tres tiempos y los tres LEGIBLES:
+    //  1. AHORA — el impacto: los dos cuerpos se tambalean (la embestida),
+    //     el anuncio grande grita ¡TE ATRAPÓ! y el jefe se queda ENCIMA de
+    //     ti (nada de resetToPatrol todavía: durante el regaño se le ve
+    //     plantado a tu lado, que es lo que vende que te alcanzó).
+    //  2. El REGAÑO — engine.js abre el diálogo del jefe (onWarn).
+    //  3. Al cerrarlo — engine llama a `seatAtDesk()`: te lleva a tu
+    //     puesto, sentada y "trabajando", con su propio anuncio. Antes el
+    //     teletransporte pasaba AQUÍ, tapado por el diálogo, y nadie
+    //     entendía por qué aparecía en otra parte del piso.
+    this.boss.stumble();
+    this.player.sprite.setPose?.(null);
+    this.announce(
+      `¡${(this.boss.displayName ?? "GABO").toUpperCase()} TE ATRAPÓ! (${this.warnings}/${this.rules.maxWarnings})`,
+      "danger"
+    );
 
     const final = this.warnings >= this.rules.maxWarnings;
-    this.announce(`¡AMONESTACIÓN ${this.warnings}/${this.rules.maxWarnings}!`, "danger");
     if (final) {
       this.toast("Última advertencia: te ascienden a cliente.");
     } else {
-      this.toast("Gabo te mandó a tu puesto. Respira.");
+      this.toast("Amonestación por escrito. Van a la carpeta.");
     }
     // El motor (engine.js) muestra el diálogo del regaño y, cuando lo cierra,
     // le da al jefe unos segundos sin observar — si lo hiciéramos aquí, ese
     // respiro se gastaría mientras el diálogo está en pausa, sin servir de nada.
     this.onWarn?.({ warnings: this.warnings, maxWarnings: this.rules.maxWarnings, final });
     if (final) this._finish(false);
+  }
+
+  /**
+   * El tercer tiempo del tacleo: GABO TE SIENTA A TRABAJAR. Lo llama
+   * engine.js al cerrar el diálogo del regaño — te planta en tu puesto,
+   * sentada y fingiendo, y ÉL vuelve a su ronda. Con su anuncio, para que
+   * el cambio de sitio se entienda como lo que es: te llevó él.
+   */
+  seatAtDesk() {
+    this.boss.resetToPatrol();
+    const desk = safeSpots.find((s) => s.kind === "desk");
+    if (!desk) return;
+    this.player.position.x = desk.x;
+    this.player.position.z = desk.z;
+    this.player.keys.clear();
+    this.player.touchAxis.x = 0;
+    this.player.touchAxis.z = 0;
+    this._pretendSeat = null;
+    this._pretendToggle = true;
+    this.player.isPretending = true;
+    // La pose de sentada la resuelve _updatePretendPose en el próximo
+    // frame (busca la silla libre del puesto); aquí solo se anuncia.
+    this.announce("TE SENTÓ EN TU PUESTO: A TRABAJAR", "warn");
   }
 
   /**
@@ -1811,15 +1868,22 @@ export class Game {
       this.player.keys.clear();
       this.player.touchAxis.x = 0;
       this.player.touchAxis.z = 0;
-      // Y si te ven así, te cae. Una por siesta: `_caughtCooldown` lo cubre.
-      if (
-        !yaAmonestada &&
-        this._caughtCooldown <= 0 &&
-        !this.inSafeSpot &&
-        this.boss.playerVisible
-      ) {
-        this.toast("Te durmió el turno y Gabo estaba mirando.");
-        this._warn();
+      // Y si te ven así, el castigo VIENE A POR TI, no te cae del cielo:
+      // ver a una empleada dormida es flagrante, así que la sospecha salta
+      // al piso de caza y Gabo cruza el piso a despertarte ÉL. La
+      // amonestación sigue siendo FÍSICA — la pone el toque de `catches`
+      // cuando llega (dormida no puedes huir, así que llega seguro). Antes
+      // caía aquí mismo con solo verte desde la otra punta del piso: era
+      // la última vía a distancia que quedaba y rompía la regla de
+      // MOTOR.md («la amonestación es SIEMPRE física») sin que se notara.
+      if (!yaAmonestada && !this.inSafeSpot && this.boss.playerVisible && !this.boss.lockedOn) {
+        this.suspicion = Math.max(
+          this.suspicion,
+          this.boss.chaseSuspicionFloor + TIMEOUT_HEAT_MARGIN
+        );
+        this.boss.suspicion = this.suspicion;
+        this.boss.startChase();
+        this.toast("Gabo te vio dormida: viene a despertarte.");
       }
       if (this.asleepFor <= 0) {
         this.player.isAsleep = false;
@@ -2157,6 +2221,63 @@ export class Game {
     return true;
   }
 
+  /**
+   * El siguiente paso de la misión SEGUIDA (la elegida con 1–3, o la
+   * primera pendiente — el mismo criterio que usa el HUD para marcar la
+   * fila). Devuelve { id, text } o null. Una frase, imperativa, que dice
+   * exactamente qué hacer AHORA: es la pieza que lleva de la mano.
+   */
+  _guiaSeguida() {
+    // Con la caza encima no hay misión que valga: la guía dice lo único
+    // que salva, y se cuelga de la fila que esté visible (la seguida).
+    const shown = !this.metGabo
+      ? this._gateObjectives
+      : this.exitTask
+        ? [...this.objectives, this.exitTask]
+        : this.objectives;
+    const seguido =
+      (this.preferredObjectiveId
+        ? shown.find((o) => o.id === this.preferredObjectiveId && !o.done)
+        : null) ?? shown.find((o) => !o.done);
+    if (!seguido) return null;
+    if (this.boss.isHunting && !this.inSafeSpot) {
+      return { id: seguido.id, text: "¡CORRE a un lugar seguro (medalla verde)!" };
+    }
+    return { id: seguido.id, text: this._guiaDe(seguido) };
+  }
+
+  _guiaDe(o) {
+    if (!this.metGabo) return "Sigue la flecha hasta Gabo y HABLA con él (espacio)";
+    if (o.id === "__salida") return "Al ASCENSOR: la jornada está cerrada";
+    if (o.dynamic) {
+      if (o.accion === "fingir") {
+        return this.player.isPretending
+          ? "Así: quieta fingiendo unos segundos más…"
+          : "Ve a TU PUESTO (o una sala) y TOCA espacio para sentarte a fingir";
+      }
+      if (o.npcId) {
+        const npc = this.npcs?.find((n) => n.cast === o.npcId);
+        const nombre = npc?.displayName ?? o.npcId;
+        return `Busca a ${nombre} (sigue la flecha) y acércate a HABLAR: espacio`;
+      }
+    }
+    if (o.objeto && !this.inventario.has(o.objeto.id)) {
+      const ob = o.objeto;
+      const donde =
+        ob.pista ??
+        (ob.de ? `pídeselo a ${ob.de[0].toUpperCase()}${ob.de.slice(1)}` : null) ??
+        (ob.en?.sala ? `búscalo en ${ob.en.sala}` : "búscalo por el piso");
+      return `Primero consigue «${ob.nombre}»: ${donde}`;
+    }
+    if (o.encendida) return "¡En marcha! AGUANTA cerca: cada segundo paga más reloj";
+    if (this.nearStation?.id === o.id) {
+      return o.gesto
+        ? "MANTÉN espacio y ajusta con el mando: dentro de la zona"
+        : "MANTÉN espacio · suelta y toca en la ZONA CLARA para ir más rápido";
+    }
+    return "Ve hasta la medalla ámbar (sigue la flecha) y MANTÉN espacio";
+  }
+
   _snapshot() {
     this.lastSnapshot = {
       suspicion: this.suspicion,
@@ -2176,6 +2297,12 @@ export class Game {
         : this.exitTask
           ? [...this.objectives, this.exitTask]
           : this.objectives,
+      // LA GUÍA: el SIGUIENTE PASO de la misión que sigues, dicho con
+      // todas las letras ("consigue el café hablándole al Parce", "mantén
+      // espacio", "aguanta"). Es lo que lleva de la mano: la lista dice
+      // QUÉ, esto dice CÓMO se hace AHORA MISMO. Con caza encima, la guía
+      // cambia a lo único que importa: correr a un lugar seguro.
+      guia: this._guiaSeguida(),
       nearStation: this.nearStation,
       // El pulso de la actividad en marcha, o null. Va por el MISMO snapshot
       // por frame que todo lo demás: no hay una segunda verdad que se pueda
