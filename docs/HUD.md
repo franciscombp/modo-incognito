@@ -16,6 +16,8 @@ lo que falta. Escribe encima, tacha, contesta las preguntas del final.
 | §4.6 El bisel como lenguaje de formas | ◻︎ parcial | La placa y las filas ya lo llevan; falta el token `--cut` común |
 | §4bis Lista de tareas | ✅ | Opción **A** (placa izq. / tareas der.), teclas `1`–`3`, medalla compartida con el piso |
 | §4bis.3 Repliegue por presión | ✅ | Calma: lista entera · alerta: solo títulos · persecución: solo la seguida. Lo vigila `npm run check:fold` |
+| El ANUNCIO grande («¡GABO TE VIO!») | ✅ | `.inc-announce` en `gamehud.js`, alimentado por `game.announce()` vía snapshot: texto enorme con contorno, centrado, se va solo — la gramática de «¡RANGER PELIGROSO!» de Sasquatch. Conectado a: arranque de caza, amonestación, falta de objeto (con toast diciendo DÓNDE), tarea bancada y quedarse dormida |
+| El diálogo estilo Sasquatch | ✅ | `dialogue.js` + bloque `.inc-dialogue-*`: caja sólida oscura abajo al centro, NOMBRE en píldora sobre el filo, texto grande centrado, triángulo asomando abajo. El retrato 3D pasó de telón central (48vw×84vh) a busto moderado a la izquierda; las réplicas del jugador firman con el NOMBRE del personaje elegido (`ctx.getPlayerName`), no «Tú» |
 
 > **La barra de menú de macOS ya no existe.** `src/ui/menubar.js` se borró y
 > `gamehud.js` ocupa su sitio con la MISMA interfaz pública

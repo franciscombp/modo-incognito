@@ -16,7 +16,7 @@ encima, tacha, contesta las preguntas.
 | §7.2 Tres amonestaciones → RRHH | ✅ | `src/ui/hrCourse.js`, enganchado en `engine.js` → `finishDay` |
 | §9 Guardado por progreso de TAREAS | ✅ | una `unica` se persiste en el ACTO, no al cerrar el día |
 | §5.1 Salto de temporada con AAA | ✅ lógica | no hay temporadas 2–5 que escribir todavía |
-| §6 Rangos y jubilación | ◻︎ parcial | El rango y el ascenso ya salen en la evaluación; falta la temporada 5 y el final (es CONTENIDO: hay que escribir las temporadas 2–5) |
+| §6 Rangos y jubilación | ✅ mecánica | El rango sube con cada ascenso de temporada y el FINAL existe: al ascender desde Octogenaria (temporada 5) con **la libreta completa** sale la pantalla de JUBILACIÓN (`src/ui/retirement.js`) — felicidades, estadísticas y «Volver a comenzar» (reset de la ranura). Con la libreta a medias, el ascenso final se RETIENE y el resultado dice cuántos chismes faltan: el juego no termina hasta desbloquearlo todo. Las temporadas 2–5 siguen reusando las misiones de la 1 (CONTENIDO pendiente); lo vigila `npm run check:jubilacion` |
 | §8 Plan de nivelación | ✅ | `src/ui/levelling.js`; la tanda sale de `nivelacion.pruebas` en el JSON de la temporada |
 | Pantalla de evaluación (PANTALLAS §3) | ✅ | `src/ui/review.js`: los dos ejes por separado, con barra y comentario del evaluador |
 | Temporada 1 con arco completo (14 misiones) | ✅ | `temporada-1.json`: el arco César → Manu → Giuli abre chat, sleep, window y meeting como únicas encadenadas; sus escenas van al frente del pozo en `dialogues.json` |

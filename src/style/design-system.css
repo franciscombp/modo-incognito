@@ -1745,29 +1745,33 @@ body.inc-dialogue-open .inc-world-prompt {
   display: none !important;
 }
 
+/* ═════════════════════════════════════════════════════════════════════
+   EL DIÁLOGO, A LO SNEAKY SASQUATCH.
+
+   La referencia que manda aquí es la caja del Mapache: los DOS personajes
+   siguen a la vista en el escenario, y lo único que se superpone es UNA
+   caja oscura redondeada abajo al centro, con el NOMBRE del que habla
+   plantado en su filo superior, el texto grande y centrado, y un triángulo
+   blanco que dice "toca para seguir".
+
+   Lo que se retiró, y por qué:
+   · El velo con blur — dejaba el piso en puré, y la gracia de una charla
+     entre personajes es VERLOS. Queda un oscurecido suave, nada más.
+   · El retrato gigante centrado (48vw × 84vh) — tapaba justo el escenario
+     y al personaje con el que hablas. Ahora es un busto moderado a la
+     IZQUIERDA, saliendo de detrás de la caja: expresión sin telón.
+   ═════════════════════════════════════════════════════════════════════ */
 .inc-dialogue-scrim {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(2px);
+  background: rgba(0, 0, 0, 0.22);
   z-index: 15;
 }
 
 .inc-dialogue-bar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 20%;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.3), transparent);
-  z-index: 15;
-  pointer-events: none;
+  display: none;
 }
 
-/* El personaje ocupa casi toda la altura, de pie sobre el escenario ya
-   oscurecido por .inc-dialogue-scrim; la caja de texto flota más abajo,
-   PISANDO su mitad inferior — como un plano de visual novel, no una tarjeta
-   de retrato al lado de otra de texto. */
 .inc-dialogue-dock {
   position: fixed;
   inset: 0;
@@ -1779,13 +1783,14 @@ body.inc-dialogue-open .inc-world-prompt {
   pointer-events: none;
 }
 
+/* El busto: moderado, a la izquierda de la caja, pisándola por detrás.
+   Da la expresión (la boca se mueve, el mood cambia) sin tapar la escena. */
 .inc-dialogue-portrait {
   position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(48vw, 640px);
-  height: min(84vh, 780px);
+  bottom: 120px;
+  left: calc(50% - 560px);
+  width: 330px;
+  height: min(52vh, 480px);
   pointer-events: none;
   animation: inc-slide-up var(--anim-entrance);
 }
@@ -1800,57 +1805,67 @@ body.inc-dialogue-open .inc-world-prompt {
   height: 100%;
 }
 
+/* LA CAJA: sólida, oscura, redonda — la gramática exacta de la referencia.
+   Sin vidrio ni blur: el texto del juego se lee sobre tinta plana. */
 .inc-dialogue-box {
   position: relative;
   z-index: 1;
-  width: min(760px, 92vw);
-  margin: 0 auto var(--space-xl);
-  padding: var(--space-xl);
-  background: var(--glass-light);
-  -webkit-backdrop-filter: var(--glass-blur-md);
-  backdrop-filter: var(--glass-blur-md);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 20px 60px rgba(10, 10, 8, 0.1), inset 0 1px 0 var(--rim);
+  width: min(880px, 92vw);
+  margin: 0 auto 56px;
+  padding: 30px 44px 34px;
+  background: hsl(var(--p-bg-900) / 0.94);
+  border: 1px solid hsl(var(--p-accent-bright) / 0.16);
+  border-radius: 22px;
+  box-shadow: 0 24px 60px hsl(var(--p-shadow-hue) / 0.45);
   display: flex;
   flex-direction: column;
-  gap: var(--space-lg);
+  gap: 10px;
   pointer-events: auto;
   animation: inc-pop-enter var(--anim-entrance);
 }
 
+/* EL NOMBRE va montado EN el filo superior de la caja, como "Mapache":
+   no es una fila interna con subrayado — es el rótulo de quién habla,
+   leído antes que nada. */
 .inc-dialogue-speaker {
+  position: absolute;
+  top: -21px;
+  left: 34px;
   display: flex;
   align-items: center;
-  gap: var(--space-sm);
-  padding-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--line);
+  padding: 4px 18px;
+  background: hsl(var(--p-bg-900) / 0.96);
+  border: 1px solid hsl(var(--p-accent-bright) / 0.2);
+  border-radius: 999px;
+}
+
+/* Su propia regla .hidden: este bloque va DESPUÉS del .hidden global y su
+   display:flex le ganaba por orden de cascada — la píldora vacía quedaba
+   flotando sobre la esquina (el aviso del principio del archivo, cumplido). */
+.inc-dialogue-speaker.hidden {
+  display: none;
 }
 
 .inc-dialogue-speaker-text {
   font-weight: 800;
-  font-size: 19px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--inc-dialogue-accent, hsl(var(--accent-main)));
+  font-size: 21px;
+  letter-spacing: 0.03em;
+  color: var(--text);
 }
 
 /* ── EL DIÁLOGO SE LEE ───────────────────────────────────────────────
-   Iba a 16px. Dentro del lienzo de 1280 eso son ~11 reales en una ventana
-   de 900 de alto: por debajo de lo cómodo para el texto que MÁS se lee del
-   juego, porque toda la comedia pasa por aquí.
-
-   Y se mide en px de LIENZO, nunca en vw: dentro de `#app`, que ya se
-   escala entero con `--ui-scale`, un `vw` cuenta el viewport dos veces y el
-   tamaño acaba dependiendo de la ventana — que es justo lo que el LIENZO
-   FIJO existe para evitar (docs/PANTALLAS.md §1). */
+   Texto grande, claro y CENTRADO, como la referencia: es el texto que más
+   se lee del juego y toda la comedia pasa por aquí. En px de LIENZO,
+   nunca vw (docs/PANTALLAS.md §1). */
 .inc-dialogue-text {
-  font-size: 26px;
-  line-height: 1.55;
-  color: hsl(var(--text-000));
-  min-height: 84px;
+  font-size: 27px;
+  line-height: 1.5;
+  color: var(--text);
+  min-height: 76px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  text-align: center;
 }
 
 .inc-dialogue-options {
@@ -1878,12 +1893,20 @@ body.inc-dialogue-open .inc-world-prompt {
   border-color: var(--inc-dialogue-accent, hsl(var(--accent-main)));
 }
 
+/* EL TRIÁNGULO DE SEGUIR: blanco, grande, asomando por el filo INFERIOR de
+   la caja — el gesto exacto de la referencia. Es la única afordancia que
+   necesita la caja: "hay más, toca". */
 .inc-dialogue-hint {
-  text-align: center;
-  font-size: 20px;
-  color: hsl(var(--text-200));
-  margin-top: var(--space-sm);
+  position: absolute;
+  left: 50%;
+  bottom: -13px;
+  transform: translateX(-50%);
+  font-size: 26px;
+  line-height: 1;
+  color: var(--text);
+  text-shadow: 0 2px 6px hsl(var(--p-shadow-hue) / 0.6);
   animation: inc-pulse 1.5s ease-in-out infinite;
+  pointer-events: none;
 }
 
 .inc-dialogue-narrator {
@@ -8696,6 +8719,8 @@ body.inc-game-active .inc-menu-scrim {
 .inc-review-ok,
 .inc-level-ok,
 .inc-lib-ok,
+.inc-retire-again,
+.inc-retire-stay,
 .wprompt-key {
   border-radius: var(--btn-radius);
   border: var(--btn-border) solid var(--line);
@@ -8760,6 +8785,7 @@ body.inc-game-active .inc-menu-scrim {
 .inc-menu-opt[aria-selected="true"],
 .inc-menu-tab.active,
 .inc-menu-tab[aria-selected="true"],
+.inc-retire-again,
 .hud-overlay-btn.primary {
   background: linear-gradient(180deg, var(--violet), var(--violet-dim));
   border-color: transparent;
@@ -9555,6 +9581,51 @@ body {
 .inc-sysbtn:hover { color: var(--text); }
 .inc-sysbtn svg { width: 18px; height: 18px; }
 
+/* ---------- EL ANUNCIO GRANDE: "¡GABO TE VIO!" ----------
+   La gramática de "¡RANGER PELIGROSO!": texto enorme, blanco, con contorno
+   oscuro duro, plantado en el centro-alto de la pantalla. Sin caja — el
+   contorno es lo que lo separa de cualquier fondo, como en la referencia.
+   Se pinta desde game.announce() vía snapshot; dura ~2 s y se va solo. */
+.inc-announce {
+  position: absolute;
+  left: 50%;
+  top: 34%;
+  transform: translate(-50%, -50%) scale(0.7);
+  max-width: 86%;
+  text-align: center;
+  font-family: var(--sans);
+  font-size: 64px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  color: var(--text);
+  /* El contorno: cuatro sombras duras + una caída. Legible sobre moqueta
+     clara, pasillo oscuro o una pared blanca — como el rótulo del ranger. */
+  text-shadow:
+    -3px -3px 0 hsl(var(--p-shadow-hue) / 0.9),
+    3px -3px 0 hsl(var(--p-shadow-hue) / 0.9),
+    -3px 3px 0 hsl(var(--p-shadow-hue) / 0.9),
+    3px 3px 0 hsl(var(--p-shadow-hue) / 0.9),
+    0 8px 24px hsl(var(--p-shadow-hue) / 0.55);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 30;
+}
+.inc-announce.show {
+  animation: inc-announce-pop 2.2s var(--ease-pop) forwards;
+}
+.inc-announce[data-tone="warn"] { color: hsl(var(--p-warn)); }
+.inc-announce[data-tone="ok"] { color: hsl(var(--p-ok)); }
+@keyframes inc-announce-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  10% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); }
+  16% { transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inc-announce.show { animation: none; opacity: 1; transform: translate(-50%, -50%); }
+}
+
 /* ---------- El nombre de zona: texto pelado, se va solo ---------- */
 .inc-zone-name {
   position: absolute;
@@ -9595,8 +9666,11 @@ body {
      atrás y se enseña también en las tareas de pulso): las dos salen a la
      vez y antes se pisaban. El orden de abajo arriba es tira → tarjeta. */
   bottom: 52px;
-  width: 360px;
-  height: 14px;
+  /* Más ancha y más alta que la primera versión (360×14): era la pieza
+     central de un minijuego y medía como un adorno — no se entendía ni que
+     fuera interactiva. */
+  width: 460px;
+  height: 20px;
   transform: translateX(-50%) scaleY(0.4);
   border-radius: 999px;
   background: var(--surface-sunken);
@@ -9635,15 +9709,15 @@ body {
 .inc-pulse-pips {
   position: absolute;
   left: 50%;
-  top: 22px;
+  top: 28px;
   display: flex;
-  gap: 6px;
+  gap: 7px;
   transform: translateX(-50%);
 }
 .inc-pulse-pip {
-  width: 8px;
-  height: 8px;
-  border-radius: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
   transform: rotate(45deg);
   background: var(--surface-sunken);
   box-shadow: inset 0 0 0 1px var(--border);
@@ -9652,22 +9726,38 @@ body {
   background: var(--accent);
   box-shadow: 0 0 8px var(--accent);
 }
-/* La regla del pulso, DICHA una vez: las primeras veces que la tira se
-   enciende, una línea encima explica el juego. Después desaparece — quien
-   ya lo jugó no necesita leerla con el jefe detrás. */
+/* La cifra "3/6" junto a los puntos: los puntos se sienten de reojo, la
+   cifra se LEE — cuánto llevas y cuánto falta, sin interpretar nada. */
+.inc-pulse-count {
+  position: absolute;
+  left: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%);
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  text-shadow: 0 2px 0 hsl(var(--p-shadow-hue) / 0.7);
+}
+/* La regla del pulso, DICHA en su propia pastilla oscura: texto pelado
+   sobre el piso era ilegible sobre moqueta clara, que es donde están la
+   mitad de las estaciones. Se enseña las primeras veces y luego se va. */
 .inc-pulse-hint {
   position: absolute;
   left: 50%;
   bottom: 100%;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   transform: translateX(-50%);
   white-space: nowrap;
-  font-size: 13px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  background: hsl(var(--p-bg-900) / 0.92);
+  border: 1px solid hsl(var(--p-accent-bright) / 0.18);
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--text-soft);
-  text-shadow: 0 2px 0 hsl(var(--p-shadow-hue) / 0.7);
+  letter-spacing: 0.04em;
+  color: var(--text);
   opacity: 0;
   transition: opacity var(--dur-base) var(--ease-out);
 }
@@ -10311,6 +10401,119 @@ body.inc-acting #hint {
 .inc-review-asc svg { width: 18px; height: 18px; }
 
 .inc-review-ok { margin-top: 22px; width: 100%; }
+
+
+/* ═════════════════════════════════════════════════════════════════════
+   LA JUBILACIÓN (ui/retirement.js) — el final del juego.
+   ═════════════════════════════════════════════════════════════════════
+   Misma gramática que la evaluación, pero CELEBRATORIA: es la única
+   pantalla del juego que puede permitirse el dorado, porque solo se ve
+   una vez y con todo desbloqueado. */
+.inc-retire {
+  position: absolute;
+  inset: 0;
+  z-index: 64;
+  display: grid;
+  place-items: center;
+  background: hsl(var(--p-bg-900) / 0.88);
+  opacity: 0;
+  transition: opacity var(--dur-base) var(--ease-out);
+}
+.inc-retire.on { opacity: 1; }
+.inc-retire.out { opacity: 0; }
+.inc-retire-card {
+  width: min(640px, 90%);
+  max-height: 88%;
+  overflow-y: auto;
+  padding: 40px 48px 36px;
+  text-align: center;
+  border-radius: var(--btn-radius);
+  background: var(--surface-raised);
+  border: 1px solid hsl(var(--p-warn) / 0.5);
+  box-shadow: 0 30px 90px hsl(var(--p-shadow-hue) / 0.6), 0 0 60px hsl(var(--p-warn) / 0.12);
+  transform: translateY(14px) scale(0.98);
+  transition: transform var(--dur-base) var(--ease-pop);
+}
+.inc-retire.on .inc-retire-card { transform: none; }
+.inc-retire-trophy {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 18px;
+  border-radius: 50%;
+  color: hsl(var(--p-warn));
+  background: hsl(var(--p-warn) / 0.12);
+  border: 1px solid hsl(var(--p-warn) / 0.45);
+  box-shadow: 0 0 30px hsl(var(--p-warn) / 0.25);
+}
+.inc-retire-trophy svg { width: 42px; height: 42px; }
+.inc-retire-kicker {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  color: var(--text-muted);
+}
+.inc-retire-title {
+  margin-top: 10px;
+  font-family: var(--sans);
+  font-size: 56px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--text);
+}
+.inc-retire-sub {
+  margin-top: 8px;
+  font-family: var(--sans);
+  font-size: 24px;
+  font-weight: 800;
+  color: hsl(var(--p-warn));
+}
+.inc-retire-body {
+  margin: 18px auto 0;
+  max-width: 46ch;
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--text-soft);
+}
+.inc-retire-stats {
+  display: flex;
+  justify-content: center;
+  gap: 34px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.inc-retire-stat {
+  display: grid;
+  gap: 2px;
+}
+.inc-retire-stat b {
+  font-family: var(--mono);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text);
+}
+.inc-retire-stat span {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.inc-retire-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 28px;
+}
+.inc-retire-again,
+.inc-retire-stay {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 24px;
+  font-size: 17px;
+}
 
 
 /* ═════════════════════════════════════════════════════════════════════

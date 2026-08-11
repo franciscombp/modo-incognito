@@ -303,7 +303,11 @@ export function createDialogue(root, { looks = null } = {}) {
 
     // Steven el Daddy narrator mode: display in narrator element instead of dialogue box.
     // Also handles characters without visible models (recepcion, narrador, etc.) by showing them as narrator.
-    const resolvedSpeaker = resolve(node.speaker, ctx);
+    let resolvedSpeaker = resolve(node.speaker, ctx);
+    // "Tú" firma con el NOMBRE del personaje elegido (Giuli, Fran…): la
+    // charla se lee como dos personajes hablando, no como un formulario en
+    // segunda persona. El sheet ya apuntaba al personaje; faltaba el rótulo.
+    if (resolvedSpeaker === "Tú") resolvedSpeaker = ctx.getPlayerName?.() ?? resolvedSpeaker;
     const speakerLook = node.look ?? lookFor({ ...node, speaker: resolvedSpeaker });
     const isInvisibleCharacter = resolvedSpeaker && !speakerLook && node.speaker !== "Steven el Daddy";
 
@@ -327,8 +331,13 @@ export function createDialogue(root, { looks = null } = {}) {
 
   function playChoice(node, ctx) {
     return new Promise(async (resolve_) => {
-      speakerText.textContent = resolve(node.speaker, ctx) ?? "";
-      speakerEl.classList.toggle("hidden", !node.speaker);
+      let choiceSpeaker = resolve(node.speaker, ctx) ?? "";
+      if (choiceSpeaker === "Tú") choiceSpeaker = ctx.getPlayerName?.() ?? choiceSpeaker;
+      speakerText.textContent = choiceSpeaker;
+      // Sobre el TEXTO resuelto, no sobre node.speaker: un speaker que
+      // resuelve a vacío dejaba la píldora del nombre visible y vacía —
+      // un guioncito flotando sobre la esquina de la caja.
+      speakerEl.classList.toggle("hidden", !choiceSpeaker);
       setPortrait(node);
       box.dataset.mood = node.mood ?? "neutral";
       await type(resolve(node.prompt, ctx));

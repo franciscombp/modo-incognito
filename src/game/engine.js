@@ -14,6 +14,7 @@ import { createGameHud } from "../ui/gamehud.js";
 import { createCampaign } from "./campaign.js";
 import { createHrCourse } from "../ui/hrCourse.js";
 import { createReview } from "../ui/review.js";
+import { createRetirement } from "../ui/retirement.js";
 import { createLevelling } from "../ui/levelling.js";
 import { createLibreta } from "../ui/libreta.js";
 import { createEggReveal } from "../ui/eggReveal.js";
@@ -100,6 +101,7 @@ export function createEngine({
   const campaign = createCampaign({ save, data: campaignData });
   const hrCourse = createHrCourse(app);
   const review = createReview(app);
+  const retirement = createRetirement(app);
   // LA LIBRETA (data/libreta.json): el diario de chismes. Solo LEE el save;
   // quien escribe páginas es `anotarPista`, más abajo.
   const libreta = createLibreta(app, { save, data: libretaData });
@@ -215,6 +217,11 @@ export function createEngine({
     // dialogue.js (los "Tú" que arma un `reply`, no un node del JSON) también
     // sigan al personaje si cambia a media partida.
     getPlayerSheet: () => nameToSheet.get(playerName),
+    // El NOMBRE del personaje elegido ("Giuli", "Fran"…), para que sus
+    // réplicas firmen como ella y la charla se lea como dos personajes
+    // hablando — el rótulo "Tú" rompía esa ilusión (estilo Sasquatch:
+    // el mapache se llama Mapache, no "Él").
+    getPlayerName: () => modes[save.characterId]?.name ?? null,
     // Dialogue options in the JSON name their effect as a string; route it to
     // whichever system owns it.
     applyEffect: (name) => {
@@ -379,7 +386,13 @@ export function createEngine({
     menuPaused = true;
     game?.setPaused(true);
     setMood("calm");
-    menus.openPause(`Día ${levels[dayIndex].number} · ${levels[dayIndex].title}`);
+    // La pausa dice DÓNDE VAS en la carrera, no solo qué día es: rango,
+    // calendario y libreta — que es la puerta de la jubilación, así que
+    // verla aquí es saber qué te falta para el final.
+    const carrera = campaign.active
+      ? ` · ${campaign.rango} (T${campaign.temporada}·D${campaign.dia}) · Libreta ${save.libreta.length}/${(libretaData?.pistas ?? []).length}`
+      : "";
+    menus.openPause(`Día ${levels[dayIndex].number} · ${levels[dayIndex].title}${carrera}`);
   }
 
   function resumeFromMenu() {
@@ -1025,7 +1038,14 @@ export function createEngine({
     const done = result.objectives.filter((o) => o.done).length;
     // La EVALUACIÓN de RRHH: nota por los dos ejes (Qués y Cómos) y avance
     // de calendario — AAA salta la temporada, A asciende por antigüedad.
-    const evalRes = campaign.active ? campaign.endDay({ win: result.win }) : null;
+    // La libreta viaja al cierre porque es LA PUERTA de la jubilación: el
+    // último ascenso se retiene mientras queden chismes por descubrir
+    // (campaign.endDay), así que el juego no se acaba hasta tenerlo todo.
+    const pistasTotal = (libretaData?.pistas ?? []).length;
+    const libretaCompleta = pistasTotal === 0 || (save.libreta?.length ?? 0) >= pistasTotal;
+    const evalRes = campaign.active
+      ? campaign.endDay({ win: result.win, libretaCompleta })
+      : null;
     // La evaluación se FIRMA en el expediente de la ranura en el acto: es la
     // memoria larga de la carrera, y la hoja de vida la lee para escribirse
     // sola. Se alimenta aquí y no desde la pantalla que la enseña — una
@@ -1045,6 +1065,27 @@ export function createEngine({
     // del juego —los dos ejes por separado, «cumples pero no eres de
     // equipo»— pasaba de largo en letra pequeña.
     if (evalRes) await review.show(evalRes);
+
+    // LA JUBILACIÓN: el último ascenso de la escalera. Solo llega con la
+    // libreta completa (la puerta vive en campaign.endDay), así que esta
+    // pantalla ES el final del juego — felicidades, y a empezar de cero si
+    // quieres. "Quedarme de visita" te deja seguir en el piso jubilada.
+    if (evalRes?.jubilacion) {
+      setInLevel(false);
+      const { restart } = await retirement.show({
+        jornadas: save.cv?.historial?.length ?? 0,
+        chismes: save.libreta?.length ?? 0,
+        chismesTotal: pistasTotal,
+        secretos: save.eggs?.length ?? 0,
+      });
+      if (restart) {
+        save.reset();
+        openTitle();
+        return;
+      }
+      openTitle();
+      return;
+    }
 
     // PLAN DE NIVELACIÓN: cinco días sin cerrar la temporada. No se pierde
     // la partida — es la red de seguridad (CAMPANA §5.1). La tanda sale del
@@ -1069,8 +1110,20 @@ export function createEngine({
         onClick: () => startDay(dayIndex + 1),
       });
     }
+    // Con la campaña viva, ganar el día ofrece SIGUIENTE JORNADA como
+    // primaria: la carrera continúa con el calendario ya avanzado. Decía
+    // "Repetir", que sonaba a rejugar lo mismo — nadie entendía que el
+    // juego seguía. La carrera solo termina en la jubilación.
+    const campaignGoesOn = result.win && isLast && campaign.active;
+    if (campaignGoesOn) {
+      actions.push({
+        label: "Siguiente jornada →",
+        primary: true,
+        onClick: () => startDay(dayIndex, { skipPrologue: true }),
+      });
+    }
     actions.push({
-      label: result.win ? "Repetir" : "Reintentar",
+      label: result.win ? (campaignGoesOn ? "Repetir día" : "Repetir") : "Reintentar",
       primary: !result.win,
       // REINTENTAR cae DIRECTO al piso: el ascensor y su elección ya los
       // viviste hoy, y repetirlos en cada despido convertía el castigo en
@@ -1087,7 +1140,7 @@ export function createEngine({
       look: result.win ? looks?.get?.(save.character) : looks?.get?.("gabo"),
       pose: result.win ? "coffee" : "phone",
       title: result.win
-        ? day.winTitle ?? (isLast ? "Semana completada" : `${day.title}: superado`)
+        ? day.winTitle ?? (campaignGoesOn ? "Jornada superada" : isLast ? "Semana completada" : `${day.title}: superado`)
         : "Te ascendieron a cliente",
       timeLeft: result.timeLeft,
       timeGained: result.timeGained,
@@ -1098,7 +1151,13 @@ export function createEngine({
         : "Se acabó la jornada con objetivos pendientes.") +
         // Solo la LETRA: el detalle ya lo contó la pantalla de evaluación, y
         // repetirlo aquí entero lo convertía en ruido.
-        (evalRes ? `\nEvaluación del ciclo: ${evalRes.nota}` : ""),
+        (evalRes ? `\nEvaluación del ciclo: ${evalRes.nota}` : "") +
+        // La puerta de la jubilación, DICHA: sin esto, quien cerró la última
+        // temporada con la libreta a medias veía "ascenso" y luego nada —
+        // el juego parecía roto justo en su final.
+        (evalRes?.jubilacionBloqueada
+          ? `\nRRHH retiene tu jubilación: faltan ${pistasTotal - (save.libreta?.length ?? 0)} chismes en la libreta (L).`
+          : ""),
       win: result.win,
       actions,
     });

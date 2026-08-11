@@ -323,6 +323,9 @@ export function createSave() {
     hasEgg(eggId) {
       return state.eggs.includes(eggId);
     },
+    get eggs() {
+      return state.eggs ?? [];
+    },
     setFlag(name, value = true) {
       state.flags[name] = value;
       write(state);

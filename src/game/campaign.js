@@ -117,7 +117,7 @@ export function createCampaign({ save, data }) {
      * Cierre de jornada: la nota de RRHH y el avance de calendario.
      * Devuelve { nota, detalle, ascenso } — el motor solo la pinta.
      */
-    endDay({ win }) {
+    endDay({ win, libretaCompleta = true }) {
       const c = persisted();
       const hechas = hechasTotales();
 
@@ -191,8 +191,24 @@ export function createCampaign({ save, data }) {
       // ASCENSO (saltar de temporada). Perder cuesta lo que tiene que
       // costar: un día menos de los cinco antes de que salte el plan de
       // nivelación, que es la red y no un castigo (§8).
+      // ── LA JUBILACIÓN, y su puerta ──────────────────────────────────
+      // El último peldaño de RANGOS es "Jubilación": se alcanza ascendiendo
+      // desde el penúltimo (Octogenaria). PERO no te dejan irte con chismes
+      // pendientes: si la libreta no está completa, el ascenso final se
+      // RETIENE — sigues de Octogenaria, la temporada se rearma, y el juego
+      // te dice qué falta. Así el juego literalmente no se acaba hasta que
+      // está todo desbloqueado, y el final es un final de verdad.
+      let jubilacion = false;
+      let jubilacionBloqueada = false;
       if (ascenso) {
-        save.campaign = { temporada: c.temporada + 1, dia: 1, unicas: [] };
+        const ultimoAscenso = c.temporada >= RANGOS.length - 1;
+        if (ultimoAscenso && !libretaCompleta) {
+          jubilacionBloqueada = true;
+          save.campaign = { temporada: c.temporada, dia: 1, unicas: [] };
+        } else {
+          jubilacion = ultimoAscenso;
+          save.campaign = { temporada: c.temporada + 1, dia: 1, unicas: [] };
+        }
       } else {
         save.campaign = { ...c, dia: Math.min(5, c.dia + 1) };
       }
@@ -200,6 +216,8 @@ export function createCampaign({ save, data }) {
         nota,
         detalle,
         ascenso,
+        jubilacion,
+        jubilacionBloqueada,
         rango: this.rango,
         rangoSiguiente: data?.rangoSiguiente ?? null,
         dia: c.dia,

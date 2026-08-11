@@ -353,6 +353,14 @@ export class Game {
     // gana a la más cercana. null = automático de siempre.
     this.preferredObjectiveId = null;
     this.message = null;
+    // El ANUNCIO a pantalla, estilo "¡RANGER PELIGROSO!" de Sasquatch:
+    // texto grande centrado para los golpes que hay que leer SÍ o SÍ
+    // (te vieron, amonestación, te falta el objeto). El toast queda para
+    // lo secundario. `key` crece para que el HUD sepa reiniciar la
+    // animación aunque el texto se repita.
+    this.bigMessage = null;
+    this._bigMsgSeq = 0;
+    this._prevBossState = null;
     this._actionFlash = null;
     this.currentArea = null;
     this.talkCooldowns = new Map();
@@ -442,6 +450,7 @@ export class Game {
     st.progress = st.time;
     st.limiteLeft = null;
     const held = st.aguante ?? 0;
+    this.announce(`¡${st.label.toUpperCase()}: LISTO!`, "ok");
     this._completeActivity(st);
     const extra = Math.round(held * AGUANTE_RATE);
     if (extra > 0) {
@@ -454,13 +463,23 @@ export class Game {
     this.onMissionDone?.(st.id);
   }
 
-  /** El aviso de "te falta el objeto", sin ametrallar: uno cada pocos segundos. */
+  /**
+   * El aviso de "te falta el objeto", sin ametrallar: uno cada pocos
+   * segundos. En DOS niveles, para que no haya que interpretar nada:
+   * el anuncio grande dice QUÉ te falta, y el toast dice DÓNDE o CON
+   * QUIÉN se consigue (la `pista` del JSON, o se deduce de `de`/`en`).
+   */
   _faltaObjeto(st) {
     const now = performance.now();
     if (now - (this._faltaToastAt.get(st.id) ?? 0) < 4000) return;
     this._faltaToastAt.set(st.id, now);
     const o = st.objeto;
-    this.toast(`Necesitas: ${o.nombre}${o.pista ? ` — ${o.pista}` : ""}`);
+    this.announce(`TE FALTA: ${o.nombre.toUpperCase()}`, "warn");
+    const donde =
+      o.pista ??
+      (o.de ? `pídeselo a ${o.de[0].toUpperCase()}${o.de.slice(1)}` : null) ??
+      (o.en?.sala ? `búscalo en ${o.en.sala}` : null);
+    if (donde) this.toast(`Cómo conseguirlo: ${donde}`);
   }
 
   /** Story beats and menus freeze the world without tearing the level down. */
@@ -1010,9 +1029,23 @@ export class Game {
       this.message.timer -= dt;
       if (this.message.timer <= 0) this.message = null;
     }
+    if (this.bigMessage) {
+      this.bigMessage.timer -= dt;
+      if (this.bigMessage.timer <= 0) this.bigMessage = null;
+    }
     if (this._actionFlash) {
       this._actionFlash.timer -= dt;
       if (this._actionFlash.timer <= 0) this._actionFlash = null;
+    }
+
+    // "¡GABO TE VIO!": el momento en que arranca una caza es EL golpe del
+    // juego, y merece el anuncio grande — no un cambio de color que hay que
+    // notar de reojo. Solo en la TRANSICIÓN a CHASE, nunca cada frame.
+    if (this.boss.state !== this._prevBossState) {
+      if (this.boss.state === BOSS_STATES.CHASE && this.metGabo && !this.gameOver) {
+        this.announce(`¡${(this.boss.displayName ?? "GABO").toUpperCase()} TE VIO!`, "danger");
+      }
+      this._prevBossState = this.boss.state;
     }
 
     this.hud.render(this._snapshot());
@@ -1737,10 +1770,11 @@ export class Game {
     }
 
     const final = this.warnings >= this.rules.maxWarnings;
+    this.announce(`¡AMONESTACIÓN ${this.warnings}/${this.rules.maxWarnings}!`, "danger");
     if (final) {
       this.toast("Última advertencia: te ascienden a cliente.");
     } else {
-      this.toast(`Advertencia ${this.warnings}/${this.rules.maxWarnings}`);
+      this.toast("Gabo te mandó a tu puesto. Respira.");
     }
     // El motor (engine.js) muestra el diálogo del regaño y, cuando lo cierra,
     // le da al jefe unos segundos sin observar — si lo hiciéramos aquí, ese
@@ -1803,7 +1837,8 @@ export class Game {
 
     if (this.energy <= 0) {
       this.asleepFor = SLEEP_SECONDS;
-      this.toast("Te quedaste dormida.");
+      this.announce("TE QUEDASTE DORMIDA", "warn");
+      this.toast("Sin energía: come o toma algo para reponerte.");
       sfxWarn();
       buzz([30, 40, 30]);
     }
@@ -1923,6 +1958,16 @@ export class Game {
 
   toast(text) {
     this.message = { text, timer: 2.6 };
+  }
+
+  /**
+   * El anuncio GRANDE centrado (estilo "¡RANGER PELIGROSO!"): para los
+   * golpes que hay que leer sin buscarlos. `tone`: "danger" (rojo urge),
+   * "warn" (ámbar), "ok" (verde, celebración). Uno a la vez: el nuevo
+   * pisa al anterior, que para un anuncio es lo correcto.
+   */
+  announce(text, tone = "danger") {
+    this.bigMessage = { text, tone, timer: 2.2, key: ++this._bigMsgSeq };
   }
 
   /**
@@ -2143,7 +2188,9 @@ export class Game {
       worldFrozen: this.worldFrozen,
       aguantando: (() => {
         const st = this.objectives.find((o) => o.encendida && !o.done);
-        return st ? { id: st.id, label: st.label, aguante: st.aguante ?? 0, max: AGUANTE_MAX } : null;
+        return st
+          ? { id: st.id, label: st.label, icon: st.icon, aguante: st.aguante ?? 0, max: AGUANTE_MAX }
+          : null;
       })(),
       // La cuenta atrás de la tarea que tienes entre manos. Se enseña la de
       // la estación en curso; las que dejaste a medias siguen corriendo por
@@ -2192,6 +2239,7 @@ export class Game {
       gameOver: this.gameOver,
       win: this.win,
       message: this.message,
+      bigMessage: this.bigMessage,
       area: this.currentArea,
       timeGained: this.timeGained,
       combo: this.combo,

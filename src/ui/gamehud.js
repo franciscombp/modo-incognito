@@ -125,6 +125,33 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   let zoneShown = null;
   let zoneTimer = 0;
 
+  // ── EL ANUNCIO GRANDE (estilo "¡RANGER PELIGROSO!") ───────────────────
+  // Texto enorme centrado con contorno, para los golpes que hay que leer
+  // sin buscarlos: te vieron, amonestación, te falta el objeto, tarea
+  // lista. Lo alimenta game.announce() vía el snapshot (bigMessage); aquí
+  // solo se pinta — una sola verdad, como todo lo demás.
+  const announce = el("div", "inc-announce", layer);
+  let announceKey = null;
+
+  function renderAnnounce(state) {
+    const m = state.bigMessage;
+    if (!m) {
+      announce.classList.remove("show");
+      announceKey = null;
+      return;
+    }
+    if (m.key !== announceKey) {
+      announceKey = m.key;
+      announce.textContent = m.text;
+      announce.dataset.tone = m.tone ?? "danger";
+      // Reinicia la animación aunque el texto se repita (dos amonestaciones
+      // seguidas dicen lo mismo y las dos tienen que golpear).
+      announce.classList.remove("show");
+      void announce.offsetWidth;
+      announce.classList.add("show");
+    }
+  }
+
   // ── EL PULSO DE LA ACTIVIDAD ──────────────────────────────────────────
   // Una TIRA FINA y baja, no un panel: esto se juega con el jefe encima y el
   // escenario tiene que seguir viéndose (game/activityGame.js explica por qué
@@ -134,6 +161,9 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const pulseZone = el("i", "inc-pulse-zone", pulseBar);
   const pulseMark = el("i", "inc-pulse-mark", pulseBar);
   const pulsePips = el("div", "inc-pulse-pips", pulseBar);
+  // La cuenta "3/6" al lado de los puntos: los puntos se sienten, la cifra
+  // se LEE — y la queja de fondo era que no se entendía cuánto faltaba.
+  const pulseCount = el("span", "inc-pulse-count", pulseBar);
   // La regla del minijuego, escrita UNA vez encima de la tira las primeras
   // veces que se enciende. Sin esto, la tira era un adorno misterioso: nadie
   // sabía que tocar al ritmo acelera ni que fallar hace ruido. Después
@@ -143,7 +173,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     "div",
     "inc-pulse-hint",
     pulseBar,
-    "ESPACIO al ritmo · dentro de la zona clara avanza · fuera hace RUIDO"
+    "TOCA ESPACIO cuando la barra pase por la ZONA CLARA · fallar hace RUIDO"
   );
   let pulseHits = -1;
   let pulseWasOn = false;
@@ -154,7 +184,9 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     pulseBar.classList.toggle("on", !!p);
     if (!!p && !pulseWasOn) {
       pulseShows += 1;
-      pulseBar.classList.toggle("hint", pulseShows <= 3);
+      // La regla se enseña las primeras CINCO veces: tres se quedaban
+      // cortas — quien probó el juego seguía sin saber qué hacía la tira.
+      pulseBar.classList.toggle("hint", pulseShows <= 5);
     }
     pulseWasOn = !!p;
     if (!p) {
@@ -168,6 +200,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     // nodos por frame es gratis en un portátil y se nota en un teléfono.
     if (p.aciertos !== pulseHits) {
       pulseHits = p.aciertos;
+      pulseCount.textContent = `${p.aciertos}/${p.necesarios}`;
       pulsePips.replaceChildren();
       for (let i = 0; i < p.necesarios; i++) {
         el("i", `inc-pulse-pip${i < p.aciertos ? " on" : ""}`, pulsePips);
@@ -205,7 +238,12 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   function renderAction(state) {
     const g = state.gesture;
     const d = state.deadline;
-    const on = !!(g || d);
+    // El AGUANTE también se enseña aquí: la fase de sostener una actividad
+    // encendida era INVISIBLE (solo la barrita de la misión, arriba, a un
+    // palmo de donde miras) y parecía que soltar o seguir daba igual. Ahora
+    // la misma tarjeta de acción dice AGUANTA, cuánto llevas y cuánto falta.
+    const a = !g && !d ? state.aguantando : null;
+    const on = !!(g || d || a);
     action.classList.toggle("on", on);
     // La píldora de bienvenida comparte banda con esto y le cede el sitio
     // (ver `body.inc-acting #hint`). Va en el <body> y no en el layer porque
@@ -218,13 +256,24 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
 
     // El icono se reconstruye solo cuando cambia: `iconEl` crea un SVG nuevo
     // cada vez y hacerlo por cuadro se nota en un teléfono.
-    const icon = g?.icon ?? "clock";
+    const icon = g?.icon ?? a?.icon ?? "clock";
     if (icon !== actionIconName) {
       actionIconName = icon;
       actionIcon.replaceChildren(iconEl(icon));
     }
-    actionVerb.textContent = g?.verbo ?? "Termina antes de que te vean";
-    actionLabel.textContent = g?.label ?? d?.label ?? "";
+    actionVerb.textContent = g?.verbo ?? (a ? "AGUANTA: cada segundo paga más reloj" : "Termina antes de que te vean");
+    actionLabel.textContent = g?.label ?? d?.label ?? a?.label ?? "";
+
+    if (a) {
+      // El aguante reutiliza la barra de cuenta atrás, pero LLENÁNDOSE: es
+      // un premio que crece, no un plazo que se agota.
+      actionClock.classList.add("on");
+      actionClockFill.style.width = `${Math.min(100, (a.aguante / a.max) * 100)}%`;
+      actionCount.textContent = `${Math.round(a.aguante)}s`;
+      action.classList.remove("urge", "loud");
+      actionTrack.classList.remove("on");
+      return;
+    }
 
     actionTrack.classList.toggle("on", !!g);
     if (g) {
@@ -465,6 +514,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       renderZone(state);
       renderPulse(state);
       renderAction(state);
+      renderAnnounce(state);
     },
   };
 }
