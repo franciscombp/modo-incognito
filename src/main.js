@@ -287,6 +287,7 @@ async function boot() {
   });
   scene.add(player.object3D);
   scene.add(player.sleepIcon);
+  scene.add(player.happyIcon);
 
   // Todos los NPC se crean siempre; el que coincide con el personaje elegido
   // se APAGA en caliente. Antes se filtraban aquí una sola vez, al arrancar,

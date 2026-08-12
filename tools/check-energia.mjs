@@ -179,6 +179,11 @@ const zzz = await p.evaluate(() => {
   // icono suelto: se mira que alguno esté encendido de verdad.
   const zs = player.sleepIcon.children ?? [];
   return {
+    // El REVERSO: caritas mientras te escaqueas. Se comprueba que existen y
+    // que NO están encendidas ahora — dormida no te lo pasas bien, y los
+    // dos globos a la vez sobre la misma cabeza serían ilegibles.
+    carasCuantas: (player.happyIcon?.children ?? []).length,
+    carasVisibles: player.happyIcon?.visible ?? null,
     zzzVisible: player.sleepIcon.visible,
     zzzCuantas: zs.length,
     zzzOpacity: Math.max(0, ...zs.map((s) => s.material.opacity)),
@@ -193,6 +198,11 @@ check(
   zzz.zzzVisible === true && zzz.zzzCuantas === 3 && zzz.zzzOpacity > 0.3 && zzz.zzzEnEscena === true,
   "el Zzz dormida SE VE: tres Z, opacas y dentro de la escena",
   JSON.stringify(zzz)
+);
+check(
+  zzz.carasCuantas === 3 && zzz.carasVisibles === false,
+  "y las caritas del escaqueo existen pero NO salen dormida",
+  JSON.stringify({ carasCuantas: zzz.carasCuantas, carasVisibles: zzz.carasVisibles })
 );
 check(
   zzz.pose === "doze",

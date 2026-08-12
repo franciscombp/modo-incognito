@@ -8,6 +8,8 @@ import {
   updateAlertIcon,
   createSleepIcon,
   updateSleepIcon,
+  createHappyIcon,
+  updateHappyIcon,
 } from "../../src/entities/alertIcon.js";
 import { createGameHud } from "../../src/ui/gamehud.js";
 import { createDialogue } from "../../src/game/dialogue.js";
@@ -83,7 +85,8 @@ let globo = params.get("globo") ?? null; // null | "ambar" | "rojo" | "zzz"
 
 const alertIcon = createAlertIcon(1.55 * S);
 const sleepIcon = createSleepIcon(1.45 * S);
-scene.add(alertIcon, sleepIcon);
+const happyIcon = createHappyIcon(1.45 * S);
+scene.add(alertIcon, sleepIcon, happyIcon);
 
 async function montarMuñeco() {
   if (muñeco) {
@@ -252,6 +255,7 @@ function construirUI() {
       { id: "ambar", label: "Alerta ámbar (?)" },
       { id: "rojo", label: "Alerta roja (!)" },
       { id: "zzz", label: "Zzz (dormida)" },
+      { id: "feliz", label: "Caritas (escaqueo)" },
     ], (it) => { globo = it.id; }, (it) => it.id === globo);
 
     grupo("#pr-anuncios", [
@@ -356,6 +360,7 @@ function animate(now) {
   }
   updateAlertIcon(alertIcon, 0, 0, globo === "ambar" ? "amber" : globo === "rojo" ? "red" : null, t);
   updateSleepIcon(sleepIcon, 0, 0, globo === "zzz", t);
+  updateHappyIcon(happyIcon, 0, 0, globo === "feliz", t);
   hud.render(snapshot(hudExtra));
   renderer.render(scene, camera);
 }
@@ -385,6 +390,7 @@ function animate(now) {
     setHud: (e) => { hudExtra = { ...hudExtra, ...e }; },
     get muñeco() { return muñeco; },
     get sleepIcon() { return sleepIcon; },
+    get happyIcon() { return happyIcon; },
     get alertIcon() { return alertIcon; },
   };
   requestAnimationFrame(animate);

@@ -1066,6 +1066,16 @@ export class Game {
       if (this._actionFlash.timer <= 0) this._actionFlash = null;
     }
 
+    // LAS CARITAS: te lo estás pasando bien. Salen mientras ACTIVAS una
+    // actividad y mientras la AGUANTAS encendida — las dos mitades del
+    // escaqueo. Es el reverso del Zzz, que sale cuando el día te ha podido:
+    // los dos globos hablan de tu estado y juntos cuentan el bucle entero.
+    // Fingir que trabajas NO cuenta: es lo que más cansa (ENERGY_DRAIN_
+    // PRETEND), y premiarlo con caritas contradiría el chiste.
+    this.player.isEnjoying =
+      !this.gameOver &&
+      (this.player.isDoingActivity || this.objectives.some((o) => o.encendida && !o.done));
+
     // "¡GABO TE VIO!": el momento en que arranca una caza es EL golpe del
     // juego, y merece el anuncio grande — no un cambio de color que hay que
     // notar de reojo. Solo en la TRANSICIÓN a CHASE, nunca cada frame. Y si

@@ -207,3 +207,100 @@ export function updateSleepIcon(group, x, z, asleep, t) {
     s.material.opacity = Math.min(1, k * 6) * (1 - k) ** 0.7;
   }
 }
+
+// ── LAS CARITAS: el reverso exacto del Zzz ──────────────────────────────
+//
+// El Zzz dice «esto me está costando»; las caritas dicen «me lo estoy
+// pasando bien». Salen mientras te escaqueas —haciendo una actividad o
+// aguantándola con el jefe rondando— y cierran el par: los dos globos
+// hablan de TU estado (a diferencia de los de alerta, que son de quien te
+// mira), suben igual y se desvanecen igual. Que compartan gramática es lo
+// que hace que se entiendan sin explicar ninguno.
+//
+// Se dibuja a mano en vez de tirar de `ui/icons.js` por dos razones: la
+// carita de Phosphor YA está en uso como icono del JEFE (sería el mismo
+// dibujo para «Gabo» y para «qué bien me lo paso»), y a 20 px un trazo
+// fino se pierde — esta va rellena y con contorno, como las Z.
+const CARA_COLOR = "#ffe27a";
+const CARA_EDGE = "#3a2a08";
+const CARA_COUNT = 3;
+
+function caraTexture() {
+  if (caraTexture._cache) return caraTexture._cache;
+  const size = 64;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d");
+  const mid = size / 2;
+  const r = size * 0.36;
+
+  ctx.beginPath();
+  ctx.arc(mid, mid, r, 0, Math.PI * 2);
+  ctx.fillStyle = CARA_COLOR;
+  ctx.fill();
+  ctx.lineWidth = size * 0.075;
+  ctx.strokeStyle = CARA_EDGE;
+  ctx.stroke();
+
+  // Ojos cerrados DE GUSTO (dos arcos), no dos puntos: es lo que separa
+  // «contenta» de «mirando fijamente».
+  ctx.lineWidth = size * 0.06;
+  ctx.lineCap = "round";
+  for (const dx of [-1, 1]) {
+    ctx.beginPath();
+    ctx.arc(mid + dx * r * 0.42, mid - r * 0.16, r * 0.24, Math.PI * 1.12, Math.PI * 1.88);
+    ctx.stroke();
+  }
+  // La sonrisa.
+  ctx.beginPath();
+  ctx.arc(mid, mid + r * 0.02, r * 0.5, Math.PI * 0.18, Math.PI * 0.82);
+  ctx.stroke();
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  caraTexture._cache = tex;
+  return tex;
+}
+
+/** Tres caritas que suben, con la misma mecánica que el Zzz. */
+export function createHappyIcon(bodyHeight) {
+  const group = new THREE.Group();
+  group.userData.happyIcon = { baseHeight: bodyHeight + 0.18 * S };
+  for (let i = 0; i < CARA_COUNT; i++) {
+    const mat = new THREE.SpriteMaterial({
+      map: caraTexture(),
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      toneMapped: false,
+      opacity: 1,
+    });
+    const s = new THREE.Sprite(mat);
+    s.renderOrder = 11;
+    s.userData.offset = i / CARA_COUNT;
+    group.add(s);
+  }
+  group.visible = false;
+  return group;
+}
+
+/**
+ * Igual que el Zzz pero al otro lado: las caritas salen hacia la IZQUIERDA
+ * y suben un poco más despacio. Que no sean un espejo exacto es a
+ * propósito — si los dos globos se movieran idénticos, de reojo darían la
+ * misma sensación, y dicen cosas opuestas.
+ */
+export function updateHappyIcon(group, x, z, contenta, t) {
+  group.visible = !!contenta;
+  if (!contenta) return;
+  const base = group.userData.happyIcon.baseHeight;
+  group.position.set(x, 0, z);
+  for (const s of group.children) {
+    const k = (t * 0.45 + s.userData.offset) % 1;
+    const size = (0.15 + k * 0.08) * S;
+    s.scale.set(size, size, 1);
+    s.position.set(-k * 0.2 * S, base + k * 0.62 * S, 0);
+    s.material.opacity = Math.min(1, k * 6) * (1 - k) ** 0.7;
+  }
+}

@@ -1,7 +1,7 @@
 import { Character3D } from "./character3d.js";
 import { screenToGround, facingFromGround } from "../scene/iso.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
-import { createSleepIcon, updateSleepIcon } from "./alertIcon.js";
+import { createSleepIcon, updateSleepIcon, createHappyIcon, updateHappyIcon } from "./alertIcon.js";
 
 // The protagonist. Input is interpreted in *screen* space and then rotated
 // into world space, so W/A/S/D (and the joystick) move her up/left/down/right
@@ -39,6 +39,11 @@ export class Player {
     // El ZZZ: mismo globo que lleva el jefe sobre su cabeza, aquí en azul y
     // por SU propio estado (ver entities/alertIcon.js).
     this.sleepIcon = createSleepIcon(height);
+    // Y su REVERSO: caritas mientras te escaqueas. La bandera la escribe
+    // game.js (activando una actividad o aguantándola encendida), igual
+    // que `isAsleep`: el muñeco solo la pinta.
+    this.isEnjoying = false;
+    this.happyIcon = createHappyIcon(height);
     this._sleepTime = 0;
 
     this._onKeyDown = (e) => {
@@ -124,6 +129,14 @@ export class Player {
 
     this._sleepTime += dt;
     updateSleepIcon(this.sleepIcon, this.position.x, this.position.z, this.isAsleep, this._sleepTime);
+    // Nunca los dos a la vez: dormida no te lo estás pasando bien.
+    updateHappyIcon(
+      this.happyIcon,
+      this.position.x,
+      this.position.z,
+      this.isEnjoying && !this.isAsleep,
+      this._sleepTime
+    );
   }
 
   dispose() {
