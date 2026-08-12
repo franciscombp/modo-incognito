@@ -1862,7 +1862,11 @@ export class Game {
     if (this.asleepFor > 0) {
       this.asleepFor -= dt;
       this.player.isAsleep = true;
-      this.player.pose = "sleep";
+      // `doze`, no `sleep`: la misma postura pero SIN CAMA. `sleep` monta un
+      // colchón (su `context.furniture`), y quedarte sin energía en mitad
+      // del pasillo hacía aparecer una cama de la nada a tus pies. La cama
+      // se queda para la siesta táctica, que sí pasa en un sitio concreto.
+      this.player.pose = "doze";
       // Dormida no se anda: se sueltan las teclas para que no siga
       // caminando sola mientras dura la cabezada.
       this.player.keys.clear();

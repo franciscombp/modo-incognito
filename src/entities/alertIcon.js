@@ -119,44 +119,91 @@ export function updateAlertIcon(sprite, x, z, state, t) {
   sprite.position.set(x, d.baseHeight + bob, z);
 }
 
-// ── EL ZZZ: dormida se ve, no solo se siente en los mandos muertos ──────
-// Mismo dibujo que un globo de alerta (lo lleva encima el jefe; esto lo
-// lleva encima la jugadora), pero es SU estado, no el de quien la mira: no
-// hay color de peligro, es sueño, así que va en un azul apagado, propio.
-const SLEEP = { ring: "#8fa8d8", glow: "#c8d6f0", icon: "sleep" };
+// ── EL ZZZ: literalmente "Z, z, z" subiendo ─────────────────────────────
+//
+// Estuvo siendo un icono de LUNA metido en el mismo disco oscuro que los
+// globos de alerta, y no se leía como sueño: se leía como "es de noche".
+// El símbolo universal de dormir son las LETRAS, y en cartoon SUBEN y se
+// desvanecen — el movimiento es la mitad del chiste. Así que esto no es un
+// icono de `ui/icons.js`: es tipografía dibujada en canvas.
+//
+// (No rompe la regla de "ningún icono es un emoji": no hay emoji por
+// ninguna parte, y una Z no depende de la fuente del sistema porque se
+// rasteriza aquí con la familia que pidamos, con su contorno.)
+const ZZZ_COLOR = "#dbe9ff";
+const ZZZ_EDGE = "#0a1420";
+const ZZZ_COUNT = 3;
 
-export function createSleepIcon(bodyHeight) {
-  const mat = new THREE.SpriteMaterial({
-    map: bubbleTexture(SLEEP.icon, SLEEP.ring, SLEEP.glow),
-    transparent: true,
-    depthWrite: false,
-    depthTest: false,
-    toneMapped: false,
-    // OJO: la opacidad va a 1 y el apagado lo hace `visible`. Nació en 0
-    // "para fundirlo luego"… y nadie la subía nunca: los globos estuvieron
-    // INVISIBLES en pantalla mientras todos los tests miraban `visible` y
-    // daban verde. Un material transparente con opacity 0 es un sprite que
-    // existe, se actualiza y no pinta un solo píxel.
-    opacity: 1,
-  });
-  const sprite = new THREE.Sprite(mat);
-  const size = 0.4 * S;
-  sprite.scale.set(size, size, 1);
-  sprite.renderOrder = 11;
-  sprite.userData.sleepIcon = {
-    baseHeight: bodyHeight + 0.32 * S,
-    phase: Math.random() * Math.PI * 2,
-  };
-  sprite.visible = false;
-  return sprite;
+function zTexture() {
+  if (zTexture._cache) return zTexture._cache;
+  const size = 64;
+  const c = document.createElement("canvas");
+  c.width = c.height = size;
+  const ctx = c.getContext("2d");
+  ctx.font = `900 ${size * 0.8}px system-ui, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  // Contorno oscuro grueso: la Z tiene que leerse sobre moqueta clara y
+  // sobre pasillo oscuro, igual que el anuncio grande del HUD.
+  ctx.lineWidth = size * 0.16;
+  ctx.strokeStyle = ZZZ_EDGE;
+  ctx.lineJoin = "round";
+  ctx.strokeText("Z", size / 2, size * 0.54);
+  ctx.fillStyle = ZZZ_COLOR;
+  ctx.fillText("Z", size / 2, size * 0.54);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  zTexture._cache = tex;
+  return tex;
 }
 
-/** A diferencia del globo de alerta, este solo tiene encendido/apagado — no
- *  hace falta un segundo icono, dormida es dormida. */
-export function updateSleepIcon(sprite, x, z, asleep, t) {
-  sprite.visible = !!asleep;
+/**
+ * Tres Z que salen de la cabeza, suben en diagonal, crecen y se
+ * desvanecen — cada una con su fase, así que el chorro es continuo.
+ * Devuelve un Group: `main.js` lo añade a la escena igual que un sprite.
+ */
+export function createSleepIcon(bodyHeight) {
+  const group = new THREE.Group();
+  group.userData.sleepIcon = { baseHeight: bodyHeight + 0.18 * S };
+  for (let i = 0; i < ZZZ_COUNT; i++) {
+    const mat = new THREE.SpriteMaterial({
+      map: zTexture(),
+      transparent: true,
+      depthWrite: false,
+      // Un indicador que se esconde tras un mueble no indica nada — misma
+      // razón que las medallas del piso.
+      depthTest: false,
+      toneMapped: false,
+      opacity: 1,
+    });
+    const s = new THREE.Sprite(mat);
+    s.renderOrder = 11;
+    // Desfase por Z: la de delante sale primero. Sin esto salen las tres
+    // pegadas y parece un solo bloque temblando.
+    s.userData.offset = i / ZZZ_COUNT;
+    group.add(s);
+  }
+  group.visible = false;
+  return group;
+}
+
+/**
+ * Anima el chorro. Cada Z recorre un ciclo de 0 a 1: sube ~0.6 unidades de
+ * plano, se va hacia la derecha, crece un 60% y se apaga al final.
+ */
+export function updateSleepIcon(group, x, z, asleep, t) {
+  group.visible = !!asleep;
   if (!asleep) return;
-  const d = sprite.userData.sleepIcon;
-  const bob = Math.sin(t * 2.4 + d.phase) * 0.06 * S;
-  sprite.position.set(x, d.baseHeight + bob, z);
+  const base = group.userData.sleepIcon.baseHeight;
+  group.position.set(x, 0, z);
+  for (const s of group.children) {
+    const k = (t * 0.55 + s.userData.offset) % 1; // 0→1, ~1.8 s por Z
+    const size = (0.16 + k * 0.1) * S;
+    s.scale.set(size, size, 1);
+    s.position.set(k * 0.22 * S, base + k * 0.6 * S, 0);
+    // Entra rápido y se apaga despacio: fundir también la entrada evita
+    // que la Z "aparezca" de golpe pegada a la cabeza.
+    s.material.opacity = Math.min(1, k * 6) * (1 - k) ** 0.7;
+  }
 }

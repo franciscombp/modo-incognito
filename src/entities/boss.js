@@ -917,7 +917,15 @@ export class Boss {
     if (!target || !this.navmesh) return target;
     this._repathTimer -= dt;
 
-    if (this.world && !this.world.lineBlocked(this.position, target)) {
+    // ¿PASA EL CUERPO en línea recta? `pathBlocked`, no `lineBlocked`: la
+    // segunda responde «¿me ve?» (solo colliders de vista, línea sin
+    // grosor). Preguntando eso, el jefe veía camino libre A TRAVÉS de una
+    // fila de escritorios —no tapan la vista—, se lanzaba recto y se
+    // estampaba: rozaba el mueble, `resolveCircle` lo frenaba, el
+    // anti-atasco le metía un empujón aleatorio, y la captura se volvía un
+    // baile de tropezones. Con el ancho real del cuerpo, o cabe o se va por
+    // el navmesh.
+    if (this.world && !this.world.pathBlocked(this.position, target, this.radius)) {
       this._path = null;
       return target;
     }
@@ -967,7 +975,11 @@ export class Boss {
     if (this.world) {
       const hasta = Math.min(this._path.length - 1, 6);
       for (let i = hasta; i > 0; i--) {
-        if (!this.world.lineBlocked(this.position, this._path[i])) {
+        // También con el CUERPO (`pathBlocked`), no con la vista: el atajo
+        // se tomaba en cuanto se VEÍA el nodo, aunque por ahí no cupiera —
+        // así que el suavizado, que existe para no rozar los muebles, era
+        // justo lo que lo mandaba a rozarlos en diagonal.
+        if (!this.world.pathBlocked(this.position, this._path[i], this.radius)) {
           this._path.splice(0, i);
           break;
         }
@@ -1024,18 +1036,38 @@ export class Boss {
     this.position.z += nz * step;
     if (this.world) this.world.resolveCircle(this.position, this.radius);
 
-    // Simple wall-slide: if a collider ate the whole step, try each axis on
-    // its own so he rounds desk banks instead of grinding into them.
+    // ── DESLIZAR POR EL MUEBLE, no rebotar contra él ────────────────────
+    // Si un collider se comió el paso, se prueba a bordearlo. El orden
+    // importa: PRIMERO las dos tangentes (±60° del rumbo), que es lo que
+    // hace un cuerpo que roza una mesa y sigue de largo; los ejes puros se
+    // quedan de último recurso.
+    //
+    // Antes solo estaban los ejes, y en una diagonal contra una fila de
+    // escritorios eso significa frenar en seco y avanzar a saltos de medio
+    // paso — se leía como que el jefe «se aturde» al llegar. Deslizar
+    // conserva casi toda la velocidad, así que la captura no se rompe por
+    // haber rozado un mueble por el camino.
     const moved = Math.hypot(this.position.x - before.x, this.position.z - before.z);
     if (moved < step * 0.3) {
-      for (const [ax, az] of [
-        [nx, 0],
-        [0, nz],
-      ]) {
+      const COS = Math.cos(Math.PI / 3);
+      const SIN = Math.sin(Math.PI / 3);
+      const alternativas = [
+        [nx * COS - nz * SIN, nx * SIN + nz * COS], // +60°
+        [nx * COS + nz * SIN, -nx * SIN + nz * COS], // −60°
+        [Math.sign(nx), 0],
+        [0, Math.sign(nz)],
+      ];
+      for (const [ax, az] of alternativas) {
+        if (!ax && !az) continue;
         this.position.x = before.x + ax * step;
         this.position.z = before.z + az * step;
         if (this.world) this.world.resolveCircle(this.position, this.radius);
         if (Math.hypot(this.position.x - before.x, this.position.z - before.z) > step * 0.3) break;
+        // Ninguna sirvió todavía: se vuelve al punto de partida antes de
+        // probar la siguiente, o se irían acumulando desplazamientos
+        // fallidos y el cuerpo derivaría de lado sin avanzar.
+        this.position.x = before.x;
+        this.position.z = before.z;
       }
     }
 

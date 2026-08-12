@@ -20,6 +20,7 @@
     "check:layout": "node tools/check-layout.mjs",
     "check": "npm run check:no-emoji && npm run check:theme && npm run check:reachable && npm run check:doors && npm run check:chase && npm run check:modes && npm run check:arranque && npm run check:catch && npm run check:minion-proximity && npm run check:suspicion && npm run check:safespots && npm run check:pulse && npm run check:gesto && npm run check:energia && npm run check:cierre && npm run check:libreta && npm run check:repel && npm run check:objetos && npm run check:review && npm run check:jubilacion && npm run check:fold && npm run check:pursuit && npm run check:crowd && npm run check:vision && npm run check:crossing && npm run check:poses && npm run check:retry && npm run check:music && npm run check:basemodel && npm run check:layout",
     "check:visual": "node tools/shoot.mjs",
+    "banco": "node tools/shoot-sandbox.mjs",
     "check:menus": "node tools/shoot-menus.mjs",
     "format:data": "node tools/format-data.mjs",
     "check:crossing": "node tools/check-crossing.mjs",

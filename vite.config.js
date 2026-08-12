@@ -32,6 +32,7 @@ export default defineConfig({
         "creador/personajes": resolve(import.meta.dirname, "creador/personajes/index.html"),
         "creador/musica": resolve(import.meta.dirname, "creador/musica/index.html"),
         "creador/pantallas": resolve(import.meta.dirname, "creador/pantallas/index.html"),
+        "creador/pruebas": resolve(import.meta.dirname, "creador/pruebas/index.html"),
       },
     },
   },

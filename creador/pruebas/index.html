@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pruebas · Modo Incógnito</title>
+    <link rel="icon" href="../../favicon.png" />
+    <link rel="stylesheet" href="../../src/style/design-system.css" />
+    <link rel="stylesheet" href="../../src/style/builders.css" />
+    <style>
+      /* El banco NO vive dentro del lienzo fijo del juego: es una
+         herramienta de escritorio, como el resto de creador/. */
+      .pr-wrap { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 56px); }
+      .pr-side { overflow-y: auto; padding: 14px; border-right: 1px solid rgba(255,255,255,0.1); }
+      .pr-stage { position: relative; overflow: hidden; background: #10161f; }
+      .pr-stage > canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+      /* EL ANCLA DEL HUD. El HUD y el diálogo se dibujan con `position:
+         fixed`, que por defecto se ancla a la VENTANA — se salían del área
+         de escena y tapaban la barra de herramientas. Un `transform` en el
+         contenedor lo convierte en bloque contenedor de todo lo `fixed` de
+         dentro (el mismo mecanismo que usa `#app` en el juego, ver
+         PANTALLAS.md §1), así que el HUD queda encajado en el escenario. */
+      /* Se anulan a mano el tamaño y el centrado del lienzo fijo (`#app` en
+         design-system.css es 1920×1080 centrado y escalado): aquí el HUD
+         tiene que caber en el panel de escena, no en un lienzo de juego. */
+      .pr-stage > #app {
+        position: absolute;
+        inset: 0;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        transform: translateZ(0);
+        pointer-events: none;
+      }
+      .pr-stage > #app * { pointer-events: auto; }
+      .pr-group { margin-bottom: 18px; }
+      .pr-group h3 {
+        margin: 0 0 8px; font-size: 11px; letter-spacing: 0.14em;
+        text-transform: uppercase; opacity: 0.6;
+      }
+      .pr-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+      .pr-btns button { font-size: 12px; padding: 6px 10px; }
+      .pr-btns button.on { outline: 2px solid var(--cyan); }
+      .pr-hint { font-size: 11px; line-height: 1.5; opacity: 0.65; margin: 6px 0 0; }
+      #pr-url { font-family: var(--mono); font-size: 10px; opacity: 0.5; word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <header class="bar">
+      <h1>PRUEBAS · <span>Modo Incógnito</span></h1>
+      <div class="bar-group">
+        <span class="pr-hint" id="pr-url"></span>
+      </div>
+    </header>
+
+    <div class="pr-wrap">
+      <aside class="pr-side">
+        <div class="pr-group">
+          <h3>Personaje</h3>
+          <div class="pr-btns" id="pr-cast"></div>
+        </div>
+
+        <div class="pr-group">
+          <h3>Pose / animación</h3>
+          <div class="pr-btns" id="pr-poses"></div>
+          <p class="pr-hint">
+            Cada pose monta su contexto real (props y mobiliario). Aquí es
+            donde se ve si algo aparece a los pies que no debería.
+          </p>
+        </div>
+
+        <div class="pr-group">
+          <h3>Globos sobre la cabeza</h3>
+          <div class="pr-btns" id="pr-globos"></div>
+        </div>
+
+        <div class="pr-group">
+          <h3>Anuncio grande</h3>
+          <div class="pr-btns" id="pr-anuncios"></div>
+        </div>
+
+        <div class="pr-group">
+          <h3>HUD</h3>
+          <div class="pr-btns" id="pr-hud"></div>
+        </div>
+
+        <div class="pr-group">
+          <h3>Diálogo</h3>
+          <div class="pr-btns" id="pr-dialogos"></div>
+        </div>
+
+        <div class="pr-group">
+          <h3>Minijuegos</h3>
+          <div class="pr-btns" id="pr-mini"></div>
+        </div>
+      </aside>
+
+      <main class="pr-stage" id="pr-stage"></main>
+    </div>
+
+    <script type="module" src="./pruebas.js"></script>
+  </body>
+</html>

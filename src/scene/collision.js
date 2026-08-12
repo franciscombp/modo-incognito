@@ -48,6 +48,22 @@ function distToSegmentSq(px, pz, x1, z1, x2, z2) {
   return ex * ex + ez * ez;
 }
 
+/**
+ * Distancia² mínima entre el segmento a→b y el segmento del muro `s`, para
+ * los casos en que NO se cruzan (si se cruzan, la distancia es 0 y quien
+ * llama ya lo ha comprobado con `segmentsIntersect`). Basta con el mínimo
+ * de las cuatro distancias punta-a-segmento: sin cruce, el punto más
+ * cercano entre dos segmentos siempre cae en un extremo de alguno.
+ */
+function segmentDistSq(a, b, s) {
+  return Math.min(
+    distToSegmentSq(a.x, a.z, s.x1, s.z1, s.x2, s.z2),
+    distToSegmentSq(b.x, b.z, s.x1, s.z1, s.x2, s.z2),
+    distToSegmentSq(s.x1, s.z1, a.x, a.z, b.x, b.z),
+    distToSegmentSq(s.x2, s.z2, a.x, a.z, b.x, b.z)
+  );
+}
+
 export function createCollisionWorld() {
   const boxes = [];
   const segments = [];
@@ -123,5 +139,46 @@ export function createCollisionWorld() {
     return false;
   }
 
-  return { addBox, addSegment, resolveCircle, lineBlocked, boxes, segments };
+  /**
+   * ¿Cabe un CUERPO de radio `r` yendo en línea recta de `a` a `b`?
+   *
+   * ── Por qué no vale `lineBlocked` para esto ──────────────────────────
+   * Son dos preguntas distintas y se estuvieron confundiendo:
+   *   · `lineBlocked` = «¿me VE?» — mira solo colliders con `sight` y traza
+   *     una línea de grosor CERO, que es exactamente lo que hace un rayo de
+   *     visión.
+   *   · esto = «¿PASO?» — tiene que mirar TODOS los colliders (un escritorio
+   *     no tapa la vista pero sí el paso) y contar con el ANCHO del cuerpo.
+   *
+   * El jefe decidía si podía ir recto con la primera, así que veía «camino
+   * libre» a través de una fila de escritorios, se lanzaba en línea recta y
+   * se estampaba: rozaba, `resolveCircle` lo frenaba, el anti-atasco le daba
+   * un empujón aleatorio… y la persecución se volvía un baile de tropezones
+   * justo cuando tenía que ser una carrera limpia.
+   *
+   * Las cajas se INFLAN por el radio en vez de trazar tres líneas paralelas:
+   * es la suma de Minkowski de la caja con el círculo (redondeando de más en
+   * las esquinas, lo cual es conservador — antes rodea un pelín que raspar).
+   */
+  function pathBlocked(a, b, r = 0) {
+    for (const box of boxes) {
+      const inflada = {
+        minX: box.minX - r,
+        maxX: box.maxX + r,
+        minZ: box.minZ - r,
+        maxZ: box.maxZ + r,
+      };
+      if (segmentIntersectsBox(a, b, inflada)) return true;
+    }
+    for (const s of segments) {
+      // Dos segmentos con grosor chocan si sus ejes se acercan menos que la
+      // suma de sus radios; el caso de cruce lo cubre segmentsIntersect.
+      if (segmentsIntersect(a.x, a.z, b.x, b.z, s.x1, s.z1, s.x2, s.z2)) return true;
+      const holgura = r + (s.thickness ?? 0) / 2;
+      if (segmentDistSq(a, b, s) <= holgura * holgura) return true;
+    }
+    return false;
+  }
+
+  return { addBox, addSegment, resolveCircle, lineBlocked, pathBlocked, boxes, segments };
 }

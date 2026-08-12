@@ -186,8 +186,80 @@ const out = await p.evaluate(() => {
   return res;
 });
 
+// ── LA PERSECUCIÓN NO PUEDE IR A TROPEZONES ─────────────────────────
+//
+// «Gabo se choca demasiado con los objetos y aturde la captura» era una
+// queja de jugadora que ningún test veía: todos miraban si ATRAPA, ninguno
+// CÓMO llega. Aquí se mide la fluidez con un número — qué fracción de los
+// frames de caza avanzó de verdad (`_actuallyMoving`).
+//
+// La causa de fondo era que `_steer` preguntaba «¿me ve?» (`lineBlocked`:
+// solo colliders de vista, línea sin grosor) para decidir «¿paso?»: veía
+// hueco a través de una fila de escritorios, iba recto y se estampaba. Con
+// `pathBlocked` (todos los colliders + ancho del cuerpo) el atasco baja de
+// forma que se nota. El umbral va holgado a propósito: rozar de vez en
+// cuando es legítimo, ir a trompicones no.
+const fluidez = await p.evaluate(() => {
+  const g = window.__game.engine.game;
+  const boss = g.boss;
+  const S = window.__floorplan.WORLD_SCALE;
+  g.setPaused(false);
+  boss.grantGrace(0);
+  boss._updateVision = () => {
+    boss.playerVisible = true;
+    boss.redAlert = true;
+  };
+  // Los extremos se sacan de sitios que el juego GARANTIZA caminables: un
+  // waypoint de la ronda y una estación de tarea. Poner coordenadas a mano
+  // metía al jefe dentro de un mueble, y entonces lo que medía la prueba
+  // era su propio montaje (0 % de fluidez con el juego intacto).
+  const ruta = window.__floorplan.patrolRoute;
+  const lejos = g.objectives.find((o) => Number.isFinite(o.x) && !o.dynamic) ?? { x: 6 * S, z: 12 * S };
+  const salida = ruta.reduce(
+    (mejor, p) =>
+      Math.hypot(p.x - lejos.x, p.z - lejos.z) > Math.hypot(mejor.x - lejos.x, mejor.z - lejos.z) ? p : mejor,
+    ruta[0]
+  );
+  g.player.position.x = lejos.x;
+  g.player.position.z = lejos.z;
+  boss.position.x = salida.x;
+  boss.position.z = salida.z;
+  g.suspicion = 95;
+  boss.suspicion = 95;
+  boss.startChase();
+
+  let frames = 0;
+  let moviendo = 0;
+  const paso = 1 / 60;
+  for (let i = 0; i < 600; i++) {
+    if (g.paused) g.setPaused(false);
+    // La jugadora quieta: se mide el trayecto del jefe, no una carrera.
+    g.player.position.x = 6 * S;
+    g.player.position.z = 12 * S;
+    g.update(paso);
+    if (boss.state === "CHASE") {
+      frames++;
+      if (boss._actuallyMoving) moviendo++;
+    }
+    const d = Math.hypot(boss.position.x - g.player.position.x, boss.position.z - g.player.position.z);
+    if (d < 0.8 * S) break;
+  }
+  const dist = Math.hypot(boss.position.x - g.player.position.x, boss.position.z - g.player.position.z);
+  return {
+    frames,
+    fluidez: frames ? +(moviendo / frames).toFixed(2) : 0,
+    distanciaFinal: +(dist / S).toFixed(1),
+  };
+});
+out.fluidez = fluidez;
+
 console.log(JSON.stringify(out, null, 1));
 const checks = [
+  [
+    `la persecucion no va a tropezones (avanza el ${Math.round(fluidez.fluidez * 100)}% de los frames)`,
+    fluidez.fluidez >= 0.8,
+  ],
+  ["y cruza el piso hasta plantarse encima", fluidez.distanciaFinal < 1.5],
   ["se compromete al meterte en el halo", out.lockedAfterHalo && out.stateAfterHalo === "CHASE"],
   ["esconderse ya no le hace desistir", out.stillLocked && out.stateWhileHidden === "CHASE"],
   ["sigue cerrando distancia sin verte", out.closed > 1],

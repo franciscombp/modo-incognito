@@ -175,17 +175,28 @@ const zzz = await p.evaluate(() => {
   // real posiciona el globo.
   window.__game.engine.game.update(1 / 60);
   player.update(1 / 60, window.__game.world);
+  // El Zzz son TRES sprites de la letra Z subiendo (un Group), no un
+  // icono suelto: se mira que alguno esté encendido de verdad.
+  const zs = player.sleepIcon.children ?? [];
   return {
     zzzVisible: player.sleepIcon.visible,
-    zzzOpacity: player.sleepIcon.material.opacity,
+    zzzCuantas: zs.length,
+    zzzOpacity: Math.max(0, ...zs.map((s) => s.material.opacity)),
     zzzEnEscena: !!player.sleepIcon.parent,
     alertaOpacity: boss.alertIcon.material.opacity,
     alertaEnEscena: !!boss.alertIcon.parent,
+    // Y la pose de agotamiento NO monta cama: `doze`, no `sleep`.
+    pose: window.__game.engine.game.player.pose,
   };
 });
 check(
-  zzz.zzzVisible === true && zzz.zzzOpacity > 0.5 && zzz.zzzEnEscena === true,
-  "el Zzz dormida SE VE: visible, opaco y dentro de la escena",
+  zzz.zzzVisible === true && zzz.zzzCuantas === 3 && zzz.zzzOpacity > 0.3 && zzz.zzzEnEscena === true,
+  "el Zzz dormida SE VE: tres Z, opacas y dentro de la escena",
+  JSON.stringify(zzz)
+);
+check(
+  zzz.pose === "doze",
+  "y dormirse de agotamiento usa `doze` (sin cama), no `sleep`",
   JSON.stringify(zzz)
 );
 check(

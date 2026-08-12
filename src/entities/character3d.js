@@ -42,6 +42,7 @@ export const POSES = {
   shrug: 7,
   sit: 8,
   sitWork: 9,
+  doze: 10,
 };
 
 // Lo que queda de un "rig" (public/data/sprites/<id>.json): el ritmo del paso
@@ -209,6 +210,20 @@ const POSE_LIBRARY = {
       props: [],
       furniture: [{ name: "bed", position: [0, 0, 0.2], rotation: [0, 0, 0] }],
     },
+  },
+  // LA CABEZADA: dormirse DE PIE, sin cama. Es la misma postura que `sleep`
+  // pero con el contexto VACÍO, y existe por un fallo que se veía fatal:
+  // quedarte sin energía en mitad del pasillo usaba `sleep`, y esa pose
+  // monta una CAMA — aparecía un colchón de la nada a los pies de la
+  // jugadora, en mitad de la oficina. `sleep` (con cama) se queda para la
+  // siesta táctica, que es una actividad de un sitio concreto; el
+  // agotamiento usa esta.
+  doze: {
+    speed: 1.1,
+    prop: null,
+    a: { torso: [0.16, 0, 0.05], head: [0.4, 0, 0.3], armL: [0.1, 0, 0.16], armR: [0.1, 0, -0.16], lift: -0.012 },
+    b: { torso: [0.2, 0, 0.05], head: [0.46, 0, 0.34], armL: [0.14, 0, 0.16], armR: [0.14, 0, -0.16], lift: 0.006 },
+    context: { props: [], furniture: [] },
   },
   // BEBER: la taza baja al pecho y SUBE HASTA LA BOCA, donde se queda el
   // sorbo. Antes el brazo recorría 0.43 rad (unos 25°) — a la distancia a la

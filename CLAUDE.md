@@ -753,8 +753,24 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   más lejano al que ya se puede ir en línea recta y se apunta ahí. Mira 6
   nodos como mucho: más allá no se nota y cada traza de línea se paga por
   veinte personajes.
+- **«¿Me VE?» y «¿PASO?» son dos preguntas distintas, y confundirlas fue el
+  bug de «Gabo se choca con todo».** `world.lineBlocked` es la primera: mira
+  solo los colliders que tapan la VISTA y traza una línea de grosor CERO,
+  que es lo correcto para un rayo de visión. `world.pathBlocked(a, b, radio)`
+  es la segunda: mira TODOS los colliders e infla las cajas por el ancho del
+  cuerpo. `_steer` preguntaba la primera para decidir la segunda — veía
+  hueco a través de una fila de escritorios (no tapan la vista), se lanzaba
+  recto, se estampaba, `resolveCircle` lo frenaba y el anti-atasco le metía
+  un empujón aleatorio: la captura se volvía un baile de tropezones. Si
+  añades navegación nueva, pregunta la que toca. Lo vigila `check:pursuit`,
+  que ahora MIDE la fluidez (fracción de frames de caza en que avanzó de
+  verdad) y exige ≥ 80 % — hoy va por el 97 %.
 - **Los montajes de `tools/` que prueban al jefe necesitan calentar el
-  medidor** por encima de ese umbral, o no habrá caza que medir. Y ojo con dos
+  medidor** por encima de ese umbral, o no habrá caza que medir. Y las
+  posiciones sácalas de sitios que el juego garantiza caminables (un
+  waypoint de `patrolRoute`, una estación), nunca a mano: un jefe colocado
+  dentro de un mueble da 0 % de fluidez con el juego intacto, y entonces lo
+  que mide la prueba es su propio montaje. Y ojo con dos
   cosas que ya costaron un rato: la alarma de nivel 3 PAUSA la partida desde
   `game.js` (no desde la interfaz) y `_heatAlertShown` se rearma sola, así que
   hay que reanudar dentro del bucle; y una amonestación resetea la sospecha a
@@ -1012,6 +1028,27 @@ sirven desde el mismo servidor que el juego en `http://localhost:5173/creador/`
 - `creador/musica/` — constructor de la pista principal con control de ánimo,
   tempo, mezcla y playhead en vivo.
 - `creador/pantallas/` — Storybook y constructor de UI/CSS vivo.
+- `creador/pruebas/` — **EL BANCO DE PRUEBAS, y es el que ahorra el tiempo.**
+  Dispara UNA cosa aislada —una pose con su mobiliario, un globo (Zzz, alerta
+  ámbar/roja), un anuncio grande, el HUD en calma/alerta/caza, una caja de
+  diálogo, la tira del pulso— sin jugar una partida. Antes, comprobar «¿se ve
+  el Zzz?» costaba arrancar el día, saltar el ascensor, superar la puerta,
+  vaciar la energía y esperar a que se durmiera: minutos por intento, y la
+  mitad de las veces lo que fallaba era el montaje de la prueba.
+
+  **Cada estado tiene URL** (`?cast=giu&pose=doze&globo=zzz&hud=caza`), así que
+  una captura es `goto` + `screenshot`: `node tools/shoot-sandbox.mjs` saca la
+  tanda entera en ~15 s, y `node tools/shoot-sandbox.mjs "pose=coffee"` una a
+  medida. **Si tocas una pose, un globo, un anuncio o el HUD, mira aquí ANTES
+  de montar una partida.**
+
+  Dos cosas que costaron y por eso están escritas: el HUD se dibuja con
+  `position: fixed`, así que el contenedor lleva un `transform` para ser su
+  bloque contenedor (mismo truco que `#app` en el juego) y hay que anular a
+  mano el tamaño del lienzo fijo que `#app` trae del design-system; y la
+  cámara encuadra CON AIRE ARRIBA, porque los globos viven sobre la cabeza y
+  un encuadre pegado al cuerpo los dejaba fuera de plano — que es justo lo
+  que se viene a mirar.
 
 **Son entrada de Vite, no de `public/`.** Estuvieron en `public/` y no funcionaban:
 se copian sin resolver imports, así que hubo que traerse librerías de CDN (viejas,
