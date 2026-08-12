@@ -238,6 +238,7 @@ function construirUI() {
   pintarBotones = () => {
     grupo("#pr-cast", casts.map((c) => ({ id: c, label: c })), (it) => {
       castId = it.id;
+      hud.setPlayerLook?.(looks.get(castId) ?? null);
       montarMuñeco();
     }, (it) => it.id === castId);
 
@@ -366,6 +367,11 @@ function animate(now) {
     fetch(`${DATA}models.json`).then((r) => r.json()).catch(() => ({ bodies: {}, faces: {} })),
   ]);
   looks = prepareLooks(looksRaw, modelsRaw);
+  // LA CARA VIVA de la placa: sin esto el banco enseñaba la placa con el
+  // hueco del retrato vacío, y justo ahí estaba el fallo que se reportó
+  // (el lienzo del retrato escapándose del marco y tapando media placa).
+  // Un banco que no monta la cara no puede enseñar ese fallo.
+  hud.setPlayerLook?.(looks.get(castId) ?? null);
   await montarMuñeco();
   construirUI();
   escribirUrl();

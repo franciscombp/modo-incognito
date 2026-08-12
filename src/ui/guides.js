@@ -54,32 +54,19 @@ export function createGuides(root, camera) {
       });
       // La guía del jefe sigue abajo; la tarea normal vuelve al enfriarse.
     } else {
-    const target = state.focusStation;
-    if (target) {
-      const distance = Math.hypot(target.x - px, target.z - pz) / S;
-      const area = state.area;
-      // Lo expuesto que está la tarea depende de lo cerca que ande el jefe
-      // *de ella*, no de ti: eso es lo que decide si conviene ir ahora.
-      const bossToTarget =
-        Math.hypot(state.bossPos.x - target.x, state.bossPos.z - target.z) / S;
-      task.update({
-        x: target.x,
-        z: target.z,
-        icon: target.icon ?? "diamond",
-        // "TAREA ACTUAL" a secas: el ala y la sala ya los dice la flecha
-        // llevándote; el rótulo de antes parecía un cartel de ubicación.
-        top: "TAREA ACTUAL",
-        label: target.label,
-        meta:
-          state.nearStation && state.nearStation.id === target.id
-            ? "EN CURSO"
-            : `${Math.round(distance)} m`,
-        short: `${Math.round(distance)} m`,
-        urgency: Math.max(0, 1 - bossToTarget / 16),
-      });
-    } else {
+      // ── EL RASTREADOR DE TAREA SE CALLA EN LA RUTINA ────────────────
+      // Desde que la LISTA DE MISIONES lleva su propia aguja de rumbo y sus
+      // metros por fila (ver gamehud.js), esta flecha decía exactamente lo
+      // mismo para una sola misión: la misma cifra de distancia salía TRES
+      // veces en pantalla —la fila, este rastreador y su etiqueta— y las
+      // dos flechas del borde acababan apiladas en la misma esquina, que es
+      // como se veía en el móvil.
+      //
+      // Así que el borde de la pantalla se reserva para lo que la lista NO
+      // puede decir: la HUIDA (la rama de arriba, cuando la sospecha
+      // aprieta y hay que ir a un lugar seguro) y el JEFE (abajo). Lo
+      // planificado se lee en la lista; el borde solo grita lo urgente.
       task.update(null);
-    }
     }
 
     // ---- El jefe ----
