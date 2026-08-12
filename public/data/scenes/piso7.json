@@ -177,7 +177,8 @@
       "name": "Baños",
       "capacity": 0,
       "wing": "sur",
-      "kind": "core",
+      "kind": "meeting",
+      "doorSide": "frente",
       "color": "#d9d9d9",
       "x": 11.600000000000001,
       "z": -3.5,
@@ -327,7 +328,8 @@
       "name": "Baños",
       "capacity": 0,
       "wing": "norte",
-      "kind": "core",
+      "kind": "meeting",
+      "doorSide": "frente",
       "color": "#d9d9d9",
       "x": 28.1,
       "z": 2.5,
@@ -1087,6 +1089,26 @@
       "budget": 26,
       "busyEvery": 34,
       "busyFor": 14
+    },
+    {
+      "id": "banos_sur",
+      "label": "Baños (ala sur)",
+      "icon": "restroom",
+      "kind": "meeting",
+      "x": 11.6,
+      "z": -3.5,
+      "radius": 1.3,
+      "budget": 45
+    },
+    {
+      "id": "banos_norte",
+      "label": "Baños (ala norte)",
+      "icon": "restroom",
+      "kind": "meeting",
+      "x": 28.1,
+      "z": 2.5,
+      "radius": 1.2,
+      "budget": 45
     }
   ],
   "$barriers": [
@@ -1105,6 +1127,11 @@
     "  estás reunida. Pero tiene un cupo de segundos al día (`budget`) que se",
     "  gasta mientras estás dentro y no se recarga, y cada tanto la OCUPA otra",
     "  gente (`busyEvery` / `busyFor`, en segundos) y deja de servir.",
+    "  LOS BAÑOS son ese mismo `kind` SIN `busyEvery`: nadie convoca una",
+    "  reunión en el baño, así que no se ocupan nunca — son la letrina de",
+    "  Sneaky Sasquatch, el refugio que siempre está. Lo que los limita es",
+    "  el cupo (más generoso que el de una sala) y lo lejos que quedan: el",
+    "  reloj y la energía siguen corriendo mientras te escondes ahí.",
     "kind: \"desk\" · tu propio puesto. No se gasta ni se ocupa nunca, pero solo",
     "  te cubre MIENTRAS finges que trabajas (mantener F). Quedarte ahí parada",
     "  no cuenta.",
