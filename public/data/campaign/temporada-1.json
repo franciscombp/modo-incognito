@@ -40,7 +40,9 @@
   "rango": "Aprendiz",
   "rangoSiguiente": "Junior",
   "nivelacion": {
-    "pruebas": ["crossing"]
+    "pruebas": [
+      "crossing"
+    ]
   },
   "misiones": [
     {
@@ -57,18 +59,38 @@
       "tipo": "que",
       "titulo": "Finge que trabajas",
       "recurrencia": "diaria",
-      "requiere": ["meet-gabo"],
+      "requiere": [
+        "meet-gabo"
+      ],
       "accion": "fingir",
       "segundos": 3,
       "icono": "keyboard",
-      "recompensa": {"reloj":20}
+      "recompensa": {
+        "reloj": 20
+      }
+    },
+    {
+      "id": "stretch",
+      "tipo": "que",
+      "titulo": "Estirar «cinco minutos»",
+      "recurrencia": "diaria",
+      "requiere": [
+        "meet-gabo"
+      ],
+      "estacion": "stretch",
+      "icono": "person",
+      "recompensa": {
+        "reloj": 15
+      }
     },
     {
       "id": "coffee",
       "tipo": "que",
       "titulo": "Tomar café",
       "recurrencia": "diaria",
-      "requiere": ["meet-gabo"],
+      "requiere": [
+        "meet-gabo"
+      ],
       "estacion": "coffee",
       "icono": "coffee"
     },
@@ -77,17 +99,23 @@
       "tipo": "como",
       "titulo": "Fran tiene un chisme",
       "recurrencia": "unica",
-      "requiere": ["fingir-101"],
+      "requiere": [
+        "fingir-101"
+      ],
       "personaje": "fran_npc",
       "icono": "chat",
-      "recompensa": {"reloj":30}
+      "recompensa": {
+        "reloj": 30
+      }
     },
     {
       "id": "movie",
       "tipo": "que",
       "titulo": "Ver la película",
       "recurrencia": "unica",
-      "requiere": ["coffee"],
+      "requiere": [
+        "coffee"
+      ],
       "estacion": "movie",
       "icono": "movie"
     },
@@ -96,7 +124,9 @@
       "tipo": "que",
       "titulo": "Comer a escondidas",
       "recurrencia": "diaria",
-      "requiere": ["coffee"],
+      "requiere": [
+        "coffee"
+      ],
       "estacion": "snack",
       "icono": "snack"
     },
@@ -105,47 +135,65 @@
       "tipo": "que",
       "titulo": "Confirmar el chisme en la cafetería",
       "recurrencia": "unica",
-      "requiere": ["chisme-fran"],
+      "requiere": [
+        "chisme-fran"
+      ],
       "estacion": "chat",
       "icono": "chat",
-      "recompensa": {"reloj":25}
+      "recompensa": {
+        "reloj": 25
+      }
     },
     {
       "id": "cesar-idea",
       "tipo": "como",
       "titulo": "César anda tramando algo",
       "recurrencia": "unica",
-      "requiere": ["chisme-fran"],
+      "requiere": [
+        "chisme-fran"
+      ],
       "personaje": "cesar",
       "icono": "people",
-      "recompensa": {"reloj":25}
+      "recompensa": {
+        "reloj": 25
+      }
     },
     {
       "id": "manu-plan",
       "tipo": "como",
       "titulo": "Manu dice que él ya lo había pensado",
       "recurrencia": "unica",
-      "requiere": ["cesar-idea"],
+      "requiere": [
+        "cesar-idea"
+      ],
       "personaje": "manu",
       "icono": "phone",
-      "recompensa": {"reloj":25}
+      "recompensa": {
+        "reloj": 25
+      }
     },
     {
       "id": "giuli-cover",
       "tipo": "como",
       "titulo": "Giuli te guarda el secreto",
       "recurrencia": "unica",
-      "requiere": ["movie"],
+      "requiere": [
+        "movie"
+      ],
       "personaje": "giuli",
       "icono": "hide",
-      "recompensa": {"reloj":25}
+      "recompensa": {
+        "reloj": 25
+      }
     },
     {
       "id": "siesta-tactica",
       "tipo": "que",
       "titulo": "Siesta táctica en el escritorio",
       "recurrencia": "unica",
-      "requiere": ["movie"],
+      "requiere": [
+        "movie"
+      ],
       "estacion": "sleep",
       "icono": "sleep"
     },
@@ -154,7 +202,9 @@
       "tipo": "que",
       "titulo": "Mirar la avenida (modo videoclip)",
       "recurrencia": "unica",
-      "requiere": ["siesta-tactica"],
+      "requiere": [
+        "siesta-tactica"
+      ],
       "estacion": "window",
       "icono": "window"
     },
@@ -163,7 +213,9 @@
       "tipo": "que",
       "titulo": "Colarte al kickoff fantasma",
       "recurrencia": "unica",
-      "requiere": ["manu-plan"],
+      "requiere": [
+        "manu-plan"
+      ],
       "estacion": "meeting",
       "icono": "meeting"
     }

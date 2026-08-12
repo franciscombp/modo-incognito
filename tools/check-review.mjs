@@ -60,7 +60,7 @@ const ejes = await p.evaluate(async () => {
   engine.save.campaign = { temporada: 1, dia: 1, unicas: [] };
   camp.startDay();
   camp.complete("meet-gabo");
-  for (const id of ["fingir-101", "coffee", "movie", "snack", "siesta-tactica", "ventana"])
+  for (const id of ["fingir-101", "stretch", "coffee", "movie", "snack", "siesta-tactica", "ventana"])
     camp.complete(id);
   const r = camp.endDay({ win: false });
   return { nota: r.nota, ques: r.ques, comos: r.comos, detalle: r.detalle };
