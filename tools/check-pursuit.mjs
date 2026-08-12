@@ -233,9 +233,17 @@ const fluidez = await p.evaluate(() => {
   const paso = 1 / 60;
   for (let i = 0; i < 600; i++) {
     if (g.paused) g.setPaused(false);
-    // La jugadora quieta: se mide el trayecto del jefe, no una carrera.
-    g.player.position.x = 6 * S;
-    g.player.position.z = 12 * S;
+    // La jugadora quieta: se mide el trayecto del jefe, no una carrera. Y
+    // clavada en `lejos`, que es un sitio que el juego GARANTIZA caminable —
+    // igual que la salida del jefe, y por la misma razón que dice el
+    // comentario de arriba. Estuvo clavada en un (6, 12) escrito a mano que
+    // cae DENTRO del graderío del auditorio: mientras la salida del jefe le
+    // tocó venir por el lado abierto no se notó, pero al cambiar la campaña
+    // cambió `lejos`, con él la esquina de salida, y el jefe se quedaba
+    // dando vueltas contra los asientos a tres unidades del objetivo. Lo que
+    // fallaba era el montaje, no la persecución.
+    g.player.position.x = lejos.x;
+    g.player.position.z = lejos.z;
     g.update(paso);
     if (boss.state === "CHASE") {
       frames++;

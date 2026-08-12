@@ -28,7 +28,12 @@ const MINION_CAUGHT_RATE = 12; // secuaz te pilla en una actividad prohibida
 // pillaba en plena actividad, así que quedarte plantada en medio del pasillo
 // mirándolo a los ojos no hacía nada.
 const SEEN_IDLE_BOSS_RATE = 9;
-const SEEN_IDLE_MINION_RATE = 5;
+// EL SALTO DE UNA DELACIÓN: lo que sube el medidor compartido de golpe
+// cuando un secuaz cruza su umbral y va con el cuento. Es un SUCESO, no un
+// goteo — ver el bloque de la delación en `update()`. Calibrado contra
+// `chaseSuspicionFloor` (40): dos delaciones te dejan al borde y la tercera
+// pone al jefe a cazar, así que el día ESCALA en vez de encenderse solo.
+const DELATION_JUMP = 18;
 
 // VIGILANCIA INDIVIDUAL de cada secuaz (`Boss.localHeat`, 0–1): aparte del
 // medidor de arriba, cada vigilante acumula SU PROPIA sospecha, que es lo
@@ -892,6 +897,12 @@ export class Game {
       });
       this._updateMinionCatch();
       this._updateMinionApproach();
+      // El plazo de silencio tras delatar. Va aquí, con el mundo VIVO: con
+      // el mundo congelado (activando una actividad) nadie observa nada, así
+      // que tampoco se le debe descontar el plazo a nadie.
+      for (const m of this.minions) {
+        if ((m._delacionCooldown ?? 0) > 0) m._delacionCooldown = Math.max(0, m._delacionCooldown - dt);
+      }
     }
     this._updateEggs(dt);
     this._updateBumps(dt);
@@ -939,24 +950,42 @@ export class Game {
             : Math.max(0, m.localHeat - MINION_HEAT_DECAY * dt);
       }
 
-      // Un secuaz te pilla en plena actividad prohibida: sube fuerte el
-      // medidor compartido. Que ALGUNO ya haya acumulado su propio umbral de
-      // vigilancia (arriba) lo sube más despacio — antes esto miraba si te
-      // veía ESTE INSTANTE, que era nervioso: un vistazo de refilón ya
-      // subía el HUD. Ahora hace falta que alguien de verdad haya
-      // sospechado un rato, no solo mirado una vez.
+      // ── LA DELACIÓN ─────────────────────────────────────────────────
+      // El medidor compartido es LO QUE GABO SABE, no un ambiente. Y a Gabo
+      // se le entera de dos maneras: viéndolo él (más abajo) o porque
+      // alguien se lo CUENTE.
+      //
+      // Antes esto era un goteo: mientras algún secuaz tuviera su umbral
+      // cruzado, el HUD subía solo, unos puntos por segundo. Se leía como
+      // clima —la barra sube porque sí— y no había un instante al que
+      // señalar. Ahora es un SUCESO, como el campista de Sneaky Sasquatch
+      // que llena su barra y va a buscar al guardabosques: cuando un secuaz
+      // CRUZA su umbral (flanco, no estado) pega el aviso de una vez, con
+      // nombre y apellido en pantalla, y se calla un rato (`reportingCooldown`).
+      //
+      // Que sea un salto y no una rampa es lo que le da escalada al día: con
+      // `chaseSuspicionFloor` en 40, dos delaciones te dejan cerca y la
+      // tercera pone a Gabo a cazar. Y como el aro del globo se llena a la
+      // vista (alertIcon.js), la delación se puede VER venir — que es la
+      // mitad del trato: te avisamos, tú decides si te da tiempo.
       const minionCaught = this.minions.some((m) => m.redAlert);
-      const minionAlerted = !minionCaught && this.minions.some((m) => m.localHeat >= m.followThreshold);
       if (minionCaught && !this.boss.redAlert) {
         this.suspicion = Math.min(
           susCfg.max,
           this.suspicion + MINION_CAUGHT_RATE * this.rules.minionSuspicionMul * dt
         );
-      } else if (minionAlerted && !this.boss.redAlert) {
+      }
+      for (const m of this.minions) {
+        const cruzado = m.localHeat >= m.followThreshold;
+        const flanco = cruzado && !m._yaDelataba;
+        m._yaDelataba = cruzado;
+        if (!flanco || this.boss.redAlert || (m._delacionCooldown ?? 0) > 0) continue;
+        m._delacionCooldown = this.boss.reportingCooldown ?? 6.5;
         this.suspicion = Math.min(
           susCfg.max,
-          this.suspicion + SEEN_IDLE_MINION_RATE * this.rules.minionSuspicionMul * dt
+          this.suspicion + DELATION_JUMP * this.rules.minionSuspicionMul
         );
+        this.announce(`¡${(m.displayName ?? "ALGUIEN").toUpperCase()} TE DELATÓ!`, "danger");
       }
 
       if (this.boss.redAlert) {
