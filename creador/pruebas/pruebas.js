@@ -82,6 +82,10 @@ let muñeco = null;
 let castId = params.get("cast") ?? "giu";
 let pose = params.get("pose") ?? null;
 let globo = params.get("globo") ?? null; // null | "ambar" | "rojo" | "zzz"
+// EL RELLENO DEL ARO (0-1). Es lo cerca que está quien sospecha de actuar,
+// y es justo lo que no se podía mirar sin jugar una partida entera: hay que
+// dejar que un secuaz te vea el rato exacto para pillarlo a media subida.
+let relleno = Number(params.get("relleno") ?? 0.6);
 
 const alertIcon = createAlertIcon(1.55 * S);
 const sleepIcon = createSleepIcon(1.45 * S);
@@ -229,6 +233,7 @@ function escribirUrl() {
   if (castId) p.set("cast", castId);
   if (pose) p.set("pose", pose);
   if (globo) p.set("globo", globo);
+  if (globo === "ambar") p.set("relleno", String(relleno));
   const url = `${location.pathname}?${p}`;
   history.replaceState(null, "", url);
   document.getElementById("pr-url").textContent = url;
@@ -257,6 +262,13 @@ function construirUI() {
       { id: "zzz", label: "Zzz (dormida)" },
       { id: "feliz", label: "Caritas (escaqueo)" },
     ], (it) => { globo = it.id; }, (it) => it.id === globo);
+
+    grupo("#pr-rellenos", [
+      { id: 0, label: "vacío" },
+      { id: 0.35, label: "un tercio" },
+      { id: 0.6, label: "dos tercios" },
+      { id: 0.9, label: "casi" },
+    ], (it) => { relleno = it.id; }, (it) => it.id === relleno);
 
     grupo("#pr-anuncios", [
       { id: "vio", label: "¡GABO TE VIO!", tone: "danger" },
@@ -358,7 +370,11 @@ function animate(now) {
   if (hudExtra.pulse) {
     hudExtra.pulse = { ...hudExtra.pulse, pos: (Math.sin(t * 1.6) + 1) / 2 };
   }
-  updateAlertIcon(alertIcon, 0, 0, globo === "ambar" ? "amber" : globo === "rojo" ? "red" : null, t);
+  updateAlertIcon(
+    alertIcon, 0, 0,
+    globo === "ambar" ? "amber" : globo === "rojo" ? "red" : null,
+    t, relleno
+  );
   updateSleepIcon(sleepIcon, 0, 0, globo === "zzz", t);
   updateHappyIcon(happyIcon, 0, 0, globo === "feliz", t);
   hud.render(snapshot(hudExtra));
@@ -387,6 +403,7 @@ function animate(now) {
     listo: true,
     setPose: (p) => { pose = p; muñeco?.setPose(p); },
     setGlobo: (g) => { globo = g; },
+    setRelleno: (v) => { relleno = v; },
     setHud: (e) => { hudExtra = { ...hudExtra, ...e }; },
     get muñeco() { return muñeco; },
     get sleepIcon() { return sleepIcon; },

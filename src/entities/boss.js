@@ -652,7 +652,23 @@ export class Boss {
     else if (this.playerVisible || ratio > 0.12 || this.state === SEARCH || this.state === INVESTIGATE) {
       alertState = "amber";
     }
-    updateAlertIcon(this.alertIcon, this.position.x, this.position.z, alertState, this._iconTime);
+    // EL RELLENO del globo: lo cerca que está ESTA persona de actuar, que no
+    // es lo mismo para cada rol. Un secuaz mide contra SU `followThreshold`
+    // —el número que le hace romper la ronda y seguirte—, así que el aro se
+    // completa justo cuando se pone en marcha. El jefe ES el medidor
+    // compartido, así que el suyo es la fracción a secas.
+    const fill =
+      this.role === "minion" && this.followThreshold > 0
+        ? this.localHeat / this.followThreshold
+        : ratio;
+    updateAlertIcon(
+      this.alertIcon,
+      this.position.x,
+      this.position.z,
+      alertState,
+      this._iconTime,
+      fill
+    );
   }
 
   /**

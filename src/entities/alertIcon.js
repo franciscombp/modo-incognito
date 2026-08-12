@@ -27,8 +27,27 @@ import { iconImage } from "../ui/icons.js";
 const CANVAS = 96;
 const texCache = new Map();
 
-function bubbleTexture(iconName, ring, glow) {
-  const key = `${iconName}|${ring}|${glow}`;
+/**
+ * EL RELLENO DEL GLOBO — lo que Sasquatch pinta como barra blanca→naranja
+ * sobre la cabeza del campista, aquí es un ARCO alrededor del disco.
+ *
+ * No es adorno: es la ventana de reacción. Con dos estados discretos
+ * ("?" → "!") pasabas de tranquila a delatada sin nada que leer en medio, y
+ * en un juego de cuatro minutos eso significa que la decisión —¿me da tiempo
+ * a bancar la tarea o salgo ya para el baño?— no se podía tomar. El dato
+ * (`localHeat`) existía desde siempre; lo único que faltaba era enseñarlo.
+ *
+ * Se hornea en la textura, no se dibuja por frame: son 12 escalones cacheados
+ * por estado (mismo número de pasos que usa el fundido del cielo en
+ * game/themes.js, y por la misma razón — a partir de ahí nadie nota el salto).
+ * Redibujar un canvas por cabeza y por cuadro, con siete vigilantes en el
+ * piso, es justo el gasto que este juego no puede permitirse.
+ */
+const FILL_STEPS = 12;
+const TRACK = "rgba(255, 255, 255, 0.16)";
+
+function bubbleTexture(iconName, ring, glow, paso = FILL_STEPS) {
+  const key = `${iconName}|${ring}|${glow}|${paso}`;
   if (texCache.has(key)) return texCache.get(key);
 
   const c = document.createElement("canvas");
@@ -47,8 +66,20 @@ function bubbleTexture(iconName, ring, glow) {
   ctx.fillStyle = "rgba(10, 20, 32, 0.92)";
   ctx.fill();
   ctx.lineWidth = CANVAS * 0.07;
-  ctx.strokeStyle = ring;
+  // EL BORDE ES EL MEDIDOR. La circunferencia entera se pinta apagada
+  // (la pista) y encima va el arco lleno, desde arriba y en el sentido del
+  // reloj — que es como se lee "esto se está acabando".
+  ctx.strokeStyle = TRACK;
   ctx.stroke();
+  const frac = Math.max(0, Math.min(1, paso / FILL_STEPS));
+  if (frac > 0) {
+    ctx.beginPath();
+    const desde = -Math.PI / 2;
+    ctx.arc(mid, mid, CANVAS * 0.36, desde, desde + frac * Math.PI * 2);
+    ctx.strokeStyle = ring;
+    ctx.lineCap = "round";
+    ctx.stroke();
+  }
 
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -94,6 +125,7 @@ export function createAlertIcon(bodyHeight) {
   sprite.userData.alertIcon = {
     baseHeight: bodyHeight + 0.32 * S,
     state: null, // null | "amber" | "red"
+    paso: -1, // escalón de relleno pintado ahora mismo
     phase: Math.random() * Math.PI * 2,
   };
   sprite.visible = false;
@@ -101,16 +133,25 @@ export function createAlertIcon(bodyHeight) {
 }
 
 /**
- * Actualiza posición y estado del globo. `state` es null (nada), "amber"
- * (sospecha, sin confirmar) o "red" (te tiene). Cambiar de estado recambia
- * la textura del material — son dos iconos distintos, no una tinta.
+ * Actualiza posición, estado y RELLENO del globo. `state` es null (nada),
+ * "amber" (sospecha, sin confirmar) o "red" (te tiene). Cambiar de estado
+ * recambia la textura del material — son dos iconos distintos, no una tinta.
+ *
+ * `fill` (0–1) es lo cerca que está ESTA persona de actuar: para un secuaz,
+ * su `localHeat` contra su `followThreshold`; para el jefe, la fracción del
+ * medidor. En rojo va siempre lleno — ya actuó, no queda nada que medir.
  */
-export function updateAlertIcon(sprite, x, z, state, t) {
+export function updateAlertIcon(sprite, x, z, state, t, fill = 1) {
   const d = sprite.userData.alertIcon;
-  if (state !== d.state) {
+  // Se cuantiza a escalones para poder cachear la textura. Y en rojo el aro
+  // se completa: un globo de "¡te tiene!" con el borde a medias diría que
+  // todavía queda margen, que es justo lo contrario.
+  const paso = state === "red" ? FILL_STEPS : Math.round(Math.max(0, Math.min(1, fill)) * FILL_STEPS);
+  if (state !== d.state || paso !== d.paso) {
     d.state = state;
-    if (state === "amber") sprite.material.map = bubbleTexture(AMBER.icon, AMBER.ring, AMBER.glow);
-    else if (state === "red") sprite.material.map = bubbleTexture(RED.icon, RED.ring, RED.glow);
+    d.paso = paso;
+    const look = state === "amber" ? AMBER : RED;
+    if (state) sprite.material.map = bubbleTexture(look.icon, look.ring, look.glow, paso);
     sprite.material.needsUpdate = true;
   }
   sprite.visible = !!state;
