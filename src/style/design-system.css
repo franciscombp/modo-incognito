@@ -9518,11 +9518,19 @@ body {
 /* En persecución la guía SÍ se queda: en ese momento dice "corre a un
    lugar seguro", que es exactamente lo único que hay que leer. */
 
+/* LA BARRA es el PROGRESO DE ESTA TAREA, y solo sale mientras la tarea
+   está a medias. Antes vivía siempre encendida y encima mentía (pintaba
+   `progress * 100` cuando `progress` va en segundos, así que marcaba el
+   tope al primer segundo): una barra permanentemente llena bajo cada
+   título no dice nada, y era justo lo que no se entendía. Más gruesa que
+   los 4 px de antes — a 4 px sobre el escenario no se leía si iba por la
+   mitad o por el final. */
 .inc-quest-bar {
-  height: 4px;
-  margin-top: 5px;
+  height: 6px;
+  margin-top: 6px;
   border-radius: 999px;
   background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px hsl(var(--p-accent-bright) / 0.2);
   overflow: hidden;
   opacity: 0;
   transition: opacity var(--transition-base);
@@ -9539,8 +9547,29 @@ body {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
+
+/* LA AGUJA: hacia dónde queda el objetivo, en coordenadas de pantalla.
+   El giro lo escribe JS por frame (`rotate(Nde)`), así que aquí no puede
+   haber `transition` sobre `transform` — suavizar un rumbo que ya cambia
+   cada cuadro deja la flecha persiguiendo su propio valor y señalando a
+   donde estabas, no a donde está. */
+.inc-quest-aguja {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  color: var(--text-accent);
+  opacity: 0.95;
+  transition: opacity var(--transition-base);
+}
+.inc-quest-aguja svg { width: 16px; height: 16px; }
+/* Ya estás encima: el rumbo deja de significar nada y la flecha giraría
+   sin control a un metro del sitio. Manda la medalla. */
+.inc-quest-aguja.cerca { opacity: 0; }
+.inc-quests.folded .inc-quest-aguja { display: none; }
 .inc-quest-dist {
   font-size: 13px;
   font-weight: 700;

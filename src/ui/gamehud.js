@@ -1,5 +1,9 @@
 import { iconEl } from "./icons.js";
 import { createPortrait3D } from "./portrait3d.js";
+// La proyección de suelo → pantalla, la MISMA que usan los mandos y la
+// flecha del rastreador: así el «hacia allá» de la lista y el «hacia allá»
+// de caminar no pueden decir cosas distintas.
+import { groundToScreen } from "../scene/iso.js";
 
 /**
  * EL HUD DE PARTIDA — sustituye a la barra de menú tipo macOS.
@@ -414,10 +418,16 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
         const bar = el("div", "inc-quest-bar", main);
         const fill = el("i", null, bar);
         const side = el("div", "inc-quest-side", node);
+        // LA AGUJA: hacia dónde queda, no solo cuán lejos. Un «17 m» sin
+        // rumbo obliga a dar vueltas para descubrir por dónde; con la
+        // flecha, la lista dice ADÓNDE IR de un vistazo — que es lo que se
+        // le pide a una lista de tareas en un piso de dos alas.
+        const aguja = el("span", "inc-quest-aguja", side);
+        aguja.appendChild(iconEl("aguja"));
         const dist = el("span", "inc-quest-dist", side);
         const badge = el("span", "inc-quest-badge", side);
         badge.appendChild(iconEl(o.icon || "star"));
-        row = { node, key, title, guide, bar, fill, dist };
+        row = { node, key, title, guide, bar, fill, dist, aguja };
         questRows.set(o.id, row);
       }
       row.key.textContent = String(i + 1);
@@ -431,9 +441,42 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
         ? Math.hypot(o.x - state.playerPos.x, o.z - state.playerPos.z) / state.worldScale
         : state.bossDistance / state.worldScale;
       row.dist.textContent = `${Math.round(d)} m`;
-      const running = state.currentAction?.stationId === o.id || (o.progress > 0 && o.progress < 1);
-      row.bar.classList.toggle("on", !!running || o.progress > 0);
-      row.fill.style.width = `${Math.round((o.progress ?? 0) * 100)}%`;
+
+      // EL RUMBO, en coordenadas de PANTALLA. La misma proyección que usan
+      // los mandos (`groundToScreen`), así que la flecha apunta a donde de
+      // verdad hay que empujar el stick — con una conversión propia, «allá»
+      // y «camina allá» acabarían discrepando en cuanto alguien girase la
+      // cámara. La aguja de Phosphor mira hacia ARRIBA en su forma
+      // original, así que el ángulo se aplica tal cual.
+      const tx = Number.isFinite(o.x) ? o.x : state.bossPos.x;
+      const tz = Number.isFinite(o.x) ? o.z : state.bossPos.z;
+      const s = groundToScreen(tx - state.playerPos.x, tz - state.playerPos.z);
+      // +45°: la aguja de Phosphor (`navigation-arrow-fill`) apunta al
+      // NOROESTE en su forma original, no al norte — su vértice agudo cae
+      // arriba a la izquierda del lienzo. Sin compensarlo, todas las
+      // flechas señalaban 45° a la izquierda de donde debían, que es el
+      // tipo de error que se ve «casi bien» y manda a la gente a la
+      // pared de al lado.
+      const rumbo = Math.atan2(s.right, s.up) * (180 / Math.PI) + 45;
+      row.aguja.style.transform = `rotate(${rumbo.toFixed(1)}deg)`;
+      // Encima: cuando ya estás dentro del radio de interacción no hay
+      // rumbo que dar, y una flecha girando como loca a un metro del sitio
+      // es ruido. Se apaga y manda la medalla.
+      row.aguja.classList.toggle("cerca", d < 1.5);
+
+      // ── LA BARRA DE PROGRESO, QUE ESTABA MINTIENDO ────────────────────
+      // `o.progress` va de 0 a `o.time` en SEGUNDOS (game.js), pero esto
+      // hacía `progress * 100` como si fuera una fracción 0–1: en una
+      // tarea de 6 s la barra marcaba 100 % al primer segundo y se
+      // quedaba llena el resto. Por eso no se entendía qué era — no
+      // informaba de nada, solo aparecía llena. Ahora es la fracción de
+      // verdad, y solo se enseña con la tarea EN MARCHA (si no, una barra
+      // a cero en cada fila es ruido permanente).
+      const total = o.time || 1;
+      const frac = Math.max(0, Math.min(1, (o.progress ?? 0) / total));
+      const running = state.currentAction?.stationId === o.id || frac > 0;
+      row.bar.classList.toggle("on", !!running && frac > 0 && frac < 1);
+      row.fill.style.width = `${Math.round(frac * 100)}%`;
       const followed = preferredId ? preferredId === o.id : i === 0;
       row.node.classList.toggle("followed", followed);
       row.node.classList.toggle("only", chase && !followed);

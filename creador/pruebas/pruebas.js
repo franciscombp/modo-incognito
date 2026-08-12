@@ -12,6 +12,7 @@ import {
 import { createGameHud } from "../../src/ui/gamehud.js";
 import { createDialogue } from "../../src/game/dialogue.js";
 import { prepareLooks } from "../../src/data/loader.js";
+import { screenToGround } from "../../src/scene/iso.js";
 import { siteRoot } from "../../src/data/siteRoot.js";
 import { WORLD_SCALE as S } from "../../src/scene/config.js";
 
@@ -116,6 +117,47 @@ stage.appendChild(hudRoot);
 const hud = createGameHud(hudRoot, { onOpenPause: () => {}, playerLook: null });
 const dialogue = createDialogue(hudRoot, { looks: null });
 
+/**
+ * Los objetivos de prueba. Con `?rumbo=1` se colocan tres en direcciones de
+ * PANTALLA conocidas —arriba, derecha, abajo— para comprobar de un vistazo
+ * que la aguja de la lista apunta a donde dice.
+ *
+ * Las posiciones salen de `screenToGround`, la INVERSA de la proyección que
+ * usa la aguja: se pide «lo que queda arriba en pantalla» y el módulo
+ * devuelve dónde está eso en el suelo. Calcularlo a mano asumiendo un yaw
+ * de 45° fue el primer intento y mintió — el banco no configura la cámara
+ * como el juego, así que la diagonal (−n,−n) NO caía arriba y las etiquetas
+ * señalaban a otra parte. Con la inversa, el caso es correcto sea cual sea
+ * la cámara, que es justo lo que tiene que garantizar un banco de pruebas.
+ */
+function objetivosDePrueba() {
+  if (params.get("rumbo")) {
+    const n = 8 * S;
+    const en = (right, up, id, label) => {
+      const { dx, dz } = screenToGround(right, up);
+      const len = Math.hypot(dx, dz) || 1;
+      return {
+        id, label, icon: "star", kind: "que",
+        x: (dx / len) * n, z: (dz / len) * n,
+        time: 6, progress: 0, done: false,
+      };
+    };
+    return [
+      en(0, 1, "arriba", "ARRIBA en pantalla"),
+      en(1, 0, "derecha", "DERECHA en pantalla"),
+      en(0, -1, "abajo", "ABAJO en pantalla"),
+    ];
+  }
+  return [
+    // OJO con `progress`: va en SEGUNDOS, de 0 a `time` — no es una
+    // fracción 0–1. El HUD lo dividía mal y la barra salía llena desde el
+    // primer segundo; el banco replica el dato REAL para que ese fallo se
+    // vea aquí y no en una partida.
+    { id: "coffee", label: "Tomar café", icon: "coffee", kind: "que", x: 4 * S, z: 2 * S, time: 6, progress: 2.4, done: false },
+    { id: "chisme", label: "Fran tiene un chisme", icon: "chat", kind: "como", x: -9 * S, z: 5 * S, time: 3, progress: 0, done: false },
+  ];
+}
+
 /** Un snapshot de mentira, con la forma EXACTA que pinta gamehud.render. */
 function snapshot(extra = {}) {
   return {
@@ -127,10 +169,11 @@ function snapshot(extra = {}) {
     timeLeft: 143,
     levelDuration: 240,
     currentTime: "11:20 a.m.",
-    objectives: [
-      { id: "coffee", label: "Tomar café", icon: "coffee", kind: "que", x: 4 * S, z: 2 * S, progress: 0.4, done: false },
-      { id: "chisme", label: "Fran tiene un chisme", icon: "chat", kind: "como", x: 9 * S, z: 5 * S, progress: 0, done: false },
-    ],
+    // OJO con `progress`: va en SEGUNDOS, de 0 a `time` — no es una
+    // fracción 0–1. El HUD lo dividía mal y la barra salía llena desde el
+    // primer segundo; el banco replica el dato REAL para que ese fallo se
+    // vea aquí y no en una partida.
+    objectives: objetivosDePrueba(),
     guia: { id: "coffee", text: 'Primero consigue «Café del Parce»: háblale al Parce' },
     playerPos: { x: 0, z: 0 },
     bossPos: { x: 8 * S, z: 3 * S },

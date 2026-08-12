@@ -70,6 +70,11 @@ import plus from "@phosphor-icons/core/assets/regular/plus.svg?raw";
 import minus from "@phosphor-icons/core/assets/regular/minus.svg?raw";
 import pause from "@phosphor-icons/core/assets/regular/pause.svg?raw";
 import notebook from "@phosphor-icons/core/assets/regular/notebook.svg?raw";
+// La AGUJA de la brújula: la única de peso "fill" del juego, y a propósito.
+// Es un indicador de rumbo diminuto que se gira; de trazo, a ese tamaño, se
+// leía como una mancha. Apunta hacia ARRIBA en su forma original, así que el
+// ángulo que se le aplique es directamente el rumbo en pantalla.
+import aguja from "@phosphor-icons/core/assets/fill/navigation-arrow-fill.svg?raw";
 
 const S = 24;
 
@@ -127,6 +132,7 @@ const RAW = {
   plant,
   person,
   notebook,
+  aguja,
   calendar,
   stairs,
   elevator,
