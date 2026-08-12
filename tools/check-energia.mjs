@@ -157,7 +157,11 @@ const dormida = await p.evaluate(() => {
   };
 });
 check(dormida.dormida === true, "a cero te duermes");
-check(dormida.pose === "sleep", "con la pose de dormir");
+// `doze`, no `sleep`: la MISMA postura pero sin cama. `sleep` monta un
+// colchón (su `context.furniture`), y caerte de agotamiento en mitad del
+// pasillo hacía aparecer una cama de la nada a tus pies. La cama se queda
+// para la siesta táctica, que sí pasa en un sitio concreto.
+check(dormida.pose === "doze", "con la pose de cabezada (sin cama)", dormida.pose);
 check(dormida.teclas === 0, "y los mandos dejan de responder");
 check(dormida.enSnapshot === true, "el HUD se entera");
 
