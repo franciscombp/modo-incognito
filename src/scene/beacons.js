@@ -37,6 +37,11 @@ export const BEACON_KINDS = {
   safe: { ring: "#7fd8cf", glow: "#c4f0ea", icon: "check" },
   // Escondite: azul apagado, más discreto — es un recurso, no un objetivo.
   hide: { ring: "#8fa8d8", glow: "#c8d6f0", icon: "hide" },
+  // Coartada: violeta, un color que no usa ninguna de las otras tres. No es
+  // una tarea (no la pide nadie), no es un refugio y no es un escondite: es
+  // algo que recoges y te llevas puesto. Si compartiera color con las
+  // tareas, la lista de misiones y el piso dejarían de decir lo mismo.
+  alibi: { ring: "#c2a2e8", glow: "#e2d2f5", icon: "notebook" },
 };
 
 const CANVAS = 128;

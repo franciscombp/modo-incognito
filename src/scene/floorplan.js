@@ -41,6 +41,7 @@ export let patrolRoute = [];
 export let routes = {};
 export let activityStations = [];
 export let hidingSpots = [];
+export let coartadas = [];
 export let safeSpots = [];
 export let distractions = [];
 export let npcs = [];
@@ -60,6 +61,7 @@ export function setActiveScene(prepared) {
   routes = prepared.routes ?? {};
   activityStations = prepared.activityStations;
   hidingSpots = prepared.hidingSpots;
+  coartadas = prepared.coartadas ?? [];
   safeSpots = prepared.safeSpots ?? [];
   distractions = prepared.distractions;
   npcs = prepared.npcs;

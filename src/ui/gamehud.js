@@ -87,12 +87,21 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const energyMeter = el("div", "inc-plate-meter inc-plate-meter--energy", plateBody);
   const energyFill = el("i", null, energyMeter);
 
+  // LO QUE LLEVAS ENCIMA. Va en la placa porque es parte de "cómo estoy yo",
+  // igual que las amonestaciones y la energía: lo que llevas cambia lo rápido
+  // que te fichan al pasar. Sin enseñarlo, el camuflaje sería una estadística
+  // oculta — se notaría que a veces te fichan antes y nunca se sabría por qué.
+  // Vacía no ocupa: la fila entera se esconde cuando no llevas nada.
+  const carryRow = el("div", "inc-plate-carry", plateBody);
+
   // La cara viva. Dibuja SIEMPRE durante la partida (no solo en diálogo):
   // es un render extra pequeño (128px) y es lo que hace que la placa sea un
   // personaje y no un icono. Si no hay WebGL para el segundo contexto, la
   // placa sigue funcionando sin cara.
   const face = createPortrait3D(faceHost, { framing: "face" });
   let faceOn = false;
+  // Firma de lo que llevabas la última vez, para no rehacer la fila por frame.
+  let lastCarry = null;
   let faceMood = null;
   function setFaceMood(mood) {
     if (!playerLook || mood === faceMood) return;
@@ -382,6 +391,25 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     energyLabelPct.textContent = `${ePct}%`;
     energyLabelText.textContent = state.asleep ? "DORMIDA" : ePct <= 20 ? "SIN FUERZAS" : "ENERGÍA";
     energyMeter.classList.toggle("mi-critical", ePct <= 15 && !state.gameOver);
+
+    // LO QUE LLEVAS: icono + qué te hace. Se redibuja solo cuando CAMBIA la
+    // lista — es una fila de nodos con un `<svg>` dentro y rehacerla cada
+    // cuadro es tirar DOM a la basura sesenta veces por segundo para pintar
+    // exactamente lo mismo.
+    const llevado = state.llevado ?? [];
+    const firma = llevado.map((it) => it.id).join("|");
+    if (firma !== lastCarry) {
+      lastCarry = firma;
+      carryRow.textContent = "";
+      for (const it of llevado) {
+        const chip = el("span", "inc-plate-carry-item", carryRow);
+        // Frío o caliente: el color lo pone la clase, nunca un valor crudo.
+        chip.classList.add(it.sospecha < 1 ? "cool" : it.sospecha > 1 ? "hot" : "flat");
+        chip.appendChild(iconEl(it.icon));
+        el("span", null, chip).textContent = it.nombre;
+      }
+      carryRow.classList.toggle("on", llevado.length > 0);
+    }
 
     // La cara sigue al PELIGRO, no a un número: reacciona a lo mismo que ya
     // enseña el globo de quien te ve (`redAlert`), no a una sospecha propia.

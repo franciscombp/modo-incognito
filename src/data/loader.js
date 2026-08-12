@@ -72,6 +72,9 @@ export function prepareScene(raw) {
     })),
     activityStations: (raw.activities ?? []).map(pt),
     hidingSpots: (raw.hidingSpots ?? []).map((h) => ({ ...pt(h), r: (h.r ?? 1.3) * S })),
+    // LAS COARTADAS: objetos del piso que, mientras los llevas, enfrían lo
+    // que un secuaz acumula al verte pasar (ver `$coartadas` en la escena).
+    coartadas: (raw.coartadas ?? []).map(pt),
     safeSpots: (raw.safeSpots ?? []).map((s) => ({ ...pt(s), radius: (s.radius ?? 1.3) * S })),
     distractions: (raw.distractions ?? []).map((d) => ({ ...pt(d), radius: (d.radius ?? 1.2) * S })),
     npcs: (raw.npcs ?? []).map(pt),

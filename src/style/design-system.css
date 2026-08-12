@@ -11598,3 +11598,49 @@ body.inc-acting #hint {
 .inc-plate-meter--energy.danger > i {
   background: var(--danger);
 }
+
+/* LO QUE LLEVAS ENCIMA, en la misma placa. Es la tercera lectura de "cómo
+   estoy yo": las amonestaciones dicen cuánto me queda, la energía si llego
+   al final, y esto lo rápido que me fichan al pasar.
+
+   Vacía NO ocupa: sin `.on` la fila desaparece del todo. Una placa con un
+   hueco reservado para algo que casi nunca llevas es un hueco que roba
+   sitio a la cara todo el día. */
+.inc-plate-carry {
+  display: none;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.inc-plate-carry.on {
+  display: flex;
+}
+
+.inc-plate-carry-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 5px 1px 3px;
+  border-radius: var(--btn-radius);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text-dim, var(--text));
+  font-size: 9px;
+  letter-spacing: 0.02em;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+/* FRÍA o CALIENTE, que es lo único que hay que leer de un vistazo: la
+   tapadera va del color de "esto va bien" y el botín del de la alerta. El
+   color sale de los roles de la capa 2 — aquí no se escribe ninguno. */
+.inc-plate-carry-item.cool {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+
+.inc-plate-carry-item.hot {
+  border-color: var(--warn);
+  color: var(--warn);
+}

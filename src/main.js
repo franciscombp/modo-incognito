@@ -186,7 +186,16 @@ async function boot() {
   setActiveScene(data.scenes.get(firstLevel.scene));
 
   const world = createCollisionWorld();
-  const { roomLabels, markerGroup, hidingMarkers, safeSpotMarkers, activityMarkers, seats, moveSeatChair } =
+  const {
+    roomLabels,
+    markerGroup,
+    hidingMarkers,
+    safeSpotMarkers,
+    activityMarkers,
+    alibiMarkers,
+    seats,
+    moveSeatChair,
+  } =
     buildOffice(scene, world);
   const navmesh = buildNavmesh(world, { radius: 0.3 * S });
 
@@ -698,6 +707,12 @@ async function boot() {
     activityMarkers.forEach((icon) => {
       const objective = game?.objectives?.find((o) => o.id === icon.userData.stationId);
       icon.visible = !!objective && !objective.done && !game.gameOver;
+    });
+    // La medalla de una coartada se apaga en cuanto la recoges: ya no hay
+    // nada ahí. Se mira el inventario y no una bandera propia, para que no
+    // haya dos verdades sobre si la llevas encima.
+    alibiMarkers?.forEach((medal) => {
+      medal.visible = !!game && !game.gameOver && !game.inventario?.has(medal.userData.itemId);
     });
   }
 

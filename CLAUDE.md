@@ -694,6 +694,34 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
     pulso), y es quien mantiene `timeGained` en sincronía con `timeLeft`.
     Lo que ya no pasa por ahí son las actividades, que pagan en energía.
   Lo vigila `npm run check:energia`.
+- **LO QUE TE VIGILA SON DOS CASTAS, y no hacen lo mismo** (el reparto de
+  Sneaky Sasquatch, que es de donde salió esto). Un secuaz es un SENSOR:
+  nunca amonesta (`catches()` devuelve `false` para `role: "minion"`),
+  acumula su propia vigilancia (`localHeat`) y, al cruzar su
+  `followThreshold`, **DELATA** — un SUCESO de flanco, no un goteo, que
+  sube el medidor compartido de golpe (`DELATION_JUMP`) y se calla durante
+  `reportingCooldown`. El jefe es la AMENAZA: él sí toca, y el medidor
+  compartido no es ambiente, es **lo que Gabo sabe**. Si vuelves a hacer
+  que el medidor suba solo mientras alguien sospecha, se pierde el instante
+  al que señalar y la barra vuelve a subir «porque sí». Lo vigila
+  `npm run check:delacion`.
+- **La vigilancia de cada uno SE VE, y se ve LLENARSE.** El globo sobre la
+  cabeza (`entities/alertIcon.js`) lleva un aro que es `localHeat` contra el
+  umbral de esa persona. No es adorno: es la ventana de reacción, y sin ella
+  se pasa de tranquila a delatada sin nada que leer en medio — que en una
+  jornada de cuatro minutos significa que la decisión no se puede tomar. Se
+  hornea en 12 escalones cacheados; no lo pases a dibujar por cuadro, que
+  son siete vigilantes. Lo vigila `npm run check:globo`.
+- **LO QUE LLEVAS ENCIMA cambia lo rápido que te fichan** (`_camuflaje()`).
+  Las `coartadas` de la escena (factor < 1) enfrían y el botín de una
+  actividad (`objeto.sospecha` > 1) delata; se multiplican, con suelo y
+  techo. Es la ropa del mapache de Sasquatch: la progresión que hace que el
+  piso apriete menos según inviertes. **Solo tapa el PASEO** — que te pillen
+  en falta va por `MINION_HEAT_RISE_CAUGHT` y no se disimula. El botín se
+  GASTA al bancar su actividad, o robar sería un castigo permanente por
+  jugar bien. Y toda coartada necesita MEDALLA en el piso (`alibi` en
+  `beacons.js`): un objeto que no se puede encontrar es una mecánica que no
+  existe. Lo vigila `npm run check:coartada`.
 - **`scenes/piso7.json` → `areas`**: los rectángulos de zona no deben
   solaparse. Si añades o mueves una zona, revisa `x/z/w/d` contra las
   vecinas antes de dar por bueno el cambio.

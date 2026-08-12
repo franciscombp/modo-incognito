@@ -8,6 +8,7 @@ import {
   AREA_KINDS,
   plants,
   hidingSpots,
+  coartadas,
   safeSpots,
   distractions,
   activityStations,
@@ -120,6 +121,7 @@ export function buildOffice(scene, world) {
     distractionMarkers: markers.distractionMarkers,
     hidingMarkers: markers.hidingMarkers,
     safeSpotMarkers: markers.safeSpotMarkers,
+    alibiMarkers: markers.alibiMarkers,
     // Los puestos con silla de verdad, para que quien se siente lo haga EN
     // una de ellas y no en el aire con una silla propia encima (ver
     // `claimNearestSeat` en furniture.js). `moveSeatChair` es lo que deja
@@ -840,7 +842,25 @@ function buildGameplayMarkers() {
     return m;
   });
 
-  return { group, distractionMarkers, activityMarkers, hidingMarkers, safeSpotMarkers };
+  // COARTADAS: se recogen y se llevan puestas, así que necesitan medalla
+  // igual que todo lo demás. Sin ella son objetos invisibles tirados por el
+  // piso que nadie encontraría jamás — y una mecánica que no se puede
+  // encontrar es una mecánica que no existe.
+  const alibiMarkers = coartadas.map((c) => {
+    const m = createBeacon("alibi", { x: c.x, z: c.z, icon: c.icon || undefined, size: 0.48 * S });
+    m.userData.itemId = c.id;
+    group.add(m);
+    return m;
+  });
+
+  return {
+    group,
+    distractionMarkers,
+    activityMarkers,
+    hidingMarkers,
+    safeSpotMarkers,
+    alibiMarkers,
+  };
 }
 
 export { getTexture };

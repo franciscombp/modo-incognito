@@ -599,6 +599,7 @@
       "energy": 45,
       "objeto": {
         "id": "cafe_parce",
+        "sospecha": 1.5,
         "nombre": "Café del Parce",
         "de": "parce",
         "pista": "el Parce vende de contrabando — háblale"
@@ -660,6 +661,7 @@
       "energy": 18,
       "objeto": {
         "id": "hdmi",
+        "sospecha": 1.9,
         "nombre": "Cable HDMI",
         "en": {"sala":"sala4"},
         "pista": "hay uno en la Sala 4 (si no hay gente dentro)"
@@ -698,6 +700,7 @@
       "pulso": {"periodo":1,"zona":0.2,"aciertos":4,"ruido":9},
       "objeto": {
         "id": "snack_cesar",
+        "sospecha": 1.6,
         "nombre": "Snack del alijo de César",
         "de": "cesar",
         "pista": "César tiene un alijo secreto — habla con él"
@@ -750,6 +753,51 @@
       "reward": 28,
       "energy": 12,
       "pulso": {"periodo":2,"zona":0.36,"aciertos":2,"ruido":4}
+    }
+  ],
+  "$coartadas": [
+    "LAS COARTADAS. Objetos que se recogen del piso y, mientras los llevas,",
+    "BAJAN la velocidad a la que un secuaz que te ve suelta acumula su",
+    "sospecha (`sospecha` < 1 multiplica esa tasa). Es el equivalente de",
+    "oficina a la ropa que le compras al mapache en Sneaky Sasquatch: la",
+    "progresión que hace que el piso apriete menos según inviertes, en vez",
+    "de apretar igual en el minuto 1 que en el 4.",
+    "",
+    "Solo tapan el PASEO. Que te pillen en plena actividad prohibida",
+    "(`redAlert`) va por su propia tasa y NO se puede camuflar: nadie para a",
+    "quien cruza el pasillo con un portátil abierto, pero llevarlo no salva a",
+    "quien está viendo una película en la sala.",
+    "",
+    "El reverso vive en `activities[].objeto.sospecha`, con el factor por",
+    "ENCIMA de 1: el botín te delata mientras lo llevas encima, y deja de",
+    "hacerlo cuando lo GASTAS en su actividad.",
+    "",
+    "Campos: id, nombre, icon (nombre de ui/icons.js, nunca un emoji), x, z",
+    "en unidades de plano, sospecha (multiplicador) y pista (el toast al",
+    "recogerla).",
+    "",
+    "Las posiciones salen de waypoints de la ronda: son sitios que el juego",
+    "GARANTIZA caminables. Escribir coordenadas a mano es como se han metido",
+    "objetos dentro de un mueble más de una vez."
+  ],
+  "coartadas": [
+    {
+      "id": "acta",
+      "nombre": "Acta de la reunión",
+      "icon": "notebook",
+      "x": -1,
+      "z": 3.4,
+      "sospecha": 0.55,
+      "pista": "quien lleva un acta viene de reunirse. Nadie pregunta."
+    },
+    {
+      "id": "reporte",
+      "nombre": "Reporte impreso",
+      "icon": "grid",
+      "x": 24,
+      "z": -2.8,
+      "sospecha": 0.7,
+      "pista": "seis pestañas y ni un dato. Pero se ve ocupadísimo."
     }
   ],
   "hidingSpots": [

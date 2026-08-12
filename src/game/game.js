@@ -2,6 +2,7 @@ import {
   activityStations,
   distractions,
   hidingSpots,
+  coartadas,
   safeSpots,
   locationEggs,
   nearestArea,
@@ -45,6 +46,12 @@ const DELATION_JUMP = 18;
 const MINION_HEAT_RISE_CAUGHT = 0.22; // ratio/seg — a su umbral (0.55) en ~2.5s
 const MINION_HEAT_RISE_SEEN = 0.07; // ratio/seg — a su umbral en ~8s
 const MINION_HEAT_DECAY = 0.12; // ratio/seg, sin verte
+// Los topes del CAMUFLAJE (ver `Game._camuflaje`). El suelo importa: sin él,
+// juntar dos coartadas te volvía prácticamente invisible al paseo y
+// esconderse dejaba de tener sentido. El techo evita que ir cargada de botín
+// convierta cruzar el pasillo en imposible.
+const CAMUFLAJE_MIN = 0.3;
+const CAMUFLAJE_MAX = 2.2;
 const INTERACT_RADIUS = 1.5 * S;
 const DISTRACTION_EFFECT_DURATION = 7;
 // A hiding spot is a one-shot breather, not a safe room: once you have used
@@ -426,11 +433,23 @@ export class Game {
     // compra a alguien. El inventario es del DÍA — mañana vuelves a
     // conseguirlo, que es donde vive la dinámica.
     this.inventario = new Set();
+    // id -> factor de sospecha de lo que llevas encima (ver `_camuflaje`).
+    this._factorLlevado = new Map();
     this.nearItem = null;
     // Los puntos de recogida: cada objeto con `en.sala` apunta a un lugar
     // seguro del plano; robarlo exige que la sala NO esté ocupada (una
     // distracción la vacía — ver _triggerDistraction).
     this._itemSpots = [];
+    // TODO lo que se puede llevar encima, por id — incluido lo que se
+    // consigue HABLANDO (`objeto.de`), que no tiene sitio en el piso y por
+    // eso no entra en `_itemSpots`. La placa necesita esta lista para poder
+    // enseñar qué llevas: sin ella, el café del Parce y el snack de César se
+    // quedaban fuera y el camuflaje volvía a ser una estadística oculta.
+    this._carriables = new Map();
+    for (const st of this.objectives) {
+      if (st.objeto?.id) this._carriables.set(st.objeto.id, st.objeto);
+    }
+    for (const c of coartadas) this._carriables.set(c.id, { ...c, coartada: true });
     for (const st of this.objectives) {
       const o = st.objeto;
       if (!o?.en?.sala) continue;
@@ -438,6 +457,11 @@ export class Game {
       if (idx < 0) continue;
       this._itemSpots.push({ ...o, x: safeSpots[idx].x, z: safeSpots[idx].z, salaIndex: idx });
     }
+    // LAS COARTADAS van a la MISMA lista: se recogen con la misma tecla y el
+    // mismo radio que el botín. La diferencia no está en cómo se cogen, está
+    // en su factor `sospecha` (< 1 enfría, > 1 delata) y en que estas no
+    // cuelgan de ninguna actividad, así que no se gastan nunca.
+    for (const c of coartadas) this._itemSpots.push({ ...c, coartada: true });
     // MIENTRAS SE ACTIVA una actividad, el mundo se CONGELA (jefe, secuaces,
     // reloj, sospecha pasiva) y lo único que corre es el minijuego y su
     // cuenta atrás (`limite`) — el temporizador es lo que impide quedarse a
@@ -446,6 +470,47 @@ export class Game {
     this.worldFrozen = false;
     this._faltaToastAt = new Map();
     this._wasPretending = false;
+  }
+
+  /**
+   * RECOGER algo, sea coartada o botín. Un solo camino a propósito: los dos
+   * se cogen igual y lo único que los separa es su factor `sospecha`.
+   *
+   * El factor se guarda aparte del inventario porque el inventario es un
+   * conjunto de ids —lo que preguntan las actividades— y aquí hace falta el
+   * NÚMERO. Guardar el objeto entero en el Set obligaría a buscarlo por id
+   * en cada comprobación de "¿tengo el HDMI?", que corren por frame.
+   */
+  _recoger(item) {
+    if (this.inventario.has(item.id)) return;
+    this.inventario.add(item.id);
+    if (item.sospecha != null) this._factorLlevado.set(item.id, item.sospecha);
+    const efecto =
+      item.sospecha == null || item.sospecha === 1
+        ? ""
+        : item.sospecha < 1
+          ? " · tapadera: llamas menos la atención"
+          : " · te delata mientras lo lleves";
+    this.toast(`Conseguiste: ${item.nombre}${efecto}`);
+    if (item.pista && item.coartada) this.toast(item.pista);
+  }
+
+  /**
+   * EL CAMUFLAJE: cuánto multiplica lo que llevas encima a la sospecha que
+   * acumula un secuaz por VERTE PASAR. Es el equivalente de oficina a la
+   * ropa del mapache en Sneaky Sasquatch — la progresión que hace que el
+   * piso apriete menos según inviertes, en vez de apretar igual en el
+   * minuto 1 que en el 4.
+   *
+   * Multiplica en vez de sumar para que acumular coartadas rinda cada vez
+   * menos (0.55 × 0.7 = 0.39, no 0.25) y llevar botín y tapadera a la vez
+   * se compense de verdad. El suelo evita que dos papeles te vuelvan
+   * invisible: por debajo de eso, esconderse dejaría de tener sentido.
+   */
+  _camuflaje() {
+    let f = 1;
+    for (const v of this._factorLlevado.values()) f *= v;
+    return Math.max(CAMUFLAJE_MIN, Math.min(CAMUFLAJE_MAX, f));
   }
 
   /**
@@ -468,6 +533,14 @@ export class Game {
         sub: `aguantaste ${Math.round(held)}s`,
         kind: "nerve",
       });
+    }
+    // EL BOTÍN SE GASTA. Le da su arco al contrabando: lo robas y desde ese
+    // momento te delata (factor > 1), hasta que lo USAS en su actividad y
+    // vuelves a estar limpia. Dejarlo en el inventario todo el día lo
+    // convertiría en un castigo permanente por haber jugado bien.
+    if (st.objeto?.id) {
+      this.inventario.delete(st.objeto.id);
+      this._factorLlevado.delete(st.objeto.id);
     }
     this.onMissionDone?.(st.id);
   }
@@ -828,8 +901,7 @@ export class Game {
       if (this.safeSpotState[it.salaIndex]?.busyLeft > 0) {
         this.toast(`${it.nombre}: la sala está OCUPADA. Una distracción los sacaría…`);
       } else {
-        this.inventario.add(it.id);
-        this.toast(`Conseguiste: ${it.nombre}`);
+        this._recoger(it);
         sfxComplete();
       }
     } else if (holdingSpace && !this._prevInteractKey && this.nearDistraction && !this.nearStation) {
@@ -938,11 +1010,16 @@ export class Game {
       // ronda para seguirte (ver boss.js). Que te pille en plena actividad
       // prohibida lo dispara rápido; que te vea suelta fuera de tu puesto,
       // más despacio; si no te ve, decae.
+      // El camuflaje SOLO tapa el paseo. Que te pillen en plena actividad
+      // prohibida va por `MINION_HEAT_RISE_CAUGHT` y no se puede disimular:
+      // nadie para a quien cruza el pasillo con un acta en la mano, pero
+      // llevarla no salva a quien está viendo una película en la sala.
+      const camuflaje = this._camuflaje();
       for (const m of this.minions) {
         const rising = m.redAlert
           ? MINION_HEAT_RISE_CAUGHT
           : m.playerVisible && outOfPlace
-            ? MINION_HEAT_RISE_SEEN
+            ? MINION_HEAT_RISE_SEEN * camuflaje
             : 0;
         m.localHeat =
           rising > 0
@@ -2251,8 +2328,7 @@ export class Game {
     for (const st of this.objectives) {
       const ob = st.objeto;
       if (ob?.de === npcId && !this.inventario.has(ob.id)) {
-        this.inventario.add(ob.id);
-        this.toast(`Conseguiste: ${ob.nombre}`);
+        this._recoger(ob);
       }
     }
     const o = this.objectives.find((x) => x.npcId === npcId && !x.done);
@@ -2355,6 +2431,19 @@ export class Game {
       // El bucle v2: qué llevas encima, si el mundo está congelado
       // (activando) y qué actividad está encendida aguantando.
       inventario: [...this.inventario],
+      // LO QUE LLEVAS ENCIMA, para la placa: no basta con los ids. Sin ver
+      // qué llevas y qué te hace, el camuflaje sería una estadística oculta
+      // — la jugadora notaría que a veces la fichan antes y nunca sabría
+      // por qué.
+      llevado: [...this._carriables.values()]
+        .filter((it) => this.inventario.has(it.id))
+        .map((it) => ({
+          id: it.id,
+          nombre: it.nombre,
+          icon: it.icon ?? (it.coartada ? "notebook" : "eye"),
+          sospecha: it.sospecha ?? 1,
+        })),
+      camuflaje: this._camuflaje(),
       worldFrozen: this.worldFrozen,
       aguantando: (() => {
         const st = this.objectives.find((o) => o.encendida && !o.done);
