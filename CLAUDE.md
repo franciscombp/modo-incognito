@@ -168,12 +168,20 @@ reparten la exposición:
    la gente sale a mirar), el café se le compra al Parce hablándole. El
    inventario es del DÍA (`game.inventario`). Sin el objeto, la estación
    avisa qué falta y el minijuego ni arranca.
-2. **ACTIVAR = el minijuego, y CONGELA el mundo** (`game.worldFrozen`): jefe,
-   secuaces, reloj de jornada y sospecha pasiva quietos; lo único que corre
-   es el pulso/gesto y su cuenta atrás (`limite`) — el temporizador es lo que
-   impide quedarse a vivir dentro; agotarlo pierde lo hecho y convoca al
-   jefe. Mantener espacio ENCIENDE la actividad igual, sin jugar (el suelo
-   no se toca); jugar bien paga extra y jugar mal hace RUIDO.
+2. **ACTIVAR = el minijuego, CON EL PISO VIVO.** Esto congelaba el mundo
+   (`worldFrozen`) y fue el fallo que rompía la captura: mantener espacio en
+   CUALQUIER estación dejaba a Gabo de estatua a un palmo, en rojo, sin
+   llegar a tocarte nunca — y vaciaba el propio minijuego, porque sin nadie
+   acercándose no hay nada que apretar. Es literalmente lo que
+   `activityGame.js` lleva avisado desde antes del bucle v2: «un minijuego
+   que congela al jefe convierte las estaciones en el sitio MÁS SEGURO del
+   piso». Lo era. **No lo vuelvas a congelar.** El freno es la cuenta atrás
+   (`limite`): agotarla pierde lo hecho y convoca al jefe.
+   Y **mantener espacio YA NO TERMINA la tarea**: avanza a paso de tortuga
+   (`RITMO_MANTENIENDO`, 0.3) y lo que la enciende son los TOQUES al ritmo.
+   El suelo viejo —«mantener la termina igual, lento»— se había comido el
+   juego: se podía jugar el día entero sin tocar un minijuego. El suelo ahora
+   es otro: fallar toques resta, pero nunca te expulsa de la tarea.
 3. **AGUANTAR**: encendida, el mundo VIVE otra vez y cada segundo que la
    sostienes a la vista paga más (`AGUANTE_RATE`/`AGUANTE_MAX` en game.js).
    Soltar, irte o llegar al techo la BANCA: ahí cae la misión.
@@ -676,8 +684,12 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
 - **DOS MEDIDORES, y la energía NO sustituyó al reloj.** Responden a
   preguntas distintas y hay que servir a los dos:
   - **EL RELOJ te GUÍA**: por dónde va el día (9:00 → 6:00) y cuándo toca
-    salir por el ascensor. Lo alarga hacer tu TRABAJO — las misiones siguen
-    pagando en segundos por `_grantTime()`.
+    salir por el ascensor. **LA JORNADA DURA SIEMPRE LO MISMO**: ya NADA la
+    alarga (decisión de diseño, agosto 2026). Cuando las misiones pagaban
+    reloj había dos medidores de rendimiento y ninguno de tiempo, y era
+    imposible saber cuánto te quedaba — que es lo único que un reloj tiene
+    que decir. `_grantTime()` sigue existiendo como la única puerta del «bien
+    hecho» (el globito y su sonido), pero **no toca `timeLeft`**.
   - **LA ENERGÍA es lo que HACE FALTA** para llegar al final
     (`rules.duration`, dos minutos). Baja sola —y **fingir que trabajas
     cansa MÁS que no hacer nada**, que es el chiste— y solo la reponen los

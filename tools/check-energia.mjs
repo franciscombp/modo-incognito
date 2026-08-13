@@ -146,7 +146,12 @@ const dormida = await p.evaluate(() => {
   g.boss.position.z = lift.z - 20;
   g.warnings = 0;
   g._caughtCooldown = 0;
-  g.energy = 0.1;
+  // A CERO, no a 0.1. Con 0.1 el resultado dependía del gasto por segundo:
+  // calibrado contra el gasto viejo caían justo por debajo en diez cuadros, y
+  // al recalibrar la energía (el día no se puede acabar a la quinta parte de
+  // la jornada) la misma décima ya no daba para dormirse. Lo que esta prueba
+  // mira es qué pasa al llegar a cero, no cuánto se tarda en llegar.
+  g.energy = 0;
   g.player.keys.add("w");
   for (let i = 0; i < 10; i++) g.update(1 / 60);
   return {

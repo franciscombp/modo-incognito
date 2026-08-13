@@ -117,7 +117,17 @@ check(
   jugada.tiraVisible === true || jugada.tarjetaVisible === true,
   JSON.stringify(jugada)
 );
-check("y congela el mundo mientras se juega", jugada.mundoCongelado === true, JSON.stringify(jugada));
+// Y SE JUEGA CON EL PISO VIVO. Esto exigía lo contrario —activar congelaba
+// el mundo— y era el fallo que rompía la captura: mantener espacio en
+// cualquier estación dejaba a Gabo de estatua a un palmo, en rojo, sin
+// llegar a tocarte nunca. Un minijuego que congela al jefe convierte la
+// estación en el sitio más seguro del piso, que es lo contrario de su
+// función: una tarea tiene que EXPONERTE.
+check(
+  "y se juega con el piso VIVO, no con el mundo congelado",
+  jugada.mundoCongelado === false,
+  JSON.stringify(jugada)
+);
 
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 

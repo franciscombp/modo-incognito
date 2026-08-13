@@ -104,16 +104,22 @@ const vivo = await p.evaluate(async () => {
   return {
     pausado: g.paused,
     congelado: g.worldFrozen,
-    jefeQuieto: Math.hypot(dsp.x - antes.x, dsp.z - antes.z) < 0.01,
+    // EL JEFE SIGUE ANDANDO. Antes esto exigía lo contrario: activar
+    // congelaba el mundo. Era el fallo que rompía la captura —mantener
+    // espacio en cualquier estación dejaba a Gabo de estatua a un palmo, en
+    // rojo, sin llegar a tocarte— y de paso vaciaba el minijuego, porque sin
+    // nadie acercándose no hay nada que apretar.
+    jefeAnda: Math.hypot(dsp.x - antes.x, dsp.z - antes.z) > 0.01,
     marcaSeMueve: (g.pulse.snapshot()?.pos ?? null) !== marcaAntes,
-    relojParado: g.timeLeft === reloj0,
+    // Y EL DÍA CORRE: la jornada dura siempre lo mismo, pase lo que pase.
+    relojCorre: g.timeLeft < reloj0,
   };
 });
 assert("activar NO es la pausa de menú", vivo.pausado === false, JSON.stringify(vivo));
-assert("pero el mundo queda CONGELADO", vivo.congelado === true, JSON.stringify(vivo));
-assert("el jefe, quieto mientras juegas", vivo.jefeQuieto === true, JSON.stringify(vivo));
+assert("y el mundo SIGUE VIVO mientras juegas", vivo.congelado === false, JSON.stringify(vivo));
+assert("el jefe SIGUE VINIENDO mientras juegas", vivo.jefeAnda === true, JSON.stringify(vivo));
 assert("el marcador del pulso SÍ se mueve", vivo.marcaSeMueve === true, JSON.stringify(vivo));
-assert("y el reloj de la jornada, parado", vivo.relojParado === true, JSON.stringify(vivo));
+assert("y el reloj de la jornada NO se para", vivo.relojCorre === true, JSON.stringify(vivo));
 
 // ── 3 · Un fallo hace RUIDO (sube la sospecha), un acierto avanza ──
 // Hay que ESPERAR AL MOMENTO de cada caso en vez de golpear a ciegas: la
@@ -214,8 +220,16 @@ const suelo = await p.evaluate(async () => {
   g.player.position.x = st.x;
   g.player.position.z = st.z;
   g.player.keys.add(" ");
-  // Nunca se llama a hit(): solo se mantiene. Debe ENCENDERSE igual — el
-  // suelo del bucle v2 es que la ACTIVACIÓN nunca exige jugar bien.
+  // Nunca se llama a hit(): solo se mantiene. Y NO debe bastar.
+  //
+  // El suelo del bucle v2 era «mantener la termina igual, lento». En la mano
+  // eso significaba que el pulso era decoración: se podía jugar el día entero
+  // sin tocar un solo minijuego y sin enterarse de que existían. Ahora
+  // mantener te MANTIENE en la tarea (avanza a `ritmoMantenido`, muy por
+  // debajo de 1) y lo que la termina son los toques.
+  //
+  // El suelo no desaparece, cambia de sitio: fallar toques resta, nunca te
+  // expulsa de la tarea.
   for (let i = 0; i < 90 && !st.encendida && !st.done; i++) {
     // Se reanuda dentro del bucle: `_heatAlertShown` se rearma sola y una
     // alerta a mitad de cuenta volvería a congelar la tarea.
@@ -236,13 +250,13 @@ const suelo = await p.evaluate(async () => {
   return { encendida, hecha: st.done, id: st.id, progreso: +st.progress.toFixed(2), time: st.time };
 });
 assert(
-  "manteniendo pulsado la actividad se ENCIENDE sin jugar al pulso",
-  suelo.encendida === true,
+  "mantener pulsado NO basta: sin tocar el pulso la tarea no se enciende",
+  suelo.encendida === false,
   JSON.stringify(suelo),
 );
 assert(
-  "y al soltar se BANCA: la misión cae",
-  suelo.hecha === true,
+  "pero AVANZA algo, para que soltar no sea un castigo",
+  suelo.progreso > 0,
   JSON.stringify(suelo),
 );
 

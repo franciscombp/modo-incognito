@@ -127,7 +127,7 @@ const PERK_DURATION = 15;
 // EL AGUANTE: activada la actividad (minijuego superado), el mundo vuelve a
 // correr y cada segundo que la sostienes A LA VISTA paga extra. Es la
 // calificación por atreverse: activar ya cumple la misión, aguantar la borda.
-const AGUANTE_RATE = 1.6; // segundos de reloj por segundo aguantado
+const AGUANTE_RATE = 1.6; // ENERGÍA por segundo aguantado (antes era reloj)
 const AGUANTE_MAX = 12; // techo: a partir de aquí se banca sola
 
 // EL SABOR DE FINGIR: solo texto, nunca mecánica — fingir sigue siendo
@@ -214,8 +214,19 @@ const CLOSING_HOUR = 18; // 6:00 p.m.
 // pero no asfixiante, que es donde vive la decisión.
 const ENERGY_MAX = 100;
 const ENERGY_START = 75; // se entra con sueño, no a tope: hay que ir a por el café
-const ENERGY_DRAIN = 1.7; // por segundo — 100 de energía dan ~59 s de jornada
-const ENERGY_DRAIN_PRETEND = 2.6; // fingir cansa MÁS que trabajar, y ese es el chiste
+// EL GASTO DE ENERGÍA, recalibrado (agosto 2026).
+//
+// Estaba en 1.7/s: con los 75 de arranque eran 44 segundos de una jornada de
+// 240, o sea que a la quinta parte del día ya te estabas durmiendo. Eso no
+// es administrar un recurso, es una cuenta atrás — no daba tiempo ni a
+// llegar a la cafetería, y el sueño dejaba de ser consecuencia de tus
+// decisiones para ser el guion.
+//
+// Ahora los 75 del arranque dan ~121 s: **la MITAD justa de la jornada**.
+// Sigue sin alcanzar para el día entero —bajar a por el café sigue siendo
+// obligatorio, que es el invariante— pero la primera mitad la eliges tú.
+const ENERGY_DRAIN = 0.62; // por segundo — 75 de energía dan ~121 s de 240
+const ENERGY_DRAIN_PRETEND = 0.95; // fingir cansa MÁS que trabajar, y ese es el chiste
 const SLEEP_SECONDS = 4; // lo que tardas en espabilar
 
 /** La primera zona de un tipo (los ascensores, para la salida). */
@@ -527,10 +538,16 @@ export class Game {
     const held = st.aguante ?? 0;
     this.announce(`¡${st.label.toUpperCase()}: LISTO!`, "ok");
     this._completeActivity(st);
+    // EL AGUANTE SE PAGA EN ENERGÍA, no en reloj. Antes alargaba la jornada,
+    // y la jornada ya no se alarga: dura siempre lo mismo. La energía es
+    // ahora el único recurso que se administra, así que es la moneda con la
+    // que tiene sentido premiar haber sostenido algo prohibido a la vista.
     const extra = Math.round(held * AGUANTE_RATE);
     if (extra > 0) {
-      this._grantTime(extra, {
+      this.energy = Math.min(this.energyMax, this.energy + extra);
+      this._grantTime(0, {
         at: this.player.position,
+        label: `+${extra} energía`,
         sub: `aguantaste ${Math.round(held)}s`,
         kind: "nerve",
       });
@@ -593,14 +610,13 @@ export class Game {
       return;
     }
 
-    // El tiempo pasa más rápido cuando finges trabajo — y NO pasa mientras
-    // ACTIVAS una actividad (worldFrozen): el modo de juego tiene su propio
-    // reloj (`limite`), y cobrar jornada encima sería pagar dos veces.
+    // El tiempo pasa más rápido cuando finges trabajo. Y pasa SIEMPRE: el
+    // reloj de jornada ya no se detiene mientras activas una actividad —
+    // parar el día para jugar un minijuego era otra forma de que la estación
+    // fuera el sitio más seguro del piso.
     const effectiveDt = dt * (this.player.isPretending ? PRETEND_TIME_SPEED : 1);
-    if (!this.worldFrozen) {
-      this.timeLeft = Math.max(0, this.timeLeft - effectiveDt);
-      this.timeSpent += effectiveDt;
-    }
+    this.timeLeft = Math.max(0, this.timeLeft - effectiveDt);
+    this.timeSpent += effectiveDt;
     if (this._caughtCooldown > 0) this._caughtCooldown -= dt;
 
     if (this.revealBossUntil > 0) this.revealBossUntil -= dt;
@@ -769,12 +785,16 @@ export class Game {
           st.aguante = Math.min(AGUANTE_MAX, (st.aguante ?? 0) + dt);
           if (st.aguante >= AGUANTE_MAX) this._bankActivity(st);
         } else if (!st.done) {
-          // ── ACTIVAR: el minijuego, con el MUNDO CONGELADO y su reloj ──
-          // Entrar al modo de juego pausa el piso (jefe, secuaces, reloj,
-          // sospecha pasiva); lo único que corre es el minijuego y su cuenta
-          // atrás (`limite`) — el temporizador que impide quedarse a vivir
-          // aquí. La exposición vive antes (conseguir) y después (aguantar).
-          this.worldFrozen = true;
+          // ── ACTIVAR: el minijuego, CON EL PISO VIVO ──────────────────
+          // Esto congelaba el mundo entero (jefe, secuaces, reloj, sospecha)
+          // y era el fallo que rompía la captura: mantener espacio en
+          // cualquier estación dejaba a Gabo de estatua a un palmo, en rojo,
+          // sin llegar a tocarte nunca. Y vaciaba el propio minijuego —sin
+          // nadie acercándose no hay nada que apretar—, que es justo lo que
+          // `activityGame.js` lleva avisado desde el principio: «un minijuego
+          // que congela al jefe convierte las estaciones en el sitio MÁS
+          // SEGURO del piso». Lo era. Ahora una tarea EXPONE, que es su
+          // función. La cuenta atrás (`limite`) sigue siendo el freno.
           // Una estación juega al GESTO o al PULSO, según su JSON. Nunca a
           // los dos: pedir ritmo y pulso firme a la vez no es difícil, es
           // ruido.
@@ -792,6 +812,14 @@ export class Game {
             this.gesture.end();
             this.pulse.begin(st);
             this.pulse.update(dt);
+            // MANTENER YA NO TERMINA LA TAREA. Avanza a paso de tortuga —lo
+            // justo para que soltar no sea un castigo— y lo que la termina
+            // son los toques al ritmo. Con esto en 1, que es como estuvo, el
+            // pulso era decoración: se podía jugar el día entero sin tocar
+            // un solo minijuego. (Cambia el invariante viejo de «mantener la
+            // termina igual, lento»: era el suelo, y el suelo se había
+            // comido el juego.)
+            ritmo = this.pulse.ritmoMantenido;
           }
 
           this._updateActivityDeadline(dt, st);
@@ -960,7 +988,22 @@ export class Game {
     // CON EL MUNDO CONGELADO (activando una actividad) los vigilantes no se
     // mueven ni abordan: el modo de juego es suyo, y su amenaza es el
     // temporizador — la caza vuelve en cuanto la actividad se enciende.
-    if (!this.worldFrozen) {
+    // ── EL MUNDO YA NO SE CONGELA ───────────────────────────────────
+    // `worldFrozen` paraba al jefe, a los secuaces y al reloj mientras
+    // ACTIVABAS una actividad. Sobre el papel era «el minijuego es su propio
+    // modo»; en la mano era el fallo que rompía la captura: bastaba con
+    // mantener espacio en cualquier estación para que Gabo se quedara de
+    // estatua a un palmo de ti, en rojo, sin llegar a tocarte nunca. Y de
+    // paso vaciaba el minijuego, porque sin nadie acercándose no hay nada
+    // que apretar.
+    //
+    // Es, literalmente, lo que el propio motor llevaba avisado desde antes
+    // del bucle v2: «un minijuego que congela al jefe convertiría las
+    // estaciones en el sitio más seguro del piso». Lo era.
+    //
+    // La bandera se queda (la leen el HUD y las comprobaciones) pero ya no
+    // detiene a nadie: una tarea TIENE que exponerte.
+    {
       this.boss.update(dt, this.player, liveNpcs);
       this.minions.forEach((m) => {
         if (m.id === "crispo") {
@@ -984,11 +1027,7 @@ export class Game {
 
     // ---- Suspicion ----
     const susCfg = this.suspicionConfig;
-    if (this.worldFrozen) {
-      // Mundo congelado (activando): la sospecha pasiva ni sube ni baja. El
-      // RUIDO del minijuego sí entra (onNoise suma directo) — fallar sigue
-      // costando, pero nadie te "ve" mientras el piso está detenido.
-    } else if (this.gate && !this.metGabo) {
+    if (this.gate && !this.metGabo) {
       // Antes de conocer al guardián de la puerta del día no hay nada que
       // reprochar todavía: ni tareas que hacer mal, ni vigilancia activa.
       this.suspicion = 0;
@@ -1112,7 +1151,7 @@ export class Game {
     // El nivel de búsqueda tampoco corre congelado: sus soplos mandan al
     // jefe a tu posición, y un jefe quieto recibiendo chivatazos los
     // ejecutaría todos de golpe al descongelar.
-    if (!this.worldFrozen) this._updateHeat(dt);
+    this._updateHeat(dt);
 
     // Fingiendo con poca sospecha eres intocable, y un escondite o un lugar
     // seguro te cubren MIENTRAS el jefe todavía no te tiene en la mira ni te
@@ -1349,24 +1388,30 @@ export class Game {
   }
 
   /**
-   * La ÚNICA puerta por la que se regala reloj.
+   * EL RECONOCIMIENTO de que algo salió bien. **Ya no regala reloj.**
    *
-   * Ya no hay puntos: todo lo que antes puntuaba ahora alarga la jornada. Pasa
-   * todo por aquí para que `timeGained` (lo que enseña el HUD) no se pueda
-   * quedar desincronizado de `timeLeft` — que es justo lo que pasaba cuando
-   * cada sitio sumaba por su cuenta.
+   * LA JORNADA DURA SIEMPRE LO MISMO (decisión de diseño, agosto 2026). Antes
+   * cada misión, secreto o distracción alargaba el día, y eso tenía dos
+   * problemas: el reloj dejaba de significar «qué hora es» para significar
+   * «cuánto has rendido» —o sea que había DOS medidores de rendimiento y
+   * ninguno de tiempo—, y hacía imposible saber cuánto te queda, que es
+   * justo lo que un reloj tiene que decir. La presión ahora la lleva la
+   * ENERGÍA, que es la que se puede administrar.
+   *
+   * La función se queda porque sigue siendo la única puerta del «bien
+   * hecho»: el globito sobre el sitio y su sonido. Lo que ya no hace es
+   * tocar `timeLeft`. El globo dice QUÉ pasó, no cuántos segundos, que
+   * además serían mentira.
    */
-  _grantTime(seconds, { at, label = "", sub = "", kind = "minor", extraMul = 0 } = {}) {
-    const gained = Math.max(1, Math.round(seconds * (this.combo + extraMul)));
-    this.timeLeft += gained;
-    this.timeGained += gained;
+  _grantTime(seconds, { at, label = "", sub = "", kind = "minor" } = {}) {
     if (at) {
-      this.onPopup?.({ text: `+${gained}s`, sub: sub || label, x: at.x, z: at.z, kind });
+      const texto = label || sub || "¡bien!";
+      this.onPopup?.({ text: texto.toUpperCase(), sub: label && sub ? sub : "", x: at.x, z: at.z, kind });
     }
-    return gained;
+    return 0;
   }
 
-  /** Alarga la jornada. `seconds` es el bono base, antes del combo. */
+  /** El «bien hecho» de siempre. Ya NO alarga la jornada: ver `_grantTime`. */
   award(seconds, label, at) {
     return this._grantTime(seconds, { at, label, kind: "minor" });
   }

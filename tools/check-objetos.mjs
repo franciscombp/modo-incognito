@@ -147,7 +147,7 @@ const res = await p.evaluate(async () => {
   g.completeTalk("parce");
   out.comprado = g.inventario.has("cafe_parce");
 
-  // ── 4 · Con el HDMI: activa (congelado), y el AGUANTE paga ──
+  // ── 4 · Con el HDMI: activa CON EL PISO VIVO, y el AGUANTE paga ──
   calma();
   movie.done = false;
   movie.progress = 0;
@@ -168,7 +168,7 @@ const res = await p.evaluate(async () => {
     await sleep(100);
   }
   out.encendida = movie.encendida === true;
-  const ganado0 = g.timeGained;
+  const energia0 = g.energy;
   // AGUANTAR sostenida: el mundo ya vive y el contador sube.
   for (let i = 0; i < 15; i++) {
     calma();
@@ -187,7 +187,9 @@ const res = await p.evaluate(async () => {
     calma();
     await sleep(100);
   }
-  out.banco = { hecha: movie.done === true, pagado: g.timeGained > ganado0 };
+  // EL AGUANTE SE PAGA EN ENERGÍA, no en reloj: la jornada dura siempre lo
+  // mismo, así que el reloj dejó de ser moneda. Se mide la energía.
+  out.banco = { hecha: movie.done === true, pagado: g.energy > energia0 };
   return out;
 });
 
@@ -206,8 +208,8 @@ assert(
 assert("con la sala libre, el HDMI se recoge", res.recogido === true, JSON.stringify(res));
 assert("el café se le compra al Parce hablándole", res.comprado === true, JSON.stringify(res));
 assert(
-  "con el objeto, la activación arranca y CONGELA el mundo",
-  res.conObjeto?.minijuego === true && res.conObjeto?.congelado === true,
+  "con el objeto, la activación arranca y el piso SIGUE VIVO",
+  res.conObjeto?.minijuego === true && res.conObjeto?.congelado === false,
   JSON.stringify(res.conObjeto),
 );
 assert("superado el minijuego, la actividad se ENCIENDE", res.encendida === true, JSON.stringify(res));

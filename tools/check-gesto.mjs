@@ -9,7 +9,7 @@
  * ya no es el jefe caminando por detrás: es el TEMPORIZADOR (no puedes
  * quedarte a vivir dentro), el objeto que hubo que conseguir ANTES con el
  * piso vivo, y el AGUANTE de después, a la vista de todos. La primera
- * comprobación es ese congelado: jefe quieto, `limite` corriendo, reloj de
+ * comprobación es que el piso SIGUE VIVO: jefe andando, `limite` corriendo, reloj de
  * jornada parado.
  *
  * Las otras dos que sostienen el diseño:
@@ -139,17 +139,23 @@ const vivo = await p.evaluate(async () => {
     // No es la pausa de menú: el juego no está `paused` — está en SU modo.
     pausado: g.paused,
     congelado: g.worldFrozen,
-    jefeQuieto:
-      Math.hypot(g.boss.position.x - antes.x, g.boss.position.z - antes.z) < 0.01,
+    // EL JEFE SIGUE ANDANDO. Antes esto exigía lo contrario: activar
+    // congelaba el mundo. Era el fallo que rompía la captura —mantener
+    // espacio en cualquier estación dejaba a Gabo de estatua a un palmo, en
+    // rojo, sin llegar a tocarte— y de paso vaciaba el minijuego, porque sin
+    // nadie acercándose no hay nada que apretar.
+    jefeAnda:
+      Math.hypot(g.boss.position.x - antes.x, g.boss.position.z - antes.z) > 0.01,
     limiteCorre: (st.limiteLeft ?? st.limite) < limite0,
-    relojParado: g.timeLeft === reloj0,
+    // Y EL DÍA CORRE: la jornada dura siempre lo mismo, pase lo que pase.
+    relojCorre: g.timeLeft < reloj0,
   };
 });
 assert("activar NO es la pausa de menú", vivo.pausado === false, JSON.stringify(vivo));
-assert("pero el mundo queda CONGELADO", vivo.congelado === true, JSON.stringify(vivo));
-assert("el jefe, quieto mientras juegas", vivo.jefeQuieto === true, JSON.stringify(vivo));
+assert("y el mundo SIGUE VIVO mientras juegas", vivo.congelado === false, JSON.stringify(vivo));
+assert("el jefe SIGUE VINIENDO mientras juegas", vivo.jefeAnda === true, JSON.stringify(vivo));
 assert("la cuenta atrás del minijuego SÍ corre", vivo.limiteCorre === true, JSON.stringify(vivo));
-assert("y el reloj de la jornada, parado", vivo.relojParado === true, JSON.stringify(vivo));
+assert("y el reloj de la jornada NO se para", vivo.relojCorre === true, JSON.stringify(vivo));
 
 // ── 3 · Dentro de la zona acelera; el extremo hace RUIDO ────────────────
 // Se llama a `gesture.update()` DIRECTAMENTE, con el eje a mano: por el bucle
@@ -304,7 +310,7 @@ assert("sin errores de página", errores.length === 0, errores.join(" | "));
 await b.close();
 console.log(
   fallos === 0
-    ? "\nEl gesto es su propio modo — congelado el mundo, corriendo su reloj — y la cuenta atrás convoca"
+    ? "\nEl gesto se juega con el piso VIVO — el jefe viene mientras — y la cuenta atrás convoca"
     : `\n${fallos} fallo(s) en el gesto`
 );
 process.exit(fallos === 0 ? 0 : 1);

@@ -16,9 +16,14 @@
  *
  * ── Cómo se juega ──
  *
- * Mantener espacio en la estación avanza la tarea como siempre, lentamente:
- * quien no quiera jugar a nada, o esté a la vez huyendo, termina igual. Eso
- * es el suelo y no se toca.
+ * Mantener espacio en la estación avanza la tarea A PASO DE TORTUGA
+ * (`RITMO_MANTENIENDO`). Antes bastaba con mantener y la tarea salía sola,
+ * así que el pulso era decoración: se podía jugar el día entero sin tocar un
+ * solo minijuego y nadie se enteraba de que existían. Ahora mantener es lo
+ * que te MANTIENE en la tarea; lo que la termina son los toques.
+ *
+ * El suelo no desaparece, cambia de sitio: no puedes quedarte fuera del
+ * minijuego, pero fallar toques nunca te bloquea — restan, no te expulsan.
  *
  * Encima va el PULSO: un marcador barre una tira y hay una zona buena.
  * Pulsar espacio (un toque, no el mantenido) dentro de la zona da un buen
@@ -35,6 +40,11 @@
  */
 
 /** Ajustes por defecto de una actividad que no declare `pulso` en su JSON. */
+// LO QUE AVANZA MANTENIENDO, contra lo que avanza jugando. Con esto en 1 —
+// que es como estuvo— el pulso no servía para nada: la tarea se terminaba
+// sola con el dedo puesto y los minijuegos no existían en la práctica.
+const RITMO_MANTENIENDO = 0.3;
+
 const POR_DEFECTO = {
   periodo: 1.6, // segundos que tarda el marcador en cruzar la tira
   zona: 0.26, // ancho de la zona buena (0–1)
@@ -84,6 +94,15 @@ export function createActivityPulse({ onNoise = null, onFeedback = null } = {}) 
     /** Se soltó la tecla o te fuiste: el pulso se apaga sin castigo. */
     end() {
       station = null;
+    },
+
+    /**
+     * A qué RITMO avanza la tarea mientras solo mantienes la tecla. Muy por
+     * debajo de 1 a propósito: es lo que obliga a jugar el pulso en vez de
+     * dejar el dedo puesto. Ver `RITMO_MANTENIENDO`.
+     */
+    get ritmoMantenido() {
+      return RITMO_MANTENIENDO;
     },
 
     update(dt) {
