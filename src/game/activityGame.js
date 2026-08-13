@@ -62,6 +62,8 @@ export function createActivityPulse({ onNoise = null, onFeedback = null } = {}) 
   let pos = 0; // 0–1, dónde va el marcador
   let zoneAt = 0.5; // centro de la zona buena
   let aciertos = 0;
+  let veredicto = null; // "perfecto" | "bien" | "fallo"
+  let veredictoT = 0;
   let fallos = 0;
 
   /** La zona se recoloca en cada acierto: si no, se memoriza y deja de ser juego. */
@@ -88,6 +90,8 @@ export function createActivityPulse({ onNoise = null, onFeedback = null } = {}) 
       pos = 0;
       aciertos = 0;
       fallos = 0;
+      veredicto = null;
+      veredictoT = 0;
       recolocarZona();
     },
 
@@ -107,6 +111,14 @@ export function createActivityPulse({ onNoise = null, onFeedback = null } = {}) 
 
     update(dt) {
       if (!station) return;
+      // EL VEREDICTO se apaga solo. Es lo que hace que tocar se SIENTA: sin
+      // él, un acierto y un fallo se ven exactamente igual salvo por un
+      // punto que se enciende en una esquina, y a pantalla completa eso es
+      // un minijuego mudo.
+      if (veredictoT > 0) {
+        veredictoT -= dt;
+        if (veredictoT <= 0) veredicto = null;
+      }
       // Rebote de extremo a extremo. Un ciclo completo son dos periodos.
       pos += (dt / Math.max(0.2, cfg.periodo)) * dir;
       if (pos >= 1) {
@@ -131,6 +143,17 @@ export function createActivityPulse({ onNoise = null, onFeedback = null } = {}) 
       if (t < 0.25) return null;
       const dentro = Math.abs(pos - zoneAt) <= cfg.zona / 2;
       const total = station.time || 1;
+      // PERFECTO es el tercio central de la zona. No cambia el premio —esto
+      // no es un juego de puntuación— pero sí lo que se lee: un «PERFECTO»
+      // es la razón por la que se vuelve a tocar, y sin grados de acierto un
+      // minijuego de tiempo solo tiene dos estados y se agota rápido.
+      const finura = Math.abs(pos - zoneAt) / (cfg.zona / 2 || 1);
+      veredictoT = 0.6;
+      if (dentro) {
+        veredicto = finura < 0.34 ? "perfecto" : "bien";
+      } else {
+        veredicto = "fallo";
+      }
       if (dentro) {
         aciertos += 1;
         station.progress = Math.min(total, station.progress + total * cfg.bonus);
@@ -154,6 +177,7 @@ export function createActivityPulse({ onNoise = null, onFeedback = null } = {}) 
     snapshot() {
       if (!station) return null;
       return {
+        veredicto,
         pos,
         zona: cfg.zona,
         zonaAt: zoneAt,

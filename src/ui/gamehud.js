@@ -232,6 +232,10 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   // La cuenta "3/6" al lado de los puntos: los puntos se sienten, la cifra
   // se LEE — y la queja de fondo era que no se entendía cuánto faltaba.
   const pulseCount = el("span", "inc-pulse-count", pulseBar);
+  // EL VEREDICTO. A pantalla completa, un acierto y un fallo que solo cambian
+  // un puntito en una esquina son un minijuego mudo: esto es lo que hace que
+  // tocar se sienta, y el «PERFECTO» es la razón por la que se vuelve a tocar.
+  const pulseVeredicto = el("b", "inc-pulse-veredicto", pulseBar);
   // La regla del minijuego, escrita UNA vez encima de la tira las primeras
   // veces que se enciende. Sin esto, la tira era un adorno misterioso: nadie
   // sabía que tocar al ritmo acelera ni que fallar hace ruido. Después
@@ -334,6 +338,13 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     pulseMark.style.left = `${p.pos * 100}%`;
     // Los puntos solo se redibujan cuando cambia la cuenta: reconstruir seis
     // nodos por frame es gratis en un portátil y se nota en un teléfono.
+    // El veredicto se pinta por cuadro: es un destello y tiene que morir
+    // solo. Su texto sale del módulo, que es quien sabe si fue justo en el
+    // centro de la zona o de refilón.
+    pulseVeredicto.dataset.v = p.veredicto ?? "";
+    pulseVeredicto.textContent =
+      p.veredicto === "perfecto" ? "¡PERFECTO!" : p.veredicto === "bien" ? "BIEN" : p.veredicto === "fallo" ? "FALLASTE" : "";
+
     if (p.aciertos !== pulseHits) {
       pulseHits = p.aciertos;
       pulseCount.textContent = `${p.aciertos}/${p.necesarios}`;
@@ -349,12 +360,13 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   // hacer algo de verdad —bajarle el volumen a la peli para que no te oigan—
   // con una cuenta atrás encima.
   //
-  // «Primer plano» NO es «pantalla completa», y la diferencia es toda la
-  // mecánica: el mundo NO se pausa (game/gestures.js explica por qué), así
-  // que esto vive en la MISMA banda baja que el pulso —por debajo de los pies
-  // de la jugadora— y nunca roba un clic. Un panel centrado que tapara el
-  // piso convertiría las estaciones en el sitio más seguro de la planta, que
-  // es justo lo contrario de para qué están.
+  // AHORA VIVE DENTRO DE LA PANTALLA DE LA TAREA (`.inc-mg`), a pantalla
+  // completa. Durante mucho tiempo estuvo aquí escrito lo contrario —«primer
+  // plano NO es pantalla completa»— porque tapar el piso quitaba la mitad
+  // del juego. Eso sigue siendo cierto, y por eso la pantalla trae EL ACECHO
+  // dentro: el mundo no se pausa, así que hay que poder leer quién viene sin
+  // ver el piso. Lo que no se puede es congelar al jefe, que es lo que de
+  // verdad convertía las estaciones en el sitio más seguro de la planta.
   //
   // El pulso y el gesto son excluyentes, así que comparten sitio sin pelearse.
   const action = el("div", "inc-action", mgBody);

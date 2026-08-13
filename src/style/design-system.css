@@ -11830,7 +11830,13 @@ body.inc-acting #hint {
 .inc-mg .inc-chisme.on,
 .inc-mg .inc-pulse.on,
 .inc-mg .inc-action.on {
-  position: static;
+  /* RELATIVE, no STATIC. Estas piezas llevan hijos `position: absolute` (la
+     zona y el marcador del pulso, el reloj de la tarjeta): quitándoles el
+     posicionamiento, esos hijos se anclan al ANCESTRO POSICIONADO más
+     cercano, que aquí es la pantalla entera — la tira del pulso se convertía
+     en una columna teal de lado a lado de la ventana. `relative` las deja en
+     el flujo igual y les devuelve su contenedor. */
+  position: relative;
   transform: none;
   left: auto;
   right: auto;
@@ -11873,6 +11879,73 @@ body.inc-acting #hint {
 
 .inc-mg .inc-pulse {
   width: min(560px, 88vw);
+}
+
+/* EL PULSO, dentro de la pantalla de la tarea. Deja de ser una tira fina
+   pegada al borde y pasa a tener el tamaño de un minijuego de tiempo de los
+   de siempre: la zona buena se ve, el marcador se ve, y cada toque responde
+   con su veredicto. */
+.inc-mg .inc-pulse {
+  height: 34px;
+  border-radius: var(--btn-radius);
+}
+
+.inc-mg .inc-pulse-zone {
+  border-radius: var(--btn-radius);
+}
+
+.inc-mg .inc-pulse-mark {
+  width: 4px;
+}
+
+/* EL VEREDICTO: el destello que hace que tocar se SIENTA. A pantalla
+   completa, un acierto y un fallo que solo cambian un puntito en una esquina
+   son un minijuego mudo — y el «¡PERFECTO!» es la razón por la que se vuelve
+   a tocar. Va ENCIMA de la tira y `position: absolute` para que aparecer y
+   desaparecer no mueva nada de su sitio. */
+.inc-pulse-veredicto {
+  position: absolute;
+  left: 50%;
+  /* POR ENCIMA DE LA PISTA. A +12 caía justo donde vive la píldora de «cómo
+     se juega», que sale las primeras veces: el veredicto se leía encima del
+     texto y no se entendía ninguno de los dos. */
+  bottom: calc(100% + 46px);
+  transform: translateX(-50%);
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.inc-pulse-veredicto[data-v="perfecto"],
+.inc-pulse-veredicto[data-v="bien"],
+.inc-pulse-veredicto[data-v="fallo"] {
+  opacity: 1;
+  animation: inc-veredicto var(--dur-2) var(--ease-pop);
+}
+
+.inc-pulse-veredicto[data-v="perfecto"] {
+  color: var(--ok);
+}
+
+.inc-pulse-veredicto[data-v="bien"] {
+  color: var(--accent);
+}
+
+.inc-pulse-veredicto[data-v="fallo"] {
+  color: var(--danger);
+}
+
+@keyframes inc-veredicto {
+  from {
+    transform: translate(-50%, 8px) scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
 }
 
 /* ── LA TARJETA DEL CHISME ─────────────────────────────────────────────
