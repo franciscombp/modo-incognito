@@ -303,9 +303,26 @@
   --surface-active: hsl(var(--p-accent-bright) / 0.2);
   --scrim: hsl(var(--p-bg-900) / 0.86);
 
-  /* ── Filos ── */
-  --border: hsl(var(--p-accent-bright) / 0.22);
-  --border-strong: hsl(var(--p-accent-bright) / 0.34);
+  /* ── Filos ──────────────────────────────────────────────────────────
+     TODO ES HILO GRÁFICO: no hay cajas. El lenguaje de la interfaz es el de
+     la lista de misiones —filas separadas por una línea fina, sin marco— y
+     eso obliga a partir en DOS lo que era un solo rol:
+
+       --border  el contorno de una CAJA. Ya no existe: transparente. Es lo
+                 que dibujaba un marco alrededor de cada panel y hacía que
+                 cada pieza pareciera un contenedor pegado encima del juego.
+       --rule    LA LÍNEA. El hilo que separa una fila de la siguiente. Esa
+                 sí se ve: es la gramática entera.
+
+     Se hace aquí, en la capa 2, y no en los 88 sitios que pintaban un marco.
+     Los pulsables NO entran: tienen su propio `--btn-line`, porque un botón
+     que no se nota pulsable es un menú roto. */
+  --border: transparent;
+  --border-strong: transparent;
+  --rule: hsl(var(--p-accent-bright) / 0.22);
+  --rule-strong: hsl(var(--p-accent-bright) / 0.34);
+  /* El filo de lo PULSABLE, que sobrevive al hilo gráfico. */
+  --btn-line: hsl(var(--p-accent-bright) / 0.3);
   --rim: hsl(var(--p-rim) / var(--p-rim-alpha));
 
   /* ── Acento ── */
@@ -622,7 +639,7 @@ h1, h2, h3, h4, h5, h6 {
   justify-content: space-between;
   gap: var(--space-sm);
   padding-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--rule);
   font-weight: 600;
   font-size: 0.875rem;
   text-transform: uppercase;
@@ -1443,7 +1460,7 @@ h1, h2, h3, h4, h5, h6 {
   gap: var(--space-xs);
   margin-bottom: var(--space-sm);
   padding-bottom: var(--space-sm);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--rule);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -5307,7 +5324,7 @@ body.crossing-open .touch-actions {
   font-family: var(--ui-font);
   color: var(--ink);
   background: hsl(var(--p-bg-700) / 0.72);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--rule);
   backdrop-filter: blur(10px);
 }
 
@@ -8723,7 +8740,7 @@ body.inc-game-active .inc-menu-scrim {
 .inc-retire-stay,
 .wprompt-key {
   border-radius: var(--btn-radius);
-  border: var(--btn-border) solid var(--line);
+  border: var(--btn-border) solid var(--btn-line);
   background: var(--glass);
   color: var(--ink);
   font-family: var(--sans);
@@ -8732,7 +8749,7 @@ body.inc-game-active .inc-menu-scrim {
   cursor: pointer;
   /* La sombra dura de abajo es lo que lo hace "de juego" y no "de
      formulario": el botón tiene canto, y al pulsarlo se hunde. */
-  box-shadow: 0 var(--btn-drop) 0 0 var(--line);
+  box-shadow: 0 var(--btn-drop) 0 0 var(--btn-line);
   transition: transform 0.08s ease, box-shadow 0.08s ease,
     background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
@@ -8847,7 +8864,7 @@ body.inc-game-active .inc-menu-scrim {
 .touch-btn,
 .touch-util {
   border-radius: 50%;
-  border: var(--btn-border) solid var(--line);
+  border: var(--btn-border) solid var(--btn-line);
   background: var(--glass);
   color: var(--ink);
   box-shadow: 0 var(--btn-drop) 0 0 var(--line), var(--shadow-md);
@@ -8876,11 +8893,11 @@ body.inc-game-active .inc-menu-scrim {
 }
 .touch-stick-thumb {
   background: linear-gradient(180deg, var(--violet), var(--violet-dim));
-  border: var(--btn-border) solid var(--line);
+  border: var(--btn-border) solid var(--btn-line);
 }
 .touch-stick-base {
   background: var(--glass);
-  border: var(--btn-border) solid var(--line);
+  border: var(--btn-border) solid var(--btn-line);
 }
 
 /* ---------- 4. LA BARRA: plana a propósito ----------
@@ -9872,7 +9889,7 @@ body {
   transition: transform var(--dur-base) var(--ease-pop);
 }
 .inc-lib.on .inc-lib-card { transform: none; }
-.inc-lib-head { padding-bottom: 12px; border-bottom: 1px solid var(--border); }
+.inc-lib-head { padding-bottom: 12px; border-bottom: 1px solid var(--rule); }
 .inc-lib-kicker {
   font-family: var(--mono);
   font-size: 12px;
@@ -9935,7 +9952,7 @@ body {
   font-size: 22px;
   font-weight: 800;
   color: var(--text-muted);
-  border-bottom: 2px solid var(--border);
+  border-bottom: 2px solid var(--rule);
 }
 .inc-lib-letra.on {
   color: var(--accent);
@@ -10194,7 +10211,7 @@ body.inc-acting #hint {
   height: auto;
   padding: 10px 22px 12px;
   border-radius: 18px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
 }
 .inc-gamehud .inc-bar-notices {
   position: absolute;
@@ -10352,7 +10369,7 @@ body.inc-acting #hint {
   align-items: baseline;
   gap: 16px;
   padding-bottom: 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--rule);
 }
 .inc-review-kicker {
   font-family: var(--mono);
@@ -10560,7 +10577,7 @@ body.inc-acting #hint {
   gap: 34px;
   margin-top: 24px;
   padding-top: 20px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
 }
 .inc-retire-stat {
   display: grid;
@@ -10672,7 +10689,7 @@ body.inc-acting #hint {
   gap: 8px;
   margin-top: 18px;
   padding-top: 16px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
 }
 .inc-legend-row {
   display: flex;
@@ -11431,7 +11448,7 @@ body.inc-acting #hint {
   align-items: center;
   gap: 10px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--rule);
 }
 
 .inc-cv-num {
@@ -11547,7 +11564,7 @@ body.inc-acting #hint {
 
 .inc-cv-foot {
   padding-top: 10px;
-  border-top: 1px solid var(--border);
+  border-top: 1px solid var(--rule);
 }
 
 .inc-cv-stamp {

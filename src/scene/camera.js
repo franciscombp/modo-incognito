@@ -46,12 +46,20 @@ function floorCenter() {
 /**
  * Cuánto cierra el plano de conversación respecto al de juego.
  *
- * Calibrado a ojo sobre captura, que es lo único que vale aquí: 0,55 (el de
- * acción) dejaba a la jugadora pequeña y con medio cuadro de techo; 0,30 la
- * metía tanto que la cabeza se salía por arriba. En 0,52 entra de busto, con
- * la cara por encima de la caja de diálogo y un dedo de aire arriba.
+ * Calibrado MIDIENDO, no a ojo: se proyecta la coronilla del muñeco a
+ * pantalla y se mira cuánto techo queda encima. En un lienzo de 1280x720:
+ *
+ *   0,52 (primer intento) → la muñeca medía 126 px de 720 y tenía 348 de
+ *        techo: casi media pantalla de pared. No era un primer plano.
+ *   0,18 → 419 px de alto, pero la coronilla se salía por arriba.
+ *   0,35 → 383 px de alto, coronilla en 106 y pies en 489, justo encima de
+ *        la caja de diálogo. Ése es el encuadre.
+ *
+ * ⚠️ **El hueso `Head` está en el CUELLO, no en la coronilla.** Medir por él
+ * decía que quedaban 100 px de aire cuando el pelo ya se salía del cuadro.
+ * La coronilla es `y = 1.45 * WORLD_SCALE`, la altura del muñeco.
  */
-const CINE_DISTANCE = 0.52;
+const CINE_DISTANCE = 0.35;
 
 /**
  * A qué altura de mundo mira, y va al REVÉS de lo que parece: el punto al que
@@ -63,7 +71,7 @@ const CINE_DISTANCE = 0.52;
  * palmo de techo. En 0,78 la cabeza sube al tercio superior y lo que queda
  * arriba es un margen, no un decorado.
  */
-const CINE_LOOK_Y = 0.78;
+const CINE_LOOK_Y = 0.58;
 
 export class DioramaCamera {
   constructor(aspect) {

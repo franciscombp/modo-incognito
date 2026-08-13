@@ -414,6 +414,21 @@ que al cambiar `data-theme` se mueven los tokens de interfaz Y de edificio, que
 volver atrás restaura exacto, y que ningún panel se quedó con un fondo fijo. Un
 componente anclado se ve idéntico en una captura pequeña.
 
+**TODO ES HILO GRÁFICO: no hay cajas.** El lenguaje de la interfaz es el de la
+lista de misiones —filas separadas por una línea fina, sin marco—, y por eso
+el rol de «filo» está partido en DOS en la capa 2:
+
+- `--border` es el contorno de una CAJA, y **ya no existe: transparente**. Era
+  lo que dibujaba un marco alrededor de cada panel y hacía que cada pieza
+  pareciera un contenedor pegado encima del juego.
+- `--rule` es **LA LÍNEA**, el hilo que separa una fila de la siguiente. Esa sí
+  se ve: es la gramática entera.
+- `--btn-line` es el filo de lo PULSABLE, y sobrevive al hilo gráfico a
+  propósito — un botón que no se nota pulsable es un menú roto.
+
+Se hizo en la capa 2 y no en los 88 sitios que pintaban un marco. Si añades un
+panel, NO le pongas borde: separa con `--rule` o no separes.
+
 **La regla que no se rompe: ningún componente escribe un color.** Ni `white`,
 ni `rgba(255,255,255,…)`, ni un hex. Si falta un color, se añade a la capa 1.
 
