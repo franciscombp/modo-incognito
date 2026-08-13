@@ -941,7 +941,14 @@ export function createEngine({
     // Un interrogatorio (te atraparon) sí rota sus escenas para siempre: es
     // castigo, no charla, y quedarse mudo sería peor.
     let scene;
-    if (opts?.caught && encounter.caughtScenes?.length) {
+    // ESCENA CON NOMBRE. La pide el juego por su id (`opts.escena`) para los
+    // momentos guionizados —la presentación de Crispo cuando llegas por
+    // primera vez a tu puesto— en vez de tirar del pozo por orden. Va la
+    // PRIMERA de todas las ramas: una escena guionizada nunca debe perder
+    // contra el turno que tocara.
+    if (opts?.escena && encounter.escenas?.[opts.escena]) {
+      scene = encounter.escenas[opts.escena];
+    } else if (opts?.caught && encounter.caughtScenes?.length) {
       // Te ATRAPARON: el interrogatorio tiene su propio pozo, que rota para
       // siempre (es castigo, no charla). Antes reciclaba las escenas de
       // conversación y Chispita te "capturaba" contándote sus pasos diarios.

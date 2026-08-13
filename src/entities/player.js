@@ -1,5 +1,5 @@
 import { Character3D } from "./character3d.js";
-import { screenToGround, facingFromGround } from "../scene/iso.js";
+import { screenToGround, groundToScreen, facingFromGround } from "../scene/iso.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { createSleepIcon, updateSleepIcon, createHappyIcon, updateHappyIcon } from "./alertIcon.js";
 
@@ -87,7 +87,36 @@ export class Player {
   }
 
   update(dt, world) {
-    const { right, up } = this.inputLocked ? { right: 0, up: 0 } : this._readInput();
+    // ── LA CAMINATA GUIADA ───────────────────────────────────────────
+    // Cuando el juego necesita llevarte a un sitio (te sientan en tu puesto
+    // tras un regaño, una escena te coloca), NO se te teletransporta: se te
+    // CAMINA. Un salto de posición rompe el hilo de que estás mirando a una
+    // persona en un piso — no es un atajo de implementación, es que el
+    // personaje deja de ser un cuerpo.
+    //
+    // Se resuelve aquí, en el mismo sitio donde se lee el mando, porque así
+    // pasa por las MISMAS colisiones, el mismo giro y la misma animación de
+    // andar que cuando caminas tú. Un movimiento paralelo por fuera de este
+    // método volvería a atravesar mesas.
+    let guiada = null;
+    if (this.walkTo) {
+      const dx = this.walkTo.x - this.position.x;
+      const dz = this.walkTo.z - this.position.z;
+      if (Math.hypot(dx, dz) < (this.walkTo.tol ?? 0.35 * this.radius * 4)) {
+        this.walkTo.onArrive?.();
+        this.walkTo = null;
+      } else {
+        // El rumbo se pasa a INTENCIÓN DE MANDO (la misma que devuelve el
+        // joystick) y no a un desplazamiento directo: así el paso, el giro y
+        // la animación salen del mismo camino de siempre. Normalizada, para
+        // que la escena camine a velocidad de andar y no a la que toque por
+        // lo lejos que esté el destino.
+        const s = groundToScreen(dx, dz);
+        const len = Math.hypot(s.right, s.up) || 1;
+        guiada = { right: s.right / len, up: s.up / len };
+      }
+    }
+    const { right, up } = guiada ?? (this.inputLocked ? { right: 0, up: 0 } : this._readInput());
     const magnitude = Math.min(Math.hypot(right, up), 1);
     let moving = false;
 

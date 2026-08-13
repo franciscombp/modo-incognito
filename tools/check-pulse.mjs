@@ -94,12 +94,29 @@ const vivo = await p.evaluate(async () => {
   const g = window.__game.engine.game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   g._caughtCooldown = 999;
+  // Y CON MOTIVO PARA VENIR: en ronda puede tocarle un tramo parado, y lo
+  // que se mide aquí no es su ruta, es que el mundo NO está congelado —
+  // activar una tarea dejaba a Gabo de estatua y esa era la captura rota.
+  // Justo por encima del umbral de caza y por DEBAJO del nivel 3 de
+  // búsqueda: pasado ese nivel, game.js pausa la partida con su aviso a
+  // pantalla completa y lo que se mediría es un juego parado.
+  g.onHeatAlert = null;
+  g.suspicion = Math.max(g.suspicion, g.boss.chaseSuspicionFloor + 5);
+  g.boss.suspicion = g.suspicion;
   g.boss.position.x = g.player.position.x + 30;
   g.boss.position.z = g.player.position.z;
+  g.boss.startChase();
   const antes = { x: g.boss.position.x, z: g.boss.position.z };
   const marcaAntes = g.pulse.snapshot()?.pos ?? null;
   const reloj0 = g.timeLeft;
-  await sleep(900);
+  // POR CUADROS, no con `sleep()`. En headless el bucle de render va
+  // estrangulado y en una vuelta cargada puede no pasar NI UN cuadro: lo que
+  // se medía entonces era la máquina, y «el jefe sigue viniendo» salía cara o
+  // cruz. Es la misma lección que ya se aplicó en check-chase.
+  for (let i = 0; i < 54; i++) {
+    if (g.paused) g.setPaused(false);
+    g.update(1 / 60);
+  }
   const dsp = { x: g.boss.position.x, z: g.boss.position.z };
   return {
     pausado: g.paused,
@@ -230,14 +247,21 @@ const suelo = await p.evaluate(async () => {
   //
   // El suelo no desaparece, cambia de sitio: fallar toques resta, nunca te
   // expulsa de la tarea.
-  for (let i = 0; i < 90 && !st.encendida && !st.done; i++) {
+  // POR CUADROS, no por reloj de pared. Con `sleep()` lo que se medía era la
+  // máquina: en una vuelta cargada cada iteración tardaba de más, se
+  // acumulaba tiempo de juego de sobra y la tarea SÍ se terminaba manteniendo
+  // — la prueba salía cara o cruz. Seis segundos de juego exactos: a ritmo
+  // mantenido (0.3) eso es 1.8 de progreso, muy por debajo de lo que cuesta
+  // cualquier tarea, así que la afirmación no depende de la calibración.
+  const SEGUNDOS = 6;
+  for (let i = 0; i < SEGUNDOS * 60 && !st.encendida && !st.done; i++) {
     // Se reanuda dentro del bucle: `_heatAlertShown` se rearma sola y una
     // alerta a mitad de cuenta volvería a congelar la tarea.
     g.setPaused(false);
     g.suspicion = 0;
     g.player.position.x = st.x;
     g.player.position.z = st.z;
-    await sleep(100);
+    g.update(1 / 60);
   }
   const encendida = st.encendida || st.done;
   // Y AL SOLTAR SE BANCA: el aguante acumulado se cobra y la misión cae.

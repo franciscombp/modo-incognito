@@ -16,6 +16,8 @@
     "bossTether": [5,9],
     "gate": {
       "guard": "jefe",
+    "$sentadoEn": "GABO EMPIEZA SENTADO en esa sala (id de scenes -> safeSpots). La primera mision deja de ser una persecucion: esta reunido, se le ve desde el otro lado del piso y vas a hablarle. Se sienta al MONTAR el piso, nunca a mitad de partida.",
+    "sentadoEn": "sala1",
       "task": {"id":"meet-gabo","label":"Buscar a Gabo","icon":"person"}
     }
   },

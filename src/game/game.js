@@ -35,6 +35,15 @@ const SEEN_IDLE_BOSS_RATE = 9;
 // `chaseSuspicionFloor` (40): dos delaciones te dejan al borde y la tercera
 // pone al jefe a cazar, así que el día ESCALA en vez de encenderse solo.
 const DELATION_JUMP = 18;
+// EL AVISO DEL JEFE, cuando te toca con la sospecha baja. La gracia es el
+// margen literal para volver a tu sitio antes de que arranque la caza; el
+// plazo evita que dos roces seguidos sean dos avisos.
+const AVISO_GRACIA = 3.5;
+const AVISO_COOLDOWN = 12;
+// Lo deprisa que se enfría la vigilancia de cada uno mientras estás en un
+// lugar seguro. Alto a propósito: entrar tiene que APAGAR los halos, no
+// bajarlos un poquito — es la señal de que llegaste.
+const SAFE_COOLDOWN_MUL = 4;
 
 // VIGILANCIA INDIVIDUAL de cada secuaz (`Boss.localHeat`, 0–1): aparte del
 // medidor de arriba, cada vigilante acumula SU PROPIA sospecha, que es lo
@@ -341,6 +350,22 @@ export class Game {
     // así que un día sin `gate` arranca desbloqueado del todo (el
     // comportamiento de siempre). Ver dia-1.json para el único caso real hoy.
     this.gate = rules.gate ?? null;
+    // GABO EMPIEZA SENTADO, si el día lo pide (`gate.sentadoEn`, un id de
+    // safeSpots). La primera misión deja de ser una persecución: está
+    // reunido en una sala, se le ve desde el otro lado del piso y vas a
+    // hablarle — en vez de correr detrás de alguien que patrulla el piso
+    // entero mientras tú todavía no sabes ni dónde está tu puesto.
+    //
+    // Se hace AQUÍ, al montar, y no más tarde: colocarlo a mitad de partida
+    // sería justo el teletransporte que este trabajo viene a quitar.
+    if (this.gate?.sentadoEn) {
+      const sala = safeSpots.find((sp) => sp.id === this.gate.sentadoEn);
+      const silla = sala
+        ? nearestFreeSeat(this.seats, sala.x, sala.z, sala.radius ?? 2 * S)
+        : null;
+      if (silla) this.boss.sitAt({ x: silla.x, z: silla.z, facing: silla.facing });
+      else if (sala) this.boss.sitAt({ x: sala.x, z: sala.z });
+    }
     this.metGabo = !this.gate; // ha conocido al guardián de la puerta (el jefe)
     this._gateObjectives = this.gate
       ? [
@@ -436,6 +461,8 @@ export class Game {
 
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
+    this._avisoGracia = 0;
+    this._avisoCooldown = 0;
     this._eggDwell = new Map();
     this._foundEggs = new Set();
 
@@ -673,8 +700,24 @@ export class Game {
     // dentro (te ve desde lejos mientras estás en el bebedero), la
     // persecución tiene que morir igual — con detección de flanco, ese caso
     // se quedaba perseguido para siempre.
-    if (this.inSafeSpot) this._breakAllPursuits();
+    if (this.inSafeSpot) {
+      this._breakAllPursuits();
+      // Y LOS HALOS RETROCEDEN. Cortar la persecución no bastaba: los conos
+      // seguían rojos encima de ti y la lectura era «me siguen viendo mal»
+      // justo en el sitio donde no pueden. Se enfría a todo el mundo de
+      // golpe —el medidor compartido baja por su rama de siempre, y cada
+      // vigilante pierde SU vigilancia deprisa— así que el halo se apaga
+      // solo, que es lo que dice «aquí no te pueden tocar».
+      for (const m of this.minions) {
+        m.localHeat = Math.max(0, m.localHeat - MINION_HEAT_DECAY * SAFE_COOLDOWN_MUL * dt);
+        m.redAlert = false;
+      }
+      this.boss.redAlert = false;
+    }
     this._updateCampaignObjectives(dt);
+    this._updateBienvenida(dt);
+    this._updateBossApproach(dt);
+    this._updatePresentacion(dt);
 
     // "Tu sitio" ya no es media planta: es exactamente el lugar seguro en el
     // que estás. Fuera de ahí, estás fuera de tu puesto.
@@ -1581,8 +1624,12 @@ export class Game {
         : null;
       if (seat) {
         this._pretendSeat = seat;
-        this.player.position.x = seat.x;
-        this.player.position.z = seat.z;
+        // SE ACERCA A LA SILLA, no aparece en ella. Era un salto de medio
+        // metro en un frame cada vez que te ponías a fingir — pequeño, pero
+        // es el mismo pecado que el del regaño: los cuerpos no parpadean de
+        // sitio. `walkTo` la lleva por el camino normal; la pose de sentada
+        // la pone `_updatePretendPose` cuando ya está encima.
+        this.player.walkTo = { x: seat.x, z: seat.z, tol: 0.12 * S };
         // Sentada de cara a SU MESA: es la única orientación en la que
         // sentarse a un escritorio significa algo. Se pierde el "de frente a
         // la cámara" de la versión de pie, y es un cambio buscado — un
@@ -1793,6 +1840,86 @@ export class Game {
    * la charla amistosa se colaba antes que el interrogatorio real y daba la
    * sensación de que "hablan antes de atraparte" sin haber pasado nada.
    */
+  /**
+   * Cuando el Crispo que mandamos a tu puesto LLEGA, se presenta y se va.
+   * Se dispara por CERCANÍA, no por temporizador: si se queda atascado
+   * bordeando una mesa, la escena le espera en vez de soltarle el texto
+   * desde el otro lado del piso.
+   */
+  _updatePresentacion(dt) {
+    const m = this._presentador;
+    if (!m || this.gameOver) return;
+    this._presentadorPlazo = (this._presentadorPlazo ?? 25) - dt;
+    const cerca =
+      Math.hypot(m.position.x - this.player.position.x, m.position.z - this.player.position.z) <
+      INTERACT_RADIUS * 1.6;
+    // El plazo es una RED, no el disparador: si no consigue llegar (una silla
+    // de por medio, la jugadora se fue), la escena se cancela sola en vez de
+    // dejar a un secuaz caminando hacia un sitio para siempre.
+    if (!cerca) {
+      if (this._presentadorPlazo <= 0) this._presentador = null;
+      return;
+    }
+    this._presentador = null;
+    this.talkCooldowns.set(m.id ?? m.cast, m.talkCooldown ?? 40);
+    this.onTalk?.(m, { escena: "bienvenida" });
+  }
+
+  /**
+   * TOCAR A GABO SIEMPRE PASA ALGO — y con la sospecha baja, primero AVISA.
+   *
+   * Antes, chocarte con el jefe por debajo de `chaseSuspicionFloor` no hacía
+   * absolutamente nada: se cruzaban los cuerpos y seguías. Se leía como que
+   * el juego estaba roto, y encima gastaba el único momento en el que el
+   * jefe y tú estáis cara a cara.
+   *
+   * Ahora son DOS TIEMPOS, que es como funciona un jefe de verdad:
+   *
+   *   1. «¿NECESITAS ALGO?» — te para, te lo dice, y te da unos segundos de
+   *      GRACIA para volver a tu sitio. No sube la sospecha: es un aviso.
+   *   2. «¡TE VEO!» — si al acabar la gracia sigues fuera de tu puesto, ahí
+   *      sí arranca la caza. La gracia es literalmente el margen para correr.
+   *
+   * Por encima del umbral no hay aviso que valga: ahí ya te persigue y el
+   * toque es la amonestación de siempre (`catches`, que no se toca).
+   */
+  _updateBossApproach(dt) {
+    if (this.gameOver || this.rules.explore || (this.gate && !this.metGabo)) return;
+    if (this._avisoGracia > 0) {
+      this._avisoGracia -= dt;
+      if (this._avisoGracia <= 0) {
+        // Se acabó el margen. Si te quitaste de en medio —tu puesto, una
+        // sala, el baño, o simplemente fingiendo— no pasa nada: el aviso era
+        // un aviso. Si sigues suelta, te vio.
+        const aSalvo = this.inSafeSpot || this.player.isPretending || this.player.isHiding;
+        if (!aSalvo) {
+          this.suspicion = Math.max(this.suspicion, this.boss.chaseSuspicionFloor + 10);
+          this.boss.suspicion = this.suspicion;
+          this.announce(`¡${(this.boss.displayName ?? "GABO").toUpperCase()} TE VIO!`, "danger");
+          this.boss.startChase();
+        }
+      }
+      return;
+    }
+    if (this._avisoCooldown > 0) {
+      this._avisoCooldown -= dt;
+      return;
+    }
+    // Solo el AVISO vive aquí. Con la sospecha alta manda la persecución de
+    // siempre, y el toque es la amonestación.
+    if (this.boss.isHunting || this.suspicion >= this.boss.chaseSuspicionFloor) return;
+    if (!this.boss.catches(this.player.position, this.player.radius)) return;
+    if (this.inSafeSpot || this.player.isPretending) return;
+
+    this._avisoGracia = AVISO_GRACIA;
+    this._avisoCooldown = AVISO_COOLDOWN;
+    this.announce("¿NECESITAS ALGO? ¿NO DEBERÍAS ESTAR TRABAJANDO?", "warn");
+    this.toast("Vuelve a tu puesto antes de que se dé la vuelta.");
+    // Se queda mirándote los segundos de la gracia en vez de seguir su
+    // ronda: un aviso al que le das la espalda no es un aviso.
+    this.boss.distract({ x: this.player.position.x, z: this.player.position.z }, AVISO_GRACIA);
+  }
+
   _updateMinionApproach() {
     if (!this.onTalk) return;
     const pos = this.player.position;
@@ -2035,14 +2162,26 @@ export class Game {
     this.boss.resetToPatrol();
     const desk = safeSpots.find((s) => s.kind === "desk");
     if (!desk) return;
-    this.player.position.x = desk.x;
-    this.player.position.z = desk.z;
     this.player.keys.clear();
     this.player.touchAxis.x = 0;
     this.player.touchAxis.z = 0;
-    this._pretendSeat = null;
-    this._pretendToggle = true;
-    this.player.isPretending = true;
+    // TE LLEVA ANDANDO, no te teletransporta. Esto plantaba a la jugadora en
+    // su puesto de un frame al siguiente, y un salto de posición rompe el
+    // hilo de que estás mirando a una persona en un piso: el personaje deja
+    // de ser un cuerpo y pasa a ser un cursor. Ahora camina hasta allí sola
+    // —por el mismo camino, las mismas colisiones y la misma animación que
+    // cuando la llevas tú— y se sienta AL LLEGAR.
+    this.player.walkTo = {
+      x: desk.x,
+      z: desk.z,
+      onArrive: () => {
+        this._pretendSeat = null;
+        this._pretendToggle = true;
+        this.player.isPretending = true;
+        this.player.inputLocked = false;
+      },
+    };
+    this.player.inputLocked = true;
     // La pose de sentada la resuelve _updatePretendPose en el próximo
     // frame (busca la silla libre del puesto); aquí solo se anuncia.
     this.announce("TE SENTÓ EN TU PUESTO: A TRABAJAR", "warn");
@@ -2428,8 +2567,41 @@ export class Game {
   clearGate() {
     if (this.metGabo) return false;
     this.metGabo = true;
+    // Se LEVANTA de la reunión: hasta aquí estaba sentado (ver el bloque de
+    // `gate.sentadoEn` en el constructor). A partir de ahora patrulla.
+    this.boss.standUp();
+    // Y TE MANDA A TU PUESTO. Es el hilo que engancha la primera misión con
+    // la segunda: Gabo te dice dónde te sientas, y llegar allí es lo que
+    // dispara la presentación de Crispo (`_updateBienvenida`).
+    this._esperandoPuesto = true;
+    this.announce("A TU PUESTO: GABO TE ESTÁ MIRANDO", "warn");
     this.onMissionDone?.(this.gate?.task?.id ?? "meet-gabo");
     return true;
+  }
+
+  /**
+   * LA BIENVENIDA DE CRISPO. Llegar a tu puesto por primera vez, después de
+   * que Gabo te mande, hace que un secuaz se acerque, se presente, te diga
+   * que te van a estar vigilando y se vaya.
+   *
+   * Es la pieza que le faltaba al arranque: hasta ahora conocías a Gabo y el
+   * piso se abría de golpe, sin que nadie te dijera quién es la gente que
+   * lleva un cono de visión pegado. Presentarlo AQUÍ —en tu sitio, a salvo,
+   * antes de que te persiga nadie— es lo que hace que la primera vez que te
+   * aborde en un pasillo ya sepas quién es.
+   *
+   * No se teletransporta a nadie: Crispo CAMINA hasta ti (su propio
+   * `INVESTIGATE` hacia tu posición) y se va andando cuando termina.
+   */
+  _updateBienvenida(dt) {
+    if (!this._esperandoPuesto || this.gameOver) return;
+    const enPuesto = this.currentSafeSpot?.kind === "desk";
+    if (!enPuesto) return;
+    this._esperandoPuesto = false;
+    const crispo = this.minions.find((m) => m.id === "crispo") ?? this.minions[0];
+    if (!crispo) return;
+    this._presentador = crispo;
+    crispo.distract({ x: this.player.position.x, z: this.player.position.z }, 20);
   }
 
   /** El diálogo con un NPC cumple su misión "como", si estaba pendiente. */

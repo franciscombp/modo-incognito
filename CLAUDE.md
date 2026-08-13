@@ -731,6 +731,36 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
     pulso), y es quien mantiene `timeGained` en sincronía con `timeLeft`.
     Lo que ya no pasa por ahí son las actividades, que pagan en energía.
   Lo vigila `npm run check:energia`.
+- **NADIE SE TELETRANSPORTA. NUNCA.** Un cuerpo que parpadea de sitio deja
+  de ser un cuerpo, y es lo primero que delata que esto es un prototipo.
+  Cuando el juego necesita llevar a alguien a un sitio se usa
+  `player.walkTo` (en `player.update`, para que pase por las MISMAS
+  colisiones, el mismo giro y la misma animación que cuando caminas tú) o se
+  le manda con `distract()`. Ya se cazaron tres: sentarte en tu puesto tras
+  un regaño, el tirón hasta la silla al fingir, y el codazo antiatasco del
+  jefe, que era de MEDIA unidad de plano — medio puesto de trabajo de un
+  cuadro al siguiente, y encima justo cuando lo estás mirando. Colocar a
+  alguien de golpe solo vale AL MONTAR EL PISO, antes de que nadie mire.
+- **El día 1 abre con GABO SENTADO** (`rules.gate.sentadoEn`, un id de
+  `safeSpots`). La primera misión no es una persecución: está reunido, se le
+  ve desde el otro lado del piso y vas a hablarle. Sentado SIGUE MIRANDO
+  —cono, halo y sospecha funcionan igual—; lo único congelado es que ande, y
+  el detector de atascos se salta (si no, lo daba por encajado contra un
+  mueble y lo iba deslizando por la sala). Hablarle lo levanta y te manda a
+  tu puesto; LLEGAR allí es lo que dispara la presentación de Crispo
+  (`_updateBienvenida` → `escenas.bienvenida` en `dialogues.json`). Lo
+  vigila `npm run check:apertura`.
+- **TOCAR A UN VIGILANTE SIEMPRE PASA ALGO.** Con la sospecha alta, el toque
+  del jefe es la amonestación de siempre. Por debajo de `chaseSuspicionFloor`
+  son DOS TIEMPOS (`_updateBossApproach`): «¿NECESITAS ALGO?» con unos
+  segundos de GRACIA —el margen literal para volver a tu sitio— y, si sigues
+  suelta al acabar, «¡TE VEO!» y arranca la caza. Antes chocarte con él con
+  la sospecha baja no hacía absolutamente nada y se leía como un juego roto.
+- **En un LUGAR SEGURO los halos RETROCEDEN.** Cortar la persecución no
+  basta: los conos se quedaban rojos encima de ti justo donde no pueden
+  tocarte. Entrar enfría la vigilancia de todos deprisa
+  (`SAFE_COOLDOWN_MUL`) y baja los `redAlert`, así que el halo se apaga solo
+  — que es lo que dice «llegaste».
 - **UN ESCONDITE PIDE SOLTAR EL MANDO.** Estar dentro no basta: solo cubre
   si te quedas QUIETA (`_updateHiding` mira `player.readIntent()`, no la
   velocidad — contra una pared la velocidad es cero y el hueco sería «entro

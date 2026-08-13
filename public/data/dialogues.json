@@ -47,7 +47,12 @@
       "blurb": "Amiga tuya. Chapter del amor: vive por y para el chisme romántico de la tribu.",
       "friend": true
     },
-    "jefe": {"name":"Gabo","alias":"Barbie Malibú","color":"#e6483f","sheet":"gabo-camina"},
+    "jefe": {
+      "name": "Gabo",
+      "alias": "Barbie Malibú",
+      "color": "#e6483f",
+      "sheet": "gabo-camina"
+    },
     "chispita": {
       "name": "Chispita",
       "color": "#f2c744",
@@ -106,7 +111,10 @@
             "mood": "tense",
             "text": "¡Bienvenida a la Célula Gris! Yo soy Gabo, trabajo aquí en diseño. Bueno, «trabajo»."
           },
-          {"speaker":"Tú","text":"Steven me dijo que te buscara. Que eres quien me presenta formalmente."},
+          {
+            "speaker": "Tú",
+            "text": "Steven me dijo que te buscara. Que eres quien me presenta formalmente."
+          },
           {
             "speaker": "Gabo",
             "text": "Ese es Steven. Mi compa de siempre. Bueno, perfecto. Aquí anda Crispo vigilando todo — no habla mucho, pero ve TODO. O al menos eso cree."
@@ -119,14 +127,20 @@
             "speaker": "Gabo",
             "text": "El punto es: trabajo aquí. Ustedes trabajan aquí. Si estás donde deberías estar, haciendo lo que deberías estar haciendo, yo estoy feliz. Si no... bueno, nos vemos."
           },
-          {"speaker":"Tú","text":"Queda claro."},
+          {
+            "speaker": "Tú",
+            "text": "Queda claro."
+          },
           {
             "speaker": "Gabo",
             "text": "Excelente. Ahora sí, que comience el día. Ve y haz lo que tengas que hacer."
           }
         ],
         [
-          {"speaker":"Gabo","text":"Te ves concentrada. Eso está bien. Sigue así."}
+          {
+            "speaker": "Gabo",
+            "text": "Te ves concentrada. Eso está bien. Sigue así."
+          }
         ],
         [
           {
@@ -143,7 +157,11 @@
       ],
       "softWarnings": [
         [
-          {"speaker":"Gabo","mood":"tense","text":"Y la de trabajar, ¿te la sabes?"}
+          {
+            "speaker": "Gabo",
+            "mood": "tense",
+            "text": "Y la de trabajar, ¿te la sabes?"
+          }
         ],
         [
           {
@@ -225,12 +243,18 @@
             "speaker": "Manu de la suerte",
             "text": "¿César te habló de LA idea? Para que conste en acta: yo la pensé primero. Él le puso el drama, que también es un aporte, no digo que no."
           },
-          {"speaker":"Tú","text":"¿Y qué es exactamente? Nadie me dice nada concreto."},
+          {
+            "speaker": "Tú",
+            "text": "¿Y qué es exactamente? Nadie me dice nada concreto."
+          },
           {
             "speaker": "Manu de la suerte",
             "text": "Concreto no hay NADA, por diseño. Si no hay nada concreto, no hay nada que reportar. Vamo a calmarno, y si alguien pregunta, esta conversación fue sobre KPIs."
           },
-          {"speaker":"Tú","text":"La mejor reunión que he tenido en esta empresa."}
+          {
+            "speaker": "Tú",
+            "text": "La mejor reunión que he tenido en esta empresa."
+          }
         ],
         [
           {
@@ -308,12 +332,18 @@
             "mood": "tense",
             "text": "Shhh. ¿Fran ya te contó? Da igual, ella cuenta todo. Solo te digo una cosa: tengo una idea que va a arreglar TODO esto. La silla, el aire a veintiuno, el jefe. Todo."
           },
-          {"speaker":"Tú","text":"¿Una idea? ¿Aquí? ¿En horario laboral?"},
+          {
+            "speaker": "Tú",
+            "text": "¿Una idea? ¿Aquí? ¿En horario laboral?"
+          },
           {
             "speaker": "César",
             "text": "En horario laboral es cuando mejor pienso: técnicamente me pagan por quejarme. Habla con Manu — él va a decir que la idea fue suya. Déjalo. Los genios no discutimos con la suerte."
           },
-          {"speaker":"Tú","text":"No sé nada, no vi nada. Pero cuéntamelo TODO."}
+          {
+            "speaker": "Tú",
+            "text": "No sé nada, no vi nada. Pero cuéntamelo TODO."
+          }
         ],
         [
           {
@@ -329,8 +359,14 @@
                 "reply": "Qué injusticia, César. Deberías escalarlo.",
                 "effect": "score+",
                 "then": [
-                  {"speaker":"César","text":"¡EXACTO! Voy a escribir un correo. Con copia a todos. AHORA."},
-                  {"speaker":"Tú","text":"Perfecto. Eso lo tiene ocupado media hora y a mí me deja libre."}
+                  {
+                    "speaker": "César",
+                    "text": "¡EXACTO! Voy a escribir un correo. Con copia a todos. AHORA."
+                  },
+                  {
+                    "speaker": "Tú",
+                    "text": "Perfecto. Eso lo tiene ocupado media hora y a mí me deja libre."
+                  }
                 ]
               },
               {
@@ -338,7 +374,11 @@
                 "reply": "César… es solo una silla.",
                 "effect": "suspicion+",
                 "then": [
-                  {"speaker":"César","mood":"angry","text":"¿SOLO UNA SILLA? ¡JEFE! ¡JEFE, VEN A ESCUCHAR ESTO!"}
+                  {
+                    "speaker": "César",
+                    "mood": "angry",
+                    "text": "¿SOLO UNA SILLA? ¡JEFE! ¡JEFE, VEN A ESCUCHAR ESTO!"
+                  }
                 ]
               }
             ]
@@ -449,7 +489,9 @@
           {
             "text": "¿Supiste lo del refrigerador del piso 9? Alguien lleva TRES meses guardando un tupper que ya tiene ecosistema propio."
           },
-          {"text":"Recursos Humanos mandó un correo. El tupper respondió. Nadie quiere abrir ese hilo."}
+          {
+            "text": "Recursos Humanos mandó un correo. El tupper respondió. Nadie quiere abrir ese hilo."
+          }
         ],
         [
           {
@@ -475,7 +517,10 @@
                 "reply": "Voy de camino, justo iba.",
                 "effect": "suspicion-",
                 "then": [
-                  {"speaker":"Chispita","text":"Bueno. Te acompaño. Es que voy para allá igual. Casualidad."}
+                  {
+                    "speaker": "Chispita",
+                    "text": "Bueno. Te acompaño. Es que voy para allá igual. Casualidad."
+                  }
                 ]
               },
               {
@@ -519,7 +564,10 @@
             "mood": "tense",
             "text": "¡TE VI! Y no corras, que el cardio de los dos ya lo hice yo."
           },
-          {"speaker":"Chispita","text":"Lo tengo que reportar. Bueno, ya lo reporté. Escribo rapidísimo."}
+          {
+            "speaker": "Chispita",
+            "text": "Lo tengo que reportar. Bueno, ya lo reporté. Escribo rapidísimo."
+          }
         ],
         [
           {
@@ -527,7 +575,10 @@
             "mood": "tense",
             "text": "¡Ey ey ey! Catorce mil pasos hoy y los últimos doscientos fueron persiguiéndote a TI."
           },
-          {"speaker":"Chispita","text":"Esto va al canal de Gabo con tres signos de exclamación. Mínimo."}
+          {
+            "speaker": "Chispita",
+            "text": "Esto va al canal de Gabo con tres signos de exclamación. Mínimo."
+          }
         ]
       ]
     },
@@ -535,7 +586,10 @@
       "cooldown": 35,
       "scenes": [
         [
-          {"speaker":"Washo","text":"Desde aquí se ve todo el ala. Todo. Incluida la cafetera."},
+          {
+            "speaker": "Washo",
+            "text": "Desde aquí se ve todo el ala. Todo. Incluida la cafetera."
+          },
           {
             "prompt": "No parpadea. Es incómodo.",
             "options": [
@@ -550,7 +604,10 @@
                   }
                 ]
               },
-              {"label":"Seguir de largo sin decir nada","reply":"…"}
+              {
+                "label": "Seguir de largo sin decir nada",
+                "reply": "…"
+              }
             ]
           }
         ],
@@ -580,7 +637,10 @@
             "mood": "tense",
             "text": "Quieta ahí. Tengo el ángulo, tengo la luz, tengo TODO."
           },
-          {"speaker":"Washo","text":"Esto va directo a mi carpeta. La carpeta existe. Créeme."}
+          {
+            "speaker": "Washo",
+            "text": "Esto va directo a mi carpeta. La carpeta existe. Créeme."
+          }
         ],
         [
           {
@@ -588,7 +648,10 @@
             "mood": "tense",
             "text": "No era penal... pero esto sí. Esto es rojísima directa."
           },
-          {"speaker":"Washo","text":"Yo no acuso: documento. Y acabo de documentarte enterita."}
+          {
+            "speaker": "Washo",
+            "text": "Yo no acuso: documento. Y acabo de documentarte enterita."
+          }
         ]
       ]
     },
@@ -596,7 +659,10 @@
       "cooldown": 35,
       "scenes": [
         [
-          {"speaker":"Crispo","text":"Esa silla lleva veintidós minutos vacía. La tuya, digo."},
+          {
+            "speaker": "Crispo",
+            "text": "Esa silla lleva veintidós minutos vacía. La tuya, digo."
+          },
           {
             "prompt": "No se ha movido del sitio en todo el día.",
             "options": [
@@ -652,7 +718,10 @@
             "mood": "tense",
             "text": "Anotado: «lejos del puesto, otra vez». Con hora. Con testigos. Con lapicero bueno."
           },
-          {"speaker":"Crispo","text":"No es personal. Es papel."}
+          {
+            "speaker": "Crispo",
+            "text": "No es personal. Es papel."
+          }
         ],
         [
           {
@@ -660,9 +729,64 @@
             "mood": "tense",
             "text": "Veintidós minutos. No pregunto dónde estabas: ya lo sé, por eso los anoté."
           },
-          {"speaker":"Crispo","text":"Gabo va a querer conversar. Él le dice conversar. Yo le digo acta."}
+          {
+            "speaker": "Crispo",
+            "text": "Gabo va a querer conversar. Él le dice conversar. Yo le digo acta."
+          }
         ]
-      ]
+      ],
+      "escenas": {
+        "$comment": "Escenas GUIONIZADAS, pedidas por id desde el motor (opts.escena). No entran en la rotacion del pozo.",
+        "bienvenida": [
+          {
+            "speaker": "Crispo",
+            "mood": "happy",
+            "text": "¡Ey! Tú eres {el nuevo|la nueva}. Crispo. Con C. Como el pollo, sí, ya me lo dijeron."
+          },
+          {
+            "speaker": "Crispo",
+            "text": "Mira, te explico rapidito cómo es la vaina acá. Este es tu puesto. TU puesto."
+          },
+          {
+            "speaker": "Crispo",
+            "mood": "angry",
+            "text": "Y nosotros —Washo, Chispita y yo— vamos a estar por ahí. Dando vueltas. Mirando. No es personal, es cultura de equipo."
+          },
+          {
+            "prompt": "Se acerca un poco más de lo necesario.",
+            "options": [
+              {
+                "label": "«¿Mirando qué exactamente?»",
+                "reply": "¿Mirando qué exactamente?",
+                "effect": "suspicion+",
+                "then": [
+                  {
+                    "speaker": "Crispo",
+                    "mood": "angry",
+                    "text": "Uy. Esa pregunta ya me dice mucho. Tranquil{o|a}, tranquil{o|a}. Solo que estés en tu silla. Es facilito."
+                  }
+                ]
+              },
+              {
+                "label": "«Perfecto, aquí me quedo.»",
+                "reply": "Perfecto. Aquí me quedo, entonces.",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "Crispo",
+                    "mood": "happy",
+                    "text": "¡ESO! Así se habla. Me caes bien. Voy a anotar que me caes bien."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "speaker": "Crispo",
+            "text": "Bueno, sigo mi ronda. Si te levantas, no es que pase nada… pero pasa. Chao pescao."
+          }
+        ]
+      }
     },
     "giuli": {
       "cooldown": 30,
@@ -672,12 +796,18 @@
             "speaker": "Giuli",
             "text": "Yo no sé qué se traen César y Manu, y OFICIALMENTE no quiero saber. Extraoficialmente: si necesitas que alguien mire para otro lado, llevo años entrenando esa mirada."
           },
-          {"speaker":"Tú","text":"¿Y qué pides a cambio?"},
+          {
+            "speaker": "Tú",
+            "text": "¿Y qué pides a cambio?"
+          },
           {
             "speaker": "Giuli",
             "text": "Que cuando esto explote —porque va a explotar bonito— yo me entere PRIMERO. El chisme fresco no tiene precio: es mi plan de retiro."
           },
-          {"speaker":"Tú","text":"Trato hecho."}
+          {
+            "speaker": "Tú",
+            "text": "Trato hecho."
+          }
         ],
         [
           {
@@ -699,7 +829,10 @@
                   }
                 ]
               },
-              {"label":"«Ahora no, voy justa de tiempo.»","reply":"Ahora no, Giuli, voy justa de tiempo."}
+              {
+                "label": "«Ahora no, voy justa de tiempo.»",
+                "reply": "Ahora no, Giuli, voy justa de tiempo."
+              }
             ]
           }
         ],
@@ -725,7 +858,9 @@
           {
             "text": "Chisme fino: Gabo pidió una silla ergonómica «de importación». Llegó una silla normal con una etiqueta que dice «ergonomic» pegada con cinta."
           },
-          {"text":"Se sienta como si fuera un trono. Nadie le ha dicho nada. Es más bonito así."}
+          {
+            "text": "Se sienta como si fuera un trono. Nadie le ha dicho nada. Es más bonito así."
+          }
         ]
       ]
     },
@@ -751,7 +886,10 @@
                   }
                 ]
               },
-              {"label":"«Luego, Fran.»","reply":"Luego, Fran, ahora no puedo."}
+              {
+                "label": "«Luego, Fran.»",
+                "reply": "Luego, Fran, ahora no puedo."
+              }
             ]
           }
         ],
@@ -777,7 +915,9 @@
           {
             "text": "Alguien imprimió 200 páginas de memes de Shakira en la impresora buena y ahora hay una investigación interna. Con comité y todo."
           },
-          {"text":"El principal sospechoso es el comité."}
+          {
+            "text": "El principal sospechoso es el comité."
+          }
         ]
       ]
     },
@@ -801,7 +941,10 @@
                     "speaker": "El Parce",
                     "text": "¡Eso es! Al seco. Ahora sonría normal, que si el jefe la ve así de contenta sospecha."
                   },
-                  {"speaker":"Tú","text":"Uf. Esto quema más que la reunión de las tres."}
+                  {
+                    "speaker": "Tú",
+                    "text": "Uf. Esto quema más que la reunión de las tres."
+                  }
                 ]
               },
               {
@@ -847,7 +990,9 @@
           {
             "text": "Ala parce, ¿le cuento el chisme gordo? En el cajón de Crispo no hay cuadernos. Hay UN cuaderno... con la lista de cuántas veces parpadea cada uno."
           },
-          {"text":"A mí me tiene en 12.400 este mes. Dice que parpadeo «con intención». Vamo a calmarno."}
+          {
+            "text": "A mí me tiene en 12.400 este mes. Dice que parpadeo «con intención». Vamo a calmarno."
+          }
         ]
       ]
     }
@@ -931,16 +1076,24 @@
       }
     ],
     [
-      {"text":"Uy no, ya hablamos mucho. Crispo lleva DOS minutos mirándonos y apuntando. Circula."}
+      {
+        "text": "Uy no, ya hablamos mucho. Crispo lleva DOS minutos mirándonos y apuntando. Circula."
+      }
     ],
     [
-      {"text":"Corte. Viene Chispita y ese no camina: PATRULLA. Luego seguimos."}
+      {
+        "text": "Corte. Viene Chispita y ese no camina: PATRULLA. Luego seguimos."
+      }
     ],
     [
-      {"text":"Tengo una 'reunión'. Las comillas se escuchan, ¿verdad? Bueno. Chau."}
+      {
+        "text": "Tengo una 'reunión'. Las comillas se escuchan, ¿verdad? Bueno. Chau."
+      }
     ],
     [
-      {"text":"Si Gabo pregunta, esto era una daily. Si Crispo pregunta, NUNCA hablamos."}
+      {
+        "text": "Si Gabo pregunta, esto era una daily. Si Crispo pregunta, NUNCA hablamos."
+      }
     ]
   ]
 }

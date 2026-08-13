@@ -128,13 +128,30 @@ const vivo = await p.evaluate(async () => {
   const g = window.__game.engine.game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   g._caughtCooldown = 999;
+  // Y CON MOTIVO PARA VENIR: en ronda puede tocarle un tramo parado, y lo
+  // que se mide aquí no es su ruta, es que el mundo NO está congelado —
+  // activar una tarea dejaba a Gabo de estatua y esa era la captura rota.
+  // Justo por encima del umbral de caza y por DEBAJO del nivel 3 de
+  // búsqueda: pasado ese nivel, game.js pausa la partida con su aviso a
+  // pantalla completa y lo que se mediría es un juego parado.
+  g.onHeatAlert = null;
+  g.suspicion = Math.max(g.suspicion, g.boss.chaseSuspicionFloor + 5);
+  g.boss.suspicion = g.suspicion;
   g.boss.position.x = g.player.position.x + 30;
   g.boss.position.z = g.player.position.z;
+  g.boss.startChase();
   const antes = { x: g.boss.position.x, z: g.boss.position.z };
   const st = g.objectives.find((o) => o.gesto && !o.dynamic);
   const limite0 = st.limiteLeft ?? st.limite;
   const reloj0 = g.timeLeft;
-  await sleep(900);
+  // POR CUADROS, no con `sleep()`. En headless el bucle de render va
+  // estrangulado y en una vuelta cargada puede no pasar NI UN cuadro: lo que
+  // se medía entonces era la máquina, y «el jefe sigue viniendo» salía cara o
+  // cruz. Es la misma lección que ya se aplicó en check-chase.
+  for (let i = 0; i < 54; i++) {
+    if (g.paused) g.setPaused(false);
+    g.update(1 / 60);
+  }
   return {
     // No es la pausa de menú: el juego no está `paused` — está en SU modo.
     pausado: g.paused,

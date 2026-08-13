@@ -448,6 +448,39 @@ export class Boss {
     );
   }
 
+  /**
+   * SENTARLO A UNA MESA. Es lo que hace que la primera misión del día no sea
+   * una persecución: Gabo está reunido en una sala, se le ve desde lejos y
+   * vas a hablarle — en vez de correr detrás de alguien que patrulla el piso
+   * entero mientras tú todavía no sabes ni dónde está tu puesto.
+   *
+   * Se sienta AL MONTAR EL PISO, nunca a mitad de partida: colocarlo de un
+   * frame al siguiente sería el teletransporte que estamos quitando.
+   *
+   * Sigue MIRANDO (su cono, su halo y su sospecha funcionan igual); lo único
+   * que se congela es que ande. Un jefe sentado que además fuera ciego sería
+   * un mueble.
+   */
+  sitAt({ x, z, facing = 0 }) {
+    this.position.x = x;
+    this.position.z = z;
+    this.seated = true;
+    this.state = PATROL;
+    this.lockedOn = false;
+    this.facingDir = { x: Math.sin(facing), z: Math.cos(facing) };
+    this.desiredFacing = { ...this.facingDir };
+    this.sprite?.setHeading(this.facingDir.x, this.facingDir.z);
+    this.sprite?.setPose?.("sitWork");
+  }
+
+  /** Se levanta y vuelve a su ronda. Lo llama la puerta del día al superarse. */
+  standUp() {
+    if (!this.seated) return;
+    this.seated = false;
+    this.sprite?.setPose?.(null);
+    this._resumeNearestRoutePoint();
+  }
+
   /** Where slacking tends to happen: the boss drifts toward these on patrol. */
   /**
    * Atarlo a alguien: mientras patrulla no se va del piso entero, se queda
@@ -557,7 +590,10 @@ export class Boss {
     this._updateStuck(dt);
 
     const target = this._pickTarget(player);
-    const dir = this._moveToward(dt, this._steer(dt, target));
+    // Sentado NO se mueve — pero sigue viendo, girando la cabeza y
+    // sospechando: eso ya pasó por encima. Un jefe sentado y ciego sería un
+    // mueble; uno sentado y atento es una reunión de la que te vigila.
+    const dir = this.seated ? null : this._moveToward(dt, this._steer(dt, target));
     // Adónde MIRA. Persiguiéndote (o simplemente teniéndote a la vista) el
     // cono se queda encarado a la jugadora aunque el cuerpo esté rodeando una
     // mesa; si no, mira hacia donde camina.
@@ -855,6 +891,14 @@ export class Boss {
    * table until the day ends.
    */
   _updateStuck(dt) {
+    // SENTADO NO ESTÁ ATASCADO, ESTÁ SENTADO. Sin esto el detector veía a
+    // Gabo sin avanzar en su silla, lo daba por encajado contra un mueble y
+    // le metía el codazo de abajo cada pocos segundos: el jefe se iba
+    // deslizando solo por la sala de reuniones.
+    if (this.seated) {
+      this._stuckTimer = 0;
+      return;
+    }
     const moved = Math.hypot(this.position.x - this._lastPos.x, this.position.z - this._lastPos.z);
     this._lastPos.x = this.position.x;
     this._lastPos.z = this.position.z;
@@ -899,13 +943,20 @@ export class Boss {
       this.searchTimer = 5;
     }
 
-    // Empujón lateral pequeño para salir de un bloqueo numérico exacto (dos
+    // Empujón lateral para salir de un bloqueo numérico exacto (dos
     // colisionadores que se cancelan cada frame): sin esto, el cambio de
     // objetivo de arriba no sirve de nada si la posición sigue exactamente
     // encajada donde estaba.
+    //
+    // ERA DE MEDIA UNIDAD DE PLANO, o sea medio puesto de trabajo de un
+    // cuadro al siguiente: un teletransporte pequeño, y de los que más se
+    // notan porque pasa justo cuando estás mirando al jefe atascado contra
+    // una mesa. Ahora es un CODAZO (0.12): suficiente para romper un empate
+    // numérico, demasiado poco para verse como un salto. Si de verdad sigue
+    // encajado, el del cuadro siguiente lo termina de sacar.
     const nudge = Math.random() * Math.PI * 2;
-    this.position.x += Math.cos(nudge) * 0.5 * S;
-    this.position.z += Math.sin(nudge) * 0.5 * S;
+    this.position.x += Math.cos(nudge) * 0.12 * S;
+    this.position.z += Math.sin(nudge) * 0.12 * S;
     if (this.world) this.world.resolveCircle(this.position, this.radius);
   }
 
