@@ -485,12 +485,14 @@ export function createHud(root) {
 
     renderObjectives(state.objectives);
 
-    if (state.message) {
-      toast.textContent = state.message.text;
-      toast.classList.add("visible");
-    } else {
-      toast.classList.remove("visible");
-    }
+    // EL TOAST YA NO SE PINTA AQUÍ. Vivía abajo en el centro
+    // (`position: fixed; bottom`), justo encima de la tarjeta de acción, la
+    // tira del pulso y la píldora de mandos — tres cosas del bucle tapadas
+    // por una línea de texto. Ahora `state.message` lo reparte el director
+    // de mensajes (`ui/messages.js`) por urgencia: al centro si apremia, al
+    // carril lateral si no. El nodo se queda oculto porque de él cuelga el
+    // resto de la columna histórica.
+    toast.classList.remove("visible");
 
     const statusBits = [];
     if (state.isHiding) statusBits.push(`${svgIcon("hide", { size: 14 })} ESCONDIDA`);

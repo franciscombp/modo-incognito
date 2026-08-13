@@ -1,4 +1,5 @@
 import { iconEl } from "./icons.js";
+import { createMessageDirector, URGENCIA } from "./messages.js";
 import { createPortrait3D } from "./portrait3d.js";
 // La proyección de suelo → pantalla, la MISMA que usan los mandos y la
 // flecha del rastreador: así el «hacia allá» de la lista y el «hacia allá»
@@ -143,25 +144,43 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   // sin buscarlos: te vieron, amonestación, te falta el objeto, tarea
   // lista. Lo alimenta game.announce() vía el snapshot (bigMessage); aquí
   // solo se pinta — una sola verdad, como todo lo demás.
-  const announce = el("div", "inc-announce", layer);
+  // Los DOS CARRILES salen de `ui/messages.js`, que es quien decide qué se ve
+  // y dónde. Antes esto pintaba el anuncio por su cuenta y las tarjetas por
+  // otra, y ninguno sabía del otro (ni de la lista de misiones, que ocupa la
+  // misma esquina). La regla, en un sitio: lo urgente al CENTRO, lo demás AL
+  // LADO.
+  const mensajes = createMessageDirector(layer, iconEl);
   let announceKey = null;
+  let toastKey = null;
 
   function renderAnnounce(state) {
+    // ANUNCIO GRANDE: urgencia máxima, va al centro. Detección de flanco por
+    // `key` — el snapshot lo trae como ESTADO con temporizador, así que sin
+    // la llave se re-dispararía en cada cuadro.
     const m = state.bigMessage;
-    if (!m) {
-      announce.classList.remove("show");
-      announceKey = null;
-      return;
-    }
-    if (m.key !== announceKey) {
+    if (m && m.key !== announceKey) {
       announceKey = m.key;
-      announce.textContent = m.text;
-      announce.dataset.tone = m.tone ?? "danger";
-      // Reinicia la animación aunque el texto se repita (dos amonestaciones
-      // seguidas dicen lo mismo y las dos tienen que golpear).
-      announce.classList.remove("show");
-      void announce.offsetWidth;
-      announce.classList.add("show");
+      mensajes.post({
+        text: m.text,
+        tone: m.tone ?? "danger",
+        urgencia: URGENCIA.URGENTE,
+      });
+    } else if (!m) {
+      announceKey = null;
+    }
+
+    // TOAST: por defecto es ambiente y se va al lado. Solo sube al centro si
+    // quien lo lanzó lo marcó como urgente (`game.toast(txt, URGENCIA...)`).
+    const t = state.message;
+    if (t && t.key !== toastKey) {
+      toastKey = t.key;
+      mensajes.post({
+        text: t.text,
+        tone: t.tone ?? "info",
+        urgencia: t.urgencia ?? URGENCIA.AMBIENTE,
+      });
+    } else if (!t) {
+      toastKey = null;
     }
   }
 
@@ -324,19 +343,14 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   }
 
   // ── AVISOS (caen bajo el reloj y se van solos) ────────────────────────
-  const notices = el("div", "inc-bar-notices", layer);
-  function notify({ icon = "alert", text = "", tone = "info", ttl = 4200 } = {}) {
-    const card = el("div", `inc-notice inc-notice--${tone}`, notices);
-    const ic = el("span", "inc-notice-icon", card);
-    ic.appendChild(iconEl(icon));
-    el("span", "inc-notice-text", card, text);
-    setTimeout(() => {
-      card.classList.add("out");
-      setTimeout(() => card.remove(), 400);
-    }, ttl);
+  // `notify()` mantiene su firma —engine.js la llama— pero ya no pinta en la
+  // esquina de las misiones: entra por el MISMO carril lateral que todo lo
+  // ambiente. Un solo sitio decide dónde va cada cosa.
+  function notify({ icon = "alert", text = "", tone = "info" } = {}) {
+    mensajes.post({ text, tone, icon, urgencia: URGENCIA.AVISO });
   }
   function resetNotices() {
-    notices.replaceChildren();
+    mensajes.reset();
   }
 
   // Teclas 1..3: seguir esa misión. El atajo vive aquí y no en main.js para

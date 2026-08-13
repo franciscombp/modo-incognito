@@ -14,6 +14,7 @@ dibuja todo, y las pantallas de menú.
 | §2 Selección de personaje como expediente | ◻︎ sin construir — sigue la pantalla de login anterior |
 | §3.2 Evaluación de desempeño | ✅ construido | `src/ui/review.js` |
 | §4 RRHH | ✅ construido | `src/ui/hrCourse.js`, bloque «CURSO DE RRHH» del DS |
+| §1.8bis El escenario ES el menú (ascensor, escritorio, espejo) | ◻︎ **en diseño** | Dirección nueva: sin cajas ni contenedores; la transición son las puertas del ascensor |
 
 **Referencias en el repo** (`docs/referencias/pantallas/`):
 
@@ -175,6 +176,58 @@ En vez de seis tamaños:
 3. Que **nada se sale** del lienzo (que es lo que hoy se comprueba, pero
    contra un canvas fijo en vez de contra seis viewports).
 4. Que un clic en una esquina **llega a la esquina** — la trampa de §1.3.2.
+
+## 1.8bis EL ESCENARIO **ES** EL MENÚ — ◻︎ por construir
+
+> **Decisión de dirección (supera a §1.8 para los menús).** §1.8 quería
+> paneles inclinados flotando *delante* del escenario. La dirección nueva va
+> un paso más allá: **no hay panel.** La caja, el contenedor y el borde
+> desaparecen, y lo que queda es un SITIO del edificio que además funciona
+> como menú. §1.8 sigue valiendo para lo que sí es interfaz (pausa, ajustes).
+
+**La estructura de los menús NO cambia** — mismas pantallas, mismo orden,
+mismos datos. Lo que cambia es el DECORADO y la estética de cada una:
+
+| Pantalla | Hoy | El sitio que la sustituye |
+|---|---|---|
+| Título | Tres botones en una caja | **La botonera del ascensor**: cada planta es una opción |
+| Elegir partida (ranuras) | Tres tarjetas de «hoja de vida» | **Un escritorio con los CV encima**: coges una carpeta |
+| Elegir personaje | Rejilla de tarjetas | **El espejo del baño**: te miras y te retocas |
+| Pausa / ajustes | Panel | Sigue siendo interfaz (§1.8): no todo tiene que ser diegético |
+
+**La transición ES la ficción, no un fundido.** Entre pantallas se CIERRAN y
+se ABREN las puertas del ascensor. Eso resuelve tres cosas de golpe: tapa el
+cambio de decorado (que es lo que un fundido hace mal), explica el salto
+—estás yendo a otro sitio del edificio— y da el tiempo de carga que el 3D
+necesita sin que parezca una espera.
+
+### Lo que hay que respetar al construirlo
+
+- **El lienzo fijo no se toca** (§1). Estas pantallas se dibujan dentro de
+  1920×1080 como todo lo demás.
+- **Lo pulsable sigue saliendo de la receta única de botón** aunque parezca un
+  botón de ascensor: la piel cambia, la geometría y los estados no. Un botón
+  diegético que no se nota pulsable es un menú roto.
+- **Legibilidad primero.** Un CV sobre una mesa en perspectiva se lee peor que
+  una tarjeta recta. Si hay que elegir, gana leerlo: se acerca la cámara al
+  papel en vez de dejarlo tumbado a lo lejos.
+- **Accesibilidad.** Con `prefers-reduced-motion` las puertas no se animan:
+  cortan. Y todo lo pulsable sigue siendo alcanzable por teclado, aunque su
+  aspecto sea un botón de latón.
+- **Una sola escena 3D.** Ascensor, escritorio y espejo son ENCUADRES de la
+  misma escena y el mismo `Character3D`, no tres montajes: es lo que evita
+  que cada pantalla cargue lo suyo y tarde.
+
+### El orden en que conviene hacerlo
+
+1. **El armazón compartido**: una pantalla = un decorado + una lista de
+   opciones. Si esto no es común a las cuatro, se acaban escribiendo cuatro
+   menús distintos y volvemos a donde estábamos.
+2. **La transición de puertas**, que es la pieza que las une.
+3. **La botonera del ascensor** (título), que es la entrada.
+4. El escritorio con los CV, y el espejo del baño.
+
+---
 
 ## 1.8 Los menús son PLANOS EN EL ESPACIO, no capas planas
 

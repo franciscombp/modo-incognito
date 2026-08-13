@@ -253,7 +253,10 @@ const plazo = await p.evaluate(async () => {
   st.done = false;
   st.progress = st.time * 0.7;
   st.limiteLeft = 0.02;
-  const avisosAntes = document.querySelectorAll(".inc-notice").length;
+  // `.inc-msg` es el carril LATERAL del director de mensajes (ui/messages.js).
+  // Antes esto miraba `.inc-notice`, la clase de las tarjetas que vivían
+  // arriba a la derecha encima de la lista de misiones; ese canal se retiró.
+  const avisosAntes = document.querySelectorAll(".inc-msg").length;
   // Dos cuadros: el primero agota la cuenta, y con eso basta. Se llama a
   // `update` a mano para que no dependa de cuándo pinte el navegador.
   g.update(1 / 60);
@@ -267,7 +270,7 @@ const plazo = await p.evaluate(async () => {
     sobreElUmbral: g.suspicion >= g.boss.chaseSuspicionFloor,
     // Y NO amonesta a distancia: eso sigue siendo cosa de que te toque.
     sinAmonestacion: g.warnings === 0,
-    aviso: document.querySelectorAll(".inc-notice").length > avisosAntes,
+    aviso: document.querySelectorAll(".inc-msg").length > avisosAntes,
   };
 });
 assert("agotar la cuenta pierde lo hecho", plazo.progresoPerdido === true, JSON.stringify(plazo));

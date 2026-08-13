@@ -376,6 +376,7 @@ export class Game {
     // animación aunque el texto se repita.
     this.bigMessage = null;
     this._bigMsgSeq = 0;
+    this._msgSeq = 0;
     this._prevBossState = null;
     this._actionFlash = null;
     this.currentArea = null;
@@ -922,7 +923,7 @@ export class Game {
           }
         });
       } else {
-        this.toast("¡Ya te vio! Una distracción no lo detiene ahora.");
+        this.toast("¡Ya te vio! Una distracción no lo detiene ahora.", 2, "danger");
       }
     } else if (holdingSpace && !this._prevInteractKey && this.nearStation && this.pulse.active) {
       // EL TOQUE DEL PULSO. Es un flanco de subida sobre la MISMA tecla que
@@ -1292,7 +1293,7 @@ export class Game {
     this.boss.suspicion = this.suspicion;
     this.boss.startChase();
 
-    this.toast(`${station.label}: se te acabó el tiempo`);
+    this.toast(`${station.label}: se te acabó el tiempo`, 2, "danger");
     this.hud?.menuBar?.notify?.({
       icon: "alert",
       text: `${station.label}: te descubrieron. Viene hacia ti.`,
@@ -1432,9 +1433,9 @@ export class Game {
       // el mismo segundo. Acabas de sentarte donde te corresponde: el
       // chivatazo pierde frescura unos segundos.
       this._huntTimer = Math.max(this._huntTimer, 8);
-      this.toast("A salvo: Gabo se aleja");
+      this.toast("A salvo: Gabo se aleja", 1, "ok");
     } else if (broke) {
-      this.toast("Lugar seguro: dejan de perseguirte");
+      this.toast("Lugar seguro: dejan de perseguirte", 1, "ok");
     }
     return broke;
   }
@@ -1466,7 +1467,7 @@ export class Game {
     if (level !== this.heat) {
       if (level > this.heat) {
         buzz([20, 30, 20]);
-        this.toast(`Nivel de búsqueda ${level}`);
+        this.toast(`Nivel de búsqueda ${level}`, 1, "warn");
         // NIVEL 3 = ALARMA GENERAL, y eso no cabe en un toast que nadie ve
         // mientras esquiva mesas: el juego se PAUSA con un aviso a pantalla
         // completa (lo pinta el engine, ver onHeatAlert) y no sigue hasta
@@ -1811,7 +1812,7 @@ export class Game {
       state.usedFor += dt;
       if (state.usedFor >= HIDE_MAX_USE) {
         state.cooldownLeft = HIDE_COOLDOWN;
-        this.toast("Ese escondite se quemó. Busca otro.");
+        this.toast("Ese escondite se quemó. Busca otro.", 2, "warn");
         buzz(30);
         return;
       }
@@ -1968,9 +1969,9 @@ export class Game {
 
     const final = this.warnings >= this.rules.maxWarnings;
     if (final) {
-      this.toast("Última advertencia: te ascienden a cliente.");
+      this.toast("Última advertencia: te ascienden a cliente.", 2, "danger");
     } else {
-      this.toast("Amonestación por escrito. Van a la carpeta.");
+      this.toast("Amonestación por escrito. Van a la carpeta.", 1, "danger");
     }
     // El motor (engine.js) muestra el diálogo del regaño y, cuando lo cierra,
     // le da al jefe unos segundos sin observar — si lo hiciéramos aquí, ese
@@ -2058,7 +2059,7 @@ export class Game {
         );
         this.boss.suspicion = this.suspicion;
         this.boss.startChase();
-        this.toast("Gabo te vio dormida: viene a despertarte.");
+        this.toast("Gabo te vio dormida: viene a despertarte.", 2, "danger");
       }
       if (this.asleepFor <= 0) {
         this.player.isAsleep = false;
@@ -2077,7 +2078,7 @@ export class Game {
     if (this.energy <= 0) {
       this.asleepFor = SLEEP_SECONDS;
       this.announce("TE QUEDASTE DORMIDA", "warn");
-      this.toast("Sin energía: come o toma algo para reponerte.");
+      this.toast("Sin energía: come o toma algo para reponerte.", 2, "warn");
       sfxWarn();
       buzz([30, 40, 30]);
     }
@@ -2108,7 +2109,7 @@ export class Game {
 
     if (sonLasSeis && !this.closingAnnounced) {
       this.closingAnnounced = true;
-      this.toast("Las seis. Todo el mundo a casa — sal por el ascensor.");
+      this.toast("Las seis. Todo el mundo a casa — sal por el ascensor.", 2, "warn");
       sfxWarn();
       // Los compañeros recogen y se van. El jefe y sus secuaces NO: el
       // último en irse es siempre el que vigila, y quedarte sola en un piso
@@ -2138,7 +2139,7 @@ export class Game {
    * cuyo caso `_warn()` ya se encarga de cerrar el día por su cuenta.
    */
   _lockedIn() {
-    this.toast("Te quedaste encerrada. Baja el guardia y te saca del piso.");
+    this.toast("Te quedaste encerrada. Baja el guardia y te saca del piso.", 2, "danger");
     this._warn();
     if (!this._finished) this._finish(false);
   }
@@ -2195,8 +2196,18 @@ export class Game {
     }
   }
 
-  toast(text) {
-    this.message = { text, timer: 2.6 };
+  /**
+   * Una línea de mensaje. Por defecto es AMBIENTE y sale en el carril
+   * lateral (`ui/messages.js`); solo sube al centro lo que se marque
+   * urgente, y eso se decide aquí, en quien lo lanza — no en el HUD, que no
+   * puede saber si «+12 energía» importa más que «viene a por ti».
+   *
+   * Lleva `key` por lo mismo que `announce`: el snapshot lo pasa como
+   * ESTADO con temporizador, y sin llave el HUD lo re-dispararía en cada
+   * cuadro mientras dure.
+   */
+  toast(text, urgencia = 0, tone = "info") {
+    this.message = { text, timer: 2.6, urgencia, tone, key: ++this._msgSeq };
   }
 
   /**

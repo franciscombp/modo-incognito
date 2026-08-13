@@ -9641,6 +9641,25 @@ body {
    oscuro duro, plantado en el centro-alto de la pantalla. Sin caja — el
    contorno es lo que lo separa de cualquier fondo, como en la referencia.
    Se pinta desde game.announce() vía snapshot; dura ~2 s y se va solo. */
+/* ═════════════════════════════════════════════════════════════════════
+   LOS DOS CARRILES DE MENSAJE  (src/ui/messages.js)
+
+   Había cuatro canales escribiendo por su cuenta y ninguno sabía de los
+   otros: el anuncio en el centro, el toast ABAJO EN EL CENTRO (encima de la
+   tarjeta de acción, la tira del pulso y la píldora de mandos), las
+   notificaciones ARRIBA A LA DERECHA (donde vive la lista de misiones) y el
+   aviso de Teams también a la derecha. Tres peleándose por una esquina y una
+   cuarta tapando la acción en curso.
+
+   Ahora son dos, y la regla es de una línea: LO URGENTE AL CENTRO, LO DEMÁS
+   AL LADO. El lado es la IZQUIERDA bajo la placa, que es la única banda libre
+   del HUD — placa arriba, misiones a la derecha, reloj en el centro, acción
+   abajo.
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* El carril del CENTRO comparte piel con el anuncio grande de siempre: es el
+   mismo golpe, solo que ahora hay UN sitio que decide quién llega aquí. */
+.inc-msg-centro,
 .inc-announce {
   position: absolute;
   left: 50%;
@@ -9665,10 +9684,13 @@ body {
   pointer-events: none;
   z-index: 30;
 }
+.inc-msg-centro.show,
 .inc-announce.show {
   animation: inc-announce-pop 2.2s var(--ease-pop) forwards;
 }
+.inc-msg-centro[data-tone="warn"],
 .inc-announce[data-tone="warn"] { color: hsl(var(--p-warn)); }
+.inc-msg-centro[data-tone="ok"],
 .inc-announce[data-tone="ok"] { color: hsl(var(--p-ok)); }
 @keyframes inc-announce-pop {
   0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
@@ -11643,4 +11665,126 @@ body.inc-acting #hint {
 .inc-plate-carry-item.hot {
   border-color: var(--warn);
   color: var(--warn);
+}
+
+
+/* ── EL CARRIL LATERAL ────────────────────────────────────────────────
+   Bajo la placa, apilando hacia abajo. Tope de tres tarjetas por código
+   (LADO_MAX): con el jefe encima llegan cuatro cosas a la vez y una columna
+   infinita taparía media pantalla. */
+.inc-msg-lado {
+  position: absolute;
+  top: 148px;
+  left: 18px;
+  width: 236px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+  z-index: 28;
+}
+
+.inc-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--card-radius);
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  font-family: var(--sans);
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text);
+  animation: mi-notice-in 0.34s var(--ease-pop) both;
+}
+
+.inc-msg.out {
+  animation: inc-notice-out 0.4s ease forwards;
+}
+
+.inc-msg-icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  margin-top: 1px;
+  opacity: 0.8;
+}
+
+.inc-msg-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.inc-msg-text {
+  min-width: 0;
+}
+
+/* El TONO se lee por el filo, no por el fondo: un relleno de color a media
+   pantalla compite con el piso, que es lo que hay que estar mirando. */
+.inc-msg--warn {
+  border-left: 3px solid var(--warn);
+}
+.inc-msg--warn .inc-msg-icon {
+  color: var(--warn);
+  opacity: 1;
+}
+.inc-msg--danger {
+  border-left: 3px solid var(--danger);
+}
+.inc-msg--danger .inc-msg-icon {
+  color: var(--danger);
+  opacity: 1;
+}
+.inc-msg--ok {
+  border-left: 3px solid var(--accent);
+}
+.inc-msg--ok .inc-msg-icon {
+  color: var(--accent);
+  opacity: 1;
+}
+
+/* El aviso de TEAMS baja al mismo carril: estaba arriba a la derecha, encima
+   de la lista de misiones. Sigue con su piel de notificación de escritorio
+   —es parte del chiste— pero deja de pelear por esa esquina. */
+.inc-teams-toast {
+  top: auto !important;
+  right: auto !important;
+  bottom: 24px;
+  left: 18px;
+  z-index: 29;
+}
+
+
+/* LA BANDA LIBRE DEL CENTRO, medida y no adivinada.
+   El anuncio estaba a `top: 34%` y con `max-width: 86%`: en un lienzo de
+   1280×720 eso son x 372–908 e y 194–296, y la lista de misiones ocupa
+   x 882–1262 e y 18–240. Se solapaban 28×46 px — el golpe más importante del
+   juego, metido debajo del panel de tareas.
+
+   Estrecharlo no basta: para librar la columna derecha estando centrado
+   habría que bajar de 38% de ancho, y entonces «¡GABO TE VIO!» se parte en
+   tres líneas. Lo que sí sobra es ALTURA: entre el final de las misiones
+   (240) y el techo de la tarjeta de acción (548) hay 308 px de banda vacía.
+   El carril se planta ahí. */
+.inc-msg-centro {
+  top: 44%;
+  max-width: 62%;
+}
+
+
+/* EL CARRIL DEL CENTRO HEREDA EL GOLPE DEL ANUNCIO.
+   Se quedó a `opacity: 0` la primera vez: la piel base sí se compartía, pero
+   la regla que lo ENCIENDE (`.show`, que es quien corre la animación) seguía
+   nombrando solo a `.inc-announce`. Un mensaje colocado, con su clase puesta
+   y en su sitio, y sin pintar un píxel — el mismo tipo de fallo que el globo
+   del Zzz con la opacidad a cero. */
+.inc-msg-centro.show {
+  animation: inc-announce-pop 2.2s var(--ease-pop) forwards;
+}
+.inc-msg-centro[data-tone="warn"] { color: hsl(var(--p-warn)); }
+.inc-msg-centro[data-tone="ok"] { color: hsl(var(--p-ok)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .inc-msg-centro.show { animation: none; opacity: 1; transform: translate(-50%, -50%); }
 }
