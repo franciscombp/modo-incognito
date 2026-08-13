@@ -5,6 +5,16 @@ Para el mapa completo de "quiero cambiar X → edito Y" con enlaces a GitHub,
 usa la tabla del [README.md](https://github.com/franciscombp/modo-incognito/blob/main/README.md#quiero-cambiar-x--edito-y) —
 no la dupliques aquí.
 
+**Para verlo funcionando** (publicado desde `main`, se actualiza solo):
+[el juego](https://franciscombp.github.io/modo-incognito/) ·
+[builder de mapas](https://franciscombp.github.io/modo-incognito/creador/mapas/) ·
+[de personajes](https://franciscombp.github.io/modo-incognito/creador/personajes/) ·
+[de música](https://franciscombp.github.io/modo-incognito/creador/musica/) ·
+[de pantallas](https://franciscombp.github.io/modo-incognito/creador/pantallas/).
+La lista completa de enlaces directos —builders, documentos de diseño y los
+JSON que más se tocan— está en
+[README.md → «Enlaces directos»](https://github.com/franciscombp/modo-incognito/blob/main/README.md#enlaces-directos).
+
 > **El diseño del juego vive en `docs/`, no aquí.** Este archivo es el mapa
 > del REPO; aquellos, los del JUEGO:
 > - [`docs/MOTOR.md`](docs/MOTOR.md) — reglas y balance del bucle: sospecha,
@@ -1046,6 +1056,15 @@ Herramientas visuales para editar el juego sin tocar código. Son **entradas
 separadas de Vite** (ver `vite.config.js` → `rollupOptions.input`), así que se
 sirven desde el mismo servidor que el juego en `http://localhost:5173/creador/` 
 (`npm run dev`) y salen publicadas con él.
+
+**Se abren con un clic, sin instalar nada** — salen publicados con el juego:
+
+| Builder | En vivo | En local |
+|---|---|---|
+| Mapas | <https://franciscombp.github.io/modo-incognito/creador/mapas/> | `/creador/mapas/` |
+| Personajes | <https://franciscombp.github.io/modo-incognito/creador/personajes/> | `/creador/personajes/` |
+| Música | <https://franciscombp.github.io/modo-incognito/creador/musica/> | `/creador/musica/` |
+| Pantallas | <https://franciscombp.github.io/modo-incognito/creador/pantallas/> | `/creador/pantallas/` |
 
 - `creador/mapas/` — editor 2D del plano y del día. Lee los mismos JSON que el 
   juego y devuelve JSON para pegar — **no escribe en el repo a propósito**. Si

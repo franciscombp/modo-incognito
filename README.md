@@ -49,6 +49,55 @@ Pages* debe estar en modo **GitHub Actions** (no "Deploy from a branch") — no
 hay ningún build commiteado en el repo, así que ese es el único modo que
 funciona.
 
+## Enlaces directos
+
+### Abrir y usar (publicado, sin instalar nada)
+
+Los builders **salen publicados con el juego** porque son entradas de Vite,
+no páginas sueltas: se abren desde el navegador con un clic, igual que el
+juego. Se actualizan solos en cada push a `main`.
+
+| | Enlace | Para qué |
+|---|---|---|
+| 🎮 **El juego** | <https://franciscombp.github.io/modo-incognito/> | Jugar el día 1 |
+| 🗺️ **Builder de mapas** | <https://franciscombp.github.io/modo-incognito/creador/mapas/> | Mover zonas, tareas, escondites y distracciones con el ratón. **Devuelve JSON para pegar** — no escribe en el repo |
+| 🧍 **Builder de personajes** | <https://franciscombp.github.io/modo-incognito/creador/personajes/> | Ver el reparto en 3D en vivo, cambiar piezas de una receta y probar poses |
+| 🎵 **Builder de música** | <https://franciscombp.github.io/modo-incognito/creador/musica/> | Ánimo, tempo, mezcla y playhead de la pista principal |
+| 🖼️ **Builder de pantallas** | <https://franciscombp.github.io/modo-incognito/creador/pantallas/> | Storybook de la interfaz y CSS en vivo |
+
+> Los builders importan el código **real** del motor, así que nunca se
+> desincronizan de lo que sale al jugar. En local salen del mismo servidor:
+> `npm run dev` → <http://localhost:5173/creador/>.
+
+### Los documentos de diseño
+
+Cada uno abre con una tabla de **qué está construido y qué no**. Esa tabla es
+la verdad: si implementas algo de ahí, actualízala en el mismo commit.
+
+| Documento | De qué habla |
+|---|---|
+| [`CLAUDE.md`](https://github.com/franciscombp/modo-incognito/blob/main/CLAUDE.md) | El mapa del REPO y los invariantes que no se pueden romper. Lo primero que lee un agente |
+| [`docs/MOTOR.md`](https://github.com/franciscombp/modo-incognito/blob/main/docs/MOTOR.md) | Las reglas y el balance del bucle: sospecha, persecución, lugares seguros, reloj y energía. El porqué de cada número |
+| [`docs/CAMPANA.md`](https://github.com/franciscombp/modo-incognito/blob/main/docs/CAMPANA.md) | La campaña: misiones encadenadas, Qués y Cómos, temporadas, rangos, jubilación y los minijuegos |
+| [`docs/HUD.md`](https://github.com/franciscombp/modo-incognito/blob/main/docs/HUD.md) | La interfaz de partida: la placa, la lista de misiones, el reloj, la acción en primer plano |
+| [`docs/PANTALLAS.md`](https://github.com/franciscombp/modo-incognito/blob/main/docs/PANTALLAS.md) | El lienzo fijo (1920×1080) y las pantallas de menú |
+| [`docs/ARTE.md`](https://github.com/franciscombp/modo-incognito/blob/main/docs/ARTE.md) | Qué archivo abre cada frente (motor vs. aspecto), para no pisarse |
+
+### El contenido del juego (los JSON que más se tocan)
+
+| Archivo | Qué manda |
+|---|---|
+| [`campaign/temporada-1.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/campaign/temporada-1.json) | Qué tareas te piden y en qué orden |
+| [`levels/dia-1.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/levels/dia-1.json) | El guion del día: reloj, prólogo, correa, secuaces |
+| [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/scenes/piso7.json) | El plano: zonas, actividades (con su gesto y su cuenta atrás), lugares seguros, escondites |
+| [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/dialogues.json) | Todo lo que dice cualquiera |
+| [`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/characters3d.json) | La receta 3D de cada personaje |
+| [`boss-config.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/boss-config.json) | El balance de la IA del jefe y de la sospecha |
+| [`manifest.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/manifest.json) | Qué días existen, y los códigos secretos |
+
+Cada uno documenta su propio esquema en un array `"$comment"` al principio del
+archivo. Léelo antes de asumir la forma de los datos.
+
 ## Quiero cambiar X → edito Y
 
 Tabla rápida con enlaces directos a GitHub. Todo el contenido del juego vive
@@ -87,12 +136,11 @@ código**.
 | Estilos visuales (HUD, menús, diálogo, colores) | [`src/style/design-system.css`](https://github.com/franciscombp/modo-incognito/blob/main/src/style/design-system.css) |
 | **Cómo es cada personaje en 3D** (su `.glb` y su altura) | [`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/characters3d.json) — se edita con [`personajes.html`](https://github.com/franciscombp/modo-incognito/tree/main/creador) |
 | Cómo se monta un muñeco 3D y sus poses (código) | [`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/character3d.js) |
-| El esqueleto: dónde está cada articulación y cómo se reparten los pesos (código) | [`src/entities/skinning.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/skinning.js) |
-| La paleta cozy del decorado (suelos, muebles, cielo, niebla) | [`src/scene/cozy.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/scene/cozy.js) |
-| Sacar los colores de un personaje de su pliego dibujado | [`tools/extract-palette.py`](https://github.com/franciscombp/modo-incognito/blob/main/tools/extract-palette.py) · `npm run palette` |
+| El cuerpo base de un personaje (el `.glb` que se le carga) | [`public/models/`](https://github.com/franciscombp/modo-incognito/tree/main/public/models) — el contrato está en su [`README.md`](https://github.com/franciscombp/modo-incognito/blob/main/public/models/README.md) |
+| Cómo se carga y se re-etiqueta el rig de un `.glb` (código) | [`src/entities/baseModel.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/baseModel.js) |
+| Los gestos de la cara pegados al hueso de la cabeza (código) | [`src/entities/faceSheet.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/faceSheet.js) |
 | Ver el reparto 3D entero, o un personaje en sus 8 poses | [`tools/shoot-cast.mjs`](https://github.com/franciscombp/modo-incognito/blob/main/tools/shoot-cast.mjs) · `npm run check:cast` |
-| Los pliegos dibujados (retratos de diálogo, selección de personaje, y de donde salió el color de cada receta 3D) | [`public/sprites/*.png`](https://github.com/franciscombp/modo-incognito/tree/main/public/sprites) |
-| Ilustraciones grandes de actividades (opcional, con emoji de respaldo) | [`public/actions/<id>.png`](https://github.com/franciscombp/modo-incognito/tree/main/public/actions) |
+| La paleta cozy del decorado (suelos, muebles, cielo, niebla) | [`src/scene/cozy.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/scene/cozy.js) |
 | Cómo decide y persigue el jefe/los secuaces (código) | [`src/entities/boss.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/boss.js) |
 | Reglas centrales de una jornada (código) | [`src/game/game.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/game.js) |
 | El flujo de campaña día a día (código) | [`src/game/engine.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/game/engine.js) |
@@ -108,9 +156,7 @@ código**.
 | El muro que separa las alas y su puerta | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/scenes/piso7.json) → `barriers` |
 | Que el jefe se quede pegado a la jugadora | [`levels/dia-N.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/levels) → `rules.bossTether` |
 | Qué pose hace la jugadora en cada actividad | [`scenes/piso7.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/scenes/piso7.json) → `activities[].pose` |
-| Meter pliegos de sprites dibujados a mano (los normaliza a la rejilla 4x4) | [`tools/pack-sprites.py`](https://github.com/franciscombp/modo-incognito/blob/main/tools/pack-sprites.py) |
 | La animación de espera de un personaje (qué hace si lo dejas quieto) | [`data/sprites/<id>.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/sprites) |
-| Las plantillas en blanco para dibujar un personaje nuevo | [`art/plantillas/`](https://github.com/franciscombp/modo-incognito/blob/main/art/plantillas) · las genera [`tools/make-sprite-template.py`](https://github.com/franciscombp/modo-incognito/blob/main/tools/make-sprite-template.py) |
 | Los mensajes de Teams de Gabo | [`dialogues.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/dialogues.json) → `teamsMessages.gabo` |
 
 Cada JSON de `public/data/` trae su propio campo `"$comment"` al principio
@@ -329,9 +375,10 @@ como dos posturas entre las que el muñeco va y viene (tomando café la taza
 sube y baja, comiendo la mano va a la boca y vuelve). Ya no dependen de que el
 pliego de ese personaje las tenga dibujadas: **todos pueden hacerlas todas**.
 
-Las poses mueven los **huesos** de un esqueleto de verdad
-([`skinning.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/skinning.js)),
-así que la malla se deforma en el pliegue en vez de girar como una pieza. El
+Las poses mueven los **huesos** del rig que trae el `.glb` del personaje —
+[`baseModel.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/baseModel.js)
+lo re-etiqueta al cargar—, así que la malla se deforma en el pliegue en vez de
+girar como una pieza. El
 esqueleto está expuesto en `character.skeleton` con nombres de rig
 convencional, que es lo que hace falta para engancharle un `AnimationMixer`
 con clips y mezclarlos.

@@ -25,6 +25,33 @@
   --builder-border: hsl(var(--border-100));
   --builder-accent: hsl(var(--accent-main));
 
+  /* ── LOS TINTES, QUE ES LO QUE FALTABA ──────────────────────────────
+     Habia 24 colores CRUDOS escritos aqui —cuatro `background: white`,
+     cinco `color: white` y quince rgba() de la etapa SEPIA/OLIVA (el
+     terracota 194,121,90, el oliva 122,107,88, el marron 58,48,40)—.
+     El decorado y la interfaz se pasaron a la familia marina hace tiempo
+     y esto se quedo atras, asi que los botones acabaron con `background:
+     white` y `color: var(--builder-text)`, que hoy es tinta CLARA: texto
+     blanco sobre boton blanco, ilegible.
+
+     La regla del DS es que ningun componente escribe un color. Estos
+     alias son la unica capa donde se mezcla alfa, y salen todos de
+     tokens del sistema — cambiar de tema los arrastra solos. */
+  --builder-surface: hsl(var(--bg-050));
+  --builder-surface-hover: hsl(var(--bg-100));
+  --builder-on-accent: var(--text-on-accent);
+  --builder-accent-004: hsl(var(--accent-main) / 0.04);
+  --builder-accent-008: hsl(var(--accent-main) / 0.08);
+  --builder-accent-012: hsl(var(--accent-main) / 0.12);
+  --builder-accent-015: hsl(var(--accent-main) / 0.15);
+  --builder-neutral-010: hsl(var(--bg-100) / 0.5);
+  --builder-neutral-020: hsl(var(--bg-100) / 0.8);
+  --builder-neutral-soft: hsl(var(--p-accent-bright) / 0.16);
+  --builder-neutral-strong: hsl(var(--p-accent-bright) / 0.3);
+  --builder-danger-008: hsl(var(--p-danger) / 0.12);
+  --builder-danger-010: hsl(var(--p-danger) / 0.14);
+  --builder-ok-010: hsl(var(--p-ok) / 0.14);
+
   /* Espaciado siguiendo escala MAL */
   --builder-gap-sm: var(--space-sm);
   --builder-gap: var(--space-md);
@@ -113,7 +140,7 @@ button,
   font-size: 13px;
   font-weight: 600;
   color: var(--builder-text);
-  background: white;
+  background: var(--builder-surface);
   border: 1px solid var(--builder-border);
   padding: var(--space-sm) var(--space-md);
   border-radius: var(--radius-sm);
@@ -145,7 +172,7 @@ button:disabled,
 button.primary,
 .btn.primary {
   background: var(--builder-accent);
-  color: white;
+  color: var(--builder-on-accent);
   border-color: var(--builder-accent);
   font-weight: 600;
   box-shadow: var(--shadow-sm);
@@ -179,7 +206,7 @@ button.danger {
 }
 
 button.danger:hover {
-  background: rgba(207, 90, 81, 0.08);
+  background: var(--builder-danger-008);
 }
 
 /* Input de archivo */
@@ -334,7 +361,7 @@ canvas {
   padding: var(--space-md) var(--space-lg);
   font-size: 13px;
   font-weight: 600;
-  color: white;
+  color: var(--builder-on-accent);
   background: hsl(var(--state-error));
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
@@ -360,7 +387,7 @@ select {
   padding: var(--space-sm) var(--space-md);
   border: 1px solid hsl(var(--border-100));
   border-radius: var(--radius-sm);
-  background: white;
+  background: var(--builder-surface);
   color: var(--builder-text);
   transition: var(--transition-fast);
 }
@@ -419,6 +446,77 @@ input[type="range"] {
   font-weight: 500;
 }
 
+/* ─────────────────────────────────────────────────────────────────
+   UNA SOLA RECETA DE CAMPO, PARA LAS CUATRO HERRAMIENTAS
+
+   Cada builder escribia sus campos como `<label>Texto <input></label>`
+   dentro de un contenedor propio (`.param-group`, `.mix`, `#layers`,
+   `#level-form`…) que no tenia layout ninguno. Resultado: `label` es
+   inline por defecto, asi que el texto y su control corrian juntos y la
+   linea se partia por donde le tocara — «Pasos por compas» con la caja a
+   media frase, «Bass: 0.8 Lead:» en el mismo renglon, la lista de capas
+   convertida en un parrafo con casillas dentro.
+
+   Se arregla UNA vez aqui y no cuatro veces en cada herramienta: un
+   `label` dentro de un panel ES un campo, y se apila. La excepcion es la
+   casilla, que se lee al reves (control primero, texto al lado) — de eso
+   se encarga el `:has()`.
+
+   `label.file` no entra: vive en la barra de arriba y es un boton. */
+.panel label:not(.file) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--builder-text);
+}
+
+/* La FILA DE CASILLA se lee al reves —control primero, texto al lado— y
+   aparece de DOS formas distintas segun la herramienta: en mapas la fila ES
+   el `<label>` (la casilla es hija suya) y en musica es un `<div>` con la
+   casilla y el `<label>` de hermanos. Las dos se cubren aqui para no tener
+   que unificar el marcado de cada builder. */
+.panel .layer,
+.panel label:not(.file):has(> input[type="checkbox"]) {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.panel .layer label {
+  display: inline;
+  cursor: pointer;
+}
+
+/* Un deslizador lleva su NOMBRE Y SU VALOR en la misma linea, y la barra
+   debajo a todo lo ancho. Apilados sin mas salia «Bass:» en un renglon y
+   «0.8» en el siguiente, que es leer un numero sin saber de que. */
+.panel .mix label:not(.file),
+.panel .campo label:not(.file) {
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.panel .mix label > input[type="range"],
+.panel .campo label > input[type="range"] {
+  flex: 1 0 100%;
+}
+
+/* Los contenedores de campos, tambien una sola vez. */
+.panel .param-group,
+.panel .mix,
+.panel .layers,
+.panel .properties > div:not(.field):not(.list),
+.panel #layers,
+.panel #level-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .checks input[type="checkbox"] {
   width: 18px;
   height: 18px;
@@ -438,7 +536,7 @@ input[type="range"] {
   transform: translateX(-50%);
   padding: var(--space-md) var(--space-lg);
   background: var(--builder-accent);
-  color: white;
+  color: var(--builder-on-accent);
   border-radius: var(--radius-md);
   font-size: 13px;
   font-weight: 600;
@@ -544,14 +642,14 @@ input[type="range"] {
 }
 
 .row:hover {
-  background: rgba(194, 121, 90, 0.08);
+  background: var(--builder-accent-008);
   color: var(--builder-text);
 }
 
 .row.on {
   border-color: var(--builder-accent);
   color: var(--builder-accent);
-  background: rgba(194, 121, 90, 0.12);
+  background: var(--builder-accent-012);
   font-weight: 600;
 }
 
@@ -620,12 +718,12 @@ main {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(122, 107, 88, 0.2);
+  background: var(--builder-neutral-soft);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(122, 107, 88, 0.35);
+  background: var(--builder-neutral-strong);
 }
 
 /* ═════════════════════════════════════════════════════════════════════
@@ -681,7 +779,7 @@ main {
   gap: 6px;
   border-radius: 999px;
   border: 1px solid var(--builder-border);
-  background: rgba(194, 121, 90, 0.08);
+  background: var(--builder-accent-008);
   padding: 6px 12px;
   font-size: 12px;
   font-weight: 600;
@@ -691,7 +789,7 @@ main {
 }
 
 .chip:hover {
-  background: rgba(194, 121, 90, 0.15);
+  background: var(--builder-accent-015);
   border-color: var(--builder-accent);
 }
 
@@ -736,7 +834,7 @@ main {
   gap: 2px;
   border-radius: 4px;
   border: 1px solid var(--builder-border);
-  background: white;
+  background: var(--builder-surface);
   padding: 4px;
   text-align: center;
   font-size: 12px;
@@ -748,7 +846,7 @@ main {
 
 .step:hover {
   border-color: var(--builder-accent);
-  background: rgba(194, 121, 90, 0.05);
+  background: var(--builder-accent-004);
 }
 
 .step.null {
@@ -759,7 +857,7 @@ main {
 
 .step.chord {
   background: var(--state-warning);
-  color: white;
+  color: var(--builder-on-accent);
   font-weight: 700;
 }
 
@@ -787,7 +885,7 @@ main {
   min-height: 14px;
   font-size: 9px;
   line-height: 1;
-  background: rgba(58, 48, 40, 0.1);
+  background: var(--builder-neutral-010);
   color: inherit;
   border: none;
   border-radius: 2px;
@@ -796,7 +894,7 @@ main {
 }
 
 .step-arrow:hover {
-  background: rgba(58, 48, 40, 0.2);
+  background: var(--builder-neutral-020);
 }
 
 /* Input inline para editar nota */
@@ -834,7 +932,7 @@ main {
   padding: 8px;
   border-radius: 4px;
   border: 1px solid var(--builder-border);
-  background: rgba(194, 121, 90, 0.03);
+  background: var(--builder-accent-004);
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -920,12 +1018,12 @@ main {
 }
 
 .nav-link:hover {
-  background: rgba(194, 121, 90, 0.08);
+  background: var(--builder-accent-008);
   color: var(--builder-accent);
 }
 
 .nav-link.active {
-  background: rgba(194, 121, 90, 0.12);
+  background: var(--builder-accent-012);
   color: var(--builder-accent);
   font-weight: 600;
 }
@@ -973,7 +1071,7 @@ main {
 }
 
 .component-item {
-  background: white;
+  background: var(--builder-surface);
   border: 1px solid var(--builder-border);
   border-radius: var(--cut);
   padding: var(--builder-gap-xl);
@@ -1035,7 +1133,7 @@ main {
   border-radius: 4px;
   padding: var(--builder-gap-sm);
   resize: none;
-  background: white;
+  background: var(--builder-surface);
   color: var(--builder-text);
 }
 
@@ -1063,12 +1161,12 @@ main {
 }
 
 .status-message.success {
-  background: rgba(134, 168, 106, 0.1);
+  background: var(--builder-ok-010);
   color: var(--accent-success);
 }
 
 .status-message.error {
-  background: rgba(207, 90, 81, 0.1);
+  background: var(--builder-danger-010);
   color: var(--state-error);
 }
 

@@ -3,6 +3,17 @@
 El código va detrás de estos documentos, no al revés. Si algo no cuadra, se
 corrige **aquí primero** y luego se implementa.
 
+> **Para verlo, no leerlo:** el juego está en
+> <https://franciscombp.github.io/modo-incognito/> y los builders se abren con
+> un clic desde ahí mismo —
+> [mapas](https://franciscombp.github.io/modo-incognito/creador/mapas/) ·
+> [personajes](https://franciscombp.github.io/modo-incognito/creador/personajes/) ·
+> [música](https://franciscombp.github.io/modo-incognito/creador/musica/) ·
+> [pantallas](https://franciscombp.github.io/modo-incognito/creador/pantallas/).
+> El mapa del repo (y los invariantes) está en
+> [`CLAUDE.md`](../CLAUDE.md); el «quiero cambiar X → edito Y», en el
+> [`README.md`](../README.md).
+
 | Documento | De qué va | Estado |
 |---|---|---|
 | [`MOTOR.md`](MOTOR.md) | Las reglas del bucle: sospecha, jefe, lugares seguros, escondites. El porqué de cada número | **Vivo** — describe lo implementado |
