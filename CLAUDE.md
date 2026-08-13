@@ -499,11 +499,26 @@ barrera, no un adorno.
 Dos piezas montan el 3D DENTRO de la interfaz, y son la razón de que los
 menús y el diálogo ya no parezcan de otro juego:
 
-- `src/ui/portrait3d.js` — el retrato del diálogo es el mismo `Character3D`
-  del piso, encuadrado de busto, con la expresión atada al `mood` de la línea
-  y la boca abierta mientras corre la máquina de escribir. Solo dibuja con el
-  diálogo abierto. El pliego de píxeles se queda de reserva por si no hay
-  WebGL.
+- **EL DIÁLOGO NO LLEVA RETRATO: la conversación pasa EN EL ESCENARIO**
+  (`src/scene/dialogueCamera.js`). Aquí colgaba un muñeco 3D de 480 px sobre
+  el piso; la intención era que la charla «formara parte de la escena» y el
+  efecto era el contrario — un personaje gigante tapando el escenario, a otra
+  escala que el que hablaba ahí abajo, y duplicado con él. Ahora hay dos
+  gramáticas, como en la referencia:
+  - **SOLILOQUIO** (habla uno): primer plano y el personaje **se gira A
+    CÁMARA**, rompiendo la cuarta pared.
+  - **DIÁLOGO** (hablan dos): los dos en cuadro, de frente el uno al otro
+    (`faceEachOther`), y la cámara al punto medio.
+  **La cámara NO ROTA nunca — el que rota es el personaje.** Girar el ojo
+  marea, rompe la lectura isométrica (arriba deja de ser arriba) y obligaría a
+  recolocar un HUD pensado sobre un encuadre fijo. Solo se mueven dos cosas: a
+  dónde mira (`setFocus`) y cuánto se acerca.
+  Dos trampas ya pagadas: **`framing: 1` NO es un primer plano** —es el plano
+  de jugar, y pedir 0.94 alejaba en vez de acercar—; el acercamiento de verdad
+  es `setActionZoom` (×0,55). Y ese mando lo escribe `main.js` CADA CUADRO, así
+  que el diálogo no lo escribe: lo DECLARA (`engine.cinematic`) y main.js lo
+  respeta — un solo dueño, en vez de dos peleándose por el mismo valor.
+
 - `src/ui/charshot.js` — la pantalla de selección es estática, así que cada
   personaje sale como una FOTO (`toDataURL`) de un único renderer, no como un
   lienzo vivo por tarjeta.

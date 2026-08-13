@@ -3,12 +3,11 @@
 // beats never means touching engine code.
 //
 // A scene is an array of nodes:
-//   { speaker, portrait, text, mood }            -> a line of dialogue
+//   { speaker, text, mood }                       -> a line of dialogue
 //   { prompt, options: [{ label, reply, flag, then }] } -> a choice
 // `then` is a nested array of nodes, so a branch is just another scene.
 
 import { sfxMove, sfxSelect, sfxAdvance, sfxType } from "./sfx.js";
-import { createPortrait3D } from "../ui/portrait3d.js";
 import { characterShot } from "../ui/charshot.js";
 import { icon as svgIcon } from "../ui/icons.js";
 
@@ -18,20 +17,30 @@ const PREV_KEYS = new Set(["arrowup", "w"]);
 
 // Cada hoja es una rejilla de 4x4 (128x176 px, marcos de 32x44): fila 0 es la
 // cara sur y columna 0 es el fotograma de reposo — el retrato usa justo esa
-// esquina, ampliada x4 sin interpolar (ver .vn-portrait-sprite en design-system.css).
 
-export function createDialogue(root, { looks = null } = {}) {
+/**
+ * @param {object} opts
+ * @param {(quien: {speaker, lookId, mood, narrator}) => void} [opts.onSpeaker]
+ *   Aviso de QUIÉN tiene la palabra en cada línea. Lo usa el motor para
+ *   encuadrar la cámara sobre el escenario — aquí ya no se pinta ningún
+ *   retrato (ver el bloque «SIN RETRATO FLOTANTE» de abajo).
+ */
+export function createDialogue(root, { looks = null, onSpeaker = null, onClose = null } = {}) {
   const layer = document.createElement("div");
   layer.className = "inc-layer inc-layer--overlay inc-dialogue inc-hidden";
-  // Full-bleed cinematic box: letterbox bars, an oversized portrait that
-  // breaks out of the frame and a name tab sitting on the top edge, so the
-  // conversation feels part of the scene instead of a tooltip floating over it.
+  // ── SIN RETRATO FLOTANTE ─────────────────────────────────────────────
+  // Aquí colgaba un muñeco 3D de 480 px de alto sobre la escena. La idea era
+  // «que la conversación se sienta parte de la escena»; el efecto era el
+  // contrario — un personaje gigante tapando el piso, a otra escala que el
+  // que estaba hablando, y duplicado con el que ya está ahí abajo.
+  //
+  // La conversación pasa EN EL ESCENARIO: los que hablan se ponen de frente y
+  // la cámara los encuadra (ver `dialogueCamera` en engine.js). Aquí abajo
+  // solo queda la caja de texto, como en la referencia.
   layer.innerHTML = `
     <div class="inc-dialogue-scrim"></div>
     <div class="inc-dialogue-bar"></div>
     <div class="inc-dialogue-dock">
-      <div class="inc-dialogue-portrait">
-      </div>
       <div class="inc-dialogue-box" role="dialog" aria-live="polite">
         <div class="inc-dialogue-speaker"><span class="inc-dialogue-speaker-text"></span></div>
         <div class="inc-dialogue-text"></div>
@@ -43,7 +52,6 @@ export function createDialogue(root, { looks = null } = {}) {
   root.appendChild(layer);
 
   const box = layer.querySelector(".inc-dialogue-box");
-  const portrait = layer.querySelector(".inc-dialogue-portrait");
   const speakerEl = layer.querySelector(".inc-dialogue-speaker");
   const speakerText = layer.querySelector(".inc-dialogue-speaker-text");
   const textEl = layer.querySelector(".inc-dialogue-text");
@@ -60,11 +68,6 @@ export function createDialogue(root, { looks = null } = {}) {
   layer.appendChild(narratorEl);
   const narratorText = narratorEl.querySelector(".inc-dialogue-narrator-text");
 
-  // El retrato es el MISMO muñeco 3D que anda por el piso, encuadrado de
-  // busto. El pliego de píxeles se queda de reserva por si no hay WebGL o el
-  // hablante no está en el reparto 3D.
-  const portrait3d = createPortrait3D(portrait);
-  let portraitMood = "neutral";
 
   /**
    * Qué receta 3D le toca a una línea.
@@ -95,33 +98,22 @@ export function createDialogue(root, { looks = null } = {}) {
     return generic;
   }
 
-  /** Retrato: el muñeco 3D del hablante; si no se puede, su pliego. */
+  /**
+   * QUIÉN HABLA — y ya no se pinta aquí, se ENCUADRA en el escenario.
+   *
+   * En vez de un retrato, el diálogo avisa de quién tiene la palabra y el
+   * motor mueve la cámara: primer plano si habla uno solo (y el personaje se
+   * gira a cámara, rompiendo la cuarta pared), o los dos en cuadro si son
+   * dos. La cámara NO rota nunca — el que rota es el personaje.
+   */
   function setPortrait(node) {
-    portraitMood = node.mood ?? "neutral";
-    // Un nodo SIN hablante (la pregunta del ascensor, un prompt del
-    // sistema) no tiene cara que enseñar: caía al muñeco genérico y salía
-    // un desconocido flotando sobre las puertas, presentando tu decisión.
-    if (!node.speaker && !node.lookId && !node.look) {
-      portrait3d.stop?.();
-      portrait.classList.remove("inc-dialogue-portrait-3d");
-      portrait.classList.add("inc-dialogue-portrait-off");
-      return;
-    }
-    const look = node.look ?? lookFor(node);
-    if (look && portrait3d.show(look, portraitMood)) {
-      portrait3d.start();
-      portrait.classList.remove("inc-dialogue-portrait-off");
-      portrait.classList.add("inc-dialogue-portrait-3d");
-      return;
-    }
-
-    // Sin 3D no hay retrato. Antes se caía al pliego de píxeles (y antes de
-    // eso, a un emoji): quien habla se representa SIEMPRE con su muñeco, y
-    // `lookFor` nunca devuelve vacío — el que no tiene receta propia usa la
-    // genérica. Si aquí no hay muñeco es que no hay WebGL, y entonces la
-    // caja de diálogo se queda sin retrato en vez de enseñar otra cosa.
-    portrait.classList.remove("inc-dialogue-portrait-3d");
-    portrait.classList.add("inc-dialogue-portrait-off");
+    const speaker = typeof node.speaker === "string" ? node.speaker : null;
+    onSpeaker?.({
+      speaker,
+      lookId: node.lookId ?? null,
+      mood: node.mood ?? "neutral",
+      narrator: !!node.narrator,
+    });
   }
 
   /**
@@ -137,9 +129,6 @@ export function createDialogue(root, { looks = null } = {}) {
     // la burbuja (su avatar en el título), no como retrato gigante detrás —
     // el muñeco del hablante anterior se quedaba plantado presentando el
     // Teams de otro.
-    portrait3d.stop?.();
-    portrait.classList.remove("inc-dialogue-portrait-3d");
-    portrait.classList.add("inc-dialogue-portrait-off");
     ensureNarratorAvatar();
     narratorText.textContent = text;
     narratorEl.classList.remove("inc-hidden");
@@ -191,7 +180,6 @@ export function createDialogue(root, { looks = null } = {}) {
       textEl.textContent = "";
       // La boca se abre mientras corre la máquina de escribir y se cierra al
       // acabar la línea: el retrato deja de ser una foto y "dice" el texto.
-      portrait3d.setTalking(true, portraitMood);
       // POR TIEMPO, no por tick: cuántas letras van se calcula del reloj
       // (18 ms por letra), y cada disparo del timer PONE AL DÍA el texto.
       // Contando ticks (una letra por setTimeout), cualquier dispositivo
@@ -214,7 +202,6 @@ export function createDialogue(root, { looks = null } = {}) {
         if (shown >= text.length) {
           typingTimer = null;
           typingResolve = null;
-          portrait3d.setTalking(false, portraitMood);
           resolve();
           return;
         }
@@ -230,7 +217,6 @@ export function createDialogue(root, { looks = null } = {}) {
     clearTimeout(typingTimer);
     typingTimer = null;
     textEl.textContent = typingFull;
-    portrait3d.setTalking(false, portraitMood);
     const resolve = typingResolve;
     typingResolve = null;
     resolve?.();
@@ -334,7 +320,6 @@ export function createDialogue(root, { looks = null } = {}) {
     speakerText.textContent = speaker;
     speakerEl.classList.toggle("hidden", !speaker);
     setPortrait(node);
-    portrait.dataset.mood = node.mood ?? "neutral";
     box.dataset.mood = node.mood ?? "neutral";
     if (node.color) layer.style.setProperty("--inc-dialogue-accent", node.color);
     await type(resolve(node.text, ctx));
@@ -433,9 +418,11 @@ export function createDialogue(root, { looks = null } = {}) {
       active = false;
       layer.classList.add("inc-hidden");
       document.body.classList.remove("inc-dialogue-open");
-      // Con el diálogo cerrado el retrato no gasta un fotograma: el bucle del
-      // piso ya tiene bastante con lo suyo.
-      portrait3d.stop();
+      // Cerrada la escena, se suelta el encuadre. Va en el `finally` a
+      // propósito: una escena que termina mal (una excepción, un día que se
+      // cierra a mitad) no puede dejar la cámara plantada sobre alguien que
+      // ya no está hablando.
+      onClose?.();
       hideNarrator();
       optionsEl.innerHTML = "";
       optionButtons = [];
@@ -469,7 +456,6 @@ export function createDialogue(root, { looks = null } = {}) {
     },
     dispose() {
       window.removeEventListener("keydown", onKey);
-      portrait3d.dispose();
       layer.remove();
     },
   };

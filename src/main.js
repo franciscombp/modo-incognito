@@ -811,7 +811,14 @@ async function boot() {
       // vuelta y la ida se peleaban por el yaw. Ahora quien gira es el
       // PERSONAJE, que se pone de cara a la cámara con su giro normal de
       // andar (ver game.js), así que la pose se ve de frente igual.
-      const acting = !!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending);
+      // Una CONVERSACIÓN en primer plano usa el mismo acercamiento que una
+      // acción: es el único mando que da un plano cerrado de verdad
+      // (`framing` a 1 sigue siendo el plano de jugar). Se pregunta en vez de
+      // que el diálogo lo escriba, para no tener dos escritores peleándose
+      // por el mismo valor cada cuadro.
+      const acting =
+        !!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending) ||
+        !!engine.cinematic;
       view.setActionZoom(acting);
       view.update(dt, player.position);
       popups.update(dt);

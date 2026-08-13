@@ -3,6 +3,7 @@ import { createHud } from "./hud.js";
 import { buzz } from "./settings.js";
 import { setMood, playStinger, updateMoodFromSnapshot } from "./soundtrack.js";
 import { createDialogue } from "./dialogue.js";
+import { createDialogueCamera } from "../scene/dialogueCamera.js";
 import { createSave } from "./save.js";
 import { applyTheme, createThemeBlender } from "./themes.js";
 import { createMenus } from "../ui/menus.js";
@@ -81,7 +82,46 @@ export function createEngine({
   const worldPrompt = createWorldPrompt(app, camera.camera, {
     isTouch: matchMedia("(pointer: coarse)").matches,
   });
-  const dialogue = createDialogue(app, { looks });
+  // LA CÁMARA DE DIÁLOGO. El retrato flotante se retiró: quien habla se
+  // encuadra EN EL ESCENARIO (ver scene/dialogueCamera.js). `hablantes` es
+  // quién está en escena para esta conversación, y lo pone quien la abre.
+  const dialogueCam = createDialogueCamera(camera, {
+    onDrama: (on) => document.body.classList.toggle("inc-dialogue-drama", on),
+  });
+  /** { yo, otro } — los muñecos de esta charla, o null si es un soliloquio. */
+  let hablantes = { yo: null, otro: null };
+
+  const dialogue = createDialogue(app, {
+    looks,
+    /**
+     * Cada línea avisa de quién tiene la palabra. Con DOS en escena se
+     * encuadran los dos y se ponen de frente; con uno, primer plano y el
+     * personaje GIRA A CÁMARA — la cuarta pared se rompe girando al muñeco,
+     * nunca moviendo el ojo.
+     */
+    onSpeaker: ({ narrator }) => {
+      // El narrador (Steven el Daddy) no está en el piso: no hay a quién
+      // encuadrar, así que se deja el plano como esté.
+      if (narrator) return;
+      const otro = hablantes.otro;
+      // POR DEFECTO, SOLILOQUIO DE LA JUGADORA. Casi todas las escenas del
+      // juego que no declaran reparto son suyas: el guion de apertura, el
+      // cierre del día, el pensamiento al encontrar un secreto. Antes esto
+      // exigía declararlo en cada `dialogue.play` —nueve sitios— y el que se
+      // olvidara se quedaba sin encuadre sin que nada fallara a la vista.
+      const yo = hablantes.yo ?? player;
+      if (!yo) return;
+      if (otro) {
+        dialogueCam.enter(yo.position, otro.position);
+      } else {
+        dialogueCam.enter(yo.position, null);
+        // LA CUARTA PARED: en un soliloquio el personaje se gira A CÁMARA.
+        // La cámara no rota nunca — el que rota es él.
+        dialogueCam.faceCamera(yo);
+      }
+    },
+    onClose: () => dialogueCam.exit(),
+  });
   const lobby = createLobby(app);
   const eggReveal = createEggReveal(app);
   // El HUD de partida (ui/gamehud.js): la placa con la cara viva, la lista
@@ -455,16 +495,31 @@ export function createEngine({
     // El bono de reloj ya lo enseña el popup flotante de game._grantTime();
     // esta tarjeta es solo la celebración del hallazgo, no una repetición
     // del número. Si el secreto trae su propia escena, se juega primero.
-    if (egg.scene?.length) await withPause(() => dialogue.play(withSprites(egg.scene), ctx));
+    // SOLILOQUIO: solo ella. Primer plano y se gira a cámara.
+    if (egg.scene?.length) {
+      await withPause(() => dialogue.play(withSprites(egg.scene), ctx), { yo: player, otro: null });
+    }
     eggReveal.show(save.state.eggs.length, eggIds.length);
   }
 
   /** Freeze the level while a story beat plays, then hand control back. */
-  async function withPause(fn) {
+  /**
+   * Congelar el piso mientras dura una escena.
+   *
+   * `enEscena` dice QUIÉN habla, para que la cámara sepa a quién encuadrar:
+   * `{ yo, otro }` con los muñecos, o nada si es un soliloquio del sistema.
+   * Se limpia en el `finally` junto con la cámara — un diálogo que termina
+   * mal (una excepción, un día que se cierra) no puede dejar el piso
+   * encuadrado sobre alguien que ya no está hablando.
+   */
+  async function withPause(fn, enEscena = null) {
     game?.setPaused(true);
+    hablantes = enEscena ?? { yo: null, otro: null };
     try {
       await fn();
     } finally {
+      dialogueCam.exit();
+      hablantes = { yo: null, otro: null };
       if (!menuPaused && !game?.gameOver) game?.setPaused(false);
     }
   }
@@ -907,11 +962,15 @@ export function createEngine({
         ...n,
       }));
     }
-    await withPause(() =>
-      dialogue.play(
-        withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
-        ctx
-      )
+    // DOS EN ESCENA: la cámara los encuadra a los dos y `faceEachOther` (más
+    // arriba) ya los puso de frente.
+    await withPause(
+      () =>
+        dialogue.play(
+          withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
+          ctx
+        ),
+      { yo: player, otro: npc }
     );
     if (opts?.caught) buzz([15, 30, 15]);
     // Hablar con un colega puede SER la misión (un "cómo" de la campaña):
@@ -972,11 +1031,13 @@ export function createEngine({
     }
 
     faceEachOther(boss);
-    await withPause(() =>
-      dialogue.play(
-        withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
-        ctx
-      )
+    await withPause(
+      () =>
+        dialogue.play(
+          withSprites(scene.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node }))),
+          ctx
+        ),
+      { yo: player, otro: boss }
     );
     // El tercer tiempo del tacleo: cerrado el regaño, te sienta a trabajar
     // en tu puesto (con su anuncio) y el jefe vuelve a su ronda sin mirarte
@@ -1264,6 +1325,11 @@ export function createEngine({
   }
 
   return {
+    // El bucle de render pregunta si hay una escena en primer plano: es
+    // quien llama a `setActionZoom`, y ese mando tiene UN solo dueño.
+    get cinematic() {
+      return dialogueCam.cinematic;
+    },
     hud,
     dialogue,
     menus,

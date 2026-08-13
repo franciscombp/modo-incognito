@@ -11788,3 +11788,52 @@ body.inc-acting #hint {
 @media (prefers-reduced-motion: reduce) {
   .inc-msg-centro.show { animation: none; opacity: 1; transform: translate(-50%, -50%); }
 }
+
+
+/* ═════════════════════════════════════════════════════════════════════
+   DIÁLOGO: LA CONVERSACIÓN PASA EN EL ESCENARIO
+   (src/scene/dialogueCamera.js)
+
+   Aquí colgaba un muñeco 3D de 480 px sobre el piso. La intención era que la
+   charla «formara parte de la escena»; el efecto era el contrario — un
+   personaje gigante tapando el escenario, a otra escala que el que hablaba
+   ahí abajo, y duplicado con él.
+
+   Ahora quien habla se encuadra CON LA CÁMARA y aquí abajo solo queda la caja
+   de texto, como en la referencia.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* El hueco que el retrato reservaba a la izquierda ya no tiene dueño: la caja
+   ocupa el ancho entero. Sin esto quedaba una sangría enorme y el texto salía
+   descentrado hacia la derecha. */
+.inc-dialogue-box {
+  padding-left: 56px;
+}
+.inc-dialogue-speaker {
+  left: 24px;
+}
+
+/* EL DRAMA DEL ZOOM. La cámara se acerca al que habla; esto acompaña con lo
+   que una cámara haría: cerrar el encuadre por los bordes. Es una viñeta que
+   entra con el mismo tiempo que el travelling, no un fundido a negro — el
+   piso tiene que seguir viéndose, que es donde está la escena. */
+.inc-dialogue-drama .inc-dialogue-scrim {
+  opacity: 1;
+  background:
+    radial-gradient(120% 80% at 50% 45%, transparent 38%, hsl(var(--p-shadow-hue) / 0.55) 100%);
+  transition: opacity 0.45s var(--ease-out);
+}
+
+/* Y las barras de cine se cierran un poco más: es el gesto que dice «esto es
+   una escena» sin quitarle sitio al texto. */
+.inc-dialogue-drama .inc-dialogue-bar {
+  transition: transform 0.45s var(--ease-out);
+  transform: scaleY(1.35);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inc-dialogue-drama .inc-dialogue-scrim,
+  .inc-dialogue-drama .inc-dialogue-bar {
+    transition: none;
+  }
+}

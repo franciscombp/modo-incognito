@@ -112,7 +112,10 @@ const hallazgo = await p.evaluate(async () => {
     if ((window.__game.engine.save.libreta ?? []).includes("p_servidor")) break;
     await sleep(120);
   }
-  const notices = [...document.querySelectorAll(".inc-notice-text")].map((n) => n.textContent);
+  // `.inc-msg-text` es el carril LATERAL del director de mensajes
+  // (ui/messages.js). Antes era `.inc-notice-text`, las tarjetas que vivían
+  // arriba a la derecha encima de la lista de misiones; ese canal se retiró.
+  const notices = [...document.querySelectorAll(".inc-msg-text")].map((n) => n.textContent);
   return {
     anotada: window.__game.engine.save.libreta.includes("p_servidor"),
     aviso: notices.some((t) => t.includes("libreta") || t.includes("Libreta")),
