@@ -1094,6 +1094,20 @@ sirven desde el mismo servidor que el juego en `http://localhost:5173/creador/`
   herramienta: es el motor.** Una pose del juego son dos posturas (`a`, `b`) y
   una `speed`; el muñeco va de una a otra y vuelve. Una línea con llaves
   libres estaría mintiendo sobre lo que se puede exportar.
+  **Y el reparto de manos sobre los huesos, que costó:** manda el MOTOR — la
+  pose en edición se le mete en su propia biblioteca (ranura `__builder`) y se
+  le pide con `setPose()`, así carga lo que solo él sabe cargar: las manos, la
+  altura, los props y el mobiliario del `context` (la cama de `sleep`, la taza
+  del café). El builder solo le quita las ROTACIONES, y únicamente porque hace
+  falta un cursor que se pare entre A y B.
+  ⚠️ **Eso hay que escribirlo DESPUÉS de `muñeco.update(dt)`.** Ese update
+  reescribe los mismos huesos (respiración de espera, `_applyPose`, el clip
+  del `.glb`), así que aplicando antes se borraba lo editado cada cuadro: un
+  hueso a 140° no se movía y cargar `sleep` dejaba a la jugadora de pie con
+  los brazos colgando. El último que escribe un hueso es el que se ve.
+  Lo vigila `npm run check:animaciones`, y a propósito NO mira una captura:
+  mira la rotación REAL del hueso en la escena, porque ese fallo concreto es
+  invisible en una imagen.
 - `creador/pantallas/` — Storybook y constructor de UI/CSS vivo.
 - `creador/pruebas/` — corre las comprobaciones sobre el juego real.
 

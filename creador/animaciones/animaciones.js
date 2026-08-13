@@ -54,6 +54,28 @@ let hueso = "armR"; // canal seleccionado
 let t = 0; // 0..1, dónde va el cursor entre A y B
 let reproduciendo = false;
 
+/**
+ * La pose en edición se le mete al motor en su PROPIA biblioteca, con un
+ * nombre reservado, y se le pide por ahí. Así el `context` (la cama de
+ * `sleep`, la taza del café), las manos y la altura los monta él — que es
+ * exactamente lo que el builder no debe reimplementar.
+ *
+ * `setPose` sale antes si le pides la pose que ya tiene puesta, así que para
+ * refrescar hay que pasar por `null`. Solo se llama cuando cambia la
+ * IDENTIDAD de la pose (cargar otra, cambiar las manos), nunca al mover un
+ * slider: las rotaciones las sobreescribe `aplicar()` cada cuadro y recargar
+ * el contexto en cada tecla tiraría props y mobiliario sesenta veces por
+ * segundo.
+ */
+const POSE_TEMP = "__builder";
+
+function sincronizarMotor() {
+  if (!muñeco) return;
+  POSE_LIBRARY[POSE_TEMP] = pose;
+  muñeco.setPose(null);
+  muñeco.setPose(POSE_TEMP);
+}
+
 function nuevaPose() {
   return {
     speed: 1.4,
@@ -182,6 +204,7 @@ async function montarMuñeco() {
     esqueleto.visible = $("#huesos").checked;
     scene.add(esqueleto);
   }
+  sincronizarMotor(); // el muñeco es nuevo: no sabe nada de la pose en curso
   pintarHuesos();
 }
 
@@ -189,7 +212,11 @@ async function montarMuñeco() {
 function pintarPoses() {
   const box = $("#poses");
   box.replaceChildren();
+  // Sin la ranura reservada: `sincronizarMotor()` mete la pose en edición en
+  // la biblioteca del motor con ese nombre, y si no se filtra aquí acaba
+  // saliendo en la lista como si fuera una pose del juego.
   for (const nombre of Object.keys(POSE_LIBRARY)) {
+    if (nombre === POSE_TEMP) continue;
     const fila = document.createElement("button");
     fila.className = "row";
     fila.textContent = nombre;
@@ -201,6 +228,7 @@ function pintarPoses() {
       $("#nombre").value = nombre;
       sincronizarAjustes();
       pintarHuesos();
+      sincronizarMotor(); // trae su context: la cama de `sleep`, la taza del café
       avisar(`Cargada «${nombre}»`);
     };
     box.appendChild(fila);
@@ -226,6 +254,10 @@ function pintarHuesos() {
 
     const cab = document.createElement("button");
     cab.className = "bone-name";
+    // El canal, como DATO. Leerlo del texto no vale: al lado va el nombre del
+    // hueso del rig en un <span>, y `textContent` los devuelve pegados
+    // ("armRRightArm").
+    cab.dataset.canal = canal;
     cab.textContent = canal;
     cab.onclick = () => {
       hueso = canal;
@@ -302,6 +334,7 @@ $("#reposo").onclick = () => {
   pose[llave] = postura();
   sincronizarAjustes();
   pintarHuesos();
+  sincronizarMotor();
 };
 $("#play").onclick = () => {
   reproduciendo = !reproduciendo;
@@ -336,7 +369,12 @@ for (const m of Object.keys(HAND_POSES)) {
   op.textContent = m;
   selManos.appendChild(op);
 }
-selManos.onchange = (e) => (pose.hands = e.target.value);
+selManos.onchange = (e) => {
+  pose.hands = e.target.value;
+  // Las manos las pone el motor (HAND_POSES, diez huesos de dedos a la vez),
+  // asi que hay que pedirle la pose otra vez para que las relea.
+  sincronizarMotor();
+};
 
 // ---------------------------------------------------------------- salida
 /**
@@ -392,11 +430,26 @@ function avisar(txt) {
 
 // ---------------------------------------------------------------- bucle
 /**
- * La vista previa NO usa `setPose()`: esa sale de la biblioteca del motor por
- * nombre, y aquí la pose todavía no existe en ninguna biblioteca. Se escriben
- * los huesos a mano con la MISMA mezcla que hace el motor (de `a` a `b` con
- * suavizado), que es lo que garantiza que lo que ves aquí sea lo que se verá
- * al pegarlo.
+ * DOS MANOS SOBRE LOS MISMOS HUESOS, Y HAY QUE REPARTIRLAS.
+ *
+ * El motor manda: se le mete la pose en su propia biblioteca y se le pide con
+ * `setPose()`, así que carga lo que solo él sabe cargar — las manos, la
+ * altura, los props y el mobiliario del `context` (la cama de `sleep`, la taza
+ * del café). Copiar todo eso aquí habría sido inventar un segundo motor.
+ *
+ * Lo ÚNICO que el builder le quita son las rotaciones de hueso, y solo porque
+ * hace falta un CURSOR: el motor avanza la mezcla a su ritmo (`speed`) y aquí
+ * tienes que poder pararte en medio de la A y la B para editar. Se sobreescribe
+ * con la MISMA mezcla que hace él, así que lo que ves es lo que sale al pegarlo.
+ *
+ * ── El orden importa, y costó ──
+ *
+ * Esto se llamaba ANTES de `muñeco.update(dt)`, y ese update reescribe los
+ * mismos huesos (respiración de espera, `_applyPose`, el clip del `.glb`).
+ * Resultado: cada cuadro se borraba lo editado y el muñeco no se movía —
+ * mover un hueso a 140° no hacía nada visible y cargar `sleep` dejaba a la
+ * jugadora de pie con los brazos colgando. Va DESPUÉS a propósito: el último
+ * que escribe un hueso es el que se ve.
  */
 function aplicar() {
   if (!muñeco?.skeleton) return;
@@ -439,11 +492,30 @@ function bucle(ahora) {
     t = 1 - Math.abs((ciclo % 2) - 1);
     pintarLinea();
   }
-  aplicar();
   muñeco?.update?.(dt);
+  aplicar(); // DESPUÉS del update: el último que escribe el hueso es el que se ve
   renderer.render(scene, camera);
   requestAnimationFrame(bucle);
 }
+
+// Asa de depuración, igual que `window.__game` en el juego: es lo que permite
+// que `npm run check:animaciones` mire el estado REAL (huesos en escena, no
+// sliders) en vez de fiarse de una captura.
+window.__anim = {
+  get pose() { return pose; },
+  get llave() { return llave; },
+  get t() { return t; },
+  get reproduciendo() { return reproduciendo; },
+  get muñeco() { return muñeco; },
+  /** Rotación efectiva de un canal EN LA ESCENA, en grados. */
+  rotacionDe(canal) {
+    const h = muñeco?.bone(BONE_OF[canal]);
+    if (!h) return null;
+    const e = new THREE.Euler().setFromQuaternion(h.quaternion);
+    return [e.x * GRADOS, e.y * GRADOS, e.z * GRADOS].map((v) => +v.toFixed(1));
+  },
+  salida: () => salida(),
+};
 
 montarNav("animaciones");
 colocarCamara();
