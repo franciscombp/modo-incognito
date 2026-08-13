@@ -254,7 +254,14 @@ const suelo = await p.evaluate(async () => {
   // mantenido (0.3) eso es 1.8 de progreso, muy por debajo de lo que cuesta
   // cualquier tarea, así que la afirmación no depende de la calibración.
   const SEGUNDOS = 6;
+  // SE MIRA EL MÁXIMO, no el valor final. La cuenta atrás de la tarea
+  // (`limite`) sigue corriendo mientras se mantiene, y al agotarse pierde lo
+  // hecho y deja el progreso en cero — leyendo solo al final, «avanza algo»
+  // salía 0 y parecía que mantener no hacía nada. Aquí importa que mantener
+  // EMPUJE, no dónde quedó cuando se acabó el plazo.
+  let maxProgreso = 0;
   for (let i = 0; i < SEGUNDOS * 60 && !st.encendida && !st.done; i++) {
+    maxProgreso = Math.max(maxProgreso, st.progress);
     // Se reanuda dentro del bucle: `_heatAlertShown` se rearma sola y una
     // alerta a mitad de cuenta volvería a congelar la tarea.
     g.setPaused(false);
@@ -271,7 +278,13 @@ const suelo = await p.evaluate(async () => {
     g.suspicion = 0;
     await sleep(100);
   }
-  return { encendida, hecha: st.done, id: st.id, progreso: +st.progress.toFixed(2), time: st.time };
+  return {
+    encendida,
+    hecha: st.done,
+    id: st.id,
+    progreso: +Math.max(maxProgreso, st.progress).toFixed(2),
+    time: st.time,
+  };
 });
 assert(
   "mantener pulsado NO basta: sin tocar el pulso la tarea no se enciende",

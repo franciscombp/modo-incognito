@@ -306,9 +306,24 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const actionText = el("div", "inc-action-text", actionBody);
   const actionVerb = el("b", "inc-action-verb", actionText);
   const actionLabel = el("span", "inc-action-label", actionText);
+  // ── LA CAÑA ───────────────────────────────────────────────────────
+  // El gesto SIEMPRE fue una barra de pesca por dentro: hay algo que se te
+  // escapa (la zona) y una barra que tú mueves (el valor), y mientras se
+  // solapan la captura avanza. Lo que faltaba era que se VIERA así.
+  //
+  // Era una tira fina con una banda de color y una rayita de 5px. Se
+  // entendía «hay que poner la raya ahí» y nada más: sin barra que se llene,
+  // sostener no daba ninguna respuesta inmediata y se sostenía a ciegas.
+  // Ahora el que se escapa lleva ICONO, la barra que mueves tiene cuerpo, y
+  // al lado va el CARRETE, que sube mientras aciertas — la lectura de un
+  // minijuego de pesca de toda la vida, que es la gracia de usar uno.
   const actionTrack = el("div", "inc-action-track", actionBody);
   const actionZone = el("i", "inc-action-zone", actionTrack);
+  const actionZoneIcon = el("span", "inc-action-zone-icon", actionZone);
   const actionKnob = el("i", "inc-action-knob", actionTrack);
+  const actionReel = el("div", "inc-action-reel", actionBody);
+  const actionReelFill = el("i", null, actionReel);
+  let actionZoneIconName = null;
   const actionCount = el("span", "inc-action-count", actionBody);
   let actionIconName = null;
 
@@ -349,6 +364,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       actionCount.textContent = `${Math.round(a.aguante)}s`;
       action.classList.remove("urge", "loud");
       actionTrack.classList.remove("on");
+      actionReel.classList.remove("on", "in");
       return;
     }
 
@@ -361,18 +377,31 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       const zoneSize = `${g.zona * 100}%`;
       if (g.eje === "x") {
         actionZone.style.cssText = `left:${zoneStart};width:${zoneSize};top:0;bottom:0`;
-        actionKnob.style.cssText = `left:${g.valor * 100}%;top:-3px;bottom:-3px;width:5px;margin-left:-2.5px`;
+        actionKnob.style.cssText = `left:${g.valor * 100}%;top:-4px;bottom:-4px;width:14px;margin-left:-7px`;
       } else {
         actionZone.style.cssText = `bottom:${zoneStart};height:${zoneSize};left:0;right:0`;
-        actionKnob.style.cssText = `bottom:${g.valor * 100}%;left:-3px;right:-3px;height:5px;margin-bottom:-2.5px`;
+        actionKnob.style.cssText = `bottom:${g.valor * 100}%;left:-4px;right:-4px;height:14px;margin-bottom:-7px`;
+      }
+      // EL QUE SE ESCAPA lleva la cara de la tarea: el volumen de la peli, la
+      // taza que se enfría. Es lo que convierte «pon la raya en la banda» en
+      // «no se te escape ESTO».
+      if (g.icon !== actionZoneIconName) {
+        actionZoneIconName = g.icon;
+        actionZoneIcon.replaceChildren(iconEl(g.icon));
       }
       actionTrack.classList.toggle("in", g.dentro);
+      // EL CARRETE: lo pescado hasta ahora. Sin esto, sostener bien y
+      // sostener mal se ven igual hasta que la tarea termina sola.
+      actionReel.classList.add("on");
+      actionReelFill.style.height = `${Math.round((g.progreso ?? 0) * 100)}%`;
+      actionReel.classList.toggle("in", g.dentro);
       // DELATADA: el valor está en el extremo y te están oyendo. Es el único
       // estado del panel que grita, porque es el único que cuesta sospecha
       // cada segundo que lo dejes así.
       action.classList.toggle("loud", g.delatada);
     } else {
       action.classList.remove("loud");
+      actionReel.classList.remove("on", "in");
     }
 
     if (d) {

@@ -216,6 +216,12 @@ pones y **ya no para**: dejarla a medias para huir del jefe no la congela, y
 eso es lo que convierte empezar algo prohibido en una decisión. Si se agota,
 pierdes lo hecho y el jefe **viene** — pero no te amonesta a distancia, que
 seguiría siendo física. Dos cosas que se rompen solas si se tocan:
+  **Y se PINTA como una barra de pesca**, que es lo que siempre fue por
+  dentro: algo que se te escapa (la zona, con el icono de la tarea encima) y
+  una barra que tú mueves (el valor), y al lado el CARRETE, que sube
+  mientras se solapan. Era una tira de 12 px con una rayita de 5: se
+  entendía «pon la raya ahí» y nada más — sin barra que se llene, sostener
+  bien y sostener mal se ven igual hasta que la tarea termina sola.
 - **`limite` SIEMPRE mayor que `time`.** Al revés, mantener espacio dejaría de
   poder terminar la tarea y el suelo se caería sin que nada fallara a la vista.
 - **El pico de sospecha tiene que dejarte POR ENCIMA de

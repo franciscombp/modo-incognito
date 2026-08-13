@@ -55,7 +55,7 @@ function floorCenter() {
  *   0,35 → 383 px de alto, coronilla en 106 y pies en 489, justo encima de
  *        la caja de diálogo. Ése es el encuadre.
  *
- * ⚠️ **El hueso `Head` está en el CUELLO, no en la coronilla.** Medir por él
+ * OJO: **El hueso `Head` está en el CUELLO, no en la coronilla.** Medir por él
  * decía que quedaban 100 px de aire cuando el pelo ya se salía del cuadro.
  * La coronilla es `y = 1.45 * WORLD_SCALE`, la altura del muñeco.
  */

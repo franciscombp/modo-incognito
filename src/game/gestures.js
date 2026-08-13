@@ -159,6 +159,13 @@ export function createActivityGesture({ onNoise = null, onFeedback = null } = {}
         delatada: enExtremo(valor),
         label: station.label ?? null,
         icon: station.icon ?? "question",
+        // LO QUE LLEVAS PESCADO. El progreso de la tarea existía desde
+        // siempre, pero solo se veía en la lista de misiones, arriba a la
+        // derecha, a un palmo de donde estás mirando: sostener el valor en su
+        // zona no daba NINGUNA respuesta inmediata, y un minijuego de
+        // sostener sin barra que se llene es sostener a ciegas. Es lo que
+        // hace que esto se lea como la caña de pescar que ya es por dentro.
+        progreso: station.time ? Math.min(1, (station.progress ?? 0) / station.time) : 0,
       };
     },
 
