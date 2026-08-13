@@ -131,6 +131,27 @@ después — encendida la actividad, el mundo vive y cada segundo sostenida a
 la vista paga extra; soltar la banca (`AGUANTE_*` en game.js). Lo vigilan
 `check:pulse`, `check:gesto` y `check:objetos`.
 
+### 1.3 Dormirse se cuenta con el ZZZ, nunca con una cama
+
+Hay dos formas de dormirse y las dos se leen igual: la postura `doze` —cabezada
+de pie— y el **globo de Zzz** sobre la cabeza.
+
+- **Por agotamiento**: la energía llega a cero y caes donde estés.
+- **A propósito**: la actividad «dormir en el escritorio».
+
+⚠️ **Ninguna pose monta mobiliario para esto.** Hubo una pose `sleep` que
+traía una CAMA en su `context.furniture`, y las dos actividades que la pedían
+eran «dormir en el escritorio» y «estirar cinco minutos»: un colchón
+apareciendo de la nada en tu puesto, y otro al desperezarte. Se lee como un
+fallo, no como una siesta, así que la pose se retiró del motor entera. Si algún
+día vuelve una cama será mobiliario **del plano**, en un sitio concreto, no algo
+que la pose invoque donde estés parada.
+
+El Zzz y las caritas del escaqueo son excluyentes: dormida no te lo estás
+pasando bien. Lo vigila `npm run check:energia`.
+
+---
+
 ---
 
 ## 2. La sospecha

@@ -157,10 +157,8 @@ const dormida = await p.evaluate(() => {
   };
 });
 check(dormida.dormida === true, "a cero te duermes");
-// `doze`, no `sleep`: la MISMA postura pero sin cama. `sleep` monta un
-// colchón (su `context.furniture`), y caerte de agotamiento en mitad del
-// pasillo hacía aparecer una cama de la nada a tus pies. La cama se queda
-// para la siesta táctica, que sí pasa en un sitio concreto.
+// `doze`: la cabezada de pie, sin mueble ninguno. La cama se retiró del
+// motor entera (ver la sección 5): lo que cuenta que duermes es el ZZZ.
 check(dormida.pose === "doze", "con la pose de cabezada (sin cama)", dormida.pose);
 check(dormida.teclas === 0, "y los mandos dejan de responder");
 check(dormida.enSnapshot === true, "el HUD se entera");
@@ -218,6 +216,7 @@ check(
   "y el globo de alerta del jefe también pinta de verdad",
   JSON.stringify(zzz)
 );
+
 
 // ── 4 · Dormirse a la vista del jefe: VIENE a despertarte, y la
 // amonestación cae cuando llega y te TOCA — nunca por verte a distancia.
@@ -279,6 +278,66 @@ const enSalaSegura = await p.evaluate(() => {
   return g.warnings;
 });
 check(enSalaSegura === 0, "pero en un lugar seguro puedes dar la cabezada", `${enSalaSegura}`);
+
+// ── 5 · LA CAMA NO VA: lo que cuenta que duermes es el ZZZ ────────
+// Decisión de diseño. Había una pose (`sleep`) que montaba un colchón en su
+// `context.furniture`, y las dos actividades que la pedían eran «dormir en el
+// escritorio» y «estirar cinco minutos»: una cama apareciendo de la nada en
+// tu puesto, y otra al desperezarte. Se leía como un fallo, no como una
+// siesta. Se retiró del motor entera; si vuelve una cama será mobiliario del
+// PLANO en un sitio concreto, no algo que la pose invoque donde estés parada.
+//
+// Va AL FINAL a propósito: corre treinta cuadros de partida de verdad y deja
+// al jefe y al medidor movidos, así que en medio del archivo le robaba el
+// montaje a la sección de al lado.
+const cama = await p.evaluate(async () => {
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const g = window.__game.engine.game;
+  const out = {};
+
+  // Ninguna pose del motor puede montar una cama.
+  out.posesConCama = Object.entries(window.__game.POSE_LIBRARY ?? {})
+    .filter(([, v]) => (v?.context?.furniture ?? []).some((f) => f.name === "bed"))
+    .map(([k]) => k);
+  // Y ninguna actividad puede seguir pidiendo la pose retirada.
+  out.actividadesConSleep = (g._allStations ?? [])
+    .filter((a) => a.pose === "sleep")
+    .map((a) => a.id);
+
+  // La SIESTA como actividad: Zzz sí, carita no.
+  g.asleepFor = 0;
+  g.energy = 80;
+  const st = g.objectives.find((o) => o.type === "sleep") ?? null;
+  if (st) {
+    g.player.position.x = st.x;
+    g.player.position.z = st.z;
+    if (st.objeto) g.inventario.add(st.objeto.id);
+    g.player.keys.add(" ");
+    for (let i = 0; i < 30; i++) {
+      g.setPaused(false);
+      g.update(1 / 60);
+      await sleep(6);
+    }
+    out.siestaZzz = g.player.isAsleep === true;
+    out.siestaCarita = g.player.isEnjoying === true;
+    g.player.keys.delete(" ");
+  }
+  return out;
+});
+check(
+  cama.posesConCama.length === 0,
+  "NINGUNA pose del motor monta una cama",
+  `la montan: ${cama.posesConCama.join(", ")}`
+);
+check(
+  cama.actividadesConSleep.length === 0,
+  "y ninguna actividad pide la pose retirada `sleep`",
+  `la piden: ${cama.actividadesConSleep.join(", ")}`
+);
+if (cama.siestaZzz !== undefined) {
+  check(cama.siestaZzz === true, "la siesta del escritorio lleva ZZZ", JSON.stringify(cama));
+  check(cama.siestaCarita === false, "y no carita: dormir no es escaquearse riendo", JSON.stringify(cama));
+}
 
 check(errors.length === 0, "sin errores de página", errors.slice(0, 2).join(" | "));
 

@@ -90,31 +90,50 @@ assert(
 assert("y queda guardado en la pose", Math.abs(edicion.enPose) > 1, JSON.stringify(edicion));
 
 // ── 3 · Cargar una pose de la biblioteca cambia la postura Y trae su contexto ──
+// Se usa `coffee` porque trae un PROP (la taza, colgada de `RightHand`): si
+// aparece, el builder está pasando por `setPose()` del motor y no aplicando
+// los huesos por su cuenta. Antes esto se probaba con la cama de `sleep`, pero
+// esa pose se retiró — ninguna monta ya mobiliario (ver MOTOR.md §1.3).
 const carga = await p.evaluate(async () => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const antes = window.__anim.rotacionDe("torso");
+  const antes = window.__anim.rotacionDe("armR");
+  const contar = () => {
+    let n = 0;
+    window.__anim.muñeco.object.traverse((o) => {
+      if (o.isMesh) n++;
+    });
+    return n;
+  };
+  const mallasAntes = contar();
   const fila = [...document.querySelectorAll("#poses .row")].find(
-    (f) => f.textContent.trim() === "sleep"
+    (f) => f.textContent.trim() === "coffee"
   );
-  if (!fila) return { error: "no está la pose sleep" };
+  if (!fila) return { error: "no está la pose coffee" };
   fila.click();
-  await sleep(600);
-  // `sleep` monta una cama: la cuelga del grupo del personaje. Si no aparece,
-  // es que el builder no está pasando por `setPose()` del motor.
-  let muebles = 0;
-  window.__anim.muñeco.object.traverse((o) => {
-    if (o.isMesh && o !== window.__anim.muñeco.object) muebles++;
-  });
+  await sleep(700);
   return {
     antes,
-    despues: window.__anim.rotacionDe("torso"),
-    cambio: Math.abs(window.__anim.rotacionDe("torso")[0] - antes[0]) > 3,
-    mallas: muebles,
+    despues: window.__anim.rotacionDe("armR"),
+    cambio: Math.abs(window.__anim.rotacionDe("armR")[0] - antes[0]) > 3,
+    mallasAntes,
+    mallasDespues: contar(),
     nombre: document.querySelector("#nombre").value,
   };
 });
 assert("cargar una pose cambia la postura", carga.cambio === true, JSON.stringify(carga));
-assert("y su nombre entra en el formulario", carga.nombre === "sleep", JSON.stringify(carga));
+assert("y su nombre entra en el formulario", carga.nombre === "coffee", JSON.stringify(carga));
+assert(
+  "y trae su PROP: la pose pasa por el motor, no se aplica a mano",
+  carga.mallasDespues > carga.mallasAntes,
+  JSON.stringify(carga)
+);
+
+// Y la decisión de diseño, vigilada también desde aquí: la pose de la cama
+// ya no existe, así que no puede volver a ofrecerse en el editor.
+const sinCama = await p.evaluate(() =>
+  [...document.querySelectorAll("#poses .row")].every((r) => r.textContent.trim() !== "sleep")
+);
+assert("la pose `sleep` (la de la cama) ya no se ofrece", sinCama === true);
 
 // ── 4 · Las dos llaves son independientes ───────────────────────────────
 const llaves = await p.evaluate(async () => {

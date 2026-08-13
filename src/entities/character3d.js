@@ -209,16 +209,23 @@ export const POSE_LIBRARY = {
       furniture: [],
     },
   },
-  sleep: {
-    speed: 1.1,
-    prop: null,
-    a: { torso: [0.16, 0, 0.05], head: [0.4, 0, 0.3], armL: [0.1, 0, 0.16], armR: [0.1, 0, -0.16], lift: -0.012 },
-    b: { torso: [0.2, 0, 0.05], head: [0.46, 0, 0.34], armL: [0.14, 0, 0.16], armR: [0.14, 0, -0.16], lift: 0.006 },
-    context: {
-      props: [],
-      furniture: [{ name: "bed", position: [0, 0, 0.2], rotation: [0, 0, 0] }],
-    },
-  },
+  // ── LA CAMA SE RETIRÓ ENTERA (decisión de diseño) ────────────────────
+  // Aquí vivía `sleep`, la misma postura que `doze` pero con una CAMA en su
+  // `context.furniture`. Se quitó de raíz: un colchón apareciendo de la nada
+  // a los pies de alguien que está DE PIE se lee como un fallo, no como una
+  // siesta — y las dos actividades que la pedían eran «dormir en el
+  // escritorio» y «estirar cinco minutos», o sea una cama en tu puesto y una
+  // cama al desperezarte.
+  //
+  // Lo que cuenta que estás durmiendo es el ZZZ sobre la cabeza
+  // (`entities/alertIcon.js`), que es legible desde el otro lado del piso y
+  // no ocupa suelo. Si algún día vuelve una cama, será mobiliario del PLANO
+  // en un sitio concreto, no algo que la pose invoque donde estés parada.
+  //
+  // No se deja `sleep` como alias de `doze`: dos entradas idénticas se
+  // separan a la primera edición. Un JSON que pida una pose que ya no existe
+  // avisa por consola (ver `setPose`), no se queda mudo.
+  //
   // LA CABEZADA: dormirse DE PIE, sin cama. Es la misma postura que `sleep`
   // pero con el contexto VACÍO, y existe por un fallo que se veía fatal:
   // quedarte sin energía en mitad del pasillo usaba `sleep`, y esa pose
@@ -1069,6 +1076,12 @@ export class Character3D {
     if (name == null && this._idlePose) return;
     if (name === this._poseName) return;
     this._poseName = name ?? null;
+    // Un nombre que no existe AVISA, no se ignora en silencio. Mismo criterio
+    // que `effects.js`: sin esto, un `"pose": "loQueSea"` en un JSON de escena
+    // deja al personaje quieto y parece que la actividad no hace nada.
+    if (name && !POSE_LIBRARY[name]) {
+      console.warn(`[character3d] pose desconocida: "${name}" (ver POSE_LIBRARY)`);
+    }
     this._pose = name ? POSE_LIBRARY[name] ?? null : null;
     this._poseT = 0;
     this._loadPoseContext();

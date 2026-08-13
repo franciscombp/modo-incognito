@@ -678,7 +678,7 @@
       "riskRate": 36,
       "time": 2.5,
       "limite": 7,
-      "pose": "sleep",
+      "pose": "doze",
       "reward": 37,
       "energy": 35,
       "pulso": {"periodo":2.4,"zona":0.34,"aciertos":2,"ruido":9}
@@ -717,7 +717,7 @@
       "riskRate": 20,
       "time": 3.5,
       "limite": 9,
-      "pose": "sleep",
+      "pose": "doze",
       "reward": 25,
       "energy": 15,
       "pulso": {"periodo":1.8,"zona":0.32,"aciertos":3}

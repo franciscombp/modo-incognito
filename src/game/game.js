@@ -1182,6 +1182,28 @@ export class Game {
       !this.gameOver &&
       (this.player.isDoingActivity || this.objectives.some((o) => o.encendida && !o.done));
 
+    // ── LA SIESTA TAMBIÉN LLEVA ZZZ, Y NO CARITA ─────────────────────────
+    // Echarte una cabezada en el escritorio es dormir, aunque lo hayas
+    // elegido tú: lo cuenta el ZZZ sobre la cabeza, que es lo que se lee
+    // desde el otro lado del piso. Antes lo contaba una CAMA que la pose
+    // montaba a tus pies — un colchón apareciendo en tu puesto se leía como
+    // un fallo, así que se retiró del motor (ver POSE_LIBRARY).
+    //
+    // Va DESPUÉS de `_updateEnergy`, que pone `isAsleep = false` cuando no
+    // estás agotada: escrito antes, se borraría en el mismo cuadro.
+    // Solo mientras la ESTÁS haciendo, no mientras siga encendida: una
+    // actividad encendida sigue corriendo aunque te alejes, y un Zzz sobre
+    // alguien que camina por el pasillo diría que va dormida andando.
+    const siesta =
+      !this.gameOver && this.player.isDoingActivity && this._enSiesta(this.nearStation);
+    if (siesta) {
+      this.player.isAsleep = true;
+      // Los dos globos son excluyentes: dormida no te lo estás pasando bien
+      // (`player.js` ya lo respeta, pero se apaga aquí para que el snapshot
+      // no diga las dos cosas a la vez).
+      this.player.isEnjoying = false;
+    }
+
     // "¡GABO TE VIO!": el momento en que arranca una caza es EL golpe del
     // juego, y merece el anuncio grande — no un cambio de color que hay que
     // notar de reojo. Solo en la TRANSICIÓN a CHASE, nunca cada frame. Y si
@@ -1972,16 +1994,25 @@ export class Game {
    * @param {boolean} yaAmonestada Si el jefe ya te pilló ESTE cuadro por
    *   otra vía, para no cobrar dos amonestaciones por el mismo instante.
    */
+  /**
+   * ¿Esta estación es una siesta? Se mira el `type` de la actividad y no su
+   * `pose`: la pose es cómo se ve, el tipo es qué es. Así cambiar la postura
+   * en el JSON no apaga el Zzz sin querer.
+   */
+  _enSiesta(st) {
+    return !!st && st.type === "sleep" && !st.done;
+  }
+
   _updateEnergy(dt, yaAmonestada) {
     if (this.rules.explore || this.gameOver) return;
 
     if (this.asleepFor > 0) {
       this.asleepFor -= dt;
       this.player.isAsleep = true;
-      // `doze`, no `sleep`: la misma postura pero SIN CAMA. `sleep` monta un
-      // colchón (su `context.furniture`), y quedarte sin energía en mitad
-      // del pasillo hacía aparecer una cama de la nada a tus pies. La cama
-      // se queda para la siesta táctica, que sí pasa en un sitio concreto.
+      // `doze`: la cabezada de pie. La cama se RETIRÓ del motor entera (ver
+      // POSE_LIBRARY) — lo que cuenta que duermes es el ZZZ sobre la cabeza,
+      // no un colchón apareciendo a tus pies. También la siesta del
+      // escritorio usa esta pose y su Zzz.
       this.player.pose = "doze";
       // Dormida no se anda: se sueltan las teclas para que no siga
       // caminando sola mientras dura la cabezada.
