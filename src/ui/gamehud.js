@@ -189,6 +189,20 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   // escenario tiene que seguir viéndose (game/activityGame.js explica por qué
   // el mundo no se pausa). Va centrada abajo, justo donde ya está mirando
   // quien acaba de pulsar el botón de acción.
+  // LA TARJETA DEL CHISME. Vive en la banda de abajo, como el resto de la
+  // acción en primer plano, y con `pointer-events: none`: nunca roba un clic.
+  // Es la única pieza del juego que pide LEER un párrafo, así que ocupa más
+  // — y por eso mismo el jefe sigue caminando mientras lees, que es lo que
+  // convierte quedarse en una decisión.
+  const chismeCard = el("div", "inc-chisme", layer);
+  const chismeHead = el("div", "inc-chisme-head", chismeCard);
+  const chismeTitular = el("span", "inc-chisme-titular", chismeHead);
+  const chismePips = el("span", "inc-chisme-pips", chismeHead);
+  const chismeTexto = el("p", "inc-chisme-texto", chismeCard);
+  const chismePregunta = el("p", "inc-chisme-pregunta", chismeCard);
+  const chismeOpts = el("div", "inc-chisme-opts", chismeCard);
+  let chismeFirma = null;
+
   const pulseBar = el("div", "inc-pulse", layer);
   const pulseZone = el("i", "inc-pulse-zone", pulseBar);
   const pulseMark = el("i", "inc-pulse-mark", pulseBar);
@@ -210,6 +224,37 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   let pulseHits = -1;
   let pulseWasOn = false;
   let pulseShows = 0;
+
+  function renderChisme(state) {
+    const c = state.chisme;
+    chismeCard.classList.toggle("on", !!c);
+    if (!c) {
+      chismeFirma = null;
+      return;
+    }
+    // Se redibuja solo al CAMBIAR de ficha: son tres botones y dos párrafos,
+    // y rehacerlos sesenta veces por segundo para pintar lo mismo es tirar
+    // DOM a la basura. La firma incluye los aciertos para que el contador
+    // se refresque al responder.
+    const firma = `${c.titular}|${c.pregunta}|${c.aciertos}`;
+    if (firma !== chismeFirma) {
+      chismeFirma = firma;
+      chismeTitular.textContent = c.titular;
+      chismePips.textContent = `${c.aciertos}/${c.necesarios}`;
+      chismeTexto.textContent = c.texto;
+      chismePregunta.textContent = c.pregunta;
+      chismeOpts.textContent = "";
+      c.opciones.forEach((texto, i) => {
+        const b = el("span", "inc-chisme-opt", chismeOpts);
+        el("b", null, b).textContent = String(i + 1);
+        el("span", null, b).textContent = texto;
+      });
+    }
+    // El destello de acierto/fallo sí va por cuadro: es lo que hace que
+    // responder se SIENTA. Sin él, acertar y fallar se ven igual.
+    chismeCard.classList.toggle("ok", c.resultado === "acierto");
+    chismeCard.classList.toggle("bad", c.resultado === "fallo");
+  }
 
   function renderPulse(state) {
     const p = state.pulse;
@@ -359,6 +404,16 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     if (!layer.classList.contains("live")) return;
     const n = Number(e.key);
     if (!Number.isInteger(n) || n < 1 || n > 3) return;
+    // MIENTRAS HAY UN CHISME ABIERTO, 1–3 SON LAS RESPUESTAS. Es la misma
+    // tecla y eso es a propósito: no hay un mando nuevo que aprender con el
+    // jefe caminando hacia ti, y el número que se lee en la tarjeta es el
+    // que ya sabes pulsar de la lista de misiones. Fuera del chisme vuelven
+    // a seguir una misión, como siempre.
+    const g = window.__game?.engine?.game;
+    if (g?.chisme?.active) {
+      g.chisme.responder(n - 1);
+      return;
+    }
     const ids = [...questRows.keys()];
     const id = ids[n - 1];
     if (!id) return;
@@ -607,6 +662,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       renderClock(state);
       renderZone(state);
       renderPulse(state);
+    renderChisme(state);
       renderAction(state);
       renderAnnounce(state);
     },

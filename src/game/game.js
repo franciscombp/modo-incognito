@@ -18,6 +18,7 @@ import { sfxComplete, sfxWarn, sfxDistraction } from "./sfx.js";
 import { runEffect } from "./effects.js";
 import { createActivityPulse } from "./activityGame.js";
 import { createActivityGesture } from "./gestures.js";
+import { createChismeGame } from "./chismeGame.js";
 
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
@@ -263,6 +264,9 @@ export class Game {
     // Los puestos con silla de verdad (scene/furniture.js). Fingir que
     // trabajas te sienta en uno si lo hay a mano.
     seats = [],
+    // Las fichas del minijuego de chisme (public/data/chismes.json). Vacío
+    // es legítimo: la actividad que lo pida cae al pulso, como cualquiera.
+    chismes = [],
     rules = {},
     config = null,
     onFinish = null,
@@ -456,6 +460,23 @@ export class Game {
       },
       onFeedback: (tipo) => {
         if (tipo === "dentro") sfxComplete();
+      },
+    });
+
+    // EL CHISME (game/chismeGame.js), el TERCER verbo — y el primero que no
+    // es de destreza. El pulso y el gesto se juegan mirando una tira; este
+    // se juega LEYENDO. Con un piso entero de tareas que son la misma tira
+    // con otros números, da igual lo bien parametrizadas que estén: en la
+    // mano se sienten iguales.
+    this.chisme = createChismeGame({
+      pool: chismes,
+      onNoise: (n) => {
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
+      },
+      onFeedback: (tipo, info) => {
+        if (tipo === "acierto") sfxComplete();
+        else sfxWarn();
+        if (info?.remate) this.toast(info.remate);
       },
     });
 
@@ -802,6 +823,7 @@ export class Game {
         this._faltaObjeto(st);
         this.pulse.end();
         this.gesture.end();
+        this.chisme.end();
         this.player.inputLocked = false;
         this.player.isDoingActivity = false;
         this._updatePretendPose();
@@ -824,6 +846,7 @@ export class Game {
           // sola (soltar o irte también banca — ver el barrido de abajo).
           this.pulse.end();
           this.gesture.end();
+          this.chisme.end();
           this.player.inputLocked = false;
           st.aguante = Math.min(AGUANTE_MAX, (st.aguante ?? 0) + dt);
           if (st.aguante >= AGUANTE_MAX) this._bankActivity(st);
@@ -841,9 +864,21 @@ export class Game {
           // Una estación juega al GESTO o al PULSO, según su JSON. Nunca a
           // los dos: pedir ritmo y pulso firme a la vez no es difícil, es
           // ruido.
-          const conGesto = !!st.gesto;
+          const conChisme = !!st.chisme;
+          const conGesto = !conChisme && !!st.gesto;
           let ritmo = 1;
-          if (conGesto) {
+          if (conChisme) {
+            // EL CHISME. No avanza solo: aquí mantener la tecla es lo que te
+            // deja LEYENDO, y lo que empuja la tarea son las respuestas
+            // (`responder`, desde las teclas 1-3). Ritmo 0 a propósito — si
+            // goteara progreso, la tanda se terminaría sola mientras lees y
+            // el minijuego volvería a ser decoración, que es de donde venimos.
+            this.pulse.end();
+            this.gesture.end();
+            this.chisme.begin(st);
+            this.chisme.update(dt);
+            ritmo = 0;
+          } else if (conGesto) {
             this.pulse.end();
             this.gesture.begin(st);
             // El paso se bloquea MIENTRAS dura el gesto: el eje del mando
@@ -891,6 +926,7 @@ export class Game {
     } else {
       this.pulse.end();
       this.gesture.end();
+      this.chisme.end();
       this.player.inputLocked = false;
       this.player.isDoingActivity = false;
       this._updatePretendPose();
@@ -2711,6 +2747,7 @@ export class Game {
       // desincronizar del motor.
       pulse: this.pulse.snapshot(),
       gesture: this.gesture.snapshot(),
+      chisme: this.chisme.snapshot(),
       // El bucle v2: qué llevas encima, si el mundo está congelado
       // (activando) y qué actividad está encendida aguantando.
       inventario: [...this.inventario],

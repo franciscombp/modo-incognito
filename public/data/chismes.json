@@ -1,0 +1,100 @@
+{
+  "$comment": [
+    "LAS FICHAS DEL CHISME — el minijuego de tarea que se juega LEYENDO",
+    "(src/game/chismeGame.js). Una actividad juega al chisme si declara",
+    "`chisme` en su JSON de escena; si no, al gesto o al pulso, como siempre.",
+    "",
+    "La gracia del formato es que la recompensa de verdad es el chisme EN SÍ:",
+    "quieres seguir leyendo, y entonces llega Gabo y tienes que dejarlo. Esa",
+    "tensión ES el juego. Por eso el texto tiene que valer la pena por su",
+    "cuenta — una ficha aburrida convierte el minijuego en un formulario.",
+    "",
+    "Campos: id, titular (la etiqueta de arriba), texto (el chisme), pregunta,",
+    "opciones (3, cada una con `texto` y un `remate` opcional que sale al",
+    "responder) y `correcta` (índice, 0-2).",
+    "",
+    "La pregunta se responde CON EL TEXTO DELANTE: no es memoria, es haber",
+    "leído. Con el jefe caminando hacia ti, una pregunta de memoria sería",
+    "castigar por mirar al piso, que es lo que hay que mirar.",
+    "",
+    "Nada de meta-chiste aquí: el secreto del proyecto vive solo en el egg y",
+    "en el dia 5 (ver CLAUDE.md).",
+    "",
+    "Los nombres del reparto se usan a propósito; los nombres de empresa y la",
+    "jerga corporativa real, nunca."
+  ],
+  "fichas": [
+    {
+      "id": "cafetera",
+      "titular": "PASILLO · alta prioridad",
+      "texto": "Dicen que Crispo lleva tres semanas trayéndose el café de su casa en termo porque el de la oficina «no es café, es agua con recuerdos». Lo dijo en la reunión de equipo. Con esas palabras. Delante de Gabo, que fue quien eligió la máquina.",
+      "pregunta": "¿Por qué Crispo trae termo?",
+      "correcta": 1,
+      "opciones": [
+        { "texto": "Porque es más barato", "remate": "No. Crispo no ha hecho una cuenta en su vida." },
+        { "texto": "Porque el café de la oficina le parece agua", "remate": "Exacto. Y lo dijo delante de quien compró la máquina." },
+        { "texto": "Porque no le dejan usar la cocina", "remate": "Nadie tiene prohibida la cocina. Todavía." }
+      ]
+    },
+    {
+      "id": "silla",
+      "titular": "PISO 10 · sin confirmar",
+      "texto": "La silla buena, la de apoyabrazos que sube, apareció un lunes en el puesto de Washo. Nadie la pidió, nadie la firmó. Chispita jura que el viernes anterior estaba en la sala de reuniones y que él la vio «pasar sola por el pasillo, como a las siete».",
+      "pregunta": "Según Chispita, ¿cuándo se movió la silla?",
+      "correcta": 2,
+      "opciones": [
+        { "texto": "El lunes por la mañana", "remate": "El lunes ya estaba puesta. Eso no es el misterio." },
+        { "texto": "Durante la reunión", "remate": "Durante la reunión había gente. Ese es el punto." },
+        { "texto": "El viernes, sobre las siete", "remate": "«Como a las siete», dijo. Y bajó la voz para decirlo." }
+      ]
+    },
+    {
+      "id": "calendario",
+      "titular": "AGENDA · verificado",
+      "texto": "Gabo tiene bloqueadas dos horas todos los martes con el título «FOCUS — NO AGENDAR». El Parce, que se sienta enfrente, dice que en esas dos horas Gabo mira el teléfono en horizontal y se ríe solo. Una vez se le oyó decir «no me la creo» tres veces seguidas.",
+      "pregunta": "¿Qué hace Gabo en su bloque de FOCUS?",
+      "correcta": 0,
+      "opciones": [
+        { "texto": "Ver el teléfono en horizontal", "remate": "Horizontal. Es el detalle que lo delata todo." },
+        { "texto": "Preparar la evaluación del equipo", "remate": "Ojalá. Nadie se ríe solo preparando eso." },
+        { "texto": "Reunirse con el Piso 12", "remate": "El Piso 12 no existe. Lo comprobó Chispita." }
+      ]
+    },
+    {
+      "id": "microondas",
+      "titular": "COCINA · reincidente",
+      "texto": "Alguien calienta pescado. Todos los martes. A la una y diez. Hay un cartel, hay dos correos y hubo una charla de convivencia de cuarenta minutos. Sigue pasando. Lo único que se sabe con certeza es que el martes que Chispita estuvo de vacaciones, no pasó.",
+      "pregunta": "¿Qué es lo ÚNICO que se sabe con certeza?",
+      "correcta": 1,
+      "opciones": [
+        { "texto": "Que es a la una y diez", "remate": "Eso también, pero no es lo que señala a nadie." },
+        { "texto": "Que no pasó el martes que faltó Chispita", "remate": "Correcto. Nadie lo ha dicho en voz alta todavía." },
+        { "texto": "Que hubo una charla de convivencia", "remate": "Cuarenta minutos. Y sin una sola conclusión." }
+      ]
+    },
+    {
+      "id": "impresora",
+      "titular": "SALA 4 · en curso",
+      "texto": "La impresora del ala norte lleva desde marzo con un papel atascado. Cinco personas la han «arreglado». El Parce dice que ya no está atascada, que ahora lo que pasa es que imprime todo lo que se mandó desde marzo, en orden, cada vez que alguien la enciende.",
+      "pregunta": "Según el Parce, ¿qué hace ahora la impresora?",
+      "correcta": 2,
+      "opciones": [
+        { "texto": "Nada, sigue atascada", "remate": "Eso era antes. El Parce insiste en que evolucionó." },
+        { "texto": "Imprime en blanco", "remate": "Sería más barato y menos inquietante." },
+        { "texto": "Imprime todo lo pendiente desde marzo", "remate": "En orden. Ese es el detalle que da miedo." }
+      ]
+    },
+    {
+      "id": "reunion",
+      "titular": "SALA 1 · alta prioridad",
+      "texto": "La reunión de los lunes se llama «sincronía rápida». Dura una hora y cuarto de media. El récord son dos horas y diez. La agenda tiene un solo punto y ese punto es «varios».",
+      "pregunta": "¿Cuántos puntos tiene la agenda?",
+      "correcta": 0,
+      "opciones": [
+        { "texto": "Uno, y es «varios»", "remate": "Uno. Que por dentro son once, pero eso no se escribe." },
+        { "texto": "Ninguno, se improvisa", "remate": "Hay agenda. Ese es justo el chiste." },
+        { "texto": "Cinco, uno por área", "remate": "Con cinco puntos duraría menos. Contraintuitivo pero cierto." }
+      ]
+    }
+  ]
+}

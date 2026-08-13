@@ -131,6 +131,7 @@ export async function loadGameData(onProgress) {
     bossConfigRaw,
     campaignRaw,
     libretaRaw,
+    chismesRaw,
     sceneList,
     levelList,
     rigList,
@@ -151,6 +152,9 @@ export async function loadGameData(onProgress) {
     // La libreta de chismes y pistas. Sin archivo, sencillamente no hay
     // libreta: ningún enganche escribe páginas y la tecla no abre nada.
     getJSON(manifest.libreta ?? "libreta.json").catch(() => null),
+    // Las fichas del minijuego de CHISME. Sin archivo no hay tanda: la
+    // actividad que lo pida cae al pulso, como cualquier otra.
+    getJSON(manifest.chismes ?? "chismes.json").catch(() => ({ fichas: [] })),
     Promise.all((manifest.scenes ?? []).map((id) => getJSON(`scenes/${id}.json`))),
     Promise.all((manifest.levels ?? []).map((id) => getJSON(`levels/${id}.json`))),
     // Rigs de personaje: qué poses usa cada uno y cómo se queda esperando.
@@ -192,6 +196,7 @@ export async function loadGameData(onProgress) {
     bossConfig: bossConfigRaw,
     campaign: campaignRaw,
     libreta: libretaRaw,
+    chismes: chismesRaw?.fichas ?? [],
     scenes,
     levels,
     rigs: new Map(rigList.map((r) => [r.id, r])),

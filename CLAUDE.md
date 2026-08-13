@@ -150,6 +150,20 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
 - `src/game/activityGame.js` — el PULSO, minijuego de tarea de TIMING. Un
   marcador barre una tira y tocas espacio en la zona buena. Un solo mecanismo
   parametrizado desde `activities[].pulso`; no hay un módulo por actividad.
+- `src/game/chismeGame.js` — EL CHISME, el TERCER verbo, y el primero que no
+  es de destreza: sale una tarjeta con un rumor, una pregunta y tres
+  opciones, y se responde con **1–3, las MISMAS teclas** de la lista de
+  misiones (no hay mando nuevo que aprender con el jefe encima). Aquí
+  mantener la tecla NO avanza nada — lo que empuja la tarea son las
+  respuestas; acertar da un buen pellizco, fallar resta poco y hace RUIDO.
+  Las fichas viven en `public/data/chismes.json`, no en el motor. Existe
+  porque el pulso y el gesto son los dos de destreza y los dos se juegan
+  mirando una tira: por muy distintos que sean sus números, en la mano se
+  sienten iguales. Y es DOPAMÍNICO a propósito, que es lo que lo separa del
+  curso de RRHH (que frustra a propósito, porque es un peaje): la
+  recompensa de verdad es el chisme en sí, quieres seguir leyendo — y
+  entonces llega Gabo. Esa tensión ES el juego. Lo vigila
+  `npm run check:chisme`.
 - `src/game/gestures.js` — el GESTO, el otro verbo: hay un valor que se te
   escapa solo (el volumen de la peli sube, el café se enfría) y lo sostienes
   en su zona. Se parametriza desde `activities[].gesto` y sale de cuatro

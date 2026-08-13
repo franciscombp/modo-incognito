@@ -11638,6 +11638,96 @@ body.inc-acting #hint {
   background: var(--danger);
 }
 
+/* ── LA TARJETA DEL CHISME ─────────────────────────────────────────────
+   El minijuego que se juega LEYENDO. Es la única pieza del juego que pide
+   un párrafo, así que ocupa más que la tira del pulso — y va en la misma
+   banda de abajo para no tapar el piso, que es lo que hay que mirar para
+   decidir si te quedas o sales corriendo.
+
+   `pointer-events: none` como el resto de la acción en primer plano: nunca
+   puede robar un clic. Se responde con 1-3, las MISMAS teclas de la lista
+   de misiones — no hay mando nuevo que aprender con el jefe encima. */
+.inc-chisme {
+  position: fixed;
+  left: 50%;
+  bottom: 112px;
+  width: min(560px, 82%);
+  transform: translate(-50%, 12px);
+  display: none;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--btn-radius);
+  border: 1px solid var(--border);
+  background: var(--surface-raised);
+  color: var(--text);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-pop), transform var(--dur-2) var(--ease-pop);
+  z-index: 6;
+}
+
+.inc-chisme.on {
+  display: flex;
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.inc-chisme-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.inc-chisme-texto {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.inc-chisme-pregunta {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.inc-chisme-opts {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.inc-chisme-opt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--btn-radius);
+  border: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.inc-chisme-opt > b {
+  min-width: 16px;
+  text-align: center;
+  color: var(--accent);
+}
+
+/* EL DESTELLO. Responder tiene que SENTIRSE: sin esto, acertar y fallar se
+   ven exactamente igual y el minijuego se vuelve un formulario. */
+.inc-chisme.ok {
+  border-color: var(--ok);
+}
+
+.inc-chisme.bad {
+  border-color: var(--danger);
+}
+
 /* LO QUE LLEVAS ENCIMA, en la misma placa. Es la tercera lectura de "cómo
    estoy yo": las amonestaciones dicen cuánto me queda, la energía si llego
    al final, y esto lo rápido que me fichan al pasar.

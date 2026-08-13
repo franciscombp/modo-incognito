@@ -63,6 +63,8 @@ export function createEngine({
   bossConfig = null,
   campaignData = null,
   libretaData = null,
+  // Las fichas del minijuego de CHISME (public/data/chismes.json).
+  chismesData = [],
   playerSheet = "npc-camina",
   playerName = "Tú",
   minions = new Map(),
@@ -768,6 +770,7 @@ export function createEngine({
       hud,
       canvas,
       seats,
+      chismes: chismesData,
       config: bossConfig,
       rules: mergedRules(day),
       onFinish: (result) => finishDay(day, result),

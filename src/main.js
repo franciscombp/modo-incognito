@@ -423,6 +423,7 @@ async function boot() {
     bossConfig: data.bossConfig,
     campaignData: data.campaign,
     libretaData: data.libreta,
+    chismesData: data.chismes ?? [],
     playerSheet: modeOf(save.characterId)?.sheet ?? chars.player.sheet,
     onCharacter: (id) => applyCharacterSprite(id),
     playerName: chars.player.name ?? "Tú",
