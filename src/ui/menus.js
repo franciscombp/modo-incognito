@@ -696,7 +696,15 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
       <li><b>Las tareas te exponen.</b> Mantener la acción las termina despacio;
       tocar al ritmo de la tira las termina antes — y fallar hace ruido, que
       sube la sospecha.</li>
-      <li><b>Esconderse</b> — pisa un círculo verde: dejas de ser visible.</li>
+      <li><b>Esconderse</b> — métete en el sitio y <b>SUELTA EL MANDO</b>: solo
+      te cubre si te quedas quieta. Moverte dentro no vale, aunque estés
+      encima. Y cada escondite se quema si abusas.</li>
+      <li><b>Los baños</b> — nadie convoca una reunión ahí, así que nunca se
+      ocupan: el refugio que siempre está. Lo que cuesta es llegar, porque el
+      reloj y la energía no se paran mientras te escondes.</li>
+      <li><b>Lo que llevas en la mano</b> cambia lo rápido que te fichan al
+      pasar: un <b>acta</b> o un <b>reporte impreso</b> te hacen invisible de
+      puro aburrida; lo <b>robado</b> te delata hasta que lo uses.</li>
       <li><b>Distracciones</b> — las estrellas amarillas se llevan al jefe a otro sitio.</li>
       <li><b>Tres amonestaciones</b> no te despiden: te mandan a un curso de
       RRHH del que se sale cazando un botón que huye.</li>

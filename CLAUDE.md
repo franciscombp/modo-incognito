@@ -704,6 +704,13 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
     pulso), y es quien mantiene `timeGained` en sincronía con `timeLeft`.
     Lo que ya no pasa por ahí son las actividades, que pagan en energía.
   Lo vigila `npm run check:energia`.
+- **UN ESCONDITE PIDE SOLTAR EL MANDO.** Estar dentro no basta: solo cubre
+  si te quedas QUIETA (`_updateHiding` mira `player.readIntent()`, no la
+  velocidad — contra una pared la velocidad es cero y el hueco sería «entro
+  corriendo y no suelto»). Es la regla del arbusto de Sneaky Sasquatch, y es
+  lo que convierte la huida en una decisión y no en una carrera. Moverte
+  dentro NO gasta su cupo: lo que se gasta es estar escondida. Lo vigila
+  `npm run check:quietud`.
 - **LO QUE TE VIGILA SON DOS CASTAS, y no hacen lo mismo** (el reparto de
   Sneaky Sasquatch, que es de donde salió esto). Un secuaz es un SENSOR:
   nunca amonesta (`catches()` devuelve `false` para `role: "minion"`),

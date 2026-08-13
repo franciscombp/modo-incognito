@@ -1784,6 +1784,30 @@ export class Game {
         return;
       }
 
+      // ── QUIETA. ─────────────────────────────────────────────────────
+      // Meterte en el escondite no basta: hay que DEJAR DE MOVERSE. Es la
+      // regla del arbusto de Sneaky Sasquatch, y es lo que convierte la
+      // huida en una decisión en vez de una carrera — hay un instante en el
+      // que tienes que soltar el mando y aguantar con el jefe cerca.
+      //
+      // Se mira la INTENCIÓN del mando y no la velocidad real: empujada
+      // contra una pared la velocidad es cero y el escondite seguiría
+      // cubriendo mientras forcejeas, que es justo el hueco por el que se
+      // colaría "entro corriendo y no suelto".
+      const intento = this.player.readIntent();
+      const moviendose = Math.hypot(intento.right ?? 0, intento.up ?? 0) > 0.12;
+      if (moviendose) {
+        // Moverse dentro NO gasta el escondite: lo que se gasta es estar
+        // escondida. Si consumiera igual, cruzarlo de paso te lo quemaría
+        // sin haberte cubierto ni un segundo.
+        this._avisoQuietud = (this._avisoQuietud ?? 0) - dt;
+        if (this._avisoQuietud <= 0 && this.boss.isHunting) {
+          this._avisoQuietud = 4;
+          this.toast("Estás dentro, pero moviéndote: QUÉDATE QUIETA.");
+        }
+        return;
+      }
+
       state.usedFor += dt;
       if (state.usedFor >= HIDE_MAX_USE) {
         state.cooldownLeft = HIDE_COOLDOWN;
