@@ -803,6 +803,16 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   añades navegación nueva, pregunta la que toca. Lo vigila `check:pursuit`,
   que ahora MIDE la fluidez (fracción de frames de caza en que avanzó de
   verdad) y exige ≥ 80 % — hoy va por el 97 %.
+- **Una prueba de IA se mide en CUADROS, no en milisegundos.** `check:chase`
+  medía con `sleep()` mientras el juego avanza por frames, o sea que medía la
+  MÁQUINA: la ventana se ensanchó dos veces y el umbral se aflojó de 0.3 a
+  0.1, y seguía saliendo cara o cruz. La causa no era el frame rate — era que
+  **con la sospecha alta salta la alarma de nivel 3 y la partida se PAUSA**:
+  medido, la pausa entraba en el cuadro 1 y los otros 89 corrían con el juego
+  parado, así que el jefe se movía en UN cuadro de noventa. Avanzando a mano
+  un número fijo de `update(1/60)` y reanudando DENTRO del bucle, lo mismo
+  pasó de 0.12 a 3.05–3.17 y dejó de bailar. Si escribes una prueba de la IA,
+  hazlo así.
 - **Los montajes de `tools/` que prueban al jefe necesitan calentar el
   medidor** por encima de ese umbral, o no habrá caza que medir. Y las
   posiciones sácalas de sitios que el juego garantiza caminables (un

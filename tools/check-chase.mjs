@@ -113,16 +113,35 @@ const log = await page.evaluate(async () => {
   game._caughtCooldown = 999;
   const d0 = Math.hypot(boss.position.x - player.position.x, boss.position.z - player.position.z);
   const s0 = game.suspicion;
-  // Sample the meter early: give the chase a full second and he reaches her,
-  // which resets suspicion to zero as a warning and hides the rise.
-  await sleep(250);
-  out.suspicionRose = game.suspicion > s0;
-  // Ventana ANCHA a proposito. Con 450 ms el jefe recorria entre 0.24 y 0.36
-  // contra un umbral de 0.3, o sea que la prueba salia cara o cruz segun lo
-  // cargada que estuviera la maquina — y un test que falla una de cada tres
-  // veces sin que haya nada roto es peor que no tenerlo: ensena a ignorarlo.
-  // Al doblar la ventana, la distancia recorrida se separa del umbral.
-  await sleep(900);
+
+  // ── POR CUADROS, NO POR RELOJ, Y SIN LA PARTIDA PAUSADA ──────────────
+  //
+  // Esto medía con `sleep()` mientras el juego avanza por frames, o sea que
+  // medía la MÁQUINA: la ventana se ensanchó dos veces (450 ms -> 900 ms) y
+  // el umbral se aflojó de 0.3 a 0.1, y aun así seguía saliendo cara o cruz.
+  //
+  // La causa real no era el frame rate. Con la sospecha por las nubes salta
+  // la ALARMA DE NIVEL 3, que PAUSA la partida desde game.js con su aviso a
+  // pantalla completa; medido, la pausa entraba en el cuadro 1 y los otros 89
+  // corrían con el juego parado. El jefe se movía en UN cuadro de noventa y
+  // recorría 0.006: la prueba estaba midiendo un juego en pausa, y que pasara
+  // o fallara dependía de si la alarma caía antes o después de la ventana.
+  //
+  // Se avanza a mano un número FIJO de cuadros y se reanuda DENTRO del bucle,
+  // porque `_heatAlertShown` se rearma sola (el mismo montaje que usan
+  // check-pulse y check-gesto). Así lo que se mide es la IA, no el reloj de
+  // pared ni el aviso.
+  const PASOS = 90; // 1.5 s a 60 fps
+  const MUESTRA_SOSPECHA = 15;
+  let sTrasUnRato = s0;
+  for (let i = 0; i < PASOS; i++) {
+    game.setPaused(false);
+    game.update(1 / 60);
+    // La sospecha se mira PRONTO: más adelante puede tocar techo y dejar de
+    // subir, y entonces "subió" sería falso por haber medido tarde.
+    if (i === MUESTRA_SOSPECHA) sTrasUnRato = game.suspicion;
+  }
+  out.suspicionRose = sTrasUnRato > s0;
   const d1 = Math.hypot(boss.position.x - player.position.x, boss.position.z - player.position.z);
   out.closedDistance = +(d0 - d1).toFixed(2);
 
@@ -131,8 +150,19 @@ const log = await page.evaluate(async () => {
   // check-pursuit.mjs; check-modes.mjs cubre el lado de fingir). Aquí se
   // comprueba lo contrario de antes: que la alerta roja SIGUE puesta aunque
   // pulses F en medio del pasillo.
+  //
+  // REARMAR PRIMERO. La ventana de arriba pasa por la alarma de nivel 3, y
+  // `setPaused(true)` VACÍA las teclas que la jugadora tuviera pulsadas: al
+  // llegar aquí ya no estaba haciendo nada prohibido, así que no había alerta
+  // roja que conservar y esto fallaba por el montaje, no por la regla.
+  station.encendida = true;
+  station.done = false;
+  player.keys.add(" ");
   player.keys.add("f");
-  await sleep(200);
+  for (let i = 0; i < 20; i++) {
+    game.setPaused(false);
+    game.update(1 / 60);
+  }
   out.redAlertWhilePretending = boss.redAlert;
   player.keys.delete("f");
   player.keys.delete(" ");
@@ -197,14 +227,11 @@ const checks = [
   ["boss sees the player", log.seesPlayer],
   ["red alert on a forbidden activity", log.redAlert],
   ["boss switches to CHASE", log.stateAfterSpotted === "CHASE"],
-  // Umbral FLOJO a proposito. La ventana es de reloj real pero el juego
-  // avanza por frames, y en headless con swiftshader el frame rate varia
-  // mucho: la misma prueba daba 0.24 o 0.36 segun cuantos frames cupieran,
-  // valores cuantizados que delatan que se estaba midiendo la maquina, no la
-  // IA. Con 0.3 salia cara o cruz. Lo que esta prueba tiene que cazar es que
-  // el jefe NO se acerque —que se quede plantado o se aleje—, y para eso
-  // basta con exigir que la distancia baje de verdad.
-  ["boss closes the distance", log.closedDistance > 0.1],
+  // Ahora que se avanza por CUADROS fijos, el umbral puede volver a ser
+  // exigente: en 90 cuadros de caza el jefe recorre lo que recorre, y no
+  // depende de lo cargada que este la maquina. Si esto vuelve a bajar, es la
+  // IA la que se rompio — que es justo lo que la prueba existe para cazar.
+  ["boss closes the distance", log.closedDistance > 0.5],
   ["suspicion rises while seen", log.suspicionRose],
   ["fingir a campo abierto NO rompe la alerta (solo el lugar seguro)", log.redAlertWhilePretending === true],
   ["losing sight no longer ends a committed chase", log.stateWhenHidden === "CHASE" && log.lockedWhenHidden],
