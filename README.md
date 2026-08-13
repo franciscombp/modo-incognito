@@ -55,15 +55,19 @@ funciona.
 
 Los builders **salen publicados con el juego** porque son entradas de Vite,
 no páginas sueltas: se abren desde el navegador con un clic, igual que el
-juego. Se actualizan solos en cada push a `main`.
+juego. Se actualizan solos en cada push a `main`. Y ya no son seis páginas
+sueltas: **todas llevan la misma tira de pestañas arriba** (`creador/nav.js`),
+así que se salta de una a otra sin volver aquí.
 
 | | Enlace | Para qué |
 |---|---|---|
 | 🎮 **El juego** | <https://franciscombp.github.io/modo-incognito/> | Jugar el día 1 |
 | 🗺️ **Builder de mapas** | <https://franciscombp.github.io/modo-incognito/creador/mapas/> | Mover zonas, tareas, escondites y distracciones con el ratón. **Devuelve JSON para pegar** — no escribe en el repo |
 | 🧍 **Builder de personajes** | <https://franciscombp.github.io/modo-incognito/creador/personajes/> | Ver el reparto en 3D en vivo, cambiar piezas de una receta y probar poses |
+| 🦴 **Builder de animaciones** | <https://franciscombp.github.io/modo-incognito/creador/animaciones/> | El esqueleto hueso por hueso y la línea de tiempo de una pose. Devuelve la entrada de `POSE_LIBRARY` para pegar |
 | 🎵 **Builder de música** | <https://franciscombp.github.io/modo-incognito/creador/musica/> | Ánimo, tempo, mezcla y playhead de la pista principal |
 | 🖼️ **Builder de pantallas** | <https://franciscombp.github.io/modo-incognito/creador/pantallas/> | Storybook de la interfaz y CSS en vivo |
+| 🧪 **Pruebas** | <https://franciscombp.github.io/modo-incognito/creador/pruebas/> | Correr las comprobaciones sobre el juego real |
 
 > Los builders importan el código **real** del motor, así que nunca se
 > desincronizan de lo que sale al jugar. En local salen del mismo servidor:
@@ -136,6 +140,7 @@ código**.
 | Estilos visuales (HUD, menús, diálogo, colores) | [`src/style/design-system.css`](https://github.com/franciscombp/modo-incognito/blob/main/src/style/design-system.css) |
 | **Cómo es cada personaje en 3D** (su `.glb` y su altura) | [`characters3d.json`](https://github.com/franciscombp/modo-incognito/blob/main/public/data/characters3d.json) — se edita con [`personajes.html`](https://github.com/franciscombp/modo-incognito/tree/main/creador) |
 | Cómo se monta un muñeco 3D y sus poses (código) | [`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/character3d.js) |
+| Las POSES del reparto (teclear, beber, dormir): sus dos posturas y su velocidad | `POSE_LIBRARY` en [`src/entities/character3d.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/character3d.js) — se edita con el [builder de animaciones](https://franciscombp.github.io/modo-incognito/creador/animaciones/) |
 | El cuerpo base de un personaje (el `.glb` que se le carga) | [`public/models/`](https://github.com/franciscombp/modo-incognito/tree/main/public/models) — el contrato está en su [`README.md`](https://github.com/franciscombp/modo-incognito/blob/main/public/models/README.md) |
 | Cómo se carga y se re-etiqueta el rig de un `.glb` (código) | [`src/entities/baseModel.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/baseModel.js) |
 | Los gestos de la cara pegados al hueso de la cabeza (código) | [`src/entities/faceSheet.js`](https://github.com/franciscombp/modo-incognito/blob/main/src/entities/faceSheet.js) |

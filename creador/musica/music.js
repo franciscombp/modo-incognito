@@ -1,4 +1,5 @@
-// Music Builder - Reproductor simple sin Tone.js
+
+import { montarNav } from "../nav.js";// Music Builder - Reproductor simple sin Tone.js
 let currentTheme = null;
 let currentThemeName = null;
 let isPlaying = false;
@@ -587,3 +588,5 @@ document.getElementById("clear-theme").addEventListener("click", () => {
 
 // Startup
 updateUI();
+
+montarNav("musica");

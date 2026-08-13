@@ -134,7 +134,15 @@ function setBoneRotation(bone, x, y, z) {
   bone.quaternion.copy(rest).multiply(_poseQuat);
 }
 
-const BONE_OF = {
+/**
+ * LOS CANALES DE UNA POSE: nombre corto -> hueso del rig.
+ *
+ * Exportado porque el builder de animaciones (`creador/animaciones/`) escribe
+ * poses con estos mismos nombres. Si se copiara alla, el dia que aqui se
+ * añada un hueso el builder seguiria ofreciendo la lista vieja sin que nada
+ * fallara a la vista — que es justo lo que los builders existen para evitar.
+ */
+export const BONE_OF = {
   torso: "Spine",
   chest: "Chest",
   head: "Head",
@@ -155,7 +163,7 @@ const BONE_OF = {
  * porque nadie quiere escribir veinte ángulos por pose: `curl` cierra los
  * cuatro dedos y `thumb` el pulgar.
  */
-const HAND_POSES = {
+export const HAND_POSES = {
   relax: { curl: 0.34, thumb: 0.26 },
   open: { curl: 0.02, thumb: 0.05 },
   grip: { curl: 1.15, thumb: 0.85 },
@@ -163,7 +171,7 @@ const HAND_POSES = {
 };
 const FINGERS = ["Index", "Middle", "Ring", "Pinky"];
 
-const REST = {
+export const REST = {
   torso: [0, 0, 0],
   chest: [0, 0, 0],
   head: [0, 0, 0],
@@ -183,7 +191,7 @@ const REST = {
   hands: "relax",
 };
 
-const POSE_LIBRARY = {
+export const POSE_LIBRARY = {
   // TECLEAR: aquí NO hay que subir la amplitud del brazo — un mecanógrafo
   // mueve las manos, no los hombros, y un brazo que sube y baja se lee como
   // dirigir una orquesta. Lo que faltaba era ALTERNANCIA: los dos codos se

@@ -64,3 +64,32 @@ Los builders heredan el **design system** completo del juego:
 - Componentes de interfaz consistentes
 
 Editar `src/style/design-system.css` actualiza todos los builders de inmediato.
+
+## Las seis herramientas, una sola tira de pestañas
+
+Eran páginas sueltas: para pasar del plano a los personajes había que saber
+la URL. Ahora cada una monta la misma tira (`creador/nav.js`) y se salta a la
+de al lado con un clic. **La lista vive en ese archivo y solo ahí**, así que
+añadir una herramienta es una línea y es imposible que una pestaña apunte a
+algo que ya no existe sin que se vea en las otras cinco.
+
+| Herramienta | Para qué |
+|---|---|
+| `mapas/` | El plano: zonas, tareas, escondites, distracciones |
+| `personajes/` | Las recetas 3D del reparto y sus poses |
+| `animaciones/` | El esqueleto hueso por hueso y la línea de tiempo de una pose |
+| `musica/` | Ánimo, tempo, mezcla y playhead |
+| `pantallas/` | Storybook de la interfaz y CSS en vivo |
+| `pruebas/` | Correr las comprobaciones sobre el juego real |
+
+### Dos cosas que costaron, y volverán a costar
+
+- **Los builders cargan el MISMO `design-system.css` que el juego**, así que
+  un `id` genérico choca. Un `id="hint"` heredó la regla `#hint` del juego —la
+  píldora de mandos, `position: absolute` y centrada— y el párrafo salió
+  flotando como un globo en mitad del panel. Usa clases con prefijo.
+- **La altura no se adivina, se reparte.** `main` estaba en
+  `calc(100vh - 53px)`, con la altura de la barra escrita a mano; la barra
+  mide otra cosa y cambió otra vez al meterle las pestañas, así que el último
+  bloque de cada panel se salía por debajo del viewport. Hoy `body` es una
+  columna flex y `main` se queda con lo que sobre, mida lo que mida la barra.

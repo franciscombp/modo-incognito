@@ -77,6 +77,18 @@ body {
   overflow: hidden;
 }
 
+/* LA ALTURA NO SE ADIVINA, SE REPARTE.
+   `main` estaba en `calc(100vh - 53px)`, con la altura de la barra escrita a
+   mano. La barra mide 88px —y cambia por herramienta, y cambio otra vez al
+   meterle la tira de pestañas—, asi que `main` sobresalia 35px por debajo del
+   viewport y se comia lo ultimo de cada panel: en el builder de animaciones,
+   la linea de tiempo entera. Con la pagina en columna, la barra ocupa lo que
+   ocupe y `main` se queda con el resto, mida lo que mida. */
+body {
+  display: flex;
+  flex-direction: column;
+}
+
 /* ─────────────────────────────────────────────────────────────────
    BARRA SUPERIOR (HEADER)
    Minimalista, con mucho aire
@@ -675,7 +687,8 @@ input[type="range"] {
 main {
   display: grid;
   grid-template-columns: 280px 1fr 280px;
-  height: calc(100vh - 53px);
+  flex: 1 1 auto;
+  min-height: 0;
   gap: 0;
 }
 
@@ -1209,4 +1222,179 @@ button .phosphor-icon {
   align-items: center;
   gap: 8px;
   margin-right: 8px;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   LA TIRA QUE UNE LAS HERRAMIENTAS  (creador/nav.js)
+
+   Seis paginas sueltas eran seis marcadores; con esto son UNA herramienta
+   con pestañas. La lista sale de un solo sitio (`creador/nav.js`), asi que
+   una pestaña no puede apuntar a algo que ya no existe sin que se vea en
+   las otras cinco a la vez.
+   ═══════════════════════════════════════════════════════════════════ */
+.bar-nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 1 auto;
+  margin-left: var(--space-sm);
+}
+
+.bar-nav-tab {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--builder-text-secondary);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: var(--transition-fast);
+}
+
+.bar-nav-tab:hover {
+  color: var(--builder-accent);
+  background: var(--builder-accent-008);
+}
+
+/* La actual NO se enlaza a si misma: se marca y se queda quieta. */
+.bar-nav-tab.on {
+  color: var(--builder-accent);
+  background: var(--builder-accent-012);
+  cursor: default;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   BUILDER DE ANIMACIONES · la linea de tiempo y el esqueleto
+
+   La linea tiene DOS LLAVES y no veinte porque el motor anima con dos
+   posturas y una velocidad (`POSE_LIBRARY`): el muñeco va de `a` a `b` y
+   vuelve. Enseñar una linea con llaves libres seria mentir sobre lo que
+   se puede exportar.
+   ═══════════════════════════════════════════════════════════════════ */
+.stage--anim {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.stage--anim > canvas {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100%;
+  display: block;
+}
+
+.tl {
+  flex: 0 0 auto;
+  padding: var(--space-md);
+  border-top: 1px solid var(--builder-border);
+  background: var(--builder-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tl-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* La llave seleccionada es la que RECIBE lo que toques en el esqueleto, asi
+   que tiene que verse cual es sin buscarla. */
+.tl-controls .key.on {
+  border-color: var(--builder-accent);
+  color: var(--builder-accent);
+  background: var(--builder-accent-012);
+}
+
+.tl-track {
+  position: relative;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--builder-panel-dark);
+  border: 1px solid var(--builder-border);
+  cursor: pointer;
+}
+
+.tl-mark {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--builder-accent);
+  opacity: 0.55;
+}
+
+.tl-mark--a { left: 0; }
+.tl-mark--b { right: 0; }
+
+/* El cursor NO lleva transicion: va a 60 fps y suavizarlo lo dejaria detras
+   de la postura que se esta pintando — el mismo motivo que el marcador del
+   pulso en el juego. */
+.tl-head {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--builder-text);
+  box-shadow: 0 0 8px var(--builder-text);
+}
+
+.tl-legend {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--builder-text-tertiary);
+}
+
+/* ── El esqueleto, hueso por hueso ── */
+.bone {
+  border-bottom: 1px solid var(--builder-border);
+  padding: 6px 0;
+}
+
+.bone-name {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 4px 6px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--builder-text-secondary);
+}
+
+.bone.on .bone-name {
+  color: var(--builder-accent);
+}
+
+.bone-axis {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--builder-text-tertiary);
+}
+
+.bone-reset {
+  font-size: 11px;
+  padding: 3px 8px;
+  margin-top: 4px;
+}
+
+.panel .bone label {
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.anim-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--builder-text-tertiary);
+  margin: 0 0 var(--space-md);
 }

@@ -10,7 +10,11 @@
     <style>
       /* El banco NO vive dentro del lienzo fijo del juego: es una
          herramienta de escritorio, como el resto de creador/. */
-      .pr-wrap { display: grid; grid-template-columns: 300px 1fr; height: calc(100vh - 56px); }
+      /* Sin `calc(100vh - 56px)`: la altura de la barra estaba escrita a mano y
+         cambio al meterle la tira de pestañas, asi que esto sobresalia por
+         debajo del viewport. `body` es columna flex (builders.css), asi que
+         basta con quedarse con lo que sobre. */
+      .pr-wrap { display: grid; grid-template-columns: 300px 1fr; flex: 1 1 auto; min-height: 0; }
       .pr-side { overflow-y: auto; padding: 14px; border-right: 1px solid rgba(255,255,255,0.1); }
       .pr-stage { position: relative; overflow: hidden; background: #10161f; }
       .pr-stage > canvas { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
@@ -49,6 +53,7 @@
   <body>
     <header class="bar">
       <h1>PRUEBAS · <span>Modo Incógnito</span></h1>
+      <nav class="bar-nav" data-creador-nav></nav>
       <div class="bar-group">
         <span class="pr-hint" id="pr-url"></span>
       </div>

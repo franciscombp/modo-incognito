@@ -17,6 +17,7 @@ import { prepareLooks } from "../../src/data/loader.js";
 import { screenToGround } from "../../src/scene/iso.js";
 import { siteRoot } from "../../src/data/siteRoot.js";
 import { WORLD_SCALE as S } from "../../src/scene/config.js";
+import { montarNav } from "../nav.js";
 
 /**
  * EL BANCO DE PRUEBAS.
@@ -421,3 +422,5 @@ function animate(now) {
     hudExtra = { ...hudExtra, bossState: "CHASE", heat: 3, redAlert: true };
   }
 })();
+
+montarNav("pruebas");

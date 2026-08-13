@@ -13,6 +13,7 @@ import {
   baseFileFor,
 } from "../../src/entities/character3d.js";
 import { siteRoot } from "../../src/data/siteRoot.js";
+import { montarNav } from "../nav.js";
 
 // Builder de PERSONAJES de Modo Incógnito.
 //
@@ -518,3 +519,5 @@ $("#descargar").addEventListener("click", () => {
 
 ajustarTamaño();
 cargar();
+
+montarNav("personajes");

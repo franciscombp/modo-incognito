@@ -1063,8 +1063,10 @@ sirven desde el mismo servidor que el juego en `http://localhost:5173/creador/`
 |---|---|---|
 | Mapas | <https://franciscombp.github.io/modo-incognito/creador/mapas/> | `/creador/mapas/` |
 | Personajes | <https://franciscombp.github.io/modo-incognito/creador/personajes/> | `/creador/personajes/` |
+| Animaciones | <https://franciscombp.github.io/modo-incognito/creador/animaciones/> | `/creador/animaciones/` |
 | Música | <https://franciscombp.github.io/modo-incognito/creador/musica/> | `/creador/musica/` |
 | Pantallas | <https://franciscombp.github.io/modo-incognito/creador/pantallas/> | `/creador/pantallas/` |
+| Pruebas | <https://franciscombp.github.io/modo-incognito/creador/pruebas/> | `/creador/pruebas/` |
 
 - `creador/mapas/` — editor 2D del plano y del día. Lee los mismos JSON que el 
   juego y devuelve JSON para pegar — **no escribe en el repo a propósito**. Si
@@ -1074,7 +1076,27 @@ sirven desde el mismo servidor que el juego en `http://localhost:5173/creador/`
   poses y visor de texturas.
 - `creador/musica/` — constructor de la pista principal con control de ánimo,
   tempo, mezcla y playhead en vivo.
+- `creador/animaciones/` — el ESQUELETO y la LÍNEA DE TIEMPO de una pose.
+  Importa `POSE_LIBRARY`, `BONE_OF` y `REST` del motor (por eso están
+  exportados), así que la lista de huesos no puede quedarse vieja. Devuelve la
+  entrada de `POSE_LIBRARY` lista para pegar.
+  **La línea tiene DOS LLAVES y no veinte, y eso no es una limitación de la
+  herramienta: es el motor.** Una pose del juego son dos posturas (`a`, `b`) y
+  una `speed`; el muñeco va de una a otra y vuelve. Una línea con llaves
+  libres estaría mintiendo sobre lo que se puede exportar.
 - `creador/pantallas/` — Storybook y constructor de UI/CSS vivo.
+- `creador/pruebas/` — corre las comprobaciones sobre el juego real.
+
+**Las seis comparten una sola tira de pestañas** (`creador/nav.js`): la lista
+vive ahí y solo ahí, así que una pestaña no puede apuntar a algo que ya no
+existe sin que se vea en las otras cinco. Las rutas son RELATIVAS a propósito
+— el sitio cuelga de un subdirectorio en Pages y una absoluta rompe justo ahí.
+
+**Trampa ya pagada, y se repetirá:** los builders cargan el MISMO
+`design-system.css` que el juego, así que un `id` genérico choca. Un
+`id="hint"` en el builder de animaciones se comió la regla `#hint` del juego
+—la píldora de mandos, `position: absolute` y centrada— y el párrafo salía
+flotando como un globo en mitad del panel.
 - `creador/pruebas/` — **EL BANCO DE PRUEBAS, y es el que ahorra el tiempo.**
   Dispara UNA cosa aislada —una pose con su mobiliario, un globo (Zzz, alerta
   ámbar/roja), un anuncio grande, el HUD en calma/alerta/caza, una caja de

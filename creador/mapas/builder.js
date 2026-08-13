@@ -9,6 +9,7 @@
 // el motor las multiplica por WORLD_SCALE al cargar, y eso aquí no se toca.
 
 import { siteRoot } from "../../src/data/siteRoot.js";
+import { montarNav } from "../nav.js";
 
 // Ruta ABSOLUTA a secas rompía en GitHub Pages, donde el sitio entero
 // cuelga de un subdirectorio (ver src/data/siteRoot.js): "/data/…" apuntaba
@@ -1619,3 +1620,5 @@ new ResizeObserver(() => {
 }).observe(canvas.parentElement);
 resize();
 loadFromGame();
+
+montarNav("mapas");

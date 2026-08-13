@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Animaciones · Modo Incógnito</title>
+    <link rel="icon" href="../../favicon.png" />
+    <link rel="stylesheet" href="../../src/style/design-system.css" />
+    <link rel="stylesheet" href="../../src/style/builders.css" />
+  </head>
+  <body>
+    <header class="bar">
+      <h1>ANIMACIONES · <span>Modo Incógnito</span></h1>
+      <nav class="bar-nav" data-creador-nav></nav>
+      <div class="bar-group right">
+        <button id="copiar" class="primary">Copiar pose JSON</button>
+        <button id="descargar">Descargar</button>
+      </div>
+    </header>
+
+    <main>
+      <aside class="panel left">
+        <h2>Quién</h2>
+        <div class="list" id="reparto"></div>
+
+        <h2>Qué pose</h2>
+        <div class="list" id="poses"></div>
+
+        <h2>Ajustes</h2>
+        <div class="param-group">
+          <label>
+            Nombre de la pose
+            <input type="text" id="nombre" placeholder="mi-pose" />
+          </label>
+          <label>
+            Velocidad (ida y vuelta por segundo)
+            <span id="speed-val">1.00</span>
+            <input type="range" id="speed" min="0.2" max="6" step="0.05" value="1.4" />
+          </label>
+          <label>
+            Manos
+            <select id="hands"></select>
+          </label>
+          <label>
+            Altura (lift)
+            <span id="lift-val">0.000</span>
+            <input type="range" id="lift" min="-0.15" max="0.15" step="0.002" value="0" />
+          </label>
+          <label class="layer">
+            <input type="checkbox" id="huesos" checked />
+            Ver el esqueleto
+          </label>
+        </div>
+      </aside>
+
+      <section class="stage stage--anim">
+        <canvas id="vista"></canvas>
+
+        <!-- LA LÍNEA DE TIEMPO. Una pose del motor son DOS posturas que se
+             recorren de ida y vuelta, así que la línea tiene dos llaves y un
+             cursor que enseña en qué punto de la mezcla estás. -->
+        <div class="tl">
+          <div class="tl-controls">
+            <button id="play" class="primary">▶ Reproducir</button>
+            <button id="key-a" class="key on">Llave A</button>
+            <button id="key-b" class="key">Llave B</button>
+            <button id="copiar-ab" title="Copia la postura seleccionada en la otra">A → B</button>
+            <button id="reposo">Reposo</button>
+          </div>
+          <div class="tl-track" id="track">
+            <i class="tl-mark tl-mark--a"></i>
+            <i class="tl-mark tl-mark--b"></i>
+            <i class="tl-head" id="head"></i>
+          </div>
+          <div class="tl-legend">
+            <span>A</span>
+            <span id="tl-t">0.00</span>
+            <span>B</span>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel right">
+        <h2>Esqueleto</h2>
+        <!-- OJO CON EL id: estuvo en `hint` y el DS tiene un `#hint` propio — la
+             pildora de mandos del JUEGO, que va `position: absolute` centrada y
+             con fondo de vidrio. El parrafo salia flotando como un globo en
+             mitad de la lista de huesos. Los builders cargan el mismo CSS que
+             el juego, asi que los id genericos chocan. -->
+        <p class="anim-hint">
+          Elige un hueso y gíralo. Lo que edites entra en la llave que tengas
+          seleccionada abajo.
+        </p>
+        <div class="list" id="bones"></div>
+      </aside>
+    </main>
+
+    <div class="toast hidden" id="toast"></div>
+    <script type="module" src="./animaciones.js"></script>
+  </body>
+</html>
