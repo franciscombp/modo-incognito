@@ -879,6 +879,11 @@ export class Game {
             this.chisme.update(dt);
             ritmo = 0;
           } else if (conGesto) {
+            // Cada rama apaga LAS OTRAS DOS. Con solo apagar una, cambiar de
+            // estación dejaba dos verbos vivos a la vez y la pantalla de la
+            // tarea pintaba los dos encima — se veía la tarjeta del chisme y
+            // la caña juntas, con el título de la tarea equivocada.
+            this.chisme.end();
             this.pulse.end();
             this.gesture.begin(st);
             // El paso se bloquea MIENTRAS dura el gesto: el eje del mando
@@ -887,6 +892,7 @@ export class Game {
             this.player.inputLocked = true;
             ritmo = this.gesture.update(dt, this.player.readIntent());
           } else {
+            this.chisme.end();
             this.gesture.end();
             this.pulse.begin(st);
             this.pulse.update(dt);
@@ -2814,6 +2820,20 @@ export class Game {
       refugeSpot: this._nearestUsableSafeSpot(this.player.position),
       currentAction: this._currentAction(),
       redAlert: this.boss.redAlert,
+      // LO QUE HACE POSIBLE UN MINIJUEGO A PANTALLA COMPLETA. Tapando el
+      // piso ya no puedes VER venir al jefe, y el mundo sigue corriendo —
+      // así que el peligro tiene que entrar DENTRO del minijuego. Esto es lo
+      // que la pantalla de la tarea usa para pintarlo: a qué distancia está,
+      // si te tiene fichada y si viene a por ti.
+      acecho: {
+        dist: Math.hypot(
+          this.boss.position.x - this.player.position.x,
+          this.boss.position.z - this.player.position.z
+        ) / S,
+        cazando: this.boss.isHunting,
+        viendo: this.boss.playerVisible,
+        nombre: this.boss.displayName ?? "GABO",
+      },
       bossState: this.boss.state,
       gameOver: this.gameOver,
       win: this.win,

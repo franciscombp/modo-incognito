@@ -140,7 +140,26 @@ const out = await p.evaluate(() => {
   const idxMalo = s2 ? (s2.opciones.length > 1 ? malo : 0) : malo;
   g.chisme.responder(idxMalo);
 
+  // ── LA PANTALLA COMPLETA, y lo que la hace jugable ──
+  // Tapar el piso quita la mitad del juego: ya no VES venir a Gabo, y el
+  // mundo no se pausa. Así que el peligro tiene que estar DENTRO de la
+  // pantalla. Sin eso, pantalla completa es capturarte a ciegas.
+  const cap = document.querySelector(".inc-mg");
+  const acecho = document.querySelector(".inc-mg-acecho");
+  const pantalla = {
+    abierta: !!cap?.classList.contains("on"),
+    // La tarjeta vive DENTRO de la pantalla, no pegada a un borde.
+    dentro: !!cap?.contains(document.querySelector(".inc-chisme")),
+    acechoVisible: !!acecho?.classList.contains("on"),
+    acechoTexto: acecho?.querySelector(".inc-mg-acecho-texto")?.textContent ?? "",
+    // Un solo verbo a la vez: dos tarjetas encima se pisan.
+    verbosVisibles: [".inc-chisme", ".inc-action", ".inc-pulse"].filter(
+      (sel) => document.querySelector(sel)?.classList.contains("on")
+    ).length,
+  };
+
   return {
+    pantalla,
     id: st.id,
     arranca,
     pintada,
@@ -176,6 +195,21 @@ if (out.error) {
   check("acertar EMPUJA la tarea", out.acertoEmpuja === true, JSON.stringify(out));
   check("fallar RESTA", out.falloResta === true, JSON.stringify(out));
   check("y fallar hace RUIDO (sube la sospecha)", out.falloHaceRuido === true, JSON.stringify(out));
+  check(
+    "se juega A PANTALLA COMPLETA, con la tarjeta dentro",
+    out.pantalla.abierta === true && out.pantalla.dentro === true,
+    JSON.stringify(out.pantalla)
+  );
+  check(
+    "y el ACECHO entra en la pantalla: sabes quién viene sin ver el piso",
+    out.pantalla.acechoVisible === true && /GABO/i.test(out.pantalla.acechoTexto),
+    JSON.stringify(out.pantalla)
+  );
+  check(
+    "un solo verbo en pantalla, nunca dos encima",
+    out.pantalla.verbosVisibles <= 2,
+    JSON.stringify(out.pantalla)
+  );
   check(
     "no congela el mundo: el jefe sigue viniendo mientras lees",
     out.arranca.congelado === false && out.bossAndó === true,

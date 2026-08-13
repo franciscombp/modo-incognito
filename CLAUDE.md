@@ -150,6 +150,18 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
 - `src/game/activityGame.js` — el PULSO, minijuego de tarea de TIMING. Un
   marcador barre una tira y tocas espacio en la zona buena. Un solo mecanismo
   parametrizado desde `activities[].pulso`; no hay un módulo por actividad.
+- **LOS TRES VERBOS SE JUEGAN A PANTALLA COMPLETA** (`.inc-mg`, en
+  `ui/gamehud.js`). Vivían en tiras pegadas al borde de abajo, y ahí un
+  minijuego no se siente como un minijuego: se siente como un medidor más
+  del HUD. Las tres piezas son LAS MISMAS, solo que dentro de la pantalla y
+  en grande — no hay una segunda versión de cada una, que es como se separan
+  las cosas.
+  **Y por eso existe EL ACECHO** (`.inc-mg-acecho`, del campo `acecho` del
+  snapshot): tapar el piso quita la mitad del juego, porque ya no VES venir
+  a Gabo y el mundo sigue corriendo. El peligro entra DENTRO de la pantalla
+  —quién viene, cómo de cerca, con qué se sale— o pantalla completa sería
+  capturarte a ciegas, que es peor que congelar el mundo. Si añades un verbo
+  nuevo, va dentro de `.inc-mg` y respeta esto.
 - `src/game/chismeGame.js` — EL CHISME, el TERCER verbo, y el primero que no
   es de destreza: sale una tarjeta con un rumor, una pregunta y tres
   opciones, y se responde con **1–3, las MISMAS teclas** de la lista de

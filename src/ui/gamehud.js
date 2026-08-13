@@ -189,12 +189,34 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   // escenario tiene que seguir viéndose (game/activityGame.js explica por qué
   // el mundo no se pausa). Va centrada abajo, justo donde ya está mirando
   // quien acaba de pulsar el botón de acción.
-  // LA TARJETA DEL CHISME. Vive en la banda de abajo, como el resto de la
-  // acción en primer plano, y con `pointer-events: none`: nunca roba un clic.
-  // Es la única pieza del juego que pide LEER un párrafo, así que ocupa más
-  // — y por eso mismo el jefe sigue caminando mientras lees, que es lo que
-  // convierte quedarse en una decisión.
-  const chismeCard = el("div", "inc-chisme", layer);
+  // ── LA PANTALLA DE LA TAREA ───────────────────────────────────────
+  // Los tres verbos (pulso, caña, chisme) se juegan A PANTALLA COMPLETA.
+  // Vivían en tiras pegadas al borde de abajo, y ahí un minijuego no se
+  // siente como un minijuego: se siente como un medidor más del HUD.
+  //
+  // PERO tapar el piso trae un problema que hay que resolver, no ignorar:
+  // el mundo NO se pausa (eso fue el bug que rompía la captura), así que
+  // Gabo sigue viniendo mientras juegas — y ahora no lo puedes VER llegar.
+  // Por eso el peligro entra DENTRO de la pantalla: quién viene, cómo de
+  // cerca está, y con qué se sale. Sin eso, pantalla completa sería
+  // capturarte a ciegas, que es peor que congelar el mundo.
+  const mg = el("div", "inc-mg", layer);
+  const mgTop = el("div", "inc-mg-top", mg);
+  const mgTitulo = el("b", "inc-mg-titulo", mgTop);
+  const mgSalir = el("span", "inc-mg-salir", mgTop);
+  mgSalir.textContent = "SUELTA PARA DEJARLO";
+  const mgBody = el("div", "inc-mg-body", mg);
+  // EL ACECHO: la mitad del juego que ya no se ve. Es una barra que se llena
+  // según se acerca, no un número: con el jefe encima nadie lee un número.
+  const mgAcecho = el("div", "inc-mg-acecho", mg);
+  const mgAcechoTexto = el("span", "inc-mg-acecho-texto", mgAcecho);
+  const mgAcechoBarra = el("div", "inc-mg-acecho-barra", mgAcecho);
+  const mgAcechoFill = el("i", null, mgAcechoBarra);
+
+  // LA TARJETA DEL CHISME, ya dentro de la pantalla de la tarea. Es la única
+  // pieza del juego que pide LEER un párrafo, y por eso mismo el jefe sigue
+  // caminando mientras lees: quedarse es una decisión, no un trámite.
+  const chismeCard = el("div", "inc-chisme", mgBody);
   const chismeHead = el("div", "inc-chisme-head", chismeCard);
   const chismeTitular = el("span", "inc-chisme-titular", chismeHead);
   const chismePips = el("span", "inc-chisme-pips", chismeHead);
@@ -203,7 +225,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const chismeOpts = el("div", "inc-chisme-opts", chismeCard);
   let chismeFirma = null;
 
-  const pulseBar = el("div", "inc-pulse", layer);
+  const pulseBar = el("div", "inc-pulse", mgBody);
   const pulseZone = el("i", "inc-pulse-zone", pulseBar);
   const pulseMark = el("i", "inc-pulse-mark", pulseBar);
   const pulsePips = el("div", "inc-pulse-pips", pulseBar);
@@ -224,6 +246,43 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   let pulseHits = -1;
   let pulseWasOn = false;
   let pulseShows = 0;
+
+  function renderPantalla(state) {
+    // La pantalla se abre si hay CUALQUIER verbo en marcha. Uno solo a la
+    // vez, siempre: lo garantiza el motor (chisme > caña > pulso).
+    const jugando = !!(state.chisme || state.gesture || state.pulse);
+    mg.classList.toggle("on", jugando);
+    // El <body> lo marca para que la píldora de mandos y el resto de la
+    // banda de abajo se aparten, igual que ya hacían con la acción.
+    document.body.classList.toggle("inc-minijuego", jugando);
+    if (!jugando) return;
+
+    mgTitulo.textContent =
+      state.chisme?.label ?? state.gesture?.label ?? state.pulse?.label ?? "TAREA";
+
+    // ── EL ACECHO ──
+    // Con el piso tapado, esto ES el piso: quién viene y cómo de cerca.
+    // Barra y no número — con el jefe encima nadie lee un número.
+    const a = state.acecho;
+    if (!a) {
+      mgAcecho.classList.remove("on");
+      return;
+    }
+    mgAcecho.classList.add("on");
+    // 14 unidades de plano es "al otro lado del piso"; 2, encima de ti.
+    const cerca = Math.max(0, Math.min(1, 1 - (a.dist - 2) / 12));
+    mgAcechoFill.style.width = `${Math.round(cerca * 100)}%`;
+    const nivel = a.cazando ? "caza" : cerca > 0.6 ? "cerca" : cerca > 0.25 ? "ronda" : "lejos";
+    mgAcecho.dataset.nivel = nivel;
+    mgAcechoTexto.textContent =
+      nivel === "caza"
+        ? `¡${a.nombre.toUpperCase()} VIENE A POR TI!`
+        : nivel === "cerca"
+          ? `${a.nombre.toUpperCase()} está aquí al lado`
+          : nivel === "ronda"
+            ? `${a.nombre.toUpperCase()} anda cerca`
+            : `${a.nombre.toUpperCase()} está lejos`;
+  }
 
   function renderChisme(state) {
     const c = state.chisme;
@@ -298,7 +357,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   // es justo lo contrario de para qué están.
   //
   // El pulso y el gesto son excluyentes, así que comparten sitio sin pelearse.
-  const action = el("div", "inc-action", layer);
+  const action = el("div", "inc-action", mgBody);
   const actionClock = el("div", "inc-action-clock", action);
   const actionClockFill = el("i", "inc-action-clock-fill", actionClock);
   const actionBody = el("div", "inc-action-body", action);
@@ -692,6 +751,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       renderZone(state);
       renderPulse(state);
     renderChisme(state);
+    renderPantalla(state);
       renderAction(state);
       renderAnnounce(state);
     },

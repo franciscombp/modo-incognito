@@ -11698,6 +11698,183 @@ body.inc-acting #hint {
   background: var(--danger);
 }
 
+/* ── LA PANTALLA DE LA TAREA ───────────────────────────────────────────
+   Los tres verbos (pulso, caña, chisme) se juegan A PANTALLA COMPLETA.
+   Vivían en tiras pegadas al borde de abajo y ahí un minijuego no se siente
+   como un minijuego: se siente como un medidor más del HUD.
+
+   Tapar el piso trae un problema que hay que RESOLVER, no ignorar: el mundo
+   no se pausa (congelarlo fue el bug que rompía la captura), así que Gabo
+   sigue viniendo y ahora no lo puedes ver llegar. Por eso el peligro entra
+   dentro de la pantalla — ver `.inc-mg-acecho`.
+
+   El fondo es TRANSLÚCIDO, no opaco: se sigue intuyendo el piso detrás. Es
+   una pantalla de tarea, no otra habitación, y ver moverse algo por detrás
+   es la mitad del nervio. */
+.inc-mg {
+  position: fixed;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding: 32px;
+  background: color-mix(in srgb, var(--paper) 82%, transparent);
+  backdrop-filter: blur(2px);
+  /* Nunca roba un clic: se juega con el teclado y con el mando de andar. */
+  pointer-events: none;
+  z-index: 8;
+}
+
+.inc-mg.on {
+  display: flex;
+}
+
+.inc-mg-top {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.inc-mg-titulo {
+  color: var(--accent);
+}
+
+.inc-mg-salir {
+  color: var(--text-dim, var(--text));
+  opacity: 0.7;
+}
+
+/* EN COLUMNA, no en fila. Las tres piezas son hermanas aquí dentro, y en
+   fila la tarjeta de cuenta atrás se ponía al lado del minijuego y lo
+   empujaba fuera del centro. Apiladas, cada una manda en su renglón y el
+   que juega siempre está en medio. */
+.inc-mg-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 0;
+}
+
+/* EL ACECHO — con el piso tapado, ESTO es el piso. Barra y no número: con
+   el jefe encima nadie lee un número. Va abajo del todo, que es donde el ojo
+   vuelve entre respuesta y respuesta. */
+.inc-mg-acecho {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: min(420px, 70%);
+}
+
+.inc-mg-acecho.on {
+  display: flex;
+}
+
+.inc-mg-acecho-texto {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim, var(--text));
+}
+
+.inc-mg-acecho-barra {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border);
+  overflow: hidden;
+}
+
+.inc-mg-acecho-barra > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--ok);
+  transition: width var(--dur-1) linear;
+}
+
+.inc-mg-acecho[data-nivel="ronda"] > .inc-mg-acecho-barra > i {
+  background: var(--warn);
+}
+
+.inc-mg-acecho[data-nivel="cerca"] > .inc-mg-acecho-barra > i,
+.inc-mg-acecho[data-nivel="caza"] > .inc-mg-acecho-barra > i {
+  background: var(--danger);
+}
+
+.inc-mg-acecho[data-nivel="cerca"] > .inc-mg-acecho-texto,
+.inc-mg-acecho[data-nivel="caza"] > .inc-mg-acecho-texto {
+  color: var(--danger);
+}
+
+/* DENTRO DE LA PANTALLA los tres verbos dejan de estar anclados al borde:
+   se centran y crecen. Es la misma pieza, no una copia — mantener dos
+   versiones de cada minijuego es como se separan las cosas. */
+/* OJO CON LA CASCADA: las tres piezas traen su propio `position: fixed` con
+   `left: 50%` y un `transform: translate(-50%, …)` en su regla `.on`. Sin
+   incluir el `.on` aquí, esta regla y aquella empatan en especificidad y
+   gana la que va después en el archivo — el resultado era la tarjeta del
+   chisme saliéndose por el borde izquierdo de la pantalla. */
+.inc-mg .inc-chisme,
+.inc-mg .inc-pulse,
+.inc-mg .inc-action,
+.inc-mg .inc-chisme.on,
+.inc-mg .inc-pulse.on,
+.inc-mg .inc-action.on {
+  position: static;
+  transform: none;
+  left: auto;
+  right: auto;
+  top: auto;
+  bottom: auto;
+  margin: 0;
+}
+
+.inc-mg .inc-chisme {
+  width: min(680px, 92vw);
+  font-size: 15px;
+}
+
+.inc-mg .inc-chisme-texto,
+.inc-mg .inc-chisme-pregunta {
+  font-size: 16px;
+}
+
+.inc-mg .inc-chisme-opt {
+  padding: 10px 12px;
+  font-size: 15px;
+}
+
+.inc-mg .inc-action {
+  transform: none;
+}
+
+.inc-mg .inc-action-track,
+.inc-mg .inc-action-reel {
+  height: 200px;
+}
+
+.inc-mg .inc-action-track {
+  width: 34px;
+}
+
+.inc-mg .inc-action-reel {
+  width: 14px;
+}
+
+.inc-mg .inc-pulse {
+  width: min(560px, 88vw);
+}
+
 /* ── LA TARJETA DEL CHISME ─────────────────────────────────────────────
    El minijuego que se juega LEYENDO. Es la única pieza del juego que pide
    un párrafo, así que ocupa más que la tira del pulso — y va en la misma
