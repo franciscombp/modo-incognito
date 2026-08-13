@@ -811,15 +811,14 @@ async function boot() {
       // vuelta y la ida se peleaban por el yaw. Ahora quien gira es el
       // PERSONAJE, que se pone de cara a la cámara con su giro normal de
       // andar (ver game.js), así que la pose se ve de frente igual.
-      // Una CONVERSACIÓN en primer plano usa el mismo acercamiento que una
-      // acción: es el único mando que da un plano cerrado de verdad
-      // (`framing` a 1 sigue siendo el plano de jugar). Se pregunta en vez de
-      // que el diálogo lo escriba, para no tener dos escritores peleándose
-      // por el mismo valor cada cuadro.
-      const acting =
-        !!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending) ||
-        !!engine.cinematic;
+      const acting = !!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending);
       view.setActionZoom(acting);
+      // El plano de CONVERSACIÓN es otro mando: cierra mucho más y sube la
+      // mirada al pecho. Reutilizar el de acción daba «primer plano» con
+      // medio personaje detrás de la caja y un techo enorme encima. Se
+      // pregunta en vez de que el diálogo lo escriba, para no tener dos
+      // escritores peleándose por el mismo valor cada cuadro.
+      view.setCinematic(!!engine.cinematic);
       view.update(dt, player.position);
       popups.update(dt);
       pixels.render(scene, camera);

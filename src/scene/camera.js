@@ -43,6 +43,28 @@ function floorCenter() {
   return new THREE.Vector3(sx / footprint.length, 0, sz / footprint.length);
 }
 
+/**
+ * Cuánto cierra el plano de conversación respecto al de juego.
+ *
+ * Calibrado a ojo sobre captura, que es lo único que vale aquí: 0,55 (el de
+ * acción) dejaba a la jugadora pequeña y con medio cuadro de techo; 0,30 la
+ * metía tanto que la cabeza se salía por arriba. En 0,52 entra de busto, con
+ * la cara por encima de la caja de diálogo y un dedo de aire arriba.
+ */
+const CINE_DISTANCE = 0.52;
+
+/**
+ * A qué altura de mundo mira, y va al REVÉS de lo que parece: el punto al que
+ * mira la cámara cae en el CENTRO del cuadro, así que subir la mira empuja al
+ * personaje hacia ABAJO y mete techo por arriba.
+ *
+ * Apuntando al suelo (lo normal al jugar) la pared de arriba se comía media
+ * pantalla. 1,05 —el pecho— dejaba la cara centrada pero todavía con un
+ * palmo de techo. En 0,78 la cabeza sube al tercio superior y lo que queda
+ * arriba es un margen, no un decorado.
+ */
+const CINE_LOOK_Y = 0.78;
+
 export class DioramaCamera {
   constructor(aspect) {
     const s = getCameraSettings();
@@ -67,6 +89,19 @@ export class DioramaCamera {
     // `framing`, so it eases in/out independently of zoom/orbit input.
     this._actionZoom = 0;
     this._actionZoomTarget = 0;
+
+    // ── EL PLANO CINEMÁTICO (diálogo) ────────────────────────────────────
+    // El acercamiento de acción (×0,55) NO es un primer plano: se pensó para
+    // ver bien lo que hace la jugadora sin perder el piso de vista. En una
+    // conversación hay que CERRAR de verdad, y además subir el punto de mira
+    // — apuntando al suelo, el personaje queda bajo, medio tapado por la caja
+    // de diálogo, y todo lo que sobra es techo.
+    //
+    // Son dos números y no uno a propósito: la distancia hace el tamaño y el
+    // punto de mira hace la ALTURA en cuadro. Con solo distancia, acercarse
+    // agranda el techo igual que a ella.
+    this._cine = 0;
+    this._cineTarget = 0;
 
     this._unsubscribe = subscribeCameraSettings((next) => {
       this.settings = next;
@@ -118,6 +153,15 @@ export class DioramaCamera {
     this._actionZoomTarget = active ? 1 : 0;
   }
 
+  /**
+   * Plano cinemático de conversación: cierra el encuadre y sube la mirada a
+   * la altura del pecho, para que el personaje llene la banda que queda
+   * libre encima de la caja de diálogo.
+   */
+  setCinematic(active) {
+    this._cineTarget = active ? 1 : 0;
+  }
+
   /** Live orbit, used by right-drag on desktop and two-finger drag on touch. */
   orbitBy(deltaYawDeg, deltaPitchDeg) {
     setCameraSettings(
@@ -145,6 +189,7 @@ export class DioramaCamera {
 
     const zoomLerp = 1 - Math.pow(1 - 0.12, Math.max(dt, 0.0001) * 60);
     this._actionZoom = THREE.MathUtils.lerp(this._actionZoom, this._actionZoomTarget, zoomLerp);
+    this._cine = THREE.MathUtils.lerp(this._cine, this._cineTarget, zoomLerp);
 
     this._apply();
   }
@@ -159,7 +204,10 @@ export class DioramaCamera {
       this.overviewDistance,
       this.settings.distance * S * zoomMul,
       THREE.MathUtils.smoothstep(this.framing, 0, 1)
-    ) * THREE.MathUtils.lerp(1, 0.55, this._actionZoom);
+    ) *
+      THREE.MathUtils.lerp(1, 0.55, this._actionZoom) *
+      // El plano de conversación cierra MUCHO más que el de acción.
+      THREE.MathUtils.lerp(1, CINE_DISTANCE, this._cine);
 
     const dir = cameraDirection();
     this.camera.position.set(
@@ -167,7 +215,10 @@ export class DioramaCamera {
       dir.y * distance,
       this.target.z + dir.z * distance
     );
-    this.lookAt.set(this.target.x, this.settings.lookAtYOffset * S, this.target.z);
+    // La mirada SUBE al pecho durante una conversación: es lo que quita el
+    // techo de encima y deja al personaje llenando el cuadro.
+    const mira = THREE.MathUtils.lerp(this.settings.lookAtYOffset * S, CINE_LOOK_Y * S, this._cine);
+    this.lookAt.set(this.target.x, mira, this.target.z);
     this.camera.lookAt(this.lookAt);
   }
 

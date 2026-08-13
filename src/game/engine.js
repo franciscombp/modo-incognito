@@ -100,9 +100,15 @@ export function createEngine({
      * nunca moviendo el ojo.
      */
     onSpeaker: ({ narrator }) => {
-      // El narrador (Steven el Daddy) no está en el piso: no hay a quién
-      // encuadrar, así que se deja el plano como esté.
-      if (narrator) return;
+      // EL NARRADOR NO ESTÁ EN EL PISO. Es una llamada de Steven el Daddy: no
+      // hay a quién encuadrar, así que se SALE del plano cerrado en vez de
+      // dejarlo puesto. Si no, su tarjeta caía sobre un primer plano de
+      // alguien que no está hablando — y con la cabeza tapada por la propia
+      // tarjeta.
+      if (narrator) {
+        dialogueCam.exit();
+        return;
+      }
       const otro = hablantes.otro;
       // POR DEFECTO, SOLILOQUIO DE LA JUGADORA. Casi todas las escenas del
       // juego que no declaran reparto son suyas: el guion de apertura, el
