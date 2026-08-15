@@ -20,6 +20,7 @@ import { createActivityPulse } from "./activityGame.js";
 import { createActivityGesture } from "./gestures.js";
 import { createChismeGame } from "./chismeGame.js";
 import { createPourGame } from "./pourGame.js";
+import { createCableGame } from "./cableGame.js";
 
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
@@ -494,6 +495,22 @@ export class Game {
       },
     });
 
+    // LOS CABLES (game/cableGame.js): el reto de CONSEGUIR. Robar el HDMI
+    // era pulsar una tecla al lado de una sala, y la pieza clave de tu
+    // escaqueo del día no puede costar lo mismo que abrir una puerta.
+    this.cables = createCableGame({
+      onNoise: (n) => {
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
+      },
+      onFeedback: (tipo) => {
+        if (tipo === "unido") sfxComplete();
+        else if (tipo === "fallo") sfxWarn();
+      },
+      onWin: () => this._ganarReto(),
+    });
+    // El reto en curso: { item } mientras dura. Null el resto del tiempo.
+    this.reto = null;
+
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
     this._avisoGracia = 0;
@@ -544,6 +561,40 @@ export class Game {
     this.worldFrozen = false;
     this._faltaToastAt = new Map();
     this._wasPretending = false;
+  }
+
+  /**
+   * ABRIR EL RETO de un objeto. A partir de aquí manda el minijuego: el
+   * mundo sigue vivo (Gabo viene mientras conectas), y se sale ganando o
+   * soltando.
+   */
+  _abrirReto(item) {
+    if (this.reto) return;
+    this.reto = { item };
+    this.cables.begin({
+      colores: item.reto?.colores,
+      titulo: item.reto?.titulo ?? `Llévate ${item.nombre}`,
+    });
+    this.announce((item.reto?.anuncio ?? "DESCONECTA Y VUELVE A CONECTAR").toUpperCase(), "warn");
+  }
+
+  /** Se ganó el reto: el objeto es tuyo, y se anuncia como lo que es. */
+  _ganarReto() {
+    const item = this.reto?.item;
+    this.cerrarReto();
+    if (!item) return;
+    this._recoger(item);
+    sfxComplete();
+    // ANUNCIO GRANDE, no un toast. Conseguirlo es un hito del día: el toast
+    // de «conseguiste X» se lo comía el resto de avisos y no se distinguía
+    // de haber recogido un papel del suelo.
+    this.announce(`¡${item.nombre.toUpperCase()} ES TUYO!`, "ok");
+  }
+
+  /** Soltar el reto sin ganarlo. Sin castigo: lo caro fue el tiempo. */
+  cerrarReto() {
+    this.reto = null;
+    this.cables.end();
   }
 
   /**
@@ -748,6 +799,15 @@ export class Game {
         m.redAlert = false;
       }
       this.boss.redAlert = false;
+    }
+    // EL RETO EN CURSO. Corre con el mundo vivo, como todo lo demás, y se
+    // cierra si te alejas del sitio: no puedes dejarlo abierto y marcharte.
+    if (this.reto) {
+      this.cables.update(dt);
+      const it = this.reto.item;
+      if (Math.hypot(it.x - pos.x, it.z - pos.z) > INTERACT_RADIUS * 2 || this.inventario.has(it.id)) {
+        this.cerrarReto();
+      }
     }
     this._updateCampaignObjectives(dt);
     this._updateBienvenida(dt);
@@ -1050,6 +1110,13 @@ export class Game {
       const it = this.nearItem;
       if (this.safeSpotState[it.salaIndex]?.busyLeft > 0) {
         this.toast(`${it.nombre}: la sala está OCUPADA. Una distracción los sacaría…`);
+      } else if (it.reto?.tipo === "cables") {
+        // NO SE COGE, SE GANA. Robar la pieza clave de tu escaqueo no puede
+        // costar lo mismo que abrir una puerta: si el objeto es gratis, el
+        // primer tramo del bucle (conseguir → activar → aguantar) está vacío
+        // y el objeto nunca se siente como el LOGRO que después te delata
+        // mientras lo llevas encima.
+        this._abrirReto(it);
       } else {
         this._recoger(it);
         sfxComplete();
@@ -2791,6 +2858,7 @@ export class Game {
       gesture: this.gesture.snapshot(),
       chisme: this.chisme.snapshot(),
       verter: this.verter.snapshot(),
+      cables: this.cables.snapshot(),
       // El bucle v2: qué llevas encima, si el mundo está congelado
       // (activando) y qué actividad está encendida aguantando.
       inventario: [...this.inventario],

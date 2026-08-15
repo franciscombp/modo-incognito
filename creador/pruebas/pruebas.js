@@ -11,6 +11,9 @@ import {
   createHappyIcon,
   updateHappyIcon,
 } from "../../src/entities/alertIcon.js";
+import { createPourGame } from "../../src/game/pourGame.js";
+import { createCableGame } from "../../src/game/cableGame.js";
+import { createChismeGame } from "../../src/game/chismeGame.js";
 import { createGameHud } from "../../src/ui/gamehud.js";
 import { createDialogue } from "../../src/game/dialogue.js";
 import { prepareLooks } from "../../src/data/loader.js";
@@ -166,6 +169,61 @@ function objetivosDePrueba() {
   ];
 }
 
+// Fichas mínimas para poder abrir el chisme aquí sin cargar el JSON del
+// juego: el banco prueba el MECANISMO, y el contenido real vive en
+// public/data/chismes.json.
+const FICHAS_DE_PRUEBA = [
+  {
+    id: "banco",
+    titular: "BANCO DE PRUEBAS",
+    texto: "La silla buena apareció un lunes en el puesto de Washo. Nadie la pidió y nadie la firmó.",
+    pregunta: "¿Quién acabó con la silla buena?",
+    correcta: 1,
+    opciones: [
+      { texto: "Crispo", remate: "Crispo la quiso. No la tuvo." },
+      { texto: "Washo", remate: "Washo. Y sin firmar nada." },
+      { texto: "Nadie, sigue en la sala", remate: "Ya no está en la sala. Ese es el punto." },
+    ],
+  },
+];
+
+// ── LOS MINIJUEGOS DE VERDAD, aquí dentro ────────────────────────────
+//
+// No son maquetas: son los MÓDULOS del motor. Un minijuego maquetado se ve
+// bien y no prueba nada — lo que hay que poder tocar aquí es el juego, con
+// sus reglas, para no tener que arrancar el día, saltar el ascensor,
+// superar la puerta y llegar a la estación cada vez que se ajusta un color.
+//
+// El HUD llama a `window.__game.engine.game.<verbo>.elegir(...)` cuando le
+// haces clic a un vaso o a un cable. Eso es acoplamiento del HUD al juego, y
+// aquí se aprovecha: se le da un `__game` MÍNIMO con los mismos verbos, y
+// los clics del banco recorren exactamente el mismo camino que en partida.
+const bancoVerter = createPourGame({ onNoise: () => {}, onFeedback: () => {} });
+const bancoCables = createCableGame({
+  onNoise: () => {},
+  onFeedback: () => {},
+  onWin: () => {
+    hudExtra = {
+      ...hudExtra,
+      bigMessage: { text: "¡CABLE HDMI ES TUYO!", tone: "ok", timer: 2.2, key: Date.now() },
+    };
+  },
+});
+const bancoChisme = createChismeGame({
+  pool: FICHAS_DE_PRUEBA,
+  onNoise: () => {},
+  onFeedback: () => {},
+});
+// Una estación de mentira, con los campos que los módulos leen de verdad.
+const estacionDePrueba = (extra) => ({
+  id: "banco",
+  label: extra.label ?? "Prueba",
+  time: 3,
+  progress: 0,
+  ...extra,
+});
+window.__game = { engine: { game: { verter: bancoVerter, cables: bancoCables, chisme: bancoChisme } } };
+
 /** Un snapshot de mentira, con la forma EXACTA que pinta gamehud.render. */
 function snapshot(extra = {}) {
   return {
@@ -207,6 +265,7 @@ function snapshot(extra = {}) {
   };
 }
 
+let minijuegoVivo = null;
 let hudExtra = {};
 hud.setLive(true);
 
@@ -343,10 +402,35 @@ function construirUI() {
 
     grupo("#pr-mini", [
       { id: "pulso", label: "Pulso (tira)" },
-      { id: "gesto", label: "Gesto (carril)" },
+      { id: "gesto", label: "Caña (gesto)" },
+      { id: "vasos", label: "Verter (ratón)" },
+      { id: "cables", label: "Cables (ratón)" },
+      { id: "chisme", label: "Chisme (1-3)" },
       { id: "aguante", label: "Aguantando" },
       { id: "off", label: "— apagar —" },
     ], (it) => {
+      // Los tres de puntero se APAGAN siempre antes de abrir otro: el motor
+      // garantiza que solo hay uno vivo, y el banco tiene que respetarlo o
+      // dejaría de parecerse al juego justo en lo que hay que mirar.
+      bancoVerter.end();
+      bancoCables.end();
+      bancoChisme.end();
+      minijuegoVivo = null;
+      if (it.id === "vasos") {
+        bancoVerter.begin(estacionDePrueba({
+          label: "Tomar café",
+          verter: { verbo: "Sirve el café sin mezclarlo", colores: ["cafe", "leche", "azucar"], capacidad: 4, vacios: 2, mezclas: 7 },
+        }));
+        minijuegoVivo = "verter";
+      }
+      if (it.id === "cables") {
+        bancoCables.begin({ titulo: "Suelta el HDMI sin apagar la sala", colores: ["rojo", "azul", "amarillo", "verde"] });
+        minijuegoVivo = "cables";
+      }
+      if (it.id === "chisme") {
+        bancoChisme.begin(estacionDePrueba({ label: "Chismear con colegas", chisme: { aciertos: 3 } }));
+        minijuegoVivo = "chisme";
+      }
       if (it.id === "off") hudExtra = { ...hudExtra, pulse: null, gesture: null, aguantando: null };
       if (it.id === "pulso") hudExtra = { ...hudExtra, gesture: null, aguantando: null, pulse: { pos: 0.5, zona: 0.26, zonaAt: 0.62, aciertos: 1, necesarios: 3, label: "Tomar café" } };
       if (it.id === "gesto") hudExtra = { ...hudExtra, pulse: null, aguantando: null, gesture: { valor: 0.55, zona: 0.3, zonaAt: 0.3, eje: "y", dentro: false, delatada: false, verbo: "Bájale el volumen", label: "Ver la película", icon: "movie" } };
@@ -378,7 +462,23 @@ function animate(now) {
   );
   updateSleepIcon(sleepIcon, 0, 0, globo === "zzz", t);
   updateHappyIcon(happyIcon, 0, 0, globo === "feliz", t);
-  hud.render(snapshot(hudExtra));
+  // Los módulos vivos avanzan y sus snapshots entran en el HUD por el mismo
+  // sitio que en partida. Sin esto se verían congelados: el destello de un
+  // acierto y el marcador del pulso los mueve su propio `update`.
+  bancoVerter.update(dt);
+  bancoCables.update(dt);
+  bancoChisme.update(dt);
+  hud.render(
+    snapshot({
+      ...hudExtra,
+      verter: bancoVerter.snapshot(),
+      cables: bancoCables.snapshot(),
+      chisme: bancoChisme.snapshot(),
+      // El acecho: sin él la pantalla completa se ve incompleta, y es la
+      // pieza que hace jugable tapar el piso.
+      acecho: minijuegoVivo ? { dist: 6, cazando: false, viendo: true, nombre: "Gabo" } : null,
+    })
+  );
   renderer.render(scene, camera);
 }
 

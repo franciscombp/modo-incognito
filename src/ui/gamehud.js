@@ -213,6 +213,18 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const mgAcechoBarra = el("div", "inc-mg-acecho-barra", mgAcecho);
   const mgAcechoFill = el("i", null, mgAcechoBarra);
 
+  // ── LOS CABLES (reto de CONSEGUIR) ────────────────────────────────
+  // Mismo patrón que los vasos: nodos del DOM con su `click`, así el ratón y
+  // el dedo funcionan sin escribir táctil, y las teclas entran por la misma
+  // puerta. Dos columnas de puntas; tocas una y luego la del otro lado.
+  const cablesWrap = el("div", "inc-cables", mgBody);
+  const cablesTitulo = el("div", "inc-cables-titulo", cablesWrap);
+  const cablesFilas = el("div", "inc-cables-filas", cablesWrap);
+  const cablesIzq = el("div", "inc-cables-col inc-cables-col--izq", cablesFilas);
+  const cablesDer = el("div", "inc-cables-col inc-cables-col--der", cablesFilas);
+  let cablesFirma = null;
+  let cablesNodos = { izq: [], der: [] };
+
   // ── LOS VASOS (minijuego de VERTER) ───────────────────────────────
   // El primero que se juega con el PUNTERO: clic en un ordenador, dedo en un
   // teléfono, y 1-4 en el teclado para quien prefiera teclas. Las tres
@@ -269,12 +281,12 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   function renderPantalla(state) {
     // La pantalla se abre si hay CUALQUIER verbo en marcha. Uno solo a la
     // vez, siempre: lo garantiza el motor (chisme > caña > pulso).
-    const jugando = !!(state.chisme || state.gesture || state.pulse || state.verter);
+    const jugando = !!(state.chisme || state.gesture || state.pulse || state.verter || state.cables);
     // EL PUNTERO SOLO SE ENCIENDE PARA LOS MINIJUEGOS QUE LO USAN. La
     // pantalla es `pointer-events: none` por defecto — un panel a pantalla
     // completa que se coma los clics rompería la cámara y los menús. Con
     // vasos en marcha hay que poder tocarlos, así que se abre solo entonces.
-    mg.classList.toggle("puntero", !!state.verter);
+    mg.classList.toggle("puntero", !!(state.verter || state.cables));
     mg.classList.toggle("on", jugando);
     // El <body> lo marca para que la píldora de mandos y el resto de la
     // banda de abajo se aparten, igual que ya hacían con la acción.
@@ -282,6 +294,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     if (!jugando) return;
 
     mgTitulo.textContent =
+      state.cables?.titulo ??
       state.verter?.label ?? state.chisme?.label ?? state.gesture?.label ?? state.pulse?.label ?? "TAREA";
 
     // ── EL ACECHO ──
@@ -306,6 +319,46 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
           : nivel === "ronda"
             ? `${a.nombre.toUpperCase()} anda cerca`
             : `${a.nombre.toUpperCase()} está lejos`;
+  }
+
+  function renderCables(state) {
+    const c = state.cables;
+    cablesWrap.classList.toggle("on", !!c);
+    if (!c) {
+      cablesFirma = null;
+      return;
+    }
+    cablesTitulo.textContent = `${c.titulo} · ${c.unidos}/${c.total}`;
+    // Se rehace solo si cambian los colores o quién está unido.
+    const firma = [c.izq, c.der].map((l) => l.map((p) => `${p.color}${p.unido ? "!" : ""}`).join(",")).join("|");
+    if (firma !== cablesFirma) {
+      cablesFirma = firma;
+      cablesIzq.textContent = "";
+      cablesDer.textContent = "";
+      const pinta = (lista, host, lado) =>
+        lista.map((p, i) => {
+          const b = el("button", "inc-cable", host);
+          b.type = "button";
+          b.dataset.color = p.color;
+          b.dataset.lado = lado;
+          b.setAttribute("aria-label", `Cable ${p.color}`);
+          b.classList.toggle("unido", p.unido);
+          b.addEventListener("click", () => {
+            window.__game?.engine?.game?.cables?.elegir(lado, i);
+          });
+          return b;
+        });
+      cablesNodos = { izq: pinta(c.izq, cablesIzq, "izq"), der: pinta(c.der, cablesDer, "der") };
+    }
+    for (const lado of ["izq", "der"]) {
+      cablesNodos[lado].forEach((nodo, i) => {
+        nodo.classList.toggle("punta", c.punta?.lado === lado && c.punta.i === i);
+        nodo.classList.toggle(
+          "mal",
+          c.destello?.tipo === "fallo" && c.destello.lado === lado && c.destello.i === i
+        );
+      });
+    }
   }
 
   function renderVasos(state) {
@@ -566,7 +619,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   window.addEventListener("keydown", (e) => {
     if (!layer.classList.contains("live")) return;
     const n = Number(e.key);
-    if (!Number.isInteger(n) || n < 1 || n > 5) return;
+    if (!Number.isInteger(n) || n < 1 || n > 8) return;
     // MIENTRAS HAY UN CHISME ABIERTO, 1–3 SON LAS RESPUESTAS. Es la misma
     // tecla y eso es a propósito: no hay un mando nuevo que aprender con el
     // jefe caminando hacia ti, y el número que se lee en la tarjeta es el
@@ -577,6 +630,14 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     // chisme: no se aprende un mando nuevo con el jefe caminando hacia ti, y
     // el número que se lee en el vaso es el que ya sabes pulsar. El ratón y
     // el dedo hacen exactamente lo mismo por otra puerta.
+    // CON CABLES, 1-4 son la columna IZQUIERDA y 5-8 la DERECHA. Un solo
+    // rango de teclas para dos columnas: se lee del propio número que lleva
+    // cada punta, así que no hay nada que memorizar.
+    if (g?.cables?.active) {
+      if (n <= 4) g.cables.elegir("izq", n - 1);
+      else g.cables.elegir("der", n - 5);
+      return;
+    }
     if (g?.verter?.active) {
       g.verter.elegir(n - 1);
       return;
@@ -835,6 +896,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       renderPulse(state);
     renderChisme(state);
     renderVasos(state);
+    renderCables(state);
     renderPantalla(state);
       renderAction(state);
       renderAnnounce(state);

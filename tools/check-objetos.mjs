@@ -141,6 +141,21 @@ const res = await p.evaluate(async () => {
   g.player.keys.add(" ");
   await sleep(250);
   g.player.keys.delete(" ");
+  // EL HDMI YA NO SE RECOGE: SE GANA. Pulsar al lado de la sala abre el reto
+  // de cables (src/game/cableGame.js) y hay que resolverlo. Robar la pieza
+  // clave de tu escaqueo no puede costar lo mismo que abrir una puerta.
+  if (g.reto && g.cables.active) {
+    for (let vuelta = 0; vuelta < 12; vuelta++) {
+      const cs = g.cables.snapshot();
+      if (!cs) break;
+      const i = cs.izq.findIndex((x) => !x.unido);
+      if (i < 0) break;
+      const j = cs.der.findIndex((x) => x.color === cs.izq[i].color && !x.unido);
+      g.cables.elegir("izq", i);
+      g.cables.elegir("der", j);
+      g.update(1 / 60);
+    }
+  }
   out.recogido = g.inventario.has("hdmi");
 
   // ── 3b · Comprar por charla: el café del Parce ──
@@ -205,7 +220,7 @@ assert(
   res.alboroto?.cerca === false || res.alboroto?.vaciada === true,
   JSON.stringify(res.alboroto),
 );
-assert("con la sala libre, el HDMI se recoge", res.recogido === true, JSON.stringify(res));
+assert("con la sala libre, el HDMI se GANA jugando los cables", res.recogido === true, JSON.stringify(res));
 assert("el café se le compra al Parce hablándole", res.comprado === true, JSON.stringify(res));
 assert(
   "con el objeto, la activación arranca y el piso SIGUE VIVO",

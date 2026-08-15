@@ -150,6 +150,17 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
 - `src/game/activityGame.js` — el PULSO, minijuego de tarea de TIMING. Un
   marcador barre una tira y tocas espacio en la zona buena. Un solo mecanismo
   parametrizado desde `activities[].pulso`; no hay un módulo por actividad.
+- `src/game/cableGame.js` — LOS CABLES, y **el reto de CONSEGUIR**. Un
+  objeto con `objeto.reto` en el JSON de escena ya no se recoge con una
+  tecla: se GANA jugando (hoy, la tarea de cables de Among Us — dos columnas
+  de puntas, une cada color con el suyo). Robar la pieza clave de tu
+  escaqueo no puede costar lo mismo que abrir una puerta: si el objeto es
+  gratis, el primer tramo del bucle está vacío y nunca se siente como el
+  LOGRO que después te delata mientras lo llevas encima. Al ganarlo va un
+  ANUNCIO grande, no un toast. Alejarse cierra el reto sin dar nada. Mismo
+  modelo de entrada que los vasos —una sola acción, `elegir(lado, i)`— así
+  que ratón, dedo y teclas entran por la misma puerta. Lo vigila
+  `npm run check:reto`.
 - `src/game/pourGame.js` — VERTER, el primer minijuego DE PUNTERO y el
   patrón de los que vengan. Un puzle de trasvasar líquido entre vasos hasta
   que cada uno quede de un solo color. Existe porque el pulso, la caña y el

@@ -11948,6 +11948,91 @@ body.inc-acting #hint {
   }
 }
 
+/* ── LOS CABLES (reto de CONSEGUIR) ────────────────────────────────────
+   Mismo patrón que los vasos —<button> del DOM, no canvas— para que ratón,
+   dedo y teclado entren por la misma puerta sin escribir táctil. Dos
+   columnas; tocas una punta y luego la del otro lado. */
+.inc-cables {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.inc-cables.on {
+  display: flex;
+}
+
+.inc-cables-titulo {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.inc-cables-filas {
+  display: flex;
+  gap: 120px;
+}
+
+.inc-cables-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.inc-cable {
+  width: 74px;
+  height: 34px;
+  border-radius: 6px;
+  border: 2px solid var(--border);
+  background: var(--surface-sunken);
+  cursor: pointer;
+  transition: transform var(--dur-1) var(--ease-pop), border-color var(--dur-1) var(--ease-out);
+}
+
+/* Los cables llevan el color POR DENTRO, en una barra: el borde se reserva
+   para el estado (levantado, mal, unido), que es lo que cambia. Si el color
+   fuera el borde, no quedaría sitio para decir qué está pasando. */
+.inc-cable::after {
+  content: "";
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 3px;
+}
+
+.inc-cable[data-color="rojo"]::after { background: #d2564b; }
+.inc-cable[data-color="azul"]::after { background: #4b7fd2; }
+.inc-cable[data-color="amarillo"]::after { background: #d7b14a; }
+.inc-cable[data-color="verde"]::after { background: #55a86b; }
+
+/* LEVANTADA: la punta sale hacia el otro lado, como un cable tirante. */
+.inc-cables-col--izq .inc-cable.punta {
+  transform: translateX(14px);
+  border-color: var(--accent);
+}
+
+.inc-cables-col--der .inc-cable.punta {
+  transform: translateX(-14px);
+  border-color: var(--accent);
+}
+
+/* UNIDA: se apaga y deja de responder. Un cable ya conectado no se vuelve a
+   tocar — reconectar lo que ya está bien no es una decisión. */
+.inc-cable.unido {
+  opacity: 0.45;
+  border-color: var(--ok);
+  cursor: default;
+}
+
+.inc-cable.mal {
+  border-color: var(--danger);
+  animation: inc-vaso-no var(--dur-2) var(--ease-pop);
+}
+
+.inc-mg .inc-cables {
+  pointer-events: auto;
+}
+
 /* ── LOS VASOS (minijuego de VERTER) ───────────────────────────────────
    El primero que se juega con el PUNTERO. Cada vaso es un <button> de
    verdad: así el toque en un teléfono funciona sin escribir una línea de

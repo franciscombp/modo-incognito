@@ -36,6 +36,15 @@
     "en cada plataforma, que es justo lo que no se puede controlar desde aquí.",
     "",
     "",
+    "activities[].objeto.reto: CONSEGUIRLO ES UN MINIJUEGO, no una tecla.",
+    "  `tipo: \"cables\"` abre la tarea de cables (src/game/cableGame.js): dos",
+    "  columnas de puntas de color y hay que unir cada una con la suya, al",
+    "  estilo Among Us. Campos: titulo, anuncio y colores. Sin `reto`, el",
+    "  objeto se recoge con la tecla de siempre.",
+    "  Robar la pieza clave de tu escaqueo no puede costar lo mismo que abrir",
+    "  una puerta: si el objeto es gratis, el primer tramo del bucle esta",
+    "  vacio y nunca se siente como el LOGRO que despues te delata.",
+    "",
     "activities[].objeto: el bucle v2 — CONSEGUIR antes de activar. Campos:",
     "  id (lo que guarda el inventario del día), nombre, pista (el toast de",
     "  'te falta'), y UNA fuente: `en.sala` (id de safeSpots: se recoge ahí,",
@@ -682,6 +691,12 @@
       "objeto": {
         "id": "hdmi",
         "sospecha": 1.9,
+        "reto": {
+          "tipo": "cables",
+          "titulo": "Suelta el HDMI sin apagar la sala",
+          "anuncio": "cables: une cada color con el suyo",
+          "colores": ["rojo", "azul", "amarillo", "verde"]
+        },
         "nombre": "Cable HDMI",
         "en": {"sala":"sala4"},
         "pista": "hay uno en la Sala 4 (si no hay gente dentro)"
