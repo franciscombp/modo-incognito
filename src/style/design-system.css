@@ -11948,6 +11948,131 @@ body.inc-acting #hint {
   }
 }
 
+/* ── LOS VASOS (minijuego de VERTER) ───────────────────────────────────
+   El primero que se juega con el PUNTERO. Cada vaso es un <button> de
+   verdad: así el toque en un teléfono funciona sin escribir una línea de
+   táctil, tiene foco, y sus estados salen de CSS como cualquier otro
+   pulsable del juego. Un canvas habría exigido reimplementar las tres
+   entradas a mano.
+
+   El número del vaso es el atajo de teclado Y la etiqueta: quien juega con
+   teclas ve exactamente qué pulsar, sin leyenda aparte. */
+.inc-vasos {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.inc-vasos.on {
+  display: flex;
+}
+
+.inc-vasos-verbo {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.inc-vasos-fila {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+
+.inc-vaso {
+  position: relative;
+  width: 62px;
+  height: 168px;
+  padding: 6px 6px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border-radius: 6px 6px 16px 16px;
+  border: 2px solid var(--border);
+  background: var(--surface-sunken);
+  cursor: pointer;
+  transition: transform var(--dur-1) var(--ease-pop), border-color var(--dur-1) var(--ease-out);
+}
+
+/* EL NÚMERO, sobre el vaso: es el atajo. */
+.inc-vaso::before {
+  content: attr(data-n);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 6px);
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: var(--text-dim, var(--text));
+  opacity: 0.75;
+}
+
+.inc-vaso-dentro {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+  width: 100%;
+}
+
+.inc-vaso-capa {
+  display: block;
+  height: 32px;
+  border-radius: 3px;
+}
+
+/* Los líquidos. Únicos colores del bloque, y viven aquí porque son
+   CONTENIDO del minijuego, no piel de un componente: un café es marrón en
+   cualquier tema. Aun así salen de la capa 1 donde hay un token que sirva. */
+.inc-vaso-capa[data-color="cafe"] {
+  background: #6f4326;
+}
+
+.inc-vaso-capa[data-color="leche"] {
+  background: #efe3cf;
+}
+
+.inc-vaso-capa[data-color="azucar"] {
+  background: #cfa9d8;
+}
+
+.inc-vaso-capa[data-color="chocolate"] {
+  background: #4a2c1a;
+}
+
+/* LEVANTADO: el vaso sube, como cuando lo coges de verdad. Es la respuesta
+   inmediata que dice «te escuché» antes de saber si el trasvase vale. */
+.inc-vaso.elegido {
+  transform: translateY(-12px);
+  border-color: var(--accent);
+}
+
+.inc-vaso.ok {
+  border-color: var(--ok);
+}
+
+.inc-vaso.mal {
+  border-color: var(--danger);
+  animation: inc-vaso-no var(--dur-2) var(--ease-pop);
+}
+
+@keyframes inc-vaso-no {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* EL PUNTERO, solo cuando toca. La pantalla de la tarea es
+   `pointer-events: none` a propósito: un panel a pantalla completa que se
+   coma los clics rompe la cámara y los menús. Se abre SOLO para los
+   minijuegos que de verdad se juegan con el dedo. */
+.inc-mg.puntero {
+  pointer-events: auto;
+}
+
+.inc-mg .inc-vasos {
+  pointer-events: auto;
+}
+
 /* ── LA TARJETA DEL CHISME ─────────────────────────────────────────────
    El minijuego que se juega LEYENDO. Es la única pieza del juego que pide
    un párrafo, así que ocupa más que la tira del pulso — y va en la misma

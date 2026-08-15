@@ -90,7 +90,22 @@ assert(
 const arranque = await p.evaluate(async () => {
   const g = window.__game.engine.game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const st = g.objectives.find((o) => o.gesto && !o.dynamic);
+  const st = (() => {
+    // La actividad del gesto puede no estar ACTIVA hoy (la cadena de la
+    // temporada la abre más tarde), y lo que se prueba aquí es el gesto, no
+    // la cadena. Si no está en la lista del día se toma su estación del
+    // plano — el mismo montaje que ya usan check-objetos y check-chisme.
+    // Antes esto tiraba del café, que dejó de jugar al gesto para jugar al
+    // puzle de verter, y las cinco afirmaciones fallaban sin que hubiera
+    // nada roto en el gesto.
+    const enLista = g.objectives.find((o) => o.gesto && !o.dynamic);
+    if (enLista) return enLista;
+    const base = (g._allStations ?? window.__floorplan.activityStations ?? []).find((a) => a.gesto);
+    if (!base) return null;
+    const copia = { ...base, progress: 0, done: false, objeto: null };
+    g.objectives.push(copia);
+    return copia;
+  })();
   if (!st) return { error: "el día no trae ninguna estación con gesto" };
   // El bucle v2 pide CONSEGUIR antes de activar: aquí se mide el gesto, no
   // la búsqueda del objeto (esa la mira check-objetos), así que se concede.
@@ -141,7 +156,22 @@ const vivo = await p.evaluate(async () => {
   g.boss.position.z = g.player.position.z;
   g.boss.startChase();
   const antes = { x: g.boss.position.x, z: g.boss.position.z };
-  const st = g.objectives.find((o) => o.gesto && !o.dynamic);
+  const st = (() => {
+    // La actividad del gesto puede no estar ACTIVA hoy (la cadena de la
+    // temporada la abre más tarde), y lo que se prueba aquí es el gesto, no
+    // la cadena. Si no está en la lista del día se toma su estación del
+    // plano — el mismo montaje que ya usan check-objetos y check-chisme.
+    // Antes esto tiraba del café, que dejó de jugar al gesto para jugar al
+    // puzle de verter, y las cinco afirmaciones fallaban sin que hubiera
+    // nada roto en el gesto.
+    const enLista = g.objectives.find((o) => o.gesto && !o.dynamic);
+    if (enLista) return enLista;
+    const base = (g._allStations ?? window.__floorplan.activityStations ?? []).find((a) => a.gesto);
+    if (!base) return null;
+    const copia = { ...base, progress: 0, done: false, objeto: null };
+    g.objectives.push(copia);
+    return copia;
+  })();
   const limite0 = st.limiteLeft ?? st.limite;
   const reloj0 = g.timeLeft;
   // POR CUADROS, no con `sleep()`. En headless el bucle de render va
@@ -180,7 +210,22 @@ assert("y el reloj de la jornada NO se para", vivo.relojCorre === true, JSON.str
 // pillara el valor. Aquí lo que se mide es el mecanismo, no el pilotaje.
 const mando = await p.evaluate(async () => {
   const g = window.__game.engine.game;
-  const st = g.objectives.find((o) => o.gesto && !o.dynamic);
+  const st = (() => {
+    // La actividad del gesto puede no estar ACTIVA hoy (la cadena de la
+    // temporada la abre más tarde), y lo que se prueba aquí es el gesto, no
+    // la cadena. Si no está en la lista del día se toma su estación del
+    // plano — el mismo montaje que ya usan check-objetos y check-chisme.
+    // Antes esto tiraba del café, que dejó de jugar al gesto para jugar al
+    // puzle de verter, y las cinco afirmaciones fallaban sin que hubiera
+    // nada roto en el gesto.
+    const enLista = g.objectives.find((o) => o.gesto && !o.dynamic);
+    if (enLista) return enLista;
+    const base = (g._allStations ?? window.__floorplan.activityStations ?? []).find((a) => a.gesto);
+    if (!base) return null;
+    const copia = { ...base, progress: 0, done: false, objeto: null };
+    g.objectives.push(copia);
+    return copia;
+  })();
   g.gesture.end();
   g.gesture.begin(st);
   const r = {};
@@ -242,7 +287,22 @@ const sigue = await p.evaluate(async () => {
   g.boss.resetToPatrol();
   g.setPaused(false);
 
-  const st = g.objectives.find((o) => o.gesto && !o.dynamic);
+  const st = (() => {
+    // La actividad del gesto puede no estar ACTIVA hoy (la cadena de la
+    // temporada la abre más tarde), y lo que se prueba aquí es el gesto, no
+    // la cadena. Si no está en la lista del día se toma su estación del
+    // plano — el mismo montaje que ya usan check-objetos y check-chisme.
+    // Antes esto tiraba del café, que dejó de jugar al gesto para jugar al
+    // puzle de verter, y las cinco afirmaciones fallaban sin que hubiera
+    // nada roto en el gesto.
+    const enLista = g.objectives.find((o) => o.gesto && !o.dynamic);
+    if (enLista) return enLista;
+    const base = (g._allStations ?? window.__floorplan.activityStations ?? []).find((a) => a.gesto);
+    if (!base) return null;
+    const copia = { ...base, progress: 0, done: false, objeto: null };
+    g.objectives.push(copia);
+    return copia;
+  })();
   st.done = false;
   st.progress = 0;
   st.limiteLeft = st.limite;
@@ -272,7 +332,22 @@ const plazo = await p.evaluate(async () => {
   g.boss.resetToPatrol();
   g._caughtCooldown = 999;
 
-  const st = g.objectives.find((o) => o.gesto && !o.dynamic);
+  const st = (() => {
+    // La actividad del gesto puede no estar ACTIVA hoy (la cadena de la
+    // temporada la abre más tarde), y lo que se prueba aquí es el gesto, no
+    // la cadena. Si no está en la lista del día se toma su estación del
+    // plano — el mismo montaje que ya usan check-objetos y check-chisme.
+    // Antes esto tiraba del café, que dejó de jugar al gesto para jugar al
+    // puzle de verter, y las cinco afirmaciones fallaban sin que hubiera
+    // nada roto en el gesto.
+    const enLista = g.objectives.find((o) => o.gesto && !o.dynamic);
+    if (enLista) return enLista;
+    const base = (g._allStations ?? window.__floorplan.activityStations ?? []).find((a) => a.gesto);
+    if (!base) return null;
+    const copia = { ...base, progress: 0, done: false, objeto: null };
+    g.objectives.push(copia);
+    return copia;
+  })();
   st.done = false;
   st.progress = st.time * 0.7;
   st.limiteLeft = 0.02;

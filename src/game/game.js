@@ -19,6 +19,7 @@ import { runEffect } from "./effects.js";
 import { createActivityPulse } from "./activityGame.js";
 import { createActivityGesture } from "./gestures.js";
 import { createChismeGame } from "./chismeGame.js";
+import { createPourGame } from "./pourGame.js";
 
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
@@ -480,6 +481,19 @@ export class Game {
       },
     });
 
+    // VERTER (game/pourGame.js): el primer verbo DE PUNTERO. Ratón, dedo y
+    // teclas 1-4 acaban los tres en `elegir(i)`, así que es un juego con
+    // tres mandos y no tres juegos.
+    this.verter = createPourGame({
+      onNoise: (n) => {
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
+      },
+      onFeedback: (tipo) => {
+        if (tipo === "vertido") sfxComplete();
+        else if (tipo === "ilegal") sfxWarn();
+      },
+    });
+
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
     this._avisoGracia = 0;
@@ -803,12 +817,19 @@ export class Game {
     // se anula al agotarse el plazo de la activación (_activityTimeout).
     const TAP_GRACE = 0.35;
     const enActividad = this.nearStation && !this.player.isPretending && this.metGabo;
+    // La gracia es SOLO del pulso: existe porque ese minijuego se juega
+    // soltando y volviendo a tocar la MISMA tecla que sostiene la actividad.
+    // Los demás verbos no sueltan nunca (el chisme y los vasos se juegan con
+    // otras teclas o con el dedo), y dejarles la gracia solo conseguía que
+    // la tarea siguiera viva un cuarto de segundo después de soltarla.
+    const juegaAlPulso =
+      enActividad && !this.nearStation.gesto && !this.nearStation.chisme && !this.nearStation.verter;
     if (enActividad && holdingSpace) {
       this._tapGrace = TAP_GRACE;
     } else if (
       enActividad &&
       this.player.isDoingActivity &&
-      !this.nearStation.gesto &&
+      juegaAlPulso &&
       (this._tapGrace ?? 0) > 0
     ) {
       this._tapGrace -= dt;
@@ -824,6 +845,7 @@ export class Game {
         this.pulse.end();
         this.gesture.end();
         this.chisme.end();
+        this.verter.end();
         this.player.inputLocked = false;
         this.player.isDoingActivity = false;
         this._updatePretendPose();
@@ -847,6 +869,7 @@ export class Game {
           this.pulse.end();
           this.gesture.end();
           this.chisme.end();
+          this.verter.end();
           this.player.inputLocked = false;
           st.aguante = Math.min(AGUANTE_MAX, (st.aguante ?? 0) + dt);
           if (st.aguante >= AGUANTE_MAX) this._bankActivity(st);
@@ -864,10 +887,20 @@ export class Game {
           // Una estación juega al GESTO o al PULSO, según su JSON. Nunca a
           // los dos: pedir ritmo y pulso firme a la vez no es difícil, es
           // ruido.
-          const conChisme = !!st.chisme;
-          const conGesto = !conChisme && !!st.gesto;
+          const conVasos = !!st.verter;
+          const conChisme = !conVasos && !!st.chisme;
+          const conGesto = !conVasos && !conChisme && !!st.gesto;
           let ritmo = 1;
-          if (conChisme) {
+          if (conVasos) {
+            // LOS VASOS. Como el chisme, mantener NO avanza: lo que empuja la
+            // tarea son los vasos que dejas resueltos.
+            this.pulse.end();
+            this.gesture.end();
+            this.chisme.end();
+            this.verter.begin(st);
+            this.verter.update(dt);
+            ritmo = 0;
+          } else if (conChisme) {
             // EL CHISME. No avanza solo: aquí mantener la tecla es lo que te
             // deja LEYENDO, y lo que empuja la tarea son las respuestas
             // (`responder`, desde las teclas 1-3). Ritmo 0 a propósito — si
@@ -879,7 +912,8 @@ export class Game {
             this.chisme.update(dt);
             ritmo = 0;
           } else if (conGesto) {
-            // Cada rama apaga LAS OTRAS DOS. Con solo apagar una, cambiar de
+            this.verter.end();
+            // Cada rama apaga LAS OTRAS. Con solo apagar una, cambiar de
             // estación dejaba dos verbos vivos a la vez y la pantalla de la
             // tarea pintaba los dos encima — se veía la tarjeta del chisme y
             // la caña juntas, con el título de la tarea equivocada.
@@ -892,6 +926,7 @@ export class Game {
             this.player.inputLocked = true;
             ritmo = this.gesture.update(dt, this.player.readIntent());
           } else {
+            this.verter.end();
             this.chisme.end();
             this.gesture.end();
             this.pulse.begin(st);
@@ -933,6 +968,7 @@ export class Game {
       this.pulse.end();
       this.gesture.end();
       this.chisme.end();
+      this.verter.end();
       this.player.inputLocked = false;
       this.player.isDoingActivity = false;
       this._updatePretendPose();
@@ -2754,6 +2790,7 @@ export class Game {
       pulse: this.pulse.snapshot(),
       gesture: this.gesture.snapshot(),
       chisme: this.chisme.snapshot(),
+      verter: this.verter.snapshot(),
       // El bucle v2: qué llevas encima, si el mundo está congelado
       // (activando) y qué actividad está encendida aguantando.
       inventario: [...this.inventario],

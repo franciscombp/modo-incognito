@@ -213,6 +213,21 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const mgAcechoBarra = el("div", "inc-mg-acecho-barra", mgAcecho);
   const mgAcechoFill = el("i", null, mgAcechoBarra);
 
+  // ── LOS VASOS (minijuego de VERTER) ───────────────────────────────
+  // El primero que se juega con el PUNTERO: clic en un ordenador, dedo en un
+  // teléfono, y 1-4 en el teclado para quien prefiera teclas. Las tres
+  // entradas acaban en la misma llamada (`pourGame.elegir(i)`), así que no
+  // hay tres juegos que mantener — hay uno con tres mandos.
+  //
+  // Los vasos son nodos del DOM con su `click`, no un canvas: así el toque
+  // funciona igual en móvil sin escribir nada de táctil, y cada vaso puede
+  // tener foco y estados de CSS como cualquier otro pulsable del juego.
+  const vasosWrap = el("div", "inc-vasos", mgBody);
+  const vasosVerbo = el("div", "inc-vasos-verbo", vasosWrap);
+  const vasosFila = el("div", "inc-vasos-fila", vasosWrap);
+  let vasosFirma = null;
+  let vasosNodos = [];
+
   // LA TARJETA DEL CHISME, ya dentro de la pantalla de la tarea. Es la única
   // pieza del juego que pide LEER un párrafo, y por eso mismo el jefe sigue
   // caminando mientras lees: quedarse es una decisión, no un trámite.
@@ -254,7 +269,12 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   function renderPantalla(state) {
     // La pantalla se abre si hay CUALQUIER verbo en marcha. Uno solo a la
     // vez, siempre: lo garantiza el motor (chisme > caña > pulso).
-    const jugando = !!(state.chisme || state.gesture || state.pulse);
+    const jugando = !!(state.chisme || state.gesture || state.pulse || state.verter);
+    // EL PUNTERO SOLO SE ENCIENDE PARA LOS MINIJUEGOS QUE LO USAN. La
+    // pantalla es `pointer-events: none` por defecto — un panel a pantalla
+    // completa que se coma los clics rompería la cámara y los menús. Con
+    // vasos en marcha hay que poder tocarlos, así que se abre solo entonces.
+    mg.classList.toggle("puntero", !!state.verter);
     mg.classList.toggle("on", jugando);
     // El <body> lo marca para que la píldora de mandos y el resto de la
     // banda de abajo se aparten, igual que ya hacían con la acción.
@@ -262,7 +282,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     if (!jugando) return;
 
     mgTitulo.textContent =
-      state.chisme?.label ?? state.gesture?.label ?? state.pulse?.label ?? "TAREA";
+      state.verter?.label ?? state.chisme?.label ?? state.gesture?.label ?? state.pulse?.label ?? "TAREA";
 
     // ── EL ACECHO ──
     // Con el piso tapado, esto ES el piso: quién viene y cómo de cerca.
@@ -286,6 +306,49 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
           : nivel === "ronda"
             ? `${a.nombre.toUpperCase()} anda cerca`
             : `${a.nombre.toUpperCase()} está lejos`;
+  }
+
+  function renderVasos(state) {
+    const v = state.verter;
+    vasosWrap.classList.toggle("on", !!v);
+    if (!v) {
+      vasosFirma = null;
+      return;
+    }
+    vasosVerbo.textContent = v.verbo;
+    // La estructura se rehace solo si cambia el CONTENIDO de los vasos. Las
+    // capas son nodos y rehacerlas por cuadro es tirar DOM a la basura
+    // sesenta veces por segundo para pintar lo mismo.
+    const firma = v.vasos.map((g) => g.join(",")).join("|");
+    if (firma !== vasosFirma) {
+      vasosFirma = firma;
+      vasosFila.textContent = "";
+      vasosNodos = v.vasos.map((capas, i) => {
+        const vaso = el("button", "inc-vaso", vasosFila);
+        vaso.type = "button";
+        // El número es el atajo de teclado Y la etiqueta accesible: quien
+        // juega con teclas ve exactamente qué pulsar.
+        vaso.dataset.n = String(i + 1);
+        vaso.setAttribute("aria-label", `Vaso ${i + 1}`);
+        const dentro = el("span", "inc-vaso-dentro", vaso);
+        // De abajo arriba: es como se llena un vaso de verdad.
+        for (const color of capas) {
+          const capa = el("i", "inc-vaso-capa", dentro);
+          capa.dataset.color = color;
+        }
+        vaso.addEventListener("click", () => {
+          window.__game?.engine?.game?.verter?.elegir(i);
+        });
+        return vaso;
+      });
+    }
+    // Lo que SÍ va por cuadro: quién está levantado y el destello del último
+    // trasvase. Son dos clases, no nodos.
+    vasosNodos.forEach((nodo, i) => {
+      nodo.classList.toggle("elegido", v.elegido === i);
+      nodo.classList.toggle("ok", v.destello?.tipo === "vertido" && v.destello.vaso === i);
+      nodo.classList.toggle("mal", v.destello?.tipo === "ilegal" && v.destello.vaso === i);
+    });
   }
 
   function renderChisme(state) {
@@ -503,13 +566,21 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   window.addEventListener("keydown", (e) => {
     if (!layer.classList.contains("live")) return;
     const n = Number(e.key);
-    if (!Number.isInteger(n) || n < 1 || n > 3) return;
+    if (!Number.isInteger(n) || n < 1 || n > 5) return;
     // MIENTRAS HAY UN CHISME ABIERTO, 1–3 SON LAS RESPUESTAS. Es la misma
     // tecla y eso es a propósito: no hay un mando nuevo que aprender con el
     // jefe caminando hacia ti, y el número que se lee en la tarjeta es el
     // que ya sabes pulsar de la lista de misiones. Fuera del chisme vuelven
     // a seguir una misión, como siempre.
     const g = window.__game?.engine?.game;
+    // CON VASOS EN MARCHA, 1-4 ELIGEN VASO. Es el mismo criterio que el
+    // chisme: no se aprende un mando nuevo con el jefe caminando hacia ti, y
+    // el número que se lee en el vaso es el que ya sabes pulsar. El ratón y
+    // el dedo hacen exactamente lo mismo por otra puerta.
+    if (g?.verter?.active) {
+      g.verter.elegir(n - 1);
+      return;
+    }
     if (g?.chisme?.active) {
       g.chisme.responder(n - 1);
       return;
@@ -763,6 +834,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       renderZone(state);
       renderPulse(state);
     renderChisme(state);
+    renderVasos(state);
     renderPantalla(state);
       renderAction(state);
       renderAnnounce(state);

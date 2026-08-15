@@ -150,6 +150,23 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
 - `src/game/activityGame.js` — el PULSO, minijuego de tarea de TIMING. Un
   marcador barre una tira y tocas espacio en la zona buena. Un solo mecanismo
   parametrizado desde `activities[].pulso`; no hay un módulo por actividad.
+- `src/game/pourGame.js` — VERTER, el primer minijuego DE PUNTERO y el
+  patrón de los que vengan. Un puzle de trasvasar líquido entre vasos hasta
+  que cada uno quede de un solo color. Existe porque el pulso, la caña y el
+  chisme son los tres «mantén una tecla» o «pulsa un número»: se pintan
+  distintos, pero el verbo es el mismo y ninguno usa el ratón en un
+  ordenador ni el dedo en un teléfono.
+  **Tres mandos, un solo juego**: ratón, dedo y teclas 1–5 acaban los tres
+  en `elegir(i)`. Añadir un mando no toca ese archivo. Los vasos son
+  `<button>` del DOM y no un canvas — así el táctil funciona sin escribir
+  una línea de táctil.
+  **El reparto se genera DESDE LA SOLUCIÓN** (trasvases legales hacia
+  atrás): así nunca sale un puzle sin salida, que con el jefe acercándose no
+  sería difícil, sería injusto. Y el progreso se paga por VASOS RESUELTOS,
+  no por trasvases, o machacar dos vasos de un lado a otro sería la
+  estrategia óptima. Lo vigila `npm run check:verter`, que hace un CLIC DE
+  RATÓN de verdad — si el módulo funciona pero el clic no llega, el
+  minijuego no existe.
 - **LOS TRES VERBOS SE JUEGAN A PANTALLA COMPLETA** (`.inc-mg`, en
   `ui/gamehud.js`). Vivían en tiras pegadas al borde de abajo, y ahí un
   minijuego no se siente como un minijuego: se siente como un medidor más
@@ -162,6 +179,9 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
   —quién viene, cómo de cerca, con qué se sale— o pantalla completa sería
   capturarte a ciegas, que es peor que congelar el mundo. Si añades un verbo
   nuevo, va dentro de `.inc-mg` y respeta esto.
+  **El puntero se abre SOLO para los verbos que lo usan** (`.inc-mg.puntero`):
+  un panel a pantalla completa que se coma los clics rompe la cámara y los
+  menús, así que por defecto la pantalla es `pointer-events: none`.
 - `src/game/chismeGame.js` — EL CHISME, el TERCER verbo, y el primero que no
   es de destreza: sale una tarjeta con un rumor, una pregunta y tres
   opciones, y se responde con **1–3, las MISMAS teclas** de la lista de

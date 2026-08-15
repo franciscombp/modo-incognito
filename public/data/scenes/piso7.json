@@ -589,8 +589,17 @@
       "area": "cafeteria",
       "riskRate": 14,
       "time": 3,
-      "limite": 8,
-      "gesto": {
+      "$limiteNota": "22 y no 8: un puzle de verter no se resuelve en ocho segundos, y la cuenta atras tiene que apretar, no impedir.", "limite": 22,
+      "$gesto": "ANTES jugaba al gesto («sirve sin que se enfrie»). Pasa a VERTER, que es el puzle de puntero: raton, dedo o teclas 1-4. El gesto se queda por si vuelve.",
+      "verter": {
+        "verbo": "Sirve el café sin mezclarlo",
+        "colores": ["cafe", "leche", "azucar"],
+        "capacidad": 4,
+        "vacios": 2,
+        "mezclas": 7,
+        "ruido": 4
+      },
+      "gestoViejo": {
         "verbo": "Sirve sin que se enfríe",
         "eje": "y",
         "valor": 0.15,
