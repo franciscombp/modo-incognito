@@ -56,7 +56,8 @@ const RUIDO_FALLO = 7;
  * @param {Function} opts.onNoise    Sube la sospecha (un fallo hace ruido).
  * @param {Function} opts.onFeedback Avisa al HUD de acierto/fallo.
  */
-export function createChismeGame({ pool = [], onNoise, onFeedback } = {}) {
+export function createChismeGame({ pool: poolInicial = [], onNoise, onFeedback, onWin } = {}) {
+  let pool = poolInicial;
   let station = null;
   let ficha = null;
   let aciertos = 0;
@@ -94,9 +95,16 @@ export function createChismeGame({ pool = [], onNoise, onFeedback } = {}) {
     },
 
     /** Empieza (o continúa) la tanda de esta estación. */
-    begin(st) {
+    /**
+     * @param st        La estación (o una sintética, si es un RETO).
+     * @param fichas    Pool propio, para un reto con preguntas suyas — el
+     *                  examen del Parce no debe sacar chismes de la oficina
+     *                  ni al revés. Sin él, se usa el pool de siempre.
+     */
+    begin(st, { fichas = null } = {}) {
       if (station === st) return;
       station = st;
+      if (fichas?.length) pool = fichas;
       necesarios = st?.chisme?.aciertos ?? ACIERTOS_POR_DEFECTO;
       aciertos = 0;
       fallos = 0;
@@ -137,6 +145,14 @@ export function createChismeGame({ pool = [], onNoise, onFeedback } = {}) {
         aciertos += 1;
         station.progress = Math.min(total, station.progress + total * AVANCE_ACIERTO);
         onFeedback?.("acierto", { aciertos, necesarios, remate: ficha.opciones[i]?.remate });
+        // COMPLETAR LA TANDA es un suceso con nombre, no solo «la barra
+        // llegó al final». Lo usa el RETO —la trivia del Parce, que hay que
+        // ganar para que te venda el café— y no le estorba a la actividad,
+        // que sigue midiéndose por el progreso de la estación.
+        if (aciertos >= necesarios) {
+          onWin?.();
+          return "ganado";
+        }
         siguienteFicha();
         return "acierto";
       }

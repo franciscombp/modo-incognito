@@ -159,7 +159,27 @@ const res = await p.evaluate(async () => {
   out.recogido = g.inventario.has("hdmi");
 
   // ── 3b · Comprar por charla: el café del Parce ──
+  // EL CAFÉ TAMPOCO SE REGALA: el Parce te EXAMINA antes de vendértelo (una
+  // trivia suya, ver `objeto.reto` en la escena). Hablarle abre el examen;
+  // aprobarlo es lo que te da el café.
+  const parce = g.npcs.find((n) => n.cast === "parce" || n.id === "parce");
+  if (parce) {
+    g.player.position.x = parce.position.x;
+    g.player.position.z = parce.position.z;
+  }
   g.completeTalk("parce");
+  for (let vuelta = 0; vuelta < 20 && g.trivia.active; vuelta++) {
+    for (let i = 0; i < 3; i++) {
+      if (!g.trivia.active) break;
+      const r = g.trivia.responder(i);
+      if (r === "acierto" || r === "ganado") break;
+    }
+    if (parce) {
+      g.player.position.x = parce.position.x;
+      g.player.position.z = parce.position.z;
+    }
+    g.update(1 / 60);
+  }
   out.comprado = g.inventario.has("cafe_parce");
 
   // ── 4 · Con el HDMI: activa CON EL PISO VIVO, y el AGUANTE paga ──
@@ -221,7 +241,7 @@ assert(
   JSON.stringify(res.alboroto),
 );
 assert("con la sala libre, el HDMI se GANA jugando los cables", res.recogido === true, JSON.stringify(res));
-assert("el café se le compra al Parce hablándole", res.comprado === true, JSON.stringify(res));
+assert("el café se GANA aprobando el examen del Parce", res.comprado === true, JSON.stringify(res));
 assert(
   "con el objeto, la activación arranca y el piso SIGUE VIVO",
   res.conObjeto?.minijuego === true && res.conObjeto?.congelado === false,

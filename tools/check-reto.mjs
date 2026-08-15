@@ -222,6 +222,81 @@ if (abierto.error) {
   );
 }
 
+// ── EL EXAMEN DEL PARCE ────────────────────────────────────────────────
+// El café se conseguía hablándole y ya: la mitad del bucle v2 regalada. Él
+// no se mete en problemas ajenos, así que primero quiere saber para quién es.
+const trivia = await p.evaluate(() => {
+  const g = window.__game.engine.game;
+  g.cerrarReto();
+  const ob = g.objectives.map((o) => o.objeto).find((o) => o?.reto?.tipo === "trivia");
+  if (!ob) return { error: "ningún objeto se consigue por trivia" };
+  g.inventario.delete(ob.id);
+  g._factorLlevado.delete(ob.id);
+  // AL LADO DEL PARCE. El reto se cierra si te alejas de quien te lo dio
+  // (igual que con un objeto del piso), así que examinarse desde el otro
+  // extremo del piso lo cancelaba en el primer cuadro.
+  const parce = g.npcs.find((n) => n.cast === ob.de || n.id === ob.de);
+  if (parce) {
+    g.player.position.x = parce.position.x;
+    g.player.position.z = parce.position.z;
+  }
+
+  // Hablarle NO da el café: abre el examen.
+  g.completeTalk(ob.de);
+  const abierto = !!g.reto && g.trivia.active;
+  const loTienesYa = g.inventario.has(ob.id);
+  const s0 = g.trivia.snapshot();
+
+  // Las preguntas son LAS SUYAS, no las del minijuego de chismear.
+  const suyas = /parce/i.test(s0?.titular ?? "") || /examen/i.test(s0?.titular ?? "");
+
+  // Se responde hasta ganarlo, leyendo del propio módulo cuál es la buena:
+  // se prueba la mecánica, no si el test se sabe las respuestas.
+  for (let vuelta = 0; vuelta < 20 && g.trivia.active; vuelta++) {
+    for (let i = 0; i < 3; i++) {
+      if (!g.trivia.active) break;
+      const r = g.trivia.responder(i);
+      if (r === "acierto" || r === "ganado") break;
+    }
+    if (parce) {
+      g.player.position.x = parce.position.x;
+      g.player.position.z = parce.position.z;
+    }
+    g.update(1 / 60);
+  }
+  return {
+    abierto,
+    loTienesYa,
+    titular: s0?.titular ?? "",
+    suyas,
+    loTienes: g.inventario.has(ob.id),
+    anuncio: g.bigMessage?.text ?? "",
+    cerrado: g.reto === null,
+    poolParce: (g._chismes ?? []).filter((f) => f.pool === "parce").length,
+    total: (g._chismes ?? []).length,
+  };
+});
+
+if (trivia.error) {
+  check("hay un objeto que se gana con trivia", false, trivia.error);
+} else {
+  check(
+    "hablarle al Parce NO te da el café: te EXAMINA",
+    trivia.abierto === true && trivia.loTienesYa === false,
+    JSON.stringify(trivia)
+  );
+  check(
+    "y las preguntas son LAS SUYAS, no las del chisme de actividad",
+    trivia.suyas === true,
+    JSON.stringify({ titular: trivia.titular, poolParce: trivia.poolParce, total: trivia.total })
+  );
+  check(
+    "aprobar el examen te da el café y lo anuncia",
+    trivia.loTienes === true && /ES TUYO/i.test(trivia.anuncio) && trivia.cerrado === true,
+    JSON.stringify(trivia)
+  );
+}
+
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 
 await b.close();

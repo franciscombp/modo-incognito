@@ -281,7 +281,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   function renderPantalla(state) {
     // La pantalla se abre si hay CUALQUIER verbo en marcha. Uno solo a la
     // vez, siempre: lo garantiza el motor (chisme > caña > pulso).
-    const jugando = !!(state.chisme || state.gesture || state.pulse || state.verter || state.cables);
+    const jugando = !!(state.chisme || state.trivia || state.gesture || state.pulse || state.verter || state.cables);
     // EL PUNTERO SOLO SE ENCIENDE PARA LOS MINIJUEGOS QUE LO USAN. La
     // pantalla es `pointer-events: none` por defecto — un panel a pantalla
     // completa que se coma los clics rompería la cámara y los menús. Con
@@ -294,6 +294,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     if (!jugando) return;
 
     mgTitulo.textContent =
+      state.trivia?.label ??
       state.cables?.titulo ??
       state.verter?.label ?? state.chisme?.label ?? state.gesture?.label ?? state.pulse?.label ?? "TAREA";
 
@@ -405,7 +406,11 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   }
 
   function renderChisme(state) {
-    const c = state.chisme;
+    // LA TRIVIA REUSA ESTA TARJETA. Es el mismo minijuego en otro papel (el
+    // examen del Parce para venderte el café), y mantener una segunda copia
+    // es como se separan las cosas: al primer ajuste, una de las dos se
+    // queda vieja.
+    const c = state.chisme ?? state.trivia;
     chismeCard.classList.toggle("on", !!c);
     if (!c) {
       chismeFirma = null;
@@ -640,6 +645,10 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     }
     if (g?.verter?.active) {
       g.verter.elegir(n - 1);
+      return;
+    }
+    if (g?.trivia?.active) {
+      g.trivia.responder(n - 1);
       return;
     }
     if (g?.chisme?.active) {

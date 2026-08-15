@@ -406,6 +406,7 @@ function construirUI() {
       { id: "vasos", label: "Verter (ratón)" },
       { id: "cables", label: "Cables (ratón)" },
       { id: "chisme", label: "Chisme (1-3)" },
+      { id: "trivia", label: "Trivia del Parce" },
       { id: "aguante", label: "Aguantando" },
       { id: "off", label: "— apagar —" },
     ], (it) => {
@@ -430,6 +431,13 @@ function construirUI() {
       if (it.id === "chisme") {
         bancoChisme.begin(estacionDePrueba({ label: "Chismear con colegas", chisme: { aciertos: 3 } }));
         minijuegoVivo = "chisme";
+      }
+      if (it.id === "trivia") {
+        // El MISMO módulo en su otro papel: el examen del Parce para
+        // venderte el café. Se prueba aquí para ver que la tarjeta sirve
+        // igual de bien para las dos cosas.
+        bancoChisme.begin(estacionDePrueba({ label: "El examen del Parce", chisme: { aciertos: 3 } }));
+        minijuegoVivo = "trivia";
       }
       if (it.id === "off") hudExtra = { ...hudExtra, pulse: null, gesture: null, aguantando: null };
       if (it.id === "pulso") hudExtra = { ...hudExtra, gesture: null, aguantando: null, pulse: { pos: 0.5, zona: 0.26, zonaAt: 0.62, aciertos: 1, necesarios: 3, label: "Tomar café" } };

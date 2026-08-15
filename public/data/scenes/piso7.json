@@ -627,6 +627,13 @@
       "objeto": {
         "id": "cafe_parce",
         "sospecha": 1.5,
+        "reto": {
+          "tipo": "trivia",
+          "fichas": "parce",
+          "aciertos": 3,
+          "titulo": "El examen del Parce",
+          "anuncio": "el Parce te examina: responde con 1-3"
+        },
         "nombre": "Café del Parce",
         "de": "parce",
         "pista": "el Parce vende de contrabando — háblale"

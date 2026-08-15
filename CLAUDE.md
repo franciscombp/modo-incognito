@@ -159,8 +159,13 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
   LOGRO que después te delata mientras lo llevas encima. Al ganarlo va un
   ANUNCIO grande, no un toast. Alejarse cierra el reto sin dar nada. Mismo
   modelo de entrada que los vasos —una sola acción, `elegir(lado, i)`— así
-  que ratón, dedo y teclas entran por la misma puerta. Lo vigila
-  `npm run check:reto`.
+  que ratón, dedo y teclas entran por la misma puerta.
+  **Y hay un segundo tipo de reto: `trivia`**, que reusa `chismeGame` en otro
+  papel — el EXAMEN DEL PARCE. El café se conseguía hablándole y ya, o sea
+  la mitad del bucle regalada; ahora él te examina primero (no se mete en
+  problemas ajenos: quiere saber para quién es el café). Sus preguntas van
+  en `chismes.json` con `pool: "parce"`, así que no salen en el minijuego de
+  chismear ni al revés. Los dos los vigila `npm run check:reto`.
 - `src/game/pourGame.js` — VERTER, el primer minijuego DE PUNTERO y el
   patrón de los que vengan. Un puzle de trasvasar líquido entre vasos hasta
   que cada uno quede de un solo color. Existe porque el pulso, la caña y el

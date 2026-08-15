@@ -21,7 +21,8 @@
     "en el dia 5 (ver CLAUDE.md).",
     "",
     "Los nombres del reparto se usan a propósito; los nombres de empresa y la",
-    "jerga corporativa real, nunca."
+    "jerga corporativa real, nunca.",
+    "Una ficha puede llevar `pool` para reservarla a un RETO concreto (la trivia del Parce, por ejemplo). Las que no lo llevan son las del minijuego de actividad."
   ],
   "fichas": [
     {
@@ -31,9 +32,18 @@
       "pregunta": "¿Por qué Crispo trae termo?",
       "correcta": 1,
       "opciones": [
-        { "texto": "Porque es más barato", "remate": "No. Crispo no ha hecho una cuenta en su vida." },
-        { "texto": "Porque el café de la oficina le parece agua", "remate": "Exacto. Y lo dijo delante de quien compró la máquina." },
-        { "texto": "Porque no le dejan usar la cocina", "remate": "Nadie tiene prohibida la cocina. Todavía." }
+        {
+          "texto": "Porque es más barato",
+          "remate": "No. Crispo no ha hecho una cuenta en su vida."
+        },
+        {
+          "texto": "Porque el café de la oficina le parece agua",
+          "remate": "Exacto. Y lo dijo delante de quien compró la máquina."
+        },
+        {
+          "texto": "Porque no le dejan usar la cocina",
+          "remate": "Nadie tiene prohibida la cocina. Todavía."
+        }
       ]
     },
     {
@@ -43,9 +53,18 @@
       "pregunta": "Según Chispita, ¿cuándo se movió la silla?",
       "correcta": 2,
       "opciones": [
-        { "texto": "El lunes por la mañana", "remate": "El lunes ya estaba puesta. Eso no es el misterio." },
-        { "texto": "Durante la reunión", "remate": "Durante la reunión había gente. Ese es el punto." },
-        { "texto": "El viernes, sobre las siete", "remate": "«Como a las siete», dijo. Y bajó la voz para decirlo." }
+        {
+          "texto": "El lunes por la mañana",
+          "remate": "El lunes ya estaba puesta. Eso no es el misterio."
+        },
+        {
+          "texto": "Durante la reunión",
+          "remate": "Durante la reunión había gente. Ese es el punto."
+        },
+        {
+          "texto": "El viernes, sobre las siete",
+          "remate": "«Como a las siete», dijo. Y bajó la voz para decirlo."
+        }
       ]
     },
     {
@@ -55,9 +74,18 @@
       "pregunta": "¿Qué hace Gabo en su bloque de FOCUS?",
       "correcta": 0,
       "opciones": [
-        { "texto": "Ver el teléfono en horizontal", "remate": "Horizontal. Es el detalle que lo delata todo." },
-        { "texto": "Preparar la evaluación del equipo", "remate": "Ojalá. Nadie se ríe solo preparando eso." },
-        { "texto": "Reunirse con el Piso 12", "remate": "El Piso 12 no existe. Lo comprobó Chispita." }
+        {
+          "texto": "Ver el teléfono en horizontal",
+          "remate": "Horizontal. Es el detalle que lo delata todo."
+        },
+        {
+          "texto": "Preparar la evaluación del equipo",
+          "remate": "Ojalá. Nadie se ríe solo preparando eso."
+        },
+        {
+          "texto": "Reunirse con el Piso 12",
+          "remate": "El Piso 12 no existe. Lo comprobó Chispita."
+        }
       ]
     },
     {
@@ -67,9 +95,18 @@
       "pregunta": "¿Qué es lo ÚNICO que se sabe con certeza?",
       "correcta": 1,
       "opciones": [
-        { "texto": "Que es a la una y diez", "remate": "Eso también, pero no es lo que señala a nadie." },
-        { "texto": "Que no pasó el martes que faltó Chispita", "remate": "Correcto. Nadie lo ha dicho en voz alta todavía." },
-        { "texto": "Que hubo una charla de convivencia", "remate": "Cuarenta minutos. Y sin una sola conclusión." }
+        {
+          "texto": "Que es a la una y diez",
+          "remate": "Eso también, pero no es lo que señala a nadie."
+        },
+        {
+          "texto": "Que no pasó el martes que faltó Chispita",
+          "remate": "Correcto. Nadie lo ha dicho en voz alta todavía."
+        },
+        {
+          "texto": "Que hubo una charla de convivencia",
+          "remate": "Cuarenta minutos. Y sin una sola conclusión."
+        }
       ]
     },
     {
@@ -79,9 +116,18 @@
       "pregunta": "Según el Parce, ¿qué hace ahora la impresora?",
       "correcta": 2,
       "opciones": [
-        { "texto": "Nada, sigue atascada", "remate": "Eso era antes. El Parce insiste en que evolucionó." },
-        { "texto": "Imprime en blanco", "remate": "Sería más barato y menos inquietante." },
-        { "texto": "Imprime todo lo pendiente desde marzo", "remate": "En orden. Ese es el detalle que da miedo." }
+        {
+          "texto": "Nada, sigue atascada",
+          "remate": "Eso era antes. El Parce insiste en que evolucionó."
+        },
+        {
+          "texto": "Imprime en blanco",
+          "remate": "Sería más barato y menos inquietante."
+        },
+        {
+          "texto": "Imprime todo lo pendiente desde marzo",
+          "remate": "En orden. Ese es el detalle que da miedo."
+        }
       ]
     },
     {
@@ -91,9 +137,84 @@
       "pregunta": "¿Cuántos puntos tiene la agenda?",
       "correcta": 0,
       "opciones": [
-        { "texto": "Uno, y es «varios»", "remate": "Uno. Que por dentro son once, pero eso no se escribe." },
-        { "texto": "Ninguno, se improvisa", "remate": "Hay agenda. Ese es justo el chiste." },
-        { "texto": "Cinco, uno por área", "remate": "Con cinco puntos duraría menos. Contraintuitivo pero cierto." }
+        {
+          "texto": "Uno, y es «varios»",
+          "remate": "Uno. Que por dentro son once, pero eso no se escribe."
+        },
+        {
+          "texto": "Ninguno, se improvisa",
+          "remate": "Hay agenda. Ese es justo el chiste."
+        },
+        {
+          "texto": "Cinco, uno por área",
+          "remate": "Con cinco puntos duraría menos. Contraintuitivo pero cierto."
+        }
+      ]
+    },
+    {
+      "id": "parce-1",
+      "pool": "parce",
+      "titular": "EL PARCE · condición para venderte",
+      "texto": "El Parce no vende café a cualquiera. Primero te examina. Dice que si no sabes quién es quién en este piso, no sabe para quién estás comprando el café — y él no se mete en problemas ajenos.",
+      "pregunta": "¿Por qué te examina antes de venderte?",
+      "correcta": 2,
+      "opciones": [
+        {
+          "texto": "Porque le sobra el tiempo",
+          "remate": "Al Parce nunca le sobra el tiempo. Le sobra información."
+        },
+        {
+          "texto": "Porque el café es carísimo",
+          "remate": "El precio no es el problema. El problema es para quién es."
+        },
+        {
+          "texto": "Para saber para quién es el café",
+          "remate": "Exacto. Él no se mete en problemas ajenos."
+        }
+      ]
+    },
+    {
+      "id": "parce-2",
+      "pool": "parce",
+      "titular": "EL PARCE · examen, pregunta 2",
+      "texto": "«A ver, pues. Si el jefe te pilla fuera del puesto y la cosa está tranquila, ¿qué pasa?» El Parce pregunta esto a todo el mundo. Dice que el que no lo sabe dura poco.",
+      "pregunta": "Con la sospecha baja, ¿qué hace Gabo al tocarte?",
+      "correcta": 0,
+      "opciones": [
+        {
+          "texto": "Te avisa y te da unos segundos",
+          "remate": "Eso. Y esos segundos son todo lo que tienes."
+        },
+        {
+          "texto": "Te amonesta de una",
+          "remate": "No con la cosa tranquila. Eso es más arriba."
+        },
+        {
+          "texto": "No pasa nada",
+          "remate": "Antes no pasaba nada. Ya no."
+        }
+      ]
+    },
+    {
+      "id": "parce-3",
+      "pool": "parce",
+      "titular": "EL PARCE · examen, pregunta 3",
+      "texto": "«Última. Estás en el baño, escondida, y el man viene con todo. ¿Qué te salva?» El Parce se ríe antes de que respondas. Siempre lo hace.",
+      "pregunta": "¿Qué corta una persecución ya empezada?",
+      "correcta": 1,
+      "opciones": [
+        {
+          "texto": "Correr más rápido que él",
+          "remate": "Corre más que tú. Siempre."
+        },
+        {
+          "texto": "Llegar a un lugar seguro",
+          "remate": "Un lugar seguro. Los baños cuentan, y no se ocupan nunca."
+        },
+        {
+          "texto": "Fingir que trabajas donde sea",
+          "remate": "Fingir solo cuela DENTRO de un lugar seguro."
+        }
       ]
     }
   ]

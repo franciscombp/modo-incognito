@@ -470,6 +470,7 @@ export class Game {
     // se juega LEYENDO. Con un piso entero de tareas que son la misma tira
     // con otros números, da igual lo bien parametrizadas que estén: en la
     // mano se sienten iguales.
+    this._chismes = chismes;
     this.chisme = createChismeGame({
       pool: chismes,
       onNoise: (n) => {
@@ -508,6 +509,27 @@ export class Game {
       },
       onWin: () => this._ganarReto(),
     });
+    // LA TRIVIA (el mismo `chismeGame`, en modo RETO). El café del Parce se
+    // conseguía hablándole y ya: la mitad del bucle v2 regalada. Ahora te
+    // EXAMINA — él no se mete en problemas ajenos, así que primero quiere
+    // saber para quién es el café.
+    //
+    // Es una SEGUNDA instancia y no la misma: el chisme de actividad y el
+    // reto pueden estar en marcha por caminos distintos, y compartir estado
+    // significaría que abrir uno pisa el otro.
+    this.trivia = createChismeGame({
+      pool: chismes,
+      onNoise: (n) => {
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
+      },
+      onFeedback: (tipo, info) => {
+        if (tipo === "acierto") sfxComplete();
+        else sfxWarn();
+        if (info?.remate) this.toast(info.remate);
+      },
+      onWin: () => this._ganarReto(),
+    });
+
     // El reto en curso: { item } mientras dura. Null el resto del tiempo.
     this.reto = null;
 
@@ -571,10 +593,26 @@ export class Game {
   _abrirReto(item) {
     if (this.reto) return;
     this.reto = { item };
-    this.cables.begin({
-      colores: item.reto?.colores,
-      titulo: item.reto?.titulo ?? `Llévate ${item.nombre}`,
-    });
+    if (item.reto?.tipo === "trivia") {
+      // El pool se filtra por `pool`, así que las preguntas del Parce no
+      // salen en el minijuego de chismear y al revés.
+      const suyas = this._chismes.filter((f) => f.pool === (item.reto.fichas ?? item.reto.de));
+      this.trivia.begin(
+        {
+          id: `reto:${item.id}`,
+          label: item.reto.titulo ?? item.nombre,
+          time: 1,
+          progress: 0,
+          chisme: { aciertos: item.reto.aciertos ?? 3 },
+        },
+        { fichas: suyas.length ? suyas : this._chismes }
+      );
+    } else {
+      this.cables.begin({
+        colores: item.reto?.colores,
+        titulo: item.reto?.titulo ?? `Llévate ${item.nombre}`,
+      });
+    }
     this.announce((item.reto?.anuncio ?? "DESCONECTA Y VUELVE A CONECTAR").toUpperCase(), "warn");
   }
 
@@ -595,6 +633,7 @@ export class Game {
   cerrarReto() {
     this.reto = null;
     this.cables.end();
+    this.trivia.end();
   }
 
   /**
@@ -2756,7 +2795,17 @@ export class Game {
     for (const st of this.objectives) {
       const ob = st.objeto;
       if (ob?.de === npcId && !this.inventario.has(ob.id)) {
-        this._recoger(ob);
+        if (ob.reto) {
+          // NO TE LO DA: TE EXAMINA. El café se conseguía con solo hablarle,
+          // o sea la mitad del bucle v2 regalada. El Parce no se mete en
+          // problemas ajenos: primero quiere saber para quién es el café.
+          // Se le pega la posición del NPC para que alejarse cierre el reto
+          // igual que con un objeto del piso.
+          const npc = this.npcs.find((n) => n.cast === npcId || n.id === npcId);
+          this._abrirReto({ ...ob, x: npc?.position.x ?? this.player.position.x, z: npc?.position.z ?? this.player.position.z });
+        } else {
+          this._recoger(ob);
+        }
       }
     }
     const o = this.objectives.find((x) => x.npcId === npcId && !x.done);
@@ -2859,6 +2908,7 @@ export class Game {
       chisme: this.chisme.snapshot(),
       verter: this.verter.snapshot(),
       cables: this.cables.snapshot(),
+      trivia: this.trivia.snapshot(),
       // El bucle v2: qué llevas encima, si el mundo está congelado
       // (activando) y qué actividad está encendida aguantando.
       inventario: [...this.inventario],
