@@ -136,7 +136,7 @@ export function createChismeGame({ pool: poolInicial = [], onNoise, onFeedback, 
      * Devuelve "acierto" | "fallo" | null.
      */
     responder(i) {
-      if (!station || !ficha) return null;
+      if (!station || !ficha || aciertos >= necesarios) return null;
       const total = station.time || 1;
       const bien = i === ficha.correcta;
       resultado = bien ? "acierto" : "fallo";
@@ -150,6 +150,13 @@ export function createChismeGame({ pool: poolInicial = [], onNoise, onFeedback, 
         // ganar para que te venda el café— y no le estorba a la actividad,
         // que sigue midiéndose por el progreso de la estación.
         if (aciertos >= necesarios) {
+          // La tanda COMPLETA llena la barra, pase lo que pase. Sumando
+          // pellizcos y restando por fallo, quien fallaba un par de veces
+          // acertaba los tres que hacían falta, se quedaba sin fichas que
+          // responder y con la barra a media asta: la tarea no se podía
+          // terminar y no quedaba nada que tocar. Es el mismo atasco que
+          // dejó el café imposible.
+          station.progress = total;
           onWin?.();
           return "ganado";
         }

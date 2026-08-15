@@ -211,10 +211,17 @@ export function createPourGame({ onNoise, onFeedback, random = Math.random } = {
 
       // El progreso se paga por VASOS RESUELTOS, no por trasvases: si no,
       // machacar dos vasos de un lado a otro sería la estrategia óptima.
+      // El progreso se paga por VASOS RESUELTOS, y se calcula por FRACCIÓN
+      // del objetivo, no sumando un pellizco por vaso. Sumando, un reparto
+      // que naciera con un vaso ya hecho pagaba un trasvase menos y la barra
+      // no llegaba a llenarse NUNCA: el puzle quedaba resuelto sobre la mesa
+      // y la tarea sin terminar, sin nada más que tocar. Es el atasco que
+      // dejaba el café imposible.
       const ahora = contarResueltos();
       if (ahora > resueltos) {
         const total = station.time || 1;
-        station.progress = Math.min(total, station.progress + total * AVANCE_POR_VASO * (ahora - resueltos));
+        const meta = (station.verter?.colores ?? ["cafe", "leche", "azucar"]).length;
+        station.progress = Math.max(station.progress, Math.min(total, (total * ahora) / meta));
       }
       resueltos = ahora;
       destello = { tipo: "vertido", vaso: i };

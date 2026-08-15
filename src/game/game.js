@@ -548,6 +548,8 @@ export class Game {
 
     this._prevInteractKey = false;
     this._caughtCooldown = 0;
+    this._pestillo = null;
+    this.enMinijuego = false;
     this._avisoGracia = 0;
     this._avisoCooldown = 0;
     this._eggDwell = new Map();
@@ -771,7 +773,20 @@ export class Game {
       // aquí antes de llegar a apagarla— y además dejaba al motor creyendo
       // que sigues en la actividad después de reanudar desde otro sitio.
       this.pulse.end();
-      this.hud.render(this._snapshot());
+      // Se calcula AL FINAL, con los verbos ya resueltos, y lo lee el cuadro
+    // siguiente: aquí es donde se sabe de verdad si hay una pantalla de
+    // minijuego abierta.
+    this.enMinijuego = !!(
+      this.pulse.active ||
+      this.gesture.active ||
+      this.chisme.active ||
+      this.trivia.active ||
+      this.verter.active ||
+      this.cables.active ||
+      this.microondas.active
+    );
+
+    this.hud.render(this._snapshot());
       return;
     }
 
@@ -780,8 +795,18 @@ export class Game {
     // parar el día para jugar un minijuego era otra forma de que la estación
     // fuera el sitio más seguro del piso.
     const effectiveDt = dt * (this.player.isPretending ? PRETEND_TIME_SPEED : 1);
-    this.timeLeft = Math.max(0, this.timeLeft - effectiveDt);
-    this.timeSpent += effectiveDt;
+    // EL RELOJ SE PARA MIENTRAS JUEGAS UN MINIJUEGO. La jornada sigue
+    // durando lo mismo, pero un puzle a pantalla completa te quita el piso
+    // de la vista: cobrarte jornada por el rato que pasas leyendo un chisme
+    // o centrando un plato es cobrarte por algo que no estás decidiendo.
+    //
+    // OJO: se para EL RELOJ, no el mundo. El jefe sigue viniendo (congelarlo
+    // fue el fallo que rompía la captura) y la cuenta atrás de la tarea
+    // sigue corriendo — esos dos son la presión.
+    if (!this.enMinijuego) {
+      this.timeLeft = Math.max(0, this.timeLeft - effectiveDt);
+      this.timeSpent += effectiveDt;
+    }
     if (this._caughtCooldown > 0) this._caughtCooldown -= dt;
 
     if (this.revealBossUntil > 0) this.revealBossUntil -= dt;
@@ -902,8 +927,16 @@ export class Game {
       const preferred = this.preferredObjectiveId
         ? this.objectives.find((s) => s.id === this.preferredObjectiveId && !s.done)
         : null;
+      // La brújula grande sigue la MISMA regla que las flechas de la lista:
+      // mientras falte el objeto, apunta a su fuente.
+      const conRumbo = (o) => {
+        const ob = o?.objeto;
+        if (!ob || o.done || this.inventario.has(ob.id)) return o;
+        const fuente = this._dondeEsta(ob);
+        return fuente ? { ...o, x: fuente.x, z: fuente.z } : o;
+      };
       if (preferred) {
-        this.focusStation = preferred;
+        this.focusStation = conRumbo(preferred);
       } else {
         let focusDist = Infinity;
         for (const s of this.objectives) {
@@ -911,7 +944,7 @@ export class Game {
           const d = Math.hypot(s.x - pos.x, s.z - pos.z);
           if (d < focusDist) {
             focusDist = d;
-            this.focusStation = s;
+            this.focusStation = conRumbo(s);
           }
         }
       }
@@ -948,7 +981,33 @@ export class Game {
     } else {
       this._tapGrace = 0;
     }
-    const sosteniendoActividad = enActividad && (holdingSpace || this._tapGrace > 0);
+    // ── EL PESTILLO ──────────────────────────────────────────────────
+    // LOS MINIJUEGOS NO SE JUEGAN MANTENIENDO ESPACIO. Un puzle que se
+    // resuelve con el ratón mientras el pulgar sujeta una tecla es
+    // absurdo, y con el chisme era peor: hay que LEER, y soltar sin querer
+    // cerraba la tarjeta a mitad de frase.
+    //
+    // Así que un verbo que no sea el pulso ECHA EL PESTILLO al empezar: se
+    // queda abierto solo. Se sale por donde tiene sentido — alejarse,
+    // ESCAPE, que se acabe la cuenta atrás, o terminarlo. El pulso sigue
+    // como estaba, porque ahí mantener ES el mando.
+    const stCerca = this.nearStation;
+    const conPestillo =
+      stCerca && (stCerca.verter || stCerca.chisme || stCerca.microondas);
+    if (enActividad && conPestillo && holdingSpace) this._pestillo = stCerca;
+    if (this._pestillo && (!enActividad || this.nearStation !== this._pestillo)) {
+      this._pestillo = null;
+    }
+    // El pestillo es SOLO para activar. En cuanto la tarea se enciende hay
+    // que poder BANCARLA soltando, y con el pestillo puesto soltar no soltaba
+    // nada: la actividad se quedaba encendida para siempre.
+    if (this._pestillo?.encendida) this._pestillo = null;
+    if (this._pestillo && this.player.keys.has("escape")) {
+      this._pestillo = null;
+      this.toast("Lo dejaste a medias.");
+    }
+    const sosteniendoActividad =
+      enActividad && (holdingSpace || this._tapGrace > 0 || this._pestillo === stCerca);
     if (sosteniendoActividad) {
       const st = this.nearStation;
       // ── CONSEGUIR primero: sin el objeto no hay actividad ──
@@ -2883,6 +2942,42 @@ export class Game {
     return { id: seguido.id, text: this._guiaDe(seguido) };
   }
 
+  /**
+   * LA FLECHA APUNTA A DONDE HAY QUE IR AHORA, no a donde acaba la misión.
+   *
+   * Este era el «no te indica adónde ir por el café ni por el HDMI»: la
+   * flecha de «Tomar café» señalaba la CAFETERA, pero el café se le compra
+   * al Parce, que está en la otra punta. Ibas a donde te mandaba la flecha,
+   * no había nada, y el juego parecía roto.
+   *
+   * Mientras te falte el objeto, la misión se rastrea hasta SU FUENTE — el
+   * personaje que lo vende o la sala que lo guarda. En cuanto lo tienes,
+   * vuelve a apuntar a la estación. Se hace en el snapshot y no tocando el
+   * objetivo, para que nadie pueda quedarse con las coordenadas cambiadas.
+   */
+  _objetivosConRumbo() {
+    const lista = this.exitTask ? [...this.objectives, this.exitTask] : this.objectives;
+    return lista.map((o) => {
+      const ob = o.objeto;
+      if (!ob || o.done || this.inventario.has(ob.id)) return o;
+      const fuente = this._dondeEsta(ob);
+      if (!fuente) return o;
+      return { ...o, x: fuente.x, z: fuente.z, rumboAlObjeto: ob.nombre };
+    });
+  }
+
+  /** Dónde está de verdad un objeto que aún no tienes: quién lo vende o
+   *  qué sala lo guarda. Null si no se puede saber. */
+  _dondeEsta(ob) {
+    if (ob.de) {
+      const npc = this.npcs?.find((n) => n.cast === ob.de || n.id === ob.de);
+      if (npc) return { x: npc.position.x, z: npc.position.z };
+    }
+    const spot = (this._itemSpots ?? []).find((it) => it.id === ob.id);
+    if (spot) return { x: spot.x, z: spot.z };
+    return null;
+  }
+
   _guiaDe(o) {
     if (!this.metGabo) return "Sigue la flecha hasta Gabo y HABLA con él (espacio)";
     if (o.id === "__salida") return "Al ASCENSOR: la jornada está cerrada";
@@ -2931,9 +3026,7 @@ export class Game {
       // añade solo aquí (ver `exitTask`), nunca a `this.objectives`.
       objectives: !this.metGabo
         ? this._gateObjectives
-        : this.exitTask
-          ? [...this.objectives, this.exitTask]
-          : this.objectives,
+        : this._objetivosConRumbo(),
       // LA GUÍA: el SIGUIENTE PASO de la misión que sigues, dicho con
       // todas las letras ("consigue el café hablándole al Parce", "mantén
       // espacio", "aguanta"). Es lo que lleva de la mano: la lista dice
