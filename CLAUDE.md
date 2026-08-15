@@ -166,6 +166,19 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
   problemas ajenos: quiere saber para quién es el café). Sus preguntas van
   en `chismes.json` con `pool: "parce"`, así que no salen en el minijuego de
   chismear ni al revés. Los dos los vigila `npm run check:reto`.
+- `src/game/microwaveGame.js` — EL MICROONDAS: centrar el plato sin
+  quemarte, y el primer verbo de ARRASTRE. Los vasos y los cables son
+  tocar-y-tocar; esto es agarrar y mover, que en un teléfono es el gesto más
+  natural que existe. El plato se va solo (y cambia de rumbo, o el empujón
+  se aprende en dos intentos); centrado calienta —la tarea avanza— y fuera
+  se QUEMA, que hace ruido.
+  **Los eventos son de PUNTERO** (`pointerdown`…), no de ratón: los mismos
+  cubren ratón, dedo y lápiz sin escribir tres caminos. Y `touch-action:
+  none` en la caja es OBLIGATORIO — sin él, arrastrar en un teléfono hace
+  scroll de la página y el minijuego es injugable por perfecto que esté el
+  código. Quien no use puntero lo empuja con el mando de andar (`inputLocked`,
+  el mismo trato que el gesto). Lo vigila `npm run check:microondas`, que
+  hace un ARRASTRE de ratón de verdad.
 - `src/game/pourGame.js` — VERTER, el primer minijuego DE PUNTERO y el
   patrón de los que vengan. Un puzle de trasvasar líquido entre vasos hasta
   que cada uno quede de un solo color. Existe porque el pulso, la caña y el

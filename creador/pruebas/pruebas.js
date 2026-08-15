@@ -14,6 +14,7 @@ import {
 import { createPourGame } from "../../src/game/pourGame.js";
 import { createCableGame } from "../../src/game/cableGame.js";
 import { createChismeGame } from "../../src/game/chismeGame.js";
+import { createMicrowaveGame } from "../../src/game/microwaveGame.js";
 import { createGameHud } from "../../src/ui/gamehud.js";
 import { createDialogue } from "../../src/game/dialogue.js";
 import { prepareLooks } from "../../src/data/loader.js";
@@ -209,6 +210,7 @@ const bancoCables = createCableGame({
     };
   },
 });
+const bancoMicro = createMicrowaveGame({ onNoise: () => {}, onFeedback: () => {} });
 const bancoChisme = createChismeGame({
   pool: FICHAS_DE_PRUEBA,
   onNoise: () => {},
@@ -222,7 +224,11 @@ const estacionDePrueba = (extra) => ({
   progress: 0,
   ...extra,
 });
-window.__game = { engine: { game: { verter: bancoVerter, cables: bancoCables, chisme: bancoChisme } } };
+window.__game = {
+  engine: {
+    game: { verter: bancoVerter, cables: bancoCables, chisme: bancoChisme, microondas: bancoMicro },
+  },
+};
 
 /** Un snapshot de mentira, con la forma EXACTA que pinta gamehud.render. */
 function snapshot(extra = {}) {
@@ -407,6 +413,7 @@ function construirUI() {
       { id: "cables", label: "Cables (ratón)" },
       { id: "chisme", label: "Chisme (1-3)" },
       { id: "trivia", label: "Trivia del Parce" },
+      { id: "microondas", label: "Microondas (arrastrar)" },
       { id: "aguante", label: "Aguantando" },
       { id: "off", label: "— apagar —" },
     ], (it) => {
@@ -416,6 +423,7 @@ function construirUI() {
       bancoVerter.end();
       bancoCables.end();
       bancoChisme.end();
+      bancoMicro.end();
       minijuegoVivo = null;
       if (it.id === "vasos") {
         bancoVerter.begin(estacionDePrueba({
@@ -438,6 +446,14 @@ function construirUI() {
         // igual de bien para las dos cosas.
         bancoChisme.begin(estacionDePrueba({ label: "El examen del Parce", chisme: { aciertos: 3 } }));
         minijuegoVivo = "trivia";
+      }
+      if (it.id === "microondas") {
+        bancoMicro.begin(estacionDePrueba({
+          label: "Calentar el almuerzo",
+          time: 4,
+          microondas: { verbo: "Centra el plato antes de que se queme" },
+        }));
+        minijuegoVivo = "microondas";
       }
       if (it.id === "off") hudExtra = { ...hudExtra, pulse: null, gesture: null, aguantando: null };
       if (it.id === "pulso") hudExtra = { ...hudExtra, gesture: null, aguantando: null, pulse: { pos: 0.5, zona: 0.26, zonaAt: 0.62, aciertos: 1, necesarios: 3, label: "Tomar café" } };
@@ -476,12 +492,14 @@ function animate(now) {
   bancoVerter.update(dt);
   bancoCables.update(dt);
   bancoChisme.update(dt);
+  bancoMicro.update(dt);
   hud.render(
     snapshot({
       ...hudExtra,
       verter: bancoVerter.snapshot(),
       cables: bancoCables.snapshot(),
       chisme: bancoChisme.snapshot(),
+      microondas: bancoMicro.snapshot(),
       // El acecho: sin él la pantalla completa se ve incompleta, y es la
       // pieza que hace jugable tapar el piso.
       acecho: minijuegoVivo ? { dist: 6, cazando: false, viendo: true, nombre: "Gabo" } : null,

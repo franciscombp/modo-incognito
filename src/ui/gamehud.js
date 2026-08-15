@@ -213,6 +213,48 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const mgAcechoBarra = el("div", "inc-mg-acecho-barra", mgAcecho);
   const mgAcechoFill = el("i", null, mgAcechoBarra);
 
+  // ── EL MICROONDAS (arrastrar el plato) ────────────────────────────
+  // El primero de ARRASTRE. Se usan eventos de PUNTERO (`pointerdown` y
+  // compañía) y no de ratón: los mismos eventos cubren ratón, dedo y lápiz
+  // sin escribir tres caminos — que es la razón por la que existen.
+  //
+  // El arrastre es ABSOLUTO (el plato va a donde está el dedo) y no relativo:
+  // con un plato que se te escapa solo, un arrastre relativo obliga a
+  // perseguirlo con el cursor, y lo natural es ponerle la mano encima.
+  const micro = el("div", "inc-micro", mgBody);
+  const microVerbo = el("div", "inc-micro-verbo", micro);
+  const microCaja = el("div", "inc-micro-caja", micro);
+  const microZona = el("i", "inc-micro-zona", microCaja);
+  const microPlato = el("i", "inc-micro-plato", microCaja);
+  const microQuema = el("div", "inc-micro-quema", micro);
+  const microQuemaFill = el("i", null, microQuema);
+
+  // `setPointerCapture` es lo que hace que arrastrar fuera de la caja siga
+  // funcionando: sin él, sacar el dedo un milímetro suelta el plato justo en
+  // el peor momento.
+  const ponerDesdePuntero = (ev) => {
+    const g = window.__game?.engine?.game;
+    if (!g?.microondas?.active) return;
+    const caja = microCaja.getBoundingClientRect();
+    const nx = ((ev.clientX - caja.left) / caja.width) * 2 - 1;
+    const ny = ((ev.clientY - caja.top) / caja.height) * 2 - 1;
+    g.microondas.poner(nx, ny);
+  };
+  let arrastrando = false;
+  microCaja.addEventListener("pointerdown", (ev) => {
+    arrastrando = true;
+    microCaja.setPointerCapture(ev.pointerId);
+    ponerDesdePuntero(ev);
+  });
+  microCaja.addEventListener("pointermove", (ev) => {
+    if (arrastrando) ponerDesdePuntero(ev);
+  });
+  const soltarPlato = () => {
+    arrastrando = false;
+  };
+  microCaja.addEventListener("pointerup", soltarPlato);
+  microCaja.addEventListener("pointercancel", soltarPlato);
+
   // ── LOS CABLES (reto de CONSEGUIR) ────────────────────────────────
   // Mismo patrón que los vasos: nodos del DOM con su `click`, así el ratón y
   // el dedo funcionan sin escribir táctil, y las teclas entran por la misma
@@ -281,12 +323,20 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   function renderPantalla(state) {
     // La pantalla se abre si hay CUALQUIER verbo en marcha. Uno solo a la
     // vez, siempre: lo garantiza el motor (chisme > caña > pulso).
-    const jugando = !!(state.chisme || state.trivia || state.gesture || state.pulse || state.verter || state.cables);
+    const jugando = !!(
+      state.chisme ||
+      state.trivia ||
+      state.gesture ||
+      state.pulse ||
+      state.verter ||
+      state.cables ||
+      state.microondas
+    );
     // EL PUNTERO SOLO SE ENCIENDE PARA LOS MINIJUEGOS QUE LO USAN. La
     // pantalla es `pointer-events: none` por defecto — un panel a pantalla
     // completa que se coma los clics rompería la cámara y los menús. Con
     // vasos en marcha hay que poder tocarlos, así que se abre solo entonces.
-    mg.classList.toggle("puntero", !!(state.verter || state.cables));
+    mg.classList.toggle("puntero", !!(state.verter || state.cables || state.microondas));
     mg.classList.toggle("on", jugando);
     // El <body> lo marca para que la píldora de mandos y el resto de la
     // banda de abajo se aparten, igual que ya hacían con la acción.
@@ -294,6 +344,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     if (!jugando) return;
 
     mgTitulo.textContent =
+      state.microondas?.label ??
       state.trivia?.label ??
       state.cables?.titulo ??
       state.verter?.label ?? state.chisme?.label ?? state.gesture?.label ?? state.pulse?.label ?? "TAREA";
@@ -320,6 +371,25 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
           : nivel === "ronda"
             ? `${a.nombre.toUpperCase()} anda cerca`
             : `${a.nombre.toUpperCase()} está lejos`;
+  }
+
+  function renderMicro(state) {
+    const m = state.microondas;
+    micro.classList.toggle("on", !!m);
+    if (!m) return;
+    microVerbo.textContent = m.verbo;
+    // Zona y plato en PORCENTAJE sobre la caja: la misma cuenta sirve para
+    // el lienzo grande y para el pequeño.
+    microZona.style.width = `${m.zona * 100}%`;
+    microZona.style.height = `${m.zona * 100}%`;
+    microPlato.style.left = `${(m.x + 1) * 50}%`;
+    microPlato.style.top = `${(m.y + 1) * 50}%`;
+    microCaja.classList.toggle("dentro", m.dentro);
+    microCaja.classList.toggle("quemado", m.destello === "quemado");
+    // LO QUEMADO que va: es lo que hay que poder leer de un vistazo para
+    // saber si da tiempo a corregir o hay que soltarlo todo y salir.
+    microQuemaFill.style.width = `${Math.round(m.quema * 100)}%`;
+    microQuema.classList.toggle("alto", m.quema > 0.6);
   }
 
   function renderCables(state) {
@@ -906,6 +976,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     renderChisme(state);
     renderVasos(state);
     renderCables(state);
+    renderMicro(state);
     renderPantalla(state);
       renderAction(state);
       renderAnnounce(state);

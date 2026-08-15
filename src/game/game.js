@@ -21,6 +21,7 @@ import { createActivityGesture } from "./gestures.js";
 import { createChismeGame } from "./chismeGame.js";
 import { createPourGame } from "./pourGame.js";
 import { createCableGame } from "./cableGame.js";
+import { createMicrowaveGame } from "./microwaveGame.js";
 
 const SUSPICION_MAX = 100;
 const DECAY_HIDDEN_OR_PRETENDING = 45;
@@ -496,6 +497,18 @@ export class Game {
       },
     });
 
+    // EL MICROONDAS (game/microwaveGame.js): el cuarto verbo de puntero, y
+    // el primero de ARRASTRE. Los vasos y los cables son tocar-y-tocar; esto
+    // es agarrar y mover, que en un teléfono es el gesto más natural que hay.
+    this.microondas = createMicrowaveGame({
+      onNoise: (n) => {
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
+      },
+      onFeedback: (tipo) => {
+        if (tipo === "quemado") sfxWarn();
+      },
+    });
+
     // LOS CABLES (game/cableGame.js): el reto de CONSEGUIR. Robar el HDMI
     // era pulsar una tecla al lado de una sala, y la pieza clave de tu
     // escaqueo del día no puede costar lo mismo que abrir una puerta.
@@ -922,7 +935,7 @@ export class Game {
     // otras teclas o con el dedo), y dejarles la gracia solo conseguía que
     // la tarea siguiera viva un cuarto de segundo después de soltarla.
     const juegaAlPulso =
-      enActividad && !this.nearStation.gesto && !this.nearStation.chisme && !this.nearStation.verter;
+      enActividad && !this.nearStation.gesto && !this.nearStation.chisme && !this.nearStation.verter && !this.nearStation.microondas;
     if (enActividad && holdingSpace) {
       this._tapGrace = TAP_GRACE;
     } else if (
@@ -945,6 +958,7 @@ export class Game {
         this.gesture.end();
         this.chisme.end();
         this.verter.end();
+        this.microondas.end();
         this.player.inputLocked = false;
         this.player.isDoingActivity = false;
         this._updatePretendPose();
@@ -969,6 +983,7 @@ export class Game {
           this.gesture.end();
           this.chisme.end();
           this.verter.end();
+          this.microondas.end();
           this.player.inputLocked = false;
           st.aguante = Math.min(AGUANTE_MAX, (st.aguante ?? 0) + dt);
           if (st.aguante >= AGUANTE_MAX) this._bankActivity(st);
@@ -986,11 +1001,33 @@ export class Game {
           // Una estación juega al GESTO o al PULSO, según su JSON. Nunca a
           // los dos: pedir ritmo y pulso firme a la vez no es difícil, es
           // ruido.
-          const conVasos = !!st.verter;
-          const conChisme = !conVasos && !!st.chisme;
-          const conGesto = !conVasos && !conChisme && !!st.gesto;
+          const conMicro = !!st.microondas;
+          const conVasos = !conMicro && !!st.verter;
+          const conChisme = !conMicro && !conVasos && !!st.chisme;
+          const conGesto = !conMicro && !conVasos && !conChisme && !!st.gesto;
           let ritmo = 1;
-          if (conVasos) {
+          if (conMicro) {
+            // EL MICROONDAS. Como los otros de puntero, mantener no avanza:
+            // lo que calienta la comida es tener el plato centrado, y de eso
+            // se encarga su propio `update`.
+            this.pulse.end();
+            this.gesture.end();
+            this.chisme.end();
+            this.verter.end();
+            this.microondas.begin(st);
+            this.microondas.update(dt);
+            // El paso se bloquea: el mando de andar es lo que empuja el plato
+            // para quien no use ratón ni dedo. Mismo trato que el gesto, y
+            // por eso no hay tecla nueva que aprender ni nada que inventar
+            // en táctil.
+            this.player.inputLocked = true;
+            const intento = this.player.readIntent();
+            if (Math.hypot(intento.right ?? 0, intento.up ?? 0) > 0.1) {
+              this.microondas.empujar((intento.right ?? 0) * dt * 1.6, -(intento.up ?? 0) * dt * 1.6);
+            }
+            ritmo = 0;
+          } else if (conVasos) {
+            this.microondas.end();
             // LOS VASOS. Como el chisme, mantener NO avanza: lo que empuja la
             // tarea son los vasos que dejas resueltos.
             this.pulse.end();
@@ -1000,6 +1037,7 @@ export class Game {
             this.verter.update(dt);
             ritmo = 0;
           } else if (conChisme) {
+            this.microondas.end();
             // EL CHISME. No avanza solo: aquí mantener la tecla es lo que te
             // deja LEYENDO, y lo que empuja la tarea son las respuestas
             // (`responder`, desde las teclas 1-3). Ritmo 0 a propósito — si
@@ -1011,6 +1049,7 @@ export class Game {
             this.chisme.update(dt);
             ritmo = 0;
           } else if (conGesto) {
+            this.microondas.end();
             this.verter.end();
             // Cada rama apaga LAS OTRAS. Con solo apagar una, cambiar de
             // estación dejaba dos verbos vivos a la vez y la pantalla de la
@@ -1025,6 +1064,7 @@ export class Game {
             this.player.inputLocked = true;
             ritmo = this.gesture.update(dt, this.player.readIntent());
           } else {
+            this.microondas.end();
             this.verter.end();
             this.chisme.end();
             this.gesture.end();
@@ -1068,6 +1108,7 @@ export class Game {
       this.gesture.end();
       this.chisme.end();
       this.verter.end();
+      this.microondas.end();
       this.player.inputLocked = false;
       this.player.isDoingActivity = false;
       this._updatePretendPose();
@@ -2907,6 +2948,7 @@ export class Game {
       gesture: this.gesture.snapshot(),
       chisme: this.chisme.snapshot(),
       verter: this.verter.snapshot(),
+      microondas: this.microondas.snapshot(),
       cables: this.cables.snapshot(),
       trivia: this.trivia.snapshot(),
       // El bucle v2: qué llevas encima, si el mundo está congelado

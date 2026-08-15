@@ -11948,6 +11948,79 @@ body.inc-acting #hint {
   }
 }
 
+/* ── EL MICROONDAS (arrastrar el plato) ────────────────────────────────
+   El cuarto verbo de puntero y el primero de ARRASTRE. La caja es redonda
+   porque es el carrusel del microondas, y el plato se arrastra dentro.
+
+   `touch-action: none` es OBLIGATORIO: sin él, arrastrar el dedo por encima
+   hace scroll de la página en vez de mover el plato, y el minijuego es
+   injugable en un teléfono aunque el código esté perfecto. */
+.inc-micro { display: none; flex-direction: column; align-items: center; gap: 12px; }
+.inc-micro.on { display: flex; }
+.inc-micro-verbo { font-size: 15px; font-weight: 700; }
+.inc-micro-caja {
+  position: relative;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface-sunken);
+  touch-action: none;
+  cursor: grab;
+  transition: border-color var(--dur-1) var(--ease-out);
+}
+.inc-micro-caja.dentro { border-color: var(--ok); }
+.inc-micro-caja.quemado {
+  border-color: var(--danger);
+  animation: inc-vaso-no var(--dur-2) var(--ease-pop);
+}
+/* LA ZONA BUENA, siempre a la vista: adivinar dónde está el centro mientras
+   algo se te escapa no es difícil, es arbitrario. */
+.inc-micro-zona {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  border: 2px dashed var(--accent);
+  opacity: 0.55;
+}
+/* SIN transición en el plato: lo mueve el dedo y el propio juego a 60 fps, y
+   suavizarlo lo dejaría detrás de donde el motor cree que está — el mismo
+   motivo que la barra del gesto y el marcador del pulso. */
+.inc-micro-plato {
+  position: absolute;
+  width: 54px;
+  height: 54px;
+  margin: -27px 0 0 -27px;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 2px var(--accent);
+}
+.inc-micro-caja.dentro .inc-micro-plato {
+  background: color-mix(in srgb, var(--ok) 35%, transparent);
+  box-shadow: inset 0 0 0 2px var(--ok), 0 0 18px color-mix(in srgb, var(--ok) 45%, transparent);
+}
+/* LO QUEMADO: se lee de un vistazo para saber si da tiempo a corregir o hay
+   que soltarlo todo y salir corriendo. */
+.inc-micro-quema {
+  position: relative;
+  width: 260px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  box-shadow: inset 0 0 0 1px var(--border);
+  overflow: hidden;
+}
+.inc-micro-quema > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--warn);
+  transition: width var(--dur-1) linear;
+}
+.inc-micro-quema.alto > i { background: var(--danger); }
+.inc-mg .inc-micro { pointer-events: auto; }
+
 /* ── LOS CABLES (reto de CONSEGUIR) ────────────────────────────────────
    Mismo patrón que los vasos —<button> del DOM, no canvas— para que ratón,
    dedo y teclado entren por la misma puerta sin escribir táctil. Dos

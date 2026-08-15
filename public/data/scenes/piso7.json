@@ -739,7 +739,14 @@
       "pose": "eat",
       "reward": 32,
       "energy": 25,
-      "pulso": {"periodo":1,"zona":0.2,"aciertos":4,"ruido":9},
+      "$pulso": "ANTES jugaba al pulso. Pasa al MICROONDAS, que es literalmente lo que la actividad hace: calentar algo sin que se queme. Es el verbo de ARRASTRE (raton, dedo, o el mando de andar).",
+      "microondas": {
+        "verbo": "Centra el plato antes de que se queme",
+        "zona": 0.26,
+        "deriva": 0.42,
+        "ruido": 8
+      },
+      "pulsoViejo": {"periodo":1,"zona":0.2,"aciertos":4,"ruido":9},
       "objeto": {
         "id": "snack_cesar",
         "sospecha": 1.6,
