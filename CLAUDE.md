@@ -266,6 +266,43 @@ Lo vigilan `npm run check:pulse`, `npm run check:gesto` y
 quieto, `limite` corriendo, reloj parado) y la última, que el aguante se
 paga al bancar.
 
+**EL PESTILLO, y es SOLO de la fase 2.** Un verbo que no sea el pulso
+(`verter`, `chisme`, `microondas`) echa el pestillo (`_pestillo`) al
+empezar y se queda abierto sin sostener la tecla: un puzle que se resuelve
+con el ratón mientras el pulgar sujeta espacio es absurdo, y con el chisme
+era peor —hay que LEER, y soltar sin querer cerraba la tarjeta a mitad de
+frase. Se sale alejándose, con ESCAPE, agotando la cuenta atrás o
+terminándolo. **En cuanto la tarea se ENCIENDE, el pestillo se suelta**: si
+no, soltar no soltaba nada y la actividad se quedaba encendida para siempre
+sin que la misión cayera jamás. El pulso no lleva pestillo, porque ahí
+mantener ES el mando.
+
+**EL RELOJ SE PARA EN UN MINIJUEGO, y SOLO el reloj** (`enMinijuego`, al
+final de `update()`, leído el cuadro siguiente). El jefe, los secuaces, la
+sospecha y la cuenta atrás de la tarea siguen corriendo: congelarlos fue el
+fallo que rompía la captura, y está contado arriba.
+
+**UNA BARRA DE MINIJUEGO SE LLENA POR FRACCIÓN DEL OBJETIVO, nunca sumando
+pellizcos.** Los vasos pagaban 0,34 por vaso resuelto y el chisme 0,4 por
+acierto (menos 0,15 por fallo): un reparto que naciera con un vaso hecho, o
+una tanda con dos fallos, dejaba el puzle resuelto sobre la mesa y la barra
+a media asta **sin nada más que tocar** — la tarea no se podía terminar y
+no había nada visible que fallara. Ahora el progreso es
+`total * hechos / meta`, y completar la tanda la llena entera. Y responder
+DESPUÉS de ganar no hace nada: restaba de una barra ya llena.
+
+**LA FLECHA APUNTA AL OBJETO QUE FALTA, no a la estación**
+(`_objetivosConRumbo` / `_dondeEsta`). Mientras no lleves el objeto de una
+misión, su rumbo y su distancia son los de su FUENTE —el NPC que lo vende o
+la sala donde está—, no los del sitio donde se usa. Sin eso, el juego te
+manda a la cafetera a por un café que todavía tiene el Parce.
+
+**Y `npm run check:partida` juega el DÍA ENTERO**: puerta, objetos con sus
+retos, las estaciones con su verbo, las dinámicas encadenadas y la salida
+por el ascensor. Es la única que mira la COSTURA — los tres atascos de
+arriba tenían todas sus piezas en verde. Si tocas el bucle de una
+actividad, córrela: es la que dice si la partida se puede terminar.
+
 **Mientras dura un gesto no se camina** (`player.inputLocked`). No es una
 restricción caprichosa: es lo que deja libre el eje del mando para el gesto, y
 por eso no hay una tecla nueva que aprender ni nada que inventar en táctil —
