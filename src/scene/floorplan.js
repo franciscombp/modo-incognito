@@ -43,6 +43,7 @@ export let activityStations = [];
 export let hidingSpots = [];
 export let coartadas = [];
 export let safeSpots = [];
+export let puestos = [];
 export let distractions = [];
 export let npcs = [];
 export let locationEggs = [];
@@ -63,6 +64,7 @@ export function setActiveScene(prepared) {
   hidingSpots = prepared.hidingSpots;
   coartadas = prepared.coartadas ?? [];
   safeSpots = prepared.safeSpots ?? [];
+  puestos = prepared.puestos ?? [];
   distractions = prepared.distractions;
   npcs = prepared.npcs;
   locationEggs = prepared.locationEggs;

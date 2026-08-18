@@ -199,18 +199,39 @@ async function boot() {
   } =
     buildOffice(scene, world);
   const navmesh = buildNavmesh(world, { radius: 0.3 * S });
+  // ── EL PLANO DE LOS VIGILANTES ────────────────────────────────────────
+  // Gabo y sus secuaces caminan sobre OTRO navmesh: el mismo piso, menos
+  // las salas. Una sala es un ESCONDITE, y un escondite en el que el jefe
+  // puede entrar no es un escondite. Antes bastaba con que no persiguiera
+  // dentro, pero empezar el día sentado en la Sala 1 lo dejó plantado justo
+  // en el sitio al que vas a huir de él — y encerrado, porque la puerta de
+  // una sala es un hueco estrecho y su ruta lo llevaba a la pared.
+  //
+  // Es un plano aparte y no una regla suelta a propósito: con el mismo
+  // navmesh, el A* seguiría trazando la ruta por dentro y el jefe se
+  // pasaría el día empujando un tabique.
+  const salas = floorplan.areas
+    .filter((a) => a.kind === "meeting")
+    .map((a) => ({ x: a.x, z: a.z, w: a.w, d: a.d }));
+  const navVigilancia = buildNavmesh(world, { radius: 0.3 * S, excluir: salas });
 
   // Pull every authored point onto walkable floor. A waypoint buried in a
   // table is a boss who stands still forever, and an activity inside a
   // collider is a task you can never reach — both were happening.
-  const snapInPlace = (points) =>
+  const snapInPlace = (points, nav = navmesh) =>
     points.forEach((p) => {
-      const fixed = navmesh.snap(p.x, p.z);
+      const fixed = nav.snap(p.x, p.z);
       p.x = fixed.x;
       p.z = fixed.z;
     });
-  snapInPlace(floorplan.patrolRoute);
-  Object.values(floorplan.routes).forEach(snapInPlace);
+  // LAS RONDAS SE PEGAN AL PLANO DE LOS VIGILANTES, no al de todos. Con el
+  // plano general, un punto de ronda que cayera dentro de una sala se
+  // quedaba ahí: el jefe no puede llegar, así que empujaba contra el
+  // tabique el día entero avanzando un palmo cada diez segundos, y desde
+  // fuera parecía que se había roto la IA. La ronda tiene que estar
+  // expresada en el piso por el que ESE personaje puede andar.
+  snapInPlace(floorplan.patrolRoute, navVigilancia);
+  Object.values(floorplan.routes).forEach((r) => snapInPlace(r, navVigilancia));
   snapInPlace(floorplan.activityStations);
   snapInPlace(floorplan.distractions);
   snapInPlace(floorplan.hidingSpots);
@@ -350,7 +371,8 @@ async function boot() {
   const boss = new Boss(looks.get("gabo"), {
     world,
     route: floorplan.patrolRoute,
-    navmesh,
+    navmesh: navVigilancia,
+    vetadas: salas,
     radius: chars.boss.radius,
     height: chars.boss.height,
     speeds: chars.boss.speeds,
@@ -374,7 +396,8 @@ async function boot() {
     const watcher = new Boss(looks.get(id), {
       world,
       route: floorplan.routes[id] ?? floorplan.patrolRoute,
-      navmesh,
+      navmesh: navVigilancia,
+      vetadas: salas,
       role: "minion",
       name: def.name ?? id,
       coneColor: minionColors[id] ?? 0x9fb4c9,
@@ -897,7 +920,7 @@ async function boot() {
   };
 
   // Exposed for the automated checks in tools/.
-  window.__game = { world, navmesh, player, boss, engine, camera, scene, view, pixels, data, crossing3D, soundtrackState };
+  window.__game = { world, navmesh, navVigilancia, player, boss, engine, camera, scene, view, pixels, data, crossing3D, soundtrackState };
   window.__floorplan = floorplan;
   // Para las herramientas de tools/ que montan personajes fuera del juego
   // (retratos del reparto, comprobación de poses) sin rehacer el motor.

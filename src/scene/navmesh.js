@@ -20,7 +20,22 @@ function pointInPolygon(x, z, poly) {
   return inside;
 }
 
-export function buildNavmesh(world, { radius = 0.4 * S } = {}) {
+/**
+ * @param {Array} opts.excluir  Rectángulos {x,z,w,d} (en unidades de mundo)
+ *   que NO se pueden pisar, aunque físicamente quepa un cuerpo. Es lo que
+ *   deja a los vigilantes fuera de las salas: un tabique no puede hacerlo
+ *   —la puerta tiene que seguir abierta para ti— y una regla suelta en el
+ *   motor tampoco, porque el A* seguiría trazando la ruta POR DENTRO y el
+ *   jefe se pasaría el día empujando la pared de una sala.
+ */
+/** ¿Cae el punto dentro del rectángulo? Compartido con `boss.js`. */
+export function enRect(x, z, r) {
+  return (
+    x >= r.x - r.w / 2 && x <= r.x + r.w / 2 && z >= r.z - r.d / 2 && z <= r.z + r.d / 2
+  );
+}
+
+export function buildNavmesh(world, { radius = 0.4 * S, excluir = [] } = {}) {
   let minX = Infinity;
   let maxX = -Infinity;
   let minZ = Infinity;
@@ -48,6 +63,7 @@ export function buildNavmesh(world, { radius = 0.4 * S } = {}) {
     for (let c = 0; c < cols; c++) {
       const { x, z } = toWorld(c, r);
       if (!pointInPolygon(x, z, footprint)) continue;
+      if (excluir.some((e) => enRect(x, z, e))) continue;
       // A cell is walkable if a body of `radius` placed there is not pushed
       // out by any collider — exactly the test the player will experience.
       probe.x = x;

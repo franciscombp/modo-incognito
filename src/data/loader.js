@@ -76,6 +76,10 @@ export function prepareScene(raw) {
     // que un secuaz acumula al verte pasar (ver `$coartadas` en la escena).
     coartadas: (raw.coartadas ?? []).map(pt),
     safeSpots: (raw.safeSpots ?? []).map((s) => ({ ...pt(s), radius: (s.radius ?? 1.3) * S })),
+    // Puestos fijos de gente del reparto. Ver `$puestos` en la escena: son
+    // sitios donde alguien EMPIEZA sentado, y están aparte de `safeSpots`
+    // porque un safeSpot es donde te escondes TÚ.
+    puestos: (raw.puestos ?? []).map((s) => ({ ...pt(s), radius: (s.radius ?? 2) * S })),
     distractions: (raw.distractions ?? []).map((d) => ({ ...pt(d), radius: (d.radius ?? 1.2) * S })),
     npcs: (raw.npcs ?? []).map(pt),
     locationEggs: (raw.eggs ?? []).map((e) => ({ ...pt(e), radius: (e.radius ?? 2) * S })),

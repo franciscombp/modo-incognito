@@ -4,6 +4,7 @@ import {
   hidingSpots,
   coartadas,
   safeSpots,
+  puestos,
   locationEggs,
   nearestArea,
   areaAt,
@@ -366,12 +367,19 @@ export class Game {
     // Se hace AQUÍ, al montar, y no más tarde: colocarlo a mitad de partida
     // sería justo el teletransporte que este trabajo viene a quitar.
     if (this.gate?.sentadoEn) {
-      const sala = safeSpots.find((sp) => sp.id === this.gate.sentadoEn);
-      const silla = sala
-        ? nearestFreeSeat(this.seats, sala.x, sala.z, sala.radius ?? 2 * S)
+      // El id se busca primero en los PUESTOS y luego en los safeSpots. El
+      // orden importa: Gabo empezaba sentado en una SALA, y eso rompía dos
+      // cosas a la vez — el jefe plantado dentro del sitio al que vas a huir
+      // de él, y encima encerrado, porque un vigilante ya no cruza la puerta
+      // de una sala. Su sitio es una mesa de las de fuera.
+      const donde =
+        puestos.find((p) => p.id === this.gate.sentadoEn) ??
+        safeSpots.find((sp) => sp.id === this.gate.sentadoEn);
+      const silla = donde
+        ? nearestFreeSeat(this.seats, donde.x, donde.z, donde.radius ?? 2 * S)
         : null;
       if (silla) this.boss.sitAt({ x: silla.x, z: silla.z, facing: silla.facing });
-      else if (sala) this.boss.sitAt({ x: sala.x, z: sala.z });
+      else if (donde) this.boss.sitAt({ x: donde.x, z: donde.z });
     }
     this.metGabo = !this.gate; // ha conocido al guardián de la puerta (el jefe)
     this._gateObjectives = this.gate

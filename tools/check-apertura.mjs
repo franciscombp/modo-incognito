@@ -61,12 +61,17 @@ await p.evaluate(() => {
   g.setPaused(false);
 });
 
-// ── 1 · Gabo arranca SENTADO, y en la sala que dice el nivel ──
+// ── 1 · Gabo arranca SENTADO, y en el sitio que dice el nivel ──
 const inicio = await p.evaluate(() => {
   const g = window.__game.engine.game;
   const S = window.__floorplan.WORLD_SCALE;
+  // El id puede ser un PUESTO o un safeSpot, en ese orden — el mismo que
+  // usa el motor. Su puesto se mudó a una mesa de fuera: sentado en una
+  // sala estaba plantado dentro de tu escondite, y encerrado además.
   const sala = g.gate?.sentadoEn;
-  const sp = window.__floorplan.safeSpots.find((s) => s.id === sala);
+  const sp =
+    window.__floorplan.puestos.find((s) => s.id === sala) ??
+    window.__floorplan.safeSpots.find((s) => s.id === sala);
   // Se le dejan correr cuadros: sentado NO debe andar ni un palmo.
   const x0 = g.boss.position.x;
   const z0 = g.boss.position.z;
@@ -82,7 +87,7 @@ const inicio = await p.evaluate(() => {
 });
 check("Gabo empieza SENTADO, no patrullando", inicio.sentado === true, JSON.stringify(inicio));
 check("y sentado no se mueve del sitio", inicio.quieto === true, JSON.stringify(inicio));
-check("en la sala que dice el nivel", inicio.enLaSala === true, JSON.stringify(inicio));
+check("en el puesto que dice el nivel, y FUERA de las salas", inicio.enLaSala === true, JSON.stringify(inicio));
 
 // ── 2 · Hablarle lo levanta y te manda a tu puesto ──
 const trasHablar = await p.evaluate(() => {

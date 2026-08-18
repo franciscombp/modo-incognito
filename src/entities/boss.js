@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { Character3D } from "./character3d.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { createAlertIcon, updateAlertIcon } from "./alertIcon.js";
+import { enRect } from "../scene/navmesh.js";
 
 export const BOSS_STATES = {
   PATROL: "PATROL",
@@ -140,6 +141,9 @@ export class Boss {
     world,
     route,
     navmesh = null,
+    // Rectángulos donde este vigilante NO entra jamás (las salas). Ver
+    // `_vetado`: es lo que mantiene los escondites siendo escondites.
+    vetadas = [],
     radius = 0.3 * S,
     height = 1.55 * S,
     speeds = {},
@@ -190,6 +194,7 @@ export class Boss {
     this._graceTimer = 0; // grantGrace(): unos segundos ciego tras amonestar
     this.world = world;
     this.navmesh = navmesh;
+    this.vetadas = vetadas;
     this.route = route;
     this.routeIndex = 0;
     this.position = { x: route[0].x, z: route[0].z };
@@ -594,6 +599,13 @@ export class Boss {
     // sospechando: eso ya pasó por encima. Un jefe sentado y ciego sería un
     // mueble; uno sentado y atento es una reunión de la que te vigila.
     const dir = this.seated ? null : this._moveToward(dt, this._steer(dt, target));
+    // LA RED DE SEGURIDAD, y va aquí porque el cuerpo se mueve desde CUATRO
+    // sitios: el paso normal, los dos deslizamientos que bordean un mueble y
+    // el empujón del anti-atasco. Guardando solo el primero se colaba por
+    // los otros — medido, 607 cuadros dentro de una sala en una tanda de
+    // persecuciones. Un solo punto al final del cuadro es lo único que se
+    // puede prometer.
+    this._salirDeVetada();
     // Adónde MIRA. Persiguiéndote (o simplemente teniéndote a la vista) el
     // cono se queda encarado a la jugadora aunque el cuerpo esté rodeando una
     // mesa; si no, mira hacia donde camina.
@@ -980,8 +992,61 @@ export class Boss {
    * line is clear he just walks at it; the moment furniture is in the way he
    * follows a navmesh path instead, re-planning a couple of times a second.
    */
+  /** ¿Está ese punto dentro de una sala que este vigilante no pisa? */
+  _vetado(x, z) {
+    return this.vetadas.some((r) => enRect(x, z, r));
+  }
+
+  /**
+   * ¿El atajo en línea recta cruza una sala? Se muestrea el segmento en vez
+   * de resolver la intersección: son cuatro rectángulos y una docena de
+   * puntos, y un cruce de esquina que se escape no rompe nada — el paso a
+   * paso de `_moveToward` lo frena igual.
+   */
+  _cruzaVetada(a, b) {
+    if (!this.vetadas.length) return false;
+    const pasos = 12;
+    for (let i = 0; i <= pasos; i++) {
+      const t = i / pasos;
+      if (this._vetado(a.x + (b.x - a.x) * t, a.z + (b.z - a.z) * t)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Si acabó dentro de una sala, se le devuelve por el lado MÁS CERCANO. No
+   * es un salto: el paso normal ya se revierte, así que aquí lo que se
+   * corrige son centímetros de un deslizamiento o de un empujón.
+   */
+  _salirDeVetada() {
+    for (const r of this.vetadas) {
+      if (!enRect(this.position.x, this.position.z, r)) continue;
+      const izq = this.position.x - (r.x - r.w / 2);
+      const der = r.x + r.w / 2 - this.position.x;
+      const arr = this.position.z - (r.z - r.d / 2);
+      const aba = r.z + r.d / 2 - this.position.z;
+      const min = Math.min(izq, der, arr, aba);
+      const fuera = this.radius + 0.02 * S;
+      if (min === izq) this.position.x = r.x - r.w / 2 - fuera;
+      else if (min === der) this.position.x = r.x + r.w / 2 + fuera;
+      else if (min === arr) this.position.z = r.z - r.d / 2 - fuera;
+      else this.position.z = r.z + r.d / 2 + fuera;
+      return;
+    }
+  }
+
   _steer(dt, target) {
     if (!target || !this.navmesh) return target;
+    // ¿EL OBJETIVO ESTÁ DENTRO DE UNA SALA? Entonces el objetivo pasa a ser
+    // LA PUERTA. Es lo que hace un jefe de verdad cuando te metes donde no
+    // puede entrar: se planta fuera a esperar. Sin esto, el A* devolvía
+    // «no hay ruta» —el destino no existe en su plano—, se lanzaba en línea
+    // recta y se quedaba clavado contra el primer mueble a media sala de
+    // distancia, que se lee como que se rindió.
+    if (this._vetado(target.x, target.z)) {
+      const puerta = this.navmesh.snap?.(target.x, target.z);
+      if (puerta) target = { ...target, x: puerta.x, z: puerta.z };
+    }
     this._repathTimer -= dt;
 
     // ¿PASA EL CUERPO en línea recta? `pathBlocked`, no `lineBlocked`: la
@@ -992,7 +1057,11 @@ export class Boss {
     // anti-atasco le metía un empujón aleatorio, y la captura se volvía un
     // baile de tropezones. Con el ancho real del cuerpo, o cabe o se va por
     // el navmesh.
-    if (this.world && !this.world.pathBlocked(this.position, target, this.radius)) {
+    if (
+      this.world &&
+      !this.world.pathBlocked(this.position, target, this.radius) &&
+      !this._cruzaVetada(this.position, target)
+    ) {
       this._path = null;
       return target;
     }
@@ -1102,6 +1171,16 @@ export class Boss {
     this.position.x += nx * step;
     this.position.z += nz * step;
     if (this.world) this.world.resolveCircle(this.position, this.radius);
+    // LA PUERTA DE UNA SALA NO ES SUYA. El navmesh ya no traza rutas por
+    // dentro, pero una persecución empuja, y basta con que entre UNA vez
+    // para que el escondite deje de ser un escondite. Aquí se deshace el
+    // paso: es la garantía dura, y va después de `resolveCircle` porque es
+    // ese quien puede haberlo deslizado adentro.
+    if (this._vetado(this.position.x, this.position.z)) {
+      this.position.x = before.x;
+      this.position.z = before.z;
+      return { x: nx, z: nz };
+    }
 
     // ── DESLIZAR POR EL MUEBLE, no rebotar contra él ────────────────────
     // Si un collider se comió el paso, se prueba a bordearlo. El orden
