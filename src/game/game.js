@@ -19,6 +19,7 @@ import { sfxComplete, sfxWarn, sfxDistraction } from "./sfx.js";
 import { runEffect } from "./effects.js";
 import { createActivityPulse } from "./activityGame.js";
 import { createActivityGesture } from "./gestures.js";
+import { createDanceGame } from "./danceGame.js";
 import { createChismeGame } from "./chismeGame.js";
 import { createPourGame } from "./pourGame.js";
 import { createCableGame } from "./cableGame.js";
@@ -495,6 +496,19 @@ export class Game {
     // VERTER (game/pourGame.js): el primer verbo DE PUNTERO. Ratón, dedo y
     // teclas 1-4 acaban los tres en `elegir(i)`, así que es un juego con
     // tres mandos y no tres juegos.
+    // EL BAILE (game/danceGame.js): estirarse es una coreografía, no una
+    // tira. Se juega con las CUATRO FLECHAS, que es el lenguaje universal de
+    // esto desde hace treinta años y no hay nada que explicar.
+    this.baile = createDanceGame({
+      onNoise: (n) => {
+        this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
+      },
+      onFeedback: (tipo) => {
+        if (tipo === "acierto") sfxComplete();
+        else if (tipo === "fallo") sfxWarn();
+      },
+    });
+
     this.verter = createPourGame({
       onNoise: (n) => {
         this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
@@ -790,6 +804,7 @@ export class Game {
       this.chisme.active ||
       this.trivia.active ||
       this.verter.active ||
+      this.baile.active ||
       this.cables.active ||
       this.microondas.active
     );
@@ -1001,7 +1016,7 @@ export class Game {
     // como estaba, porque ahí mantener ES el mando.
     const stCerca = this.nearStation;
     const conPestillo =
-      stCerca && (stCerca.verter || stCerca.chisme || stCerca.microondas);
+      stCerca && (stCerca.verter || stCerca.chisme || stCerca.microondas || stCerca.baile);
     if (enActividad && conPestillo && holdingSpace) this._pestillo = stCerca;
     if (this._pestillo && (!enActividad || this.nearStation !== this._pestillo)) {
       this._pestillo = null;
@@ -1026,6 +1041,7 @@ export class Game {
         this.chisme.end();
         this.verter.end();
         this.microondas.end();
+        this.baile.end();
         this.player.inputLocked = false;
         this.player.isDoingActivity = false;
         this._updatePretendPose();
@@ -1051,6 +1067,7 @@ export class Game {
           this.chisme.end();
           this.verter.end();
           this.microondas.end();
+          this.baile.end();
           this.player.inputLocked = false;
           st.aguante = Math.min(AGUANTE_MAX, (st.aguante ?? 0) + dt);
           if (st.aguante >= AGUANTE_MAX) this._bankActivity(st);
@@ -1068,12 +1085,26 @@ export class Game {
           // Una estación juega al GESTO o al PULSO, según su JSON. Nunca a
           // los dos: pedir ritmo y pulso firme a la vez no es difícil, es
           // ruido.
-          const conMicro = !!st.microondas;
-          const conVasos = !conMicro && !!st.verter;
-          const conChisme = !conMicro && !conVasos && !!st.chisme;
-          const conGesto = !conMicro && !conVasos && !conChisme && !!st.gesto;
+          const conBaile = !!st.baile;
+          const conMicro = !conBaile && !!st.microondas;
+          const conVasos = !conBaile && !conMicro && !!st.verter;
+          const conChisme = !conBaile && !conMicro && !conVasos && !!st.chisme;
+          const conGesto =
+            !conBaile && !conMicro && !conVasos && !conChisme && !!st.gesto;
           let ritmo = 1;
-          if (conMicro) {
+          if (conBaile) {
+            // EL BAILE. Como el chisme, mantener NO avanza: lo que empuja la
+            // tarea son los pasos acertados. El compás corre en su `update`
+            // y no espera a nadie — eso es lo que lo hace un baile.
+            this.pulse.end();
+            this.gesture.end();
+            this.chisme.end();
+            this.verter.end();
+            this.microondas.end();
+            this.baile.begin(st);
+            this.baile.update(dt);
+            ritmo = 0;
+          } else if (conMicro) {
             // EL MICROONDAS. Como los otros de puntero, mantener no avanza:
             // lo que calienta la comida es tener el plato centrado, y de eso
             // se encarga su propio `update`.
@@ -1081,6 +1112,7 @@ export class Game {
             this.gesture.end();
             this.chisme.end();
             this.verter.end();
+            this.baile.end();
             this.microondas.begin(st);
             this.microondas.update(dt);
             // El paso se bloquea: el mando de andar es lo que empuja el plato
@@ -1100,6 +1132,7 @@ export class Game {
             this.pulse.end();
             this.gesture.end();
             this.chisme.end();
+            this.baile.end();
             this.verter.begin(st);
             this.verter.update(dt);
             ritmo = 0;
@@ -1112,6 +1145,7 @@ export class Game {
             // el minijuego volvería a ser decoración, que es de donde venimos.
             this.pulse.end();
             this.gesture.end();
+            this.baile.end();
             this.chisme.begin(st);
             this.chisme.update(dt);
             ritmo = 0;
@@ -1124,6 +1158,7 @@ export class Game {
             // la caña juntas, con el título de la tarea equivocada.
             this.chisme.end();
             this.pulse.end();
+            this.baile.end();
             this.gesture.begin(st);
             // El paso se bloquea MIENTRAS dura el gesto: el eje del mando
             // queda libre y no hace falta tecla nueva. Se sale soltando la
@@ -1135,6 +1170,7 @@ export class Game {
             this.verter.end();
             this.chisme.end();
             this.gesture.end();
+            this.baile.end();
             this.pulse.begin(st);
             this.pulse.update(dt);
             // MANTENER YA NO TERMINA LA TAREA. Avanza a paso de tortuga —lo
@@ -1175,6 +1211,7 @@ export class Game {
       this.gesture.end();
       this.chisme.end();
       this.verter.end();
+      this.baile.end();
       this.microondas.end();
       this.player.inputLocked = false;
       this.player.isDoingActivity = false;
@@ -3049,6 +3086,7 @@ export class Game {
       gesture: this.gesture.snapshot(),
       chisme: this.chisme.snapshot(),
       verter: this.verter.snapshot(),
+      baile: this.baile.snapshot(),
       microondas: this.microondas.snapshot(),
       cables: this.cables.snapshot(),
       trivia: this.trivia.snapshot(),

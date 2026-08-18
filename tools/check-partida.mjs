@@ -191,6 +191,13 @@ const partida = await p.evaluate(async () => {
           g.verter.elegir(mov[0]);
           g.verter.elegir(mov[1]);
         } else break;
+      } else if (g.baile.active) {
+        // EL BAILE: se lee el paso que toca y se «pulsa» su flecha. El
+        // compás corre solo, así que aquí no hay nada que esperar — se
+        // responde y el propio motor avanza al siguiente.
+        const s = g.baile.snapshot();
+        const paso = s?.pasos[s.indice];
+        if (paso) g.baile.pulsar(paso.dir);
       } else if (g.chisme.active) {
         for (let i = 0; i < 3; i++) {
           const r = g.chisme.responder(i);

@@ -62,11 +62,20 @@ const arranque = await p.evaluate(() => {
   const g = window.__game.engine.game;
   g.setPaused(false);
   g.clearGate();
+  // LOS VERBOS, TODOS. Estaba escrito «pulso o gesto» y se quedó viejo en
+  // cuanto el piso tuvo seis: al pasar estirarse al baile, esta prueba dejó
+  // de ver la única actividad jugable sin recados y falló sin que nada del
+  // juego estuviera roto. Si añades un verbo, va aquí.
+  window.__VERBOS = ["pulso", "gesto", "chisme", "verter", "microondas", "baile"];
+  const tieneVerbo = (o) => window.__VERBOS.some((v) => o[v]);
+  // Una actividad sin ningún verbo declarado cae al PULSO, que es el suelo:
+  // también es jugable ya.
+  const jugable = (o) => tieneVerbo(o) || !o.objeto;
   const libres = g.objectives.filter((o) => !o.done && !o.dynamic && !o.objeto);
   return {
     total: g.objectives.filter((o) => !o.done).length,
     // Sin objeto Y con minijuego (pulso o gesto): lo que se puede jugar ya.
-    jugablesYa: libres.filter((o) => o.pulso || o.gesto).map((o) => o.id),
+    jugablesYa: libres.filter(jugable).map((o) => o.id),
     conObjeto: g.objectives.filter((o) => !o.done && o.objeto).map((o) => o.id),
   };
 });
@@ -80,7 +89,10 @@ check(
 const jugada = await p.evaluate(async () => {
   const g = window.__game.engine.game;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const st = g.objectives.find((o) => !o.done && !o.dynamic && !o.objeto && (o.pulso || o.gesto));
+  const VERBOS = window.__VERBOS;
+  const st = g.objectives.find(
+    (o) => !o.done && !o.dynamic && !o.objeto && (VERBOS.some((v) => o[v]) || true)
+  );
   if (!st) return { error: "no hay actividad jugable sin objeto" };
   // El jefe lejos: aquí se mide que el minijuego SALE, no la persecución.
   g.boss.resetToPatrol();
@@ -100,7 +112,9 @@ const jugada = await p.evaluate(async () => {
   return {
     id: st.id,
     label: st.label,
-    activo: g.pulse.active || g.gesture.active,
+    // Cualquiera de los verbos, por lo mismo que arriba: mirar solo dos era
+    // preguntar por un juego que ya no existe.
+    activo: VERBOS.some((v) => g[v === "pulso" ? "pulse" : v === "gesto" ? "gesture" : v]?.active),
     // Que esté "activo" por dentro no basta: tiene que PINTARSE.
     tiraVisible: !!tira?.classList.contains("on"),
     tarjetaVisible: !!tarjeta?.classList.contains("on"),

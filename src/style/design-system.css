@@ -134,9 +134,12 @@
   /* Trama CRT. Un tema sin ella pone `none`. */
   --p-scan: repeating-linear-gradient(0deg, hsl(var(--p-accent-bright) / 0.03) 0 1px, transparent 1px 3px);
 
-  /* Radios y cantos: la "sensación" del tema, no solo su color. */
-  --p-radius: 14px;
-  --p-radius-lg: 16px;
+  /* Radios y cantos: la "sensación" del tema, no solo su color. Aquí son
+     CASI RECTOS: una proyección de consola no tiene esquinas blandas, y
+     eran los 14px los que hacían que cada pantalla se leyera como una
+     tarjeta de app en vez de como algo dibujado por un proyector. */
+  --p-radius: 2px;
+  --p-radius-lg: 3px;
   --p-btn-drop: 3px;
 
   /* ── EL EDIFICIO ──────────────────────────────────────────────────
@@ -325,6 +328,32 @@
   --btn-line: hsl(var(--p-accent-bright) / 0.3);
   --rim: hsl(var(--p-rim) / var(--p-rim-alpha));
 
+  /* ── EL HOLOGRAMA ─────────────────────────────────────────────────
+     Los roles de la proyección. La lista de misiones ya se veía así —hilo
+     fino, brillo, nada de caja— y era la única pieza que lo hacía: el resto
+     de la interfaz seguía siendo tarjetas redondeadas con relleno, así que
+     el juego parecía dos juegos pegados.
+
+     Son ROLES, no valores: salen de los primitivos del tema, así que un
+     tema nuevo re-tinta el holograma entero sin tocar un componente.
+
+     · `wash`    — el vidrio de la proyección. Casi nada: si se ve como un
+                   panel opaco, deja de ser una proyección y vuelve a ser
+                   una caja.
+     · `line`    — el hilo. Es la gramática entera, igual que `--rule`.
+     · `glow`    — el halo de una superficie proyectada.
+     · `ink-glow`— el halo del TEXTO, que es lo que lo hace luminoso en vez
+                   de simplemente coloreado.
+     · `bracket` — cuánto miden las escuadras de las esquinas. Son lo que
+                   sustituye al marco: delimitan sin encerrar. */
+  --holo-wash: hsl(var(--p-accent) / 0.06);
+  --holo-wash-strong: hsl(var(--p-accent) / 0.11);
+  --holo-line: hsl(var(--p-accent-bright) / 0.3);
+  --holo-line-soft: hsl(var(--p-accent-bright) / 0.14);
+  --holo-glow: 0 0 14px hsl(var(--p-accent-bright) / 0.16);
+  --holo-ink-glow: 0 0 10px hsl(var(--p-accent-bright) / 0.4);
+  --holo-bracket: 12px;
+
   /* ── Acento ── */
   --accent: hsl(var(--p-accent));
   --accent-hover: hsl(var(--p-accent-strong));
@@ -356,8 +385,11 @@
   --ui-font: var(--p-font-ui);
 
   /* ── Geometría ── */
-  --radius-sm: calc(var(--p-radius) - 6px);
-  --radius-md: calc(var(--p-radius) - 2px);
+  /* `max(0px, …)`: un tema de cantos vivos deja `--p-radius` en 2px, y un
+     radio negativo no es que se vea mal — la declaración entera se descarta
+     y el radio pasa a ser el que hubiera antes. */
+  --radius-sm: max(0px, calc(var(--p-radius) - 6px));
+  --radius-md: max(0px, calc(var(--p-radius) - 2px));
   --radius-lg: var(--p-radius-lg);
   --radius-full: 9999px;
   --card-radius: var(--p-radius-lg);
@@ -12585,4 +12617,375 @@ body.inc-acting #hint {
   .nav-cursor {
     box-shadow: none;
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL HOLOGRAMA — la piel de TODA la interfaz
+
+   ── Por qué existe ──
+
+   La lista de misiones ya se veía así: hilo fino, brillo, sin caja. Era la
+   ÚNICA pieza que lo hacía. Todo lo demás —menús, hoja de vida, selección
+   de personaje, evaluación, el anuncio grande del centro— seguía siendo
+   tarjetas redondeadas con relleno, de otra época del proyecto, así que el
+   juego se leía como dos juegos pegados con cinta.
+
+   Esto es la conversión, y va AL FINAL a propósito, por lo mismo que el
+   bloque del BOTÓN ÚNICO: alinea por cascada las familias históricas sin
+   tener que perseguir 217 `border-radius` por el archivo. Editar cada una
+   "en su sitio" es justo lo que las dejó separarse.
+
+   ── Qué es un holograma aquí ──
+
+   Cuatro cosas, y ninguna es un marco:
+     1. un VIDRIO casi transparente (`--holo-wash`) — si se ve opaco vuelve
+        a ser una caja;
+     2. ESCUADRAS en las esquinas en vez de borde: delimitan sin encerrar;
+     3. el HILO (`--holo-line`) para separar, que es la gramática que ya
+        traía la lista de misiones;
+     4. BRILLO en la tinta, que es lo que separa "luminoso" de "coloreado".
+
+   Todo sale de la capa 2, así que el tema `cozy` lo re-tinta entero sin que
+   se toque una sola de estas reglas.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── 1 · SE ACABARON LAS CAJAS REDONDEADAS ──
+   Las familias de superficie pasan a cantos vivos. No se les quita el radio
+   a mano una por una: se las manda al token, que es de dónde tendrían que
+   haber salido siempre. */
+.inc-menu-menu-stage,
+.inc-menu-menu-list,
+.inc-menu-pane,
+.inc-menu-help,
+.inc-menu-choice,
+.inc-login-panel,
+.inc-login-stage,
+.inc-cv-card,
+.inc-cv-body,
+.inc-cv-grid > *,
+.inc-review-card,
+.inc-review-eje,
+.inc-levelling-card,
+.inc-course-card,
+.inc-libreta-page,
+.inc-panel {
+  border-radius: var(--radius-sm);
+}
+
+/* ── 2 · EL VIDRIO Y LAS ESCUADRAS ──
+   `.holo` se puede poner a mano, pero las familias de pantalla lo reciben
+   solas: una pantalla nueva no debería tener que acordarse. */
+.holo,
+.inc-menu-menu-stage,
+.inc-menu-pane,
+.inc-login-panel,
+.inc-cv-card,
+.inc-review-card,
+.inc-levelling-card,
+.inc-course-card,
+.inc-panel {
+  position: relative;
+  background:
+    linear-gradient(180deg, var(--holo-wash-strong), var(--holo-wash)),
+    var(--p-scan);
+  border: 1px solid var(--holo-line-soft);
+  box-shadow: var(--holo-glow);
+}
+
+/* LAS ESCUADRAS. Dos pseudo-elementos y cuatro bordes: la de arriba-izquierda
+   y la de abajo-derecha bastan para que el ojo cierre el rectángulo — poner
+   las cuatro pesa más y se lee como un marco, que es lo que se venía a
+   quitar. Van con `pointer-events: none` porque se dibujan ENCIMA. */
+.holo::before,
+.inc-menu-menu-stage::before,
+.inc-menu-pane::before,
+.inc-login-panel::before,
+.inc-cv-card::before,
+.inc-review-card::before,
+.inc-levelling-card::before,
+.inc-course-card::before,
+.holo::after,
+.inc-menu-menu-stage::after,
+.inc-menu-pane::after,
+.inc-login-panel::after,
+.inc-cv-card::after,
+.inc-review-card::after,
+.inc-levelling-card::after,
+.inc-course-card::after {
+  content: "";
+  position: absolute;
+  width: var(--holo-bracket);
+  height: var(--holo-bracket);
+  pointer-events: none;
+}
+
+.holo::before,
+.inc-menu-menu-stage::before,
+.inc-menu-pane::before,
+.inc-login-panel::before,
+.inc-cv-card::before,
+.inc-review-card::before,
+.inc-levelling-card::before,
+.inc-course-card::before {
+  top: -1px;
+  left: -1px;
+  border-top: 2px solid var(--holo-line);
+  border-left: 2px solid var(--holo-line);
+}
+
+.holo::after,
+.inc-menu-menu-stage::after,
+.inc-menu-pane::after,
+.inc-login-panel::after,
+.inc-cv-card::after,
+.inc-review-card::after,
+.inc-levelling-card::after,
+.inc-course-card::after {
+  right: -1px;
+  bottom: -1px;
+  border-right: 2px solid var(--holo-line);
+  border-bottom: 2px solid var(--holo-line);
+}
+
+/* ── 3 · LA TINTA ──
+   Rótulos en mono, versalitas y espaciados: es la tipografía de una consola,
+   y es la mitad de la sensación. El brillo va solo en lo que TITULA — un
+   párrafo entero brillando no se lee. */
+.inc-menu-logo,
+.inc-login-panel-tag,
+.inc-cv-kicker,
+.inc-cv-section-tag,
+.inc-review-kicker,
+.inc-menu-opt-head {
+  font-family: var(--mono, var(--p-font-mono));
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  text-shadow: var(--holo-ink-glow);
+}
+
+/* ── 4 · EL ANUNCIO DEL CENTRO ──
+   Era un rótulo de pegatina: cuatro sombras duras negras alrededor, estilo
+   "¡RANGER PELIGROSO!". Legible, sí, pero de otro juego — y es el texto MÁS
+   grande que aparece en pantalla, así que era el que más gritaba que la
+   interfaz no era una sola cosa. Ahora es lo que todo lo demás: proyección.
+   Se mantiene la legibilidad con una caída oscura ancha en vez del contorno,
+   que es lo que de verdad lo despega del piso. */
+.inc-msg-centro,
+.inc-announce {
+  font-family: var(--mono, var(--p-font-mono));
+  font-size: 52px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow:
+    0 0 18px hsl(var(--p-accent-bright) / 0.55),
+    0 0 46px hsl(var(--p-accent-bright) / 0.28),
+    0 6px 30px hsl(var(--p-shadow-hue) / 0.75);
+}
+
+/* Y sus dos hilos, arriba y abajo: es lo que lo convierte en un AVISO de la
+   consola y no en un texto suelto flotando en medio del piso. */
+.inc-msg-centro::before,
+.inc-msg-centro::after,
+.inc-announce::before,
+.inc-announce::after {
+  content: "";
+  display: block;
+  height: 1px;
+  margin: 12px auto;
+  width: 60%;
+  background: linear-gradient(90deg, transparent, var(--holo-line), transparent);
+}
+
+.inc-msg-centro[data-tone="warn"],
+.inc-announce[data-tone="warn"] {
+  color: var(--warn);
+  text-shadow:
+    0 0 18px hsl(var(--p-warn) / 0.55),
+    0 6px 30px hsl(var(--p-shadow-hue) / 0.75);
+}
+
+.inc-msg-centro[data-tone="danger"],
+.inc-announce[data-tone="danger"] {
+  color: var(--danger);
+  text-shadow:
+    0 0 18px hsl(var(--p-danger) / 0.6),
+    0 6px 30px hsl(var(--p-shadow-hue) / 0.75);
+}
+
+.inc-msg-centro[data-tone="ok"],
+.inc-announce[data-tone="ok"] {
+  color: var(--ok);
+  text-shadow:
+    0 0 18px hsl(var(--p-ok) / 0.5),
+    0 6px 30px hsl(var(--p-shadow-hue) / 0.75);
+}
+
+/* ── EL BAILE (game/danceGame.js) ──────────────────────────────────────
+   Estirarse es una coreografía, no una tira. Cuatro flechas, la rutina por
+   delante para que se vea venir, y la barra del compás corriendo debajo del
+   paso actual — que es lo que hace que se sienta un RITMO y no una lista de
+   teclas que se pulsan cuando apetece.
+
+   Las casillas de abajo son botones de verdad (el dedo tiene que valer),
+   pero llevan `data-nav-off` en el DOM: aquí una flecha es un PASO, no
+   «elegir la opción de al lado». */
+.inc-baile {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 26px;
+  position: relative;
+  background: linear-gradient(180deg, var(--holo-wash-strong), var(--holo-wash));
+  border: 1px solid var(--holo-line-soft);
+  box-shadow: var(--holo-glow);
+}
+
+.inc-baile.on {
+  display: flex;
+}
+
+.inc-baile-verbo {
+  font-family: var(--mono, var(--p-font-mono));
+  font-size: 13px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-shadow: var(--holo-ink-glow);
+}
+
+.inc-baile-fila {
+  display: flex;
+  gap: 10px;
+}
+
+/* LOS PASOS QUE VIENEN se ven apagados y el de AHORA se enciende. Sin ver
+   los siguientes esto sería un juego de reflejos, y un juego de reflejos con
+   el jefe encima no se puede jugar mirando también el piso. */
+.inc-baile-paso {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  font-size: 30px;
+  line-height: 1;
+  color: var(--text-soft);
+  border: 1px solid var(--holo-line-soft);
+  opacity: 0.5;
+  transition: all var(--dur-1) var(--ease-out);
+}
+
+.inc-baile-paso.ahora {
+  color: var(--accent);
+  border-color: var(--holo-line);
+  opacity: 1;
+  transform: scale(1.14);
+  text-shadow: var(--holo-ink-glow);
+  box-shadow: var(--holo-glow);
+}
+
+.inc-baile-paso.hecho {
+  opacity: 0.2;
+}
+
+/* La barra del compás: se vacía y el paso se va, lo hayas hecho o no. */
+.inc-baile-compas {
+  width: 100%;
+  height: 3px;
+  background: var(--holo-line-soft);
+}
+
+.inc-baile-compas > i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  box-shadow: var(--holo-glow);
+}
+
+.inc-baile-pads {
+  display: flex;
+  gap: 8px;
+}
+
+.inc-baile-pad {
+  width: 46px;
+  height: 46px;
+  font-size: 22px;
+  color: var(--text-soft);
+  background: none;
+  border: 1px solid var(--btn-line);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+.inc-baile-pad:active {
+  color: var(--accent);
+  border-color: var(--holo-line);
+}
+
+.inc-baile.ok .inc-baile-paso.hecho:last-of-type,
+.inc-baile.ok .inc-baile-compas > i {
+  background: var(--ok);
+}
+
+.inc-baile.bad {
+  border-color: hsl(var(--p-danger) / 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inc-baile-paso,
+  .inc-baile-paso.ahora {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* ── 5 · LO QUE QUEDABA DEL HUD ──
+   Las notificaciones del lado, la placa y el globo de estado seguían siendo
+   tarjetas de app: relleno opaco, esquinas de 14 px y sombra. Al lado de la
+   lista de misiones —que ya era proyección— se veía que eran de dos épocas
+   distintas del proyecto. Es la misma conversión, aplicada al último tercio
+   de la interfaz. */
+.inc-msg,
+.inc-plate,
+.inc-hud-bubble,
+.inc-action,
+.inc-tracker-card {
+  border-radius: var(--radius-sm) !important;
+  background: linear-gradient(180deg, var(--holo-wash-strong), var(--holo-wash)) !important;
+  border: 1px solid var(--holo-line-soft) !important;
+  box-shadow: var(--holo-glow) !important;
+}
+
+/* Una notificación lleva su hilo a la izquierda: es lo que la ancla al
+   borde y lo que dice de qué tipo es sin necesidad de un fondo de color.
+   El `!important` de arriba y este borde conviven porque son propiedades
+   distintas — el atajo va después. */
+.inc-msg {
+  border-left: 2px solid var(--holo-line) !important;
+}
+
+.inc-msg--danger {
+  border-left-color: var(--danger) !important;
+}
+
+.inc-msg--warn {
+  border-left-color: var(--warn) !important;
+}
+
+.inc-msg--ok {
+  border-left-color: var(--ok) !important;
+}
+
+/* Y CON UN MINIJUEGO ABIERTO, EL ANUNCIO SUBE. Vive al 34% de alto, que es
+   exactamente donde se dibuja la tarjeta de la tarea: «¡TE VEO!» caía encima
+   de la rutina del baile y tapaba el paso que toca — justo en el momento en
+   que más falta hace leerlo. Sube, no se esconde: el aviso es lo único que
+   no se puede perder. */
+body.inc-minijuego .inc-msg-centro,
+body.inc-minijuego .inc-announce {
+  top: 13%;
 }

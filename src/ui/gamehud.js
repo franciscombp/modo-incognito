@@ -255,6 +255,86 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   microCaja.addEventListener("pointerup", soltarPlato);
   microCaja.addEventListener("pointercancel", soltarPlato);
 
+  // ── EL BAILE (estirarse) ──────────────────────────────────────────
+  // Cuatro flechas, el lenguaje universal de esto. Las casillas son botones
+  // de verdad para que el dedo valga; el teclado entra por su propio
+  // `keydown`, y la cruceta de un mando cae en las flechas sin una línea
+  // más. `data-nav-off` mantiene al cursor de menús fuera: aquí las flechas
+  // son PASOS, no «elegir la opción de al lado».
+  const baileWrap = el("div", "inc-baile", mgBody);
+  baileWrap.dataset.navOff = "";
+  const baileVerbo = el("div", "inc-baile-verbo", baileWrap);
+  const baileFila = el("div", "inc-baile-fila", baileWrap);
+  const baileCompas = el("div", "inc-baile-compas", baileWrap);
+  const baileCompasFill = el("i", null, baileCompas);
+  const bailePads = el("div", "inc-baile-pads", baileWrap);
+  const FLECHA = { arriba: "↑", abajo: "↓", izquierda: "←", derecha: "→" };
+  for (const dir of ["izquierda", "arriba", "abajo", "derecha"]) {
+    const pad = el("button", "inc-baile-pad", bailePads);
+    pad.type = "button";
+    pad.textContent = FLECHA[dir];
+    pad.addEventListener("click", () => window.__game?.engine?.game?.baile?.pulsar(dir));
+  }
+  let baileNodos = [];
+  let baileFirma = "";
+
+  function renderBaile(state) {
+    const b = state.baile;
+    baileWrap.classList.toggle("on", !!b);
+    if (!b) {
+      baileFirma = "";
+      return;
+    }
+    baileVerbo.textContent = b.verbo;
+    // Se reconstruye solo al cambiar de RUTINA, no por cuadro: son ocho
+    // nodos y rehacerlos sesenta veces por segundo para pintar lo mismo es
+    // tirar DOM a la basura.
+    const firma = b.pasos.map((p) => p.dir).join("");
+    if (firma !== baileFirma) {
+      baileFirma = firma;
+      baileFila.textContent = "";
+      baileNodos = b.pasos.map((p) => {
+        const n = el("span", "inc-baile-paso", baileFila);
+        n.textContent = FLECHA[p.dir];
+        return n;
+      });
+    }
+    baileNodos.forEach((n, i) => {
+      const p = b.pasos[i];
+      n.classList.toggle("ahora", p?.estado === "ahora");
+      n.classList.toggle("hecho", p?.estado === "hecho");
+    });
+    // La barra del compás: lo que hace que se sienta un RITMO y no una
+    // lista de teclas que se pulsan cuando apetece.
+    baileCompasFill.style.width = `${Math.round(b.resto * 100)}%`;
+    baileWrap.classList.toggle("ok", b.resultado === "acierto");
+    baileWrap.classList.toggle("bad", b.resultado === "fallo");
+  }
+
+  // Las FLECHAS son los pasos. Se escucha en captura por lo mismo que el
+  // cursor de menús: `player.js` hace `preventDefault()` en las flechas y se
+  // registra antes, y además las flechas caminan — bailar mientras te vas
+  // andando de la estación sería perder la tarea al segundo paso.
+  const DIR_DE_TECLA = {
+    ArrowUp: "arriba",
+    ArrowDown: "abajo",
+    ArrowLeft: "izquierda",
+    ArrowRight: "derecha",
+  };
+  window.addEventListener(
+    "keydown",
+    (e) => {
+      const g = window.__game?.engine?.game;
+      if (!g?.baile?.active) return;
+      const dir = DIR_DE_TECLA[e.key];
+      if (!dir) return;
+      g.baile.pulsar(dir);
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    },
+    true
+  );
+
   // ── LOS CABLES (reto de CONSEGUIR) ────────────────────────────────
   // Mismo patrón que los vasos: nodos del DOM con su `click`, así el ratón y
   // el dedo funcionan sin escribir táctil, y las teclas entran por la misma
@@ -329,6 +409,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       state.gesture ||
       state.pulse ||
       state.verter ||
+      state.baile ||
       state.cables ||
       state.microondas
     );
@@ -340,7 +421,14 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     // los clics les pasan por encima.
     mg.classList.toggle(
       "puntero",
-      !!(state.verter || state.cables || state.microondas || state.chisme || state.trivia)
+      !!(
+        state.verter ||
+        state.cables ||
+        state.microondas ||
+        state.chisme ||
+        state.trivia ||
+        state.baile
+      )
     );
     mg.classList.toggle("on", jugando);
     // El <body> lo marca para que la píldora de mandos y el resto de la
@@ -349,6 +437,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     if (!jugando) return;
 
     mgTitulo.textContent =
+      state.baile?.label ??
       state.microondas?.label ??
       state.trivia?.label ??
       state.cables?.titulo ??
@@ -991,6 +1080,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       renderPulse(state);
     renderChisme(state);
     renderVasos(state);
+    renderBaile(state);
     renderCables(state);
     renderMicro(state);
     renderPantalla(state);

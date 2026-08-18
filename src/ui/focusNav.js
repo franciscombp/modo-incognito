@@ -75,8 +75,15 @@ export function createFocusNav({ root = document } = {}) {
 
   /** Lo pulsable de un grupo, en el orden en que se ve. */
   function opciones(g) {
+    // `[data-nav-off]` saca a una pieza entera del cursor. Existe por el
+    // baile: sus cuatro casillas son botones (para que el dedo valga), pero
+    // ahí una flecha es un PASO DE BAILE, no «la opción de al lado».
     const lista = [...g.querySelectorAll("button, [data-nav]")].filter(
-      (b) => !b.disabled && b.getAttribute("aria-hidden") !== "true" && visible(b)
+      (b) =>
+        !b.disabled &&
+        b.getAttribute("aria-hidden") !== "true" &&
+        !b.closest("[data-nav-off]") &&
+        visible(b)
     );
     return lista;
   }
