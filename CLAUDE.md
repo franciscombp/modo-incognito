@@ -563,46 +563,84 @@ el rol de «filo» está partido en DOS en la capa 2:
 Se hizo en la capa 2 y no en los 88 sitios que pintaban un marco. Si añades un
 panel, NO le pongas borde: separa con `--rule` o no separes.
 
-### EL HOLOGRAMA: la interfaz entera es una proyección
+### EL HOLOGRAMA: la interfaz entera habla como la LISTA DE MISIONES
 
-**No hay cajas, y ahora tampoco hay esquinas blandas.** La lista de misiones
-ya se veía así —hilo fino, brillo, sin marco— y era la ÚNICA pieza que lo
-hacía: menús, hoja de vida, selección de personaje, evaluación,
-notificaciones y el anuncio grande seguían siendo tarjetas redondeadas con
-relleno, de otra época del proyecto, así que el juego se leía como dos juegos
-pegados con cinta.
+**No hay cajas. Ni redondeadas, ni holográficas, ni de ningún tipo.** La
+lista de misiones fue siempre la referencia y durante mucho tiempo la única
+pieza que la cumplía: filas sueltas sobre el escenario, separadas por un hilo,
+y nada más. Menús, hoja de vida, selección de personaje, evaluación,
+notificaciones y el anuncio grande eran tarjetas con relleno, de otra época
+del proyecto — el juego se leía como dos juegos pegados con cinta.
 
-Un holograma son CUATRO cosas, y ninguna es un marco:
+⚠️ **Esto se intentó DOS veces antes.** La primera apiló una piel nueva
+encima de las anteriores. La segunda convirtió los paneles en «cajas
+holográficas» —vidrio tenue, filo de 1 px y escuadras en las esquinas—: se
+veía mejor, pero seguía siendo un CONTENEDOR pegado encima del juego, que es
+justo lo que había que quitar. No vuelvas a dibujar el marco «pero bonito».
 
-1. un VIDRIO casi transparente (`--holo-wash`) — si se ve opaco vuelve a ser
-   una caja;
-2. ESCUADRAS en las esquinas en vez de borde: delimitan sin encerrar;
-3. el HILO (`--holo-line`) para separar, la gramática que ya traía la lista;
-4. BRILLO en la tinta (`--holo-ink-glow`), que es lo que separa «luminoso» de
-   «coloreado» — y va SOLO en lo que titula: un párrafo entero brillando no
-   se lee.
+Son TRES recursos, los de la lista, y de ahí sale todo:
 
-Se reparte por las tres capas de siempre: `--p-radius` (capa 1) baja a **2px**
-en el tema `terminal` —una proyección de consola no tiene esquinas blandas, y
-eran los 14px los que hacían que cada pantalla se leyera como una tarjeta de
-app—, los roles `--holo-*` viven en la capa 2, y la piel es **un bloque al
-final del archivo**, por lo mismo que el del BOTÓN ÚNICO: alinea por cascada
-las familias históricas sin perseguir 217 `border-radius` por el archivo.
-Editar cada una «en su sitio» es lo que las dejó separarse.
+1. **EL HILO** (`--holo-line-soft`, `border-bottom`) separa una fila de la
+   siguiente. Es la gramática entera. Una barra a la izquierda es ese mismo
+   hilo puesto de pie (lo usa una notificación para decir de qué tipo es).
+2. **EL LAVADO QUE SE DESVANECE** marca lo elegido —un degradado que muere
+   hacia la derecha—, en vez de un relleno o un borde. Ilumina sin encerrar.
+   Lo comparten el cursor, el hover y lo activo, así que las tres cosas son
+   una sola idea.
+3. **LA SOMBRA DURA** (`0 2px 0` casi negro) hace legible la tinta sobre el
+   escenario **sin fondo detrás**. Es la pieza que PERMITE que no haya caja:
+   sin ella habría que poner una.
 
-`cozy` conserva sus cantos redondos: para eso es otro tema, y `check:theme`
-sigue verde porque todo sale de la capa 2.
+La legibilidad de los menús la pone el VELO que ya existe
+(`.inc-menu-scrim`), no un fondo por panel.
 
-**Si añades una pantalla, no le pongas fondo ni borde propios**: dale
-`.holo`, o súmala a la lista de ese bloque. Un fondo opaco nuevo es una
-tarjeta de app, y se nota al lado de las demás.
+**Lo pulsable también es una fila**: un botón de menú es una misión. El
+PRIMARIO no se marca rellenándolo (eso es una caja otra vez) sino con la
+TINTA, igual que la lista distingue un «qué» de un «cómo».
+
+**Lo que SÍ puede pintar**, y por qué: el velo (da la legibilidad); barras y
+medidores (son datos dibujados, no contenedores); avatares y retratos (son
+imágenes); y los controles REDONDOS del pulgar (la forma es lo que los hace
+acertables con el dedo).
+
+Todo vive en **un bloque al final del archivo**, por lo mismo que el del
+BOTÓN ÚNICO: alinea por cascada las familias históricas sin perseguir 217
+`border-radius`. `--p-radius` baja a **2px** en `terminal`; `cozy` conserva
+los suyos.
+
+**Tres trampas ya pagadas, las tres de cascada:**
+
+- **Un `background: none !important` GANA a un estilo en línea.** Las caras
+  del reparto son `<button>` cuyo retrato se pone con `style.backgroundImage`
+  desde JS: la fila de personajes se quedó con cinco círculos vacíos, y en
+  una captura pequeña eso pasa por «minimalismo» en vez de por lo que era.
+- **La carrera de especificidad no se gana subiendo una clase.** El lavado
+  del cursor perdió TRES veces —contra `.inc-menu button`, contra
+  `.inc-menu .inc-btn`, y otra vez cuando a ese selector le añadieron un
+  `:not()`—. La salida fue que la regla rival NO PUEDA competir: sus
+  calificadores van en `:where()`, que aporta cero, así que vale (0,0,1) para
+  siempre. Con dos `!important`, el más específico gana; el orden solo decide
+  el empate.
+- **Un bloque viejo al final del archivo le gana a uno nuevo escrito antes.**
+  La conversión del HUD quedó a medias porque el intento anterior seguía
+  colgando después, pintando placa y notificaciones. Si sustituyes una piel,
+  BÓRRALA, no la reescribas más arriba.
 
 **El ANUNCIO DEL CENTRO también.** Era un rótulo de pegatina con cuatro
-sombras duras negras («¡RANGER PELIGROSO!»): es el texto más grande que sale
-en pantalla, o sea el que más gritaba que la interfaz no era una sola cosa.
-Y **con un minijuego abierto SUBE** (`body.inc-minijuego`): al 34% de alto
-caía justo encima de la tarjeta de la tarea y tapaba el paso que toca, en el
-momento en que más falta hace leerlo.
+sombras duras negras («¡RANGER PELIGROSO!»): el texto más grande de la
+pantalla, o sea el que más gritaba que la interfaz no era una sola cosa.
+Ahora es un título de misión en grande. Y **con un minijuego abierto SUBE**
+(`body.inc-minijuego`): al 34% caía justo encima de la tarjeta de la tarea.
+
+Lo vigila **`npm run check:holo`**, y a propósito NO mira una captura:
+RECORRE el DOM de cada pantalla buscando superficies. Define una caja como
+fondo opaco, filo que encierra (arriba + un lado) o esquina redonda — un
+degradado que muere en transparente es el lavado, no una caja. Se validó al
+revés, reintroduciendo un panel a mano para ver que falla: una prueba que
+mira el sitio equivocado es peor que no tenerla, y su primera versión
+recorría `.inc-layer--hud`, que **no** es la clase de la capa del HUD
+(`.inc-gamehud`), así que pasaba en verde con la placa todavía siendo
+tarjeta.
 
 **La regla que no se rompe: ningún componente escribe un color.** Ni `white`,
 ni `rgba(255,255,255,…)`, ni un hex. Si falta un color, se añade a la capa 1.

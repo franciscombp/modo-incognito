@@ -12620,137 +12620,233 @@ body.inc-acting #hint {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   EL HOLOGRAMA — la piel de TODA la interfaz
+   EL HOLOGRAMA — y el holograma NO LLEVA CAJA
 
-   ── Por qué existe ──
+   ── La corrección ──
 
-   La lista de misiones ya se veía así: hilo fino, brillo, sin caja. Era la
-   ÚNICA pieza que lo hacía. Todo lo demás —menús, hoja de vida, selección
-   de personaje, evaluación, el anuncio grande del centro— seguía siendo
-   tarjetas redondeadas con relleno, de otra época del proyecto, así que el
-   juego se leía como dos juegos pegados con cinta.
+   El primer intento de esto convirtió los paneles en «cajas holográficas»:
+   vidrio tenue, un filo de 1 px y escuadras en las esquinas. Se veía mejor
+   que las tarjetas de app que había antes, pero seguía siendo lo mismo — un
+   CONTENEDOR pegado encima del juego. La lista de misiones nunca tuvo eso, y
+   la lista de misiones es la referencia: filas sueltas sobre el escenario,
+   separadas por un hilo, y nada más.
 
-   Esto es la conversión, y va AL FINAL a propósito, por lo mismo que el
-   bloque del BOTÓN ÚNICO: alinea por cascada las familias históricas sin
-   tener que perseguir 217 `border-radius` por el archivo. Editar cada una
-   "en su sitio" es justo lo que las dejó separarse.
+   Así que aquí no hay superficie. Hay TRES recursos, los de la lista, y de
+   ahí sale todo lo demás:
 
-   ── Qué es un holograma aquí ──
+     1. EL HILO (`--holo-line-soft`, `border-bottom`) separa una fila de la
+        siguiente. Es la gramática entera.
+     2. EL LAVADO QUE SE DESVANECE marca lo elegido —un degradado que muere
+        hacia la derecha—, en vez de un relleno o un borde. Ilumina sin
+        encerrar, que es justo la diferencia.
+     3. LA SOMBRA DURA hace legible la tinta sobre el escenario sin necesidad
+        de un fondo detrás. Es lo que permite que no haya caja: sin ella
+        habría que poner una.
 
-   Cuatro cosas, y ninguna es un marco:
-     1. un VIDRIO casi transparente (`--holo-wash`) — si se ve opaco vuelve
-        a ser una caja;
-     2. ESCUADRAS en las esquinas en vez de borde: delimitan sin encerrar;
-     3. el HILO (`--holo-line`) para separar, que es la gramática que ya
-        traía la lista de misiones;
-     4. BRILLO en la tinta, que es lo que separa "luminoso" de "coloreado".
+   La legibilidad de los menús la pone el VELO que ya existe
+   (`.inc-menu-scrim`), no un fondo por panel. Por eso un panel puede quedarse
+   sin superficie sin que nada se pierda.
 
-   Todo sale de la capa 2, así que el tema `cozy` lo re-tinta entero sin que
-   se toque una sola de estas reglas.
+   Va AL FINAL a propósito, por lo mismo que el bloque del BOTÓN ÚNICO:
+   alinea por cascada las familias históricas sin perseguir 217
+   `border-radius` por el archivo. Editar cada una «en su sitio» es lo que
+   las dejó separarse.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* ── 1 · SE ACABARON LAS CAJAS REDONDEADAS ──
-   Las familias de superficie pasan a cantos vivos. No se les quita el radio
-   a mano una por una: se las manda al token, que es de dónde tendrían que
-   haber salido siempre. */
+/* ── 1 · NI CAJAS, NI VIDRIO, NI ESCUADRAS ──
+   Las familias de superficie dejan de ser superficie. No se les quita el
+   fondo a mano una por una: se las manda todas al mismo sitio, que es de
+   donde tendrían que haber salido siempre. */
+.holo,
+.inc-menu-screen,
 .inc-menu-menu-stage,
 .inc-menu-menu-list,
 .inc-menu-pane,
+.inc-menu-panes,
+.inc-menu-tabs,
+.inc-menu-plat-bar,
+.inc-menu-day-grid,
 .inc-menu-help,
-.inc-menu-choice,
+.inc-login-dock,
+.inc-cv-grid,
 .inc-login-panel,
 .inc-login-stage,
 .inc-cv-card,
 .inc-cv-body,
-.inc-cv-grid > *,
 .inc-review-card,
 .inc-review-eje,
 .inc-levelling-card,
 .inc-course-card,
 .inc-libreta-page,
+.inc-msg,
+.inc-plate,
+.inc-hud-bubble,
+.inc-action,
+.inc-tracker-card,
+.inc-chisme,
+.inc-baile,
 .inc-panel {
-  border-radius: var(--radius-sm);
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
 }
 
-/* ── 2 · EL VIDRIO Y LAS ESCUADRAS ──
-   `.holo` se puede poner a mano, pero las familias de pantalla lo reciben
-   solas: una pantalla nueva no debería tener que acordarse. */
-.holo,
-.inc-menu-menu-stage,
-.inc-menu-pane,
-.inc-login-panel,
-.inc-cv-card,
-.inc-review-card,
-.inc-levelling-card,
-.inc-course-card,
-.inc-panel {
-  position: relative;
-  background:
-    linear-gradient(180deg, var(--holo-wash-strong), var(--holo-wash)),
-    var(--p-scan);
-  border: 1px solid var(--holo-line-soft);
-  box-shadow: var(--holo-glow);
-}
-
-/* LAS ESCUADRAS. Dos pseudo-elementos y cuatro bordes: la de arriba-izquierda
-   y la de abajo-derecha bastan para que el ojo cierre el rectángulo — poner
-   las cuatro pesa más y se lee como un marco, que es lo que se venía a
-   quitar. Van con `pointer-events: none` porque se dibujan ENCIMA. */
+/* Las escuadras del intento anterior, retiradas. Se apagan por selector en
+   vez de borrarse por si alguna pantalla las tuviera escritas en su propio
+   bloque: lo que manda es que NO haya marco. */
 .holo::before,
+.holo::after,
 .inc-menu-menu-stage::before,
+.inc-menu-menu-stage::after,
 .inc-menu-pane::before,
+.inc-menu-pane::after,
 .inc-login-panel::before,
+.inc-login-panel::after,
 .inc-cv-card::before,
+.inc-cv-card::after,
 .inc-review-card::before,
+.inc-review-card::after,
 .inc-levelling-card::before,
+.inc-levelling-card::after,
 .inc-course-card::before,
-.holo::after,
-.inc-menu-menu-stage::after,
-.inc-menu-pane::after,
-.inc-login-panel::after,
-.inc-cv-card::after,
-.inc-review-card::after,
-.inc-levelling-card::after,
 .inc-course-card::after {
-  content: "";
-  position: absolute;
-  width: var(--holo-bracket);
-  height: var(--holo-bracket);
-  pointer-events: none;
+  content: none;
 }
 
-.holo::before,
-.inc-menu-menu-stage::before,
-.inc-menu-pane::before,
-.inc-login-panel::before,
-.inc-cv-card::before,
-.inc-review-card::before,
-.inc-levelling-card::before,
-.inc-course-card::before {
-  top: -1px;
-  left: -1px;
-  border-top: 2px solid var(--holo-line);
-  border-left: 2px solid var(--holo-line);
+/* ── 2 · EL HILO ──
+   Lo que separa. Mismo valor y misma posición que en la lista de misiones:
+   abajo, fino, y del acento a muy baja opacidad. Una fila de menú, una hoja
+   de vida y una misión se separan igual porque SON lo mismo. */
+.inc-menu-menu-list > *,
+.inc-menu-help li,
+.inc-cv-card,
+.inc-review-eje,
+.inc-libreta-entry {
+  border-bottom: 1px solid var(--holo-line-soft) !important;
 }
 
-.holo::after,
-.inc-menu-menu-stage::after,
-.inc-menu-pane::after,
-.inc-login-panel::after,
-.inc-cv-card::after,
-.inc-review-card::after,
-.inc-levelling-card::after,
-.inc-course-card::after {
-  right: -1px;
-  bottom: -1px;
-  border-right: 2px solid var(--holo-line);
-  border-bottom: 2px solid var(--holo-line);
+/* La última no lleva hilo: un hilo al final no separa nada de nada, solo
+   subraya. */
+.inc-menu-menu-list > *:last-child,
+.inc-menu-help li:last-child,
+.inc-review-eje:last-child {
+  border-bottom: 0 !important;
 }
 
-/* ── 3 · LA TINTA ──
-   Rótulos en mono, versalitas y espaciados: es la tipografía de una consola,
-   y es la mitad de la sensación. El brillo va solo en lo que TITULA — un
-   párrafo entero brillando no se lee. */
+/* ── 3 · EL LAVADO QUE SE DESVANECE ──
+   Es el truco exacto de la fila SEGUIDA de la lista: se ilumina lo elegido
+   sin cambiar tinta ni poner borde. Lo heredan el foco del cursor, el hover
+   y lo que esté marcado como activo, así que las tres cosas se ven como una
+   sola idea en vez de como tres estados inventados por separado. */
+.inc-menu-menu-list > *:hover,
+.inc-menu-choice:hover,
+.inc-cv-card:hover,
+.inc-cv-card.selected,
+.inc-menu-tabs > .active,
+.nav-cursor,
+/* ── 3b · LO PULSABLE TAMBIÉN ES UNA FILA ──
+   Un botón de menú es una MISIÓN de la lista: texto sobre el escenario, un
+   hilo debajo, y el lavado cuando está elegido. El relleno tenue que les
+   quedaba era el último resto de la piel de app — se veía como tres
+   pastillas apiladas en vez de como tres renglones de una consola.
+
+   El PRIMARIO no se marca rellenándolo (eso vuelve a ser una caja): se marca
+   con la TINTA, que es como la lista distingue un «qué» de un «cómo». Sigue
+   habiendo uno solo por pantalla y sigue siendo el que canta. */
+/* `:not(.inc-login-mini)` no es un caso especial caprichoso: esas caras son
+   `<button>` cuyo retrato se pone como `style.backgroundImage` desde JS, y un
+   `background: none !important` GANA a un estilo en línea. La fila de
+   personajes se quedó con cinco círculos vacíos — y en una captura pequeña
+   eso pasa por «minimalismo» en vez de por lo que era. */
+:where(.inc-menu) button:where(:not(.inc-login-mini):not(.inc-cv-photo)),
+:where(.inc-menu) .inc-btn:where(:not(.inc-login-mini)),
+:where(.inc-menu-choice) {
+  background: none !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--holo-line-soft) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-shadow: 0 2px 0 hsl(var(--p-shadow-hue) / 0.7);
+  transition: background var(--transition-base), color var(--transition-base);
+}
+
+.inc-menu button.inc-btn--primary,
+.inc-menu .inc-btn--primary {
+  color: var(--accent) !important;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-shadow:
+    0 2px 0 hsl(var(--p-shadow-hue) / 0.8),
+    var(--holo-ink-glow);
+}
+
+/* Los redondos del pulgar SÍ se quedan redondos: son controles de dedo y la
+   forma es lo que los hace acertables. La regla del hilo es de los menús, no
+   de los mandos. */
+.inc-menu .inc-btn--round,
+.touch-controls button {
+  border-radius: var(--radius-full) !important;
+  border: 1px solid var(--btn-line) !important;
+}
+
+/* ⚠️ UN BOTÓN QUE ES UNA FOTO NO ES UNA FILA. Las caras del reparto son
+   `<button>` cuyo FONDO es el retrato (`background: … center / cover`), así
+   que el `background: none` de arriba no les quitaba una caja: les borraba
+   la cara. La fila de personajes quedó con cinco nombres y ningún retrato, y
+   en una captura pequeña eso pasa por «diseño minimalista» en vez de por lo
+   que era. Si añades un pulsable cuyo fondo sea contenido, va aquí. */
+.inc-menu .inc-login-mini {
+  border-radius: 50% !important;
+  border: 2px solid var(--btn-line) !important;
+}
+
+.inc-menu .inc-login-mini.active {
+  border-color: var(--accent) !important;
+}
+
+/* ── 3c · EL CURSOR, Y VA AQUÍ POR ORDEN ──
+   Esto se peleó tres veces por especificidad y se perdió tres veces: primero
+   contra `.inc-menu button`, luego contra `.inc-menu .inc-btn`, y otra vez al
+   añadirle un `:not()` al selector de arriba —que lo subió a (0,3,1) sin que
+   nadie se acordara de este bloque—. Subirle una clase cada vez es una
+   carrera que se pierde en el siguiente `:not()`.
+   La salida no es subir otra clase: es que la regla de arriba NO PUEDA
+   competir. Sus calificadores van en `:where()`, que aporta CERO
+   especificidad, así que ese selector vale (0,0,1) —un tipo y nada más— y
+   cualquier `:not()` que se le añada mañana sigue valiendo lo mismo. El
+   cursor, con dos clases, gana siempre y deja de depender de en qué orden se
+   escribió nada. */
+/* El LAVADO que marca dónde estás: el mismo recurso que la fila seguida de
+   la lista de misiones. */
+.inc-menu .inc-btn.nav-cursor,
+.inc-menu .nav-cursor,
+.inc-mg .nav-cursor {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--p-accent-bright) / 0.14),
+    transparent 75%
+  ) !important;
+}
+
+/* Y el cursor pierde el aro: era un `outline` de 2 px, o sea un marco — lo
+   que este bloque entero viene a quitar. Lo que marca dónde estás es el
+   lavado, y una barra a la izquierda que es el mismo hilo puesto de pie. */
+.nav-cursor,
+.inc-menu .inc-btn.nav-cursor,
+.inc-menu .nav-cursor,
+.inc-mg .nav-cursor {
+  outline: none !important;
+  box-shadow: inset 2px 0 0 var(--accent) !important;
+}
+
+
+/* ── 4 · LA TINTA ──
+   Rótulos en mono, versalitas y espaciados, como los títulos de la lista. La
+   SOMBRA DURA es lo que los hace legibles sobre el escenario sin un fondo
+   detrás: es la pieza que permite que no haya caja. El brillo va solo en lo
+   que titula — un párrafo entero brillando no se lee. */
 .inc-menu-logo,
 .inc-login-panel-tag,
 .inc-cv-kicker,
@@ -12761,16 +12857,28 @@ body.inc-acting #hint {
   text-transform: uppercase;
   letter-spacing: 0.18em;
   color: var(--accent);
-  text-shadow: var(--holo-ink-glow);
+  text-shadow:
+    0 2px 0 hsl(var(--p-shadow-hue) / 0.7),
+    var(--holo-ink-glow);
 }
 
-/* ── 4 · EL ANUNCIO DEL CENTRO ──
+/* Y el texto normal de una pantalla sin fondo necesita lo mismo, o se
+   pierde sobre una moqueta clara. Es exactamente lo que hace
+   `.inc-quest-title`. */
+.inc-menu-menu-list,
+.inc-menu-help,
+.inc-cv-card,
+.inc-review-card,
+.inc-login-panel {
+  text-shadow: 0 2px 0 hsl(var(--p-shadow-hue) / 0.7);
+}
+
+/* ── 5 · EL ANUNCIO DEL CENTRO ──
    Era un rótulo de pegatina: cuatro sombras duras negras alrededor, estilo
-   "¡RANGER PELIGROSO!". Legible, sí, pero de otro juego — y es el texto MÁS
+   «¡RANGER PELIGROSO!». Legible, sí, pero de otro juego — y es el texto MÁS
    grande que aparece en pantalla, así que era el que más gritaba que la
-   interfaz no era una sola cosa. Ahora es lo que todo lo demás: proyección.
-   Se mantiene la legibilidad con una caída oscura ancha en vez del contorno,
-   que es lo que de verdad lo despega del piso. */
+   interfaz no era una sola cosa. Ahora es lo mismo que un título de misión,
+   en grande: mono, versalitas, espaciado y su sombra dura. */
 .inc-msg-centro,
 .inc-announce {
   font-family: var(--mono, var(--p-font-mono));
@@ -12780,13 +12888,14 @@ body.inc-acting #hint {
   text-transform: uppercase;
   color: var(--accent);
   text-shadow:
+    0 3px 0 hsl(var(--p-shadow-hue) / 0.8),
     0 0 18px hsl(var(--p-accent-bright) / 0.55),
-    0 0 46px hsl(var(--p-accent-bright) / 0.28),
-    0 6px 30px hsl(var(--p-shadow-hue) / 0.75);
+    0 0 46px hsl(var(--p-accent-bright) / 0.28);
 }
 
-/* Y sus dos hilos, arriba y abajo: es lo que lo convierte en un AVISO de la
-   consola y no en un texto suelto flotando en medio del piso. */
+/* Sus dos hilos, arriba y abajo: el mismo recurso que separa las misiones,
+   y lo que lo convierte en un AVISO de la consola en vez de un texto suelto
+   flotando en medio del piso. */
 .inc-msg-centro::before,
 .inc-msg-centro::after,
 .inc-announce::before,
@@ -12803,25 +12912,38 @@ body.inc-acting #hint {
 .inc-announce[data-tone="warn"] {
   color: var(--warn);
   text-shadow:
-    0 0 18px hsl(var(--p-warn) / 0.55),
-    0 6px 30px hsl(var(--p-shadow-hue) / 0.75);
+    0 3px 0 hsl(var(--p-shadow-hue) / 0.8),
+    0 0 18px hsl(var(--p-warn) / 0.55);
 }
 
 .inc-msg-centro[data-tone="danger"],
 .inc-announce[data-tone="danger"] {
   color: var(--danger);
   text-shadow:
-    0 0 18px hsl(var(--p-danger) / 0.6),
-    0 6px 30px hsl(var(--p-shadow-hue) / 0.75);
+    0 3px 0 hsl(var(--p-shadow-hue) / 0.8),
+    0 0 18px hsl(var(--p-danger) / 0.6);
 }
 
 .inc-msg-centro[data-tone="ok"],
 .inc-announce[data-tone="ok"] {
   color: var(--ok);
   text-shadow:
-    0 0 18px hsl(var(--p-ok) / 0.5),
-    0 6px 30px hsl(var(--p-shadow-hue) / 0.75);
+    0 3px 0 hsl(var(--p-shadow-hue) / 0.8),
+    0 0 18px hsl(var(--p-ok) / 0.5);
 }
+
+/* ── 6 · LAS NOTIFICACIONES ──
+   Sin tarjeta: una barra de color a la izquierda —el hilo puesto de pie— y
+   el texto. Es lo mismo que hace la lista de misiones con la fila seguida,
+   girado 90°. */
+.inc-msg {
+  border-left: 2px solid var(--holo-line) !important;
+  padding-left: 10px;
+}
+
+.inc-msg--danger { border-left-color: var(--danger) !important; }
+.inc-msg--warn { border-left-color: var(--warn) !important; }
+.inc-msg--ok { border-left-color: var(--ok) !important; }
 
 /* ── EL BAILE (game/danceGame.js) ──────────────────────────────────────
    Estirarse es una coreografía, no una tira. Cuatro flechas, la rutina por
@@ -12943,42 +13065,6 @@ body.inc-acting #hint {
   }
 }
 
-/* ── 5 · LO QUE QUEDABA DEL HUD ──
-   Las notificaciones del lado, la placa y el globo de estado seguían siendo
-   tarjetas de app: relleno opaco, esquinas de 14 px y sombra. Al lado de la
-   lista de misiones —que ya era proyección— se veía que eran de dos épocas
-   distintas del proyecto. Es la misma conversión, aplicada al último tercio
-   de la interfaz. */
-.inc-msg,
-.inc-plate,
-.inc-hud-bubble,
-.inc-action,
-.inc-tracker-card {
-  border-radius: var(--radius-sm) !important;
-  background: linear-gradient(180deg, var(--holo-wash-strong), var(--holo-wash)) !important;
-  border: 1px solid var(--holo-line-soft) !important;
-  box-shadow: var(--holo-glow) !important;
-}
-
-/* Una notificación lleva su hilo a la izquierda: es lo que la ancla al
-   borde y lo que dice de qué tipo es sin necesidad de un fondo de color.
-   El `!important` de arriba y este borde conviven porque son propiedades
-   distintas — el atajo va después. */
-.inc-msg {
-  border-left: 2px solid var(--holo-line) !important;
-}
-
-.inc-msg--danger {
-  border-left-color: var(--danger) !important;
-}
-
-.inc-msg--warn {
-  border-left-color: var(--warn) !important;
-}
-
-.inc-msg--ok {
-  border-left-color: var(--ok) !important;
-}
 
 /* Y CON UN MINIJUEGO ABIERTO, EL ANUNCIO SUBE. Vive al 34% de alto, que es
    exactamente donde se dibuja la tarjeta de la tarea: «¡TE VEO!» caía encima
