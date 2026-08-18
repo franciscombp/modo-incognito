@@ -12231,6 +12231,15 @@ body.inc-acting #hint {
   pointer-events: auto;
 }
 
+/* La tarjeta del chisme nació `pointer-events: none` —era un adorno pegado
+   al borde de abajo que solo se respondía con 1-3—, y a pantalla completa
+   eso dejaba el examen del Parce sin contestar con el dedo: las opciones ya
+   son botones, pero los clics les pasaban por encima. Solo DENTRO de la
+   pantalla, que fuera sigue sin poder robar un clic. */
+.inc-mg .inc-chisme {
+  pointer-events: auto;
+}
+
 /* ── LA TARJETA DEL CHISME ─────────────────────────────────────────────
    El minijuego que se juega LEYENDO. Es la única pieza del juego que pide
    un párrafo, así que ocupa más que la tira del pulso — y va en la misma
@@ -12535,5 +12544,45 @@ body.inc-acting #hint {
   .inc-dialogue-drama .inc-dialogue-scrim,
   .inc-dialogue-drama .inc-dialogue-bar {
     transition: none;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL CURSOR DEL MANDO (ui/focusNav.js)
+
+   Una sola regla para TODO lo elegible del juego: menús, opciones de
+   diálogo, respuestas de una tarjeta. Va al final a propósito, por lo
+   mismo que el bloque del botón único — alinea por cascada las familias
+   que ya existían sin tener que perseguirlas por el archivo.
+
+   Se marca con el FILO y un halo, no con un relleno: el relleno es de la
+   opción primaria («esto es lo que vas a pulsar»), y pintar el cursor
+   igual haría que dos cosas distintas se vieran iguales.
+   ═══════════════════════════════════════════════════════════════════════ */
+.nav-cursor {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+/* Las respuestas de una tarjeta son BOTONES desde que se pueden tocar con
+   el dedo: sin esto heredarían la piel de botón del sistema operativo, que
+   es de otro juego. */
+.inc-chisme-opt {
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+}
+
+.inc-chisme-opt:hover {
+  border-color: var(--btn-line);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-cursor {
+    box-shadow: none;
   }
 }

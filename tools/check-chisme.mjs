@@ -131,14 +131,22 @@ const out = await p.evaluate(() => {
   const trasAcierto = st.progress;
 
   // FALLAR RESTA Y HACE RUIDO.
-  st.progress = 0.5 * (st.time || 1);
-  g.suspicion = 10;
-  const susAntes = g.suspicion;
-  const progAntes = st.progress;
-  const malo = (bueno + 1) % 3;
-  const s2 = g.chisme.snapshot();
-  const idxMalo = s2 ? (s2.opciones.length > 1 ? malo : 0) : malo;
-  g.chisme.responder(idxMalo);
+  // Se BUSCA una opción que el módulo dé por mala, en vez de suponer que
+  // «la de al lado de la buena» lo es: acertar CAMBIA DE FICHA, así que el
+  // índice bueno de la tarjeta anterior no dice nada de la nueva y una de
+  // cada tres veces la supuesta mala era la correcta. La prueba fallaba
+  // sola sin que nada del juego estuviera roto.
+  let falloResta = false;
+  let falloHaceRuido = false;
+  for (let i = 0; i < 3; i++) {
+    const progAntes = 0.5 * (st.time || 1);
+    st.progress = progAntes;
+    g.suspicion = 10;
+    if (g.chisme.responder(i) !== "fallo") continue;
+    falloResta = st.progress < progAntes;
+    falloHaceRuido = g.suspicion > 10;
+    break;
+  }
 
   // ── LA PANTALLA COMPLETA, y lo que la hace jugable ──
   // Tapar el piso quita la mitad del juego: ya no VES venir a Gabo, y el
@@ -166,8 +174,8 @@ const out = await p.evaluate(() => {
     mantenido: +mantenido.toFixed(3),
     bossAndó,
     acertoEmpuja: trasAcierto > antesAcierto,
-    falloResta: st.progress < progAntes,
-    falloHaceRuido: g.suspicion > susAntes,
+    falloResta,
+    falloHaceRuido,
     titular: ficha?.titular ?? null,
   };
 });

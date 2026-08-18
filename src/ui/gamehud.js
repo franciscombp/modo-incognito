@@ -336,7 +336,12 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     // pantalla es `pointer-events: none` por defecto — un panel a pantalla
     // completa que se coma los clics rompería la cámara y los menús. Con
     // vasos en marcha hay que poder tocarlos, así que se abre solo entonces.
-    mg.classList.toggle("puntero", !!(state.verter || state.cables || state.microondas));
+    // El chisme y la trivia también: sus opciones son botones, y sin esto
+    // los clics les pasan por encima.
+    mg.classList.toggle(
+      "puntero",
+      !!(state.verter || state.cables || state.microondas || state.chisme || state.trivia)
+    );
     mg.classList.toggle("on", jugando);
     // El <body> lo marca para que la píldora de mandos y el resto de la
     // banda de abajo se aparten, igual que ya hacían con la acción.
@@ -499,9 +504,20 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       chismePregunta.textContent = c.pregunta;
       chismeOpts.textContent = "";
       c.opciones.forEach((texto, i) => {
-        const b = el("span", "inc-chisme-opt", chismeOpts);
+        // BOTONES DE VERDAD, no `<span>`. Eran spans dentro de una pantalla
+        // `pointer-events: none`, así que el examen del Parce no se podía
+        // contestar ni con el ratón ni con el dedo: solo con 1-3, que en un
+        // teléfono no existen. Un `<button>` además entra solo en el cursor
+        // del mando (ui/focusNav.js) sin que haya que registrarlo.
+        const b = el("button", "inc-chisme-opt", chismeOpts);
+        b.type = "button";
         el("b", null, b).textContent = String(i + 1);
         el("span", null, b).textContent = texto;
+        b.addEventListener("click", () => {
+          const g = window.__game?.engine?.game;
+          if (g?.trivia?.active) g.trivia.responder(i);
+          else if (g?.chisme?.active) g.chisme.responder(i);
+        });
       });
     }
     // El destello de acierto/fallo sí va por cuadro: es lo que hace que

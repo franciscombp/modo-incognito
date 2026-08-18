@@ -28,6 +28,7 @@ import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./g
 import { createPopups } from "./ui/popups.js";
 import { createStage, applyStageScale, stageScale, STAGE_W, STAGE_H } from "./ui/stage.js";
 import { controlsLine } from "./ui/controls.js";
+import { createFocusNav } from "./ui/focusNav.js";
 import { isMutedState, setMuted, getVolume, unmute } from "./game/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
 import { initTheme } from "./game/theme.js";
@@ -451,6 +452,7 @@ async function boot() {
     if (engine.minimap.isOpen !== inspectMode) engine.minimap.toggle();
   }
 
+  const focusNav = createFocusNav();
   createTouchControls(player, app, {
     onZoom: (delta) => view.zoomBy(delta),
     onInspect: toggleInspect,
@@ -777,6 +779,11 @@ async function boot() {
     const dt = Math.min((now - last) / 1000, 0.05);
     last = now;
     const t = now / 1000;
+
+    // EL CURSOR, fuera de todo lo demás: se sondea aunque el juego esté en
+    // pausa o en una escena aparte, porque justo entonces es cuando hay un
+    // menú que recorrer. Si no hay nada abierto no hace nada.
+    focusNav.update(dt);
 
     // Cruzar la avenida es una escena 3D aparte con su propio bucle de
     // dibujado (ver crossing3d.js): mientras dura, el piso ni se actualiza

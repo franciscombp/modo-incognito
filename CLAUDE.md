@@ -1068,6 +1068,31 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   en ESPACIO, y las teclas `1`–`3` no estaban documentadas en ninguna parte.
   Quien leía la ayuda pulsaba una tecla muerta y concluía que el juego estaba
   roto. Si añades un atajo, va a esa lista; el rótulo se genera solo.
+- **TODO LO QUE SE ELIGE SE RECORRE CON UN SOLO CURSOR** (`src/ui/focusNav.js`).
+  Menús, opciones de una charla y respuestas de una tarjeta: flechas para
+  moverse, Enter para aceptar, y por la misma puerta entran la cruceta y la
+  palanca de un mando físico. Vino de un fallo concreto: las preguntas del
+  Parce eran `<span>` dentro de una pantalla `pointer-events: none`, así que
+  solo se podían contestar con 1-3 — que en un teléfono no existen. **Una
+  opción se pinta SIEMPRE con `<button>`**: así entra sola en el cursor, en
+  el táctil y en el ratón sin registrarla en ninguna parte.
+  Tres cosas que costaron:
+  - **El grupo activo se BUSCA en el DOM por prioridad**, no hay registro que
+    mantener. Una pantalla nueva no tiene que enterarse de que esto existe.
+  - **El teclado se escucha EN CAPTURA y el evento se corta.** `player.js` ya
+    hace `preventDefault()` en las flechas (para que la página no scrollee) y
+    se registra antes, así que mirando `defaultPrevented` el cursor no se
+    movía nunca. Y las flechas TAMBIÉN caminan: sin cortar el evento, elegir
+    una respuesta te sacaba andando del minijuego mientras la elegías.
+  - **La pantalla del minijuego se abre al puntero por verbo**
+    (`.inc-mg.puntero`), y la tarjeta del chisme nació `pointer-events: none`
+    — los clics le pasaban por encima aunque sus opciones ya fueran botones.
+  El mando en pantalla del móvil NO entra aquí: los menús lo esconden
+  (`body.menu-open .touch-controls`), y ahí se toca la opción directamente.
+  Lo vigila `npm run check:mandos`, que a propósito NO mira una captura: una
+  tarjeta con tres opciones se ve idéntica se pueda pulsar o no, así que
+  hace un clic de ratón de verdad, pulsa teclas de verdad y pasea el cursor
+  de verdad.
 - **NINGÚN icono es un emoji.** Un emoji lo dibuja la fuente del sistema: el
   mismo ☕ es una taza blanca en un iPhone, marrón en Android, plana en
   Windows, y en algunas plataformas sale un cuadro vacío. Desde el juego eso

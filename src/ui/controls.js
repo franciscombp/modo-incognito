@@ -33,6 +33,17 @@ export const CONTROLES = [
   // nueva que aprender — y por eso funciona en el teléfono sin tocar nada.
   { teclas: ["WASD", "↑↓←→"], que: "Ajustar la acción (bajar el volumen…)", corto: "WASD ajustar acción", tactil: "joystick", donde: "game/gestures.js" },
   { teclas: ["1", "2", "3"], que: "Seguir una misión", corto: "1–3 seguir misión", donde: "ui/gamehud.js" },
+  // EL CURSOR. Todo lo que se elige —menús, opciones de una charla,
+  // respuestas de una tarjeta— se recorre igual, y por el mismo sitio salen
+  // la cruceta y la palanca de un mando físico. Un juego que solo se puede
+  // terminar con el ratón no está terminado.
+  {
+    teclas: ["↑↓←→", "Enter"],
+    que: "Elegir en un menú o responder una pregunta",
+    corto: "↑↓←→/Enter elegir",
+    tactil: "toca la opción",
+    donde: "ui/focusNav.js",
+  },
   { teclas: ["M"], que: "Inspeccionar el plano", corto: "M plano", tactil: "botón MAPA", donde: "main.js" },
   { teclas: ["L"], que: "La libreta (chismes y pistas)", corto: "L libreta", donde: "game/engine.js" },
   { teclas: ["V"], que: "Silenciar el sonido", corto: "V sonido", donde: "main.js" },
