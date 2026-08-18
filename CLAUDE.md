@@ -233,6 +233,22 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
   ajustes. **Una actividad juega a uno de los dos, nunca a los dos**: si
   declara `gesto`, juega al gesto; si no, al pulso. Pedir ritmo y pulso firme
   a la vez con el jefe rondando no es difícil, es ruido.
+- `src/game/danceGame.js` — EL BAILE, el sexto verbo: estirarse es una
+  COREOGRAFÍA. Sale una rutina de flechas, se ven venir las siguientes, y se
+  pulsan en orden con ↑↓←→. Existe porque estirarse jugaba al PULSO —la misma
+  tira de media docena de tareas, y la que peor contaba lo que estás
+  haciendo: nadie se estira apretando un botón en el momento justo—. Se
+  parametriza desde `activities[].baile` (`pasos`, `compas`, `ruido`).
+  **EL COMPÁS NO ESPERA**: el paso se va lo hagas o no, y eso es lo único que
+  separa un baile de un formulario. Fallar hace RUIDO pero nunca te expulsa,
+  como el chisme y los vasos. Teclado, dedo y cruceta acaban los tres en
+  `pulsar(dir)`. Lo vigila `npm run check:baile`.
+
+  ⚠️ **Los verbos son SEIS y hay listas que lo saben.** `check:minijuego`
+  preguntaba «¿tiene `pulso` o `gesto`?» y se quedó viejo en silencio: al
+  pasar estirarse al baile dejó de ver la única actividad jugable sin recados
+  y falló sin que nada del juego estuviera roto. Si añades un verbo, búscalo
+  también en `tools/`.
 
 **EL BUCLE v2 DE UNA ACTIVIDAD: conseguir → activar → aguantar.** El contrato
 cambió (decisión de diseño explícita, agosto 2026) y las tres fases se
@@ -546,6 +562,47 @@ el rol de «filo» está partido en DOS en la capa 2:
 
 Se hizo en la capa 2 y no en los 88 sitios que pintaban un marco. Si añades un
 panel, NO le pongas borde: separa con `--rule` o no separes.
+
+### EL HOLOGRAMA: la interfaz entera es una proyección
+
+**No hay cajas, y ahora tampoco hay esquinas blandas.** La lista de misiones
+ya se veía así —hilo fino, brillo, sin marco— y era la ÚNICA pieza que lo
+hacía: menús, hoja de vida, selección de personaje, evaluación,
+notificaciones y el anuncio grande seguían siendo tarjetas redondeadas con
+relleno, de otra época del proyecto, así que el juego se leía como dos juegos
+pegados con cinta.
+
+Un holograma son CUATRO cosas, y ninguna es un marco:
+
+1. un VIDRIO casi transparente (`--holo-wash`) — si se ve opaco vuelve a ser
+   una caja;
+2. ESCUADRAS en las esquinas en vez de borde: delimitan sin encerrar;
+3. el HILO (`--holo-line`) para separar, la gramática que ya traía la lista;
+4. BRILLO en la tinta (`--holo-ink-glow`), que es lo que separa «luminoso» de
+   «coloreado» — y va SOLO en lo que titula: un párrafo entero brillando no
+   se lee.
+
+Se reparte por las tres capas de siempre: `--p-radius` (capa 1) baja a **2px**
+en el tema `terminal` —una proyección de consola no tiene esquinas blandas, y
+eran los 14px los que hacían que cada pantalla se leyera como una tarjeta de
+app—, los roles `--holo-*` viven en la capa 2, y la piel es **un bloque al
+final del archivo**, por lo mismo que el del BOTÓN ÚNICO: alinea por cascada
+las familias históricas sin perseguir 217 `border-radius` por el archivo.
+Editar cada una «en su sitio» es lo que las dejó separarse.
+
+`cozy` conserva sus cantos redondos: para eso es otro tema, y `check:theme`
+sigue verde porque todo sale de la capa 2.
+
+**Si añades una pantalla, no le pongas fondo ni borde propios**: dale
+`.holo`, o súmala a la lista de ese bloque. Un fondo opaco nuevo es una
+tarjeta de app, y se nota al lado de las demás.
+
+**El ANUNCIO DEL CENTRO también.** Era un rótulo de pegatina con cuatro
+sombras duras negras («¡RANGER PELIGROSO!»): es el texto más grande que sale
+en pantalla, o sea el que más gritaba que la interfaz no era una sola cosa.
+Y **con un minijuego abierto SUBE** (`body.inc-minijuego`): al 34% de alto
+caía justo encima de la tarjeta de la tarea y tapaba el paso que toca, en el
+momento en que más falta hace leerlo.
 
 **La regla que no se rompe: ningún componente escribe un color.** Ni `white`,
 ni `rgba(255,255,255,…)`, ni un hex. Si falta un color, se añade a la capa 1.
@@ -874,8 +931,34 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   jefe, que era de MEDIA unidad de plano — medio puesto de trabajo de un
   cuadro al siguiente, y encima justo cuando lo estás mirando. Colocar a
   alguien de golpe solo vale AL MONTAR EL PISO, antes de que nadie mire.
+- **UN VIGILANTE NO ENTRA EN UNA SALA. NUNCA.** Una sala (`areas` con
+  `kind: "meeting"`, salas de reuniones y baños) es un ESCONDITE, y un
+  escondite en el que el jefe puede entrar no es un escondite. Se sostiene
+  con TRES piezas, y hacen falta las tres:
+  - **Un navmesh propio** (`buildNavmesh(world, { excluir })`, `navVigilancia`
+    en main.js). Aparte y no una regla suelta: con el mismo plano, el A*
+    seguiría trazando la ruta por dentro y el jefe se pasaría el día
+    empujando un tabique.
+  - **Las RONDAS se pegan a ESE plano**, no al general. Un punto de ronda que
+    caiga dentro de una sala es un jefe empujando la pared el día entero y
+    avanzando un palmo cada diez segundos: parece que se colgó la IA.
+  - **Una red de seguridad al final del cuadro** (`_salirDeVetada`). El cuerpo
+    se mueve desde CUATRO sitios —el paso, los dos deslizamientos que bordean
+    un mueble y el empujón del anti-atasco—; guardando solo el primero se
+    colaba por los otros: medido, 607 cuadros dentro de una sala en una tanda.
+  Y si tu objetivo cae dentro, **el objetivo pasa a ser LA PUERTA**
+  (`navmesh.snap`): sin eso el A* devuelve «no hay ruta» —el destino no
+  existe en su plano—, se lanza en línea recta y se clava contra el primer
+  mueble, que se lee como que se rindió. Lo vigila `npm run check:salas`.
+  Ojo con lo que NO se puede probar conduciendo una persecución: dentro de
+  una sala estás en un lugar seguro y el motor CORTA la caza cada cuadro, así
+  que ahí no hay nada que medir — la ronda se comprueba en el plano.
 - **El día 1 abre con GABO SENTADO** (`rules.gate.sentadoEn`, un id de
-  `safeSpots`). La primera misión no es una persecución: está reunido, se le
+  `puestos` — o de `safeSpots`, que se mira después). Su puesto está FUERA de
+  las salas, en una mesa de las de en medio: sentado en la Sala 1 estaba
+  plantado dentro de tu escondite Y encerrado, por lo de arriba. `puestos` es
+  una lista aparte a propósito: un safeSpot es donde te escondes TÚ.
+  La primera misión no es una persecución: está en su puesto, se le
   ve desde el otro lado del piso y vas a hablarle. Sentado SIGUE MIRANDO
   —cono, halo y sospecha funcionan igual—; lo único congelado es que ande, y
   el detector de atascos se salta (si no, lo daba por encajado contra un
