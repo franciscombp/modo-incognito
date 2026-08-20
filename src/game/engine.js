@@ -783,6 +783,23 @@ export function createEngine({
       onPopup,
       onTalk: (npc, opts) => talkTo(npc, opts),
       onWarn: (info) => handleWarn(info),
+      // LA VOZ DEL AVISO. `softWarnings` vivía en la amonestación, donde le
+      // quitaba peso al golpe; aquí es lo que siempre pareció — la pulla
+      // que te suelta al pasar por al lado. Rota sin repetir la anterior:
+      // el aviso es el beat que más veces se ve en una jornada, y oír dos
+      // veces seguidas la misma frase lo convierte en un rótulo.
+      onAviso: () => {
+        const pozo = dialogues.encounters.jefe?.softWarnings ?? [];
+        if (!pozo.length) return null;
+        let i = Math.floor(Math.random() * pozo.length);
+        if (pozo.length > 1 && i === ultimoAviso) i = (i + 1) % pozo.length;
+        ultimoAviso = i;
+        // Es un RÓTULO, no una conversación: se toma la primera línea de la
+        // escena y se pinta en grande. Abrir una caja de diálogo aquí se
+        // comería los segundos de margen que el aviso existe para darte.
+        const texto = pozo[i]?.[0]?.text;
+        return texto ? texto.toUpperCase() : null;
+      },
       onHeatAlert: () => showHeatAlert(),
     });
 
@@ -1008,6 +1025,25 @@ export function createEngine({
   const BOSS_GRACE_AFTER_WARN = 5;
 
   /** El jefe te aborda de verdad: diálogo de regaño y luego un respiro. */
+  /**
+   * El pozo de las amonestaciones. Aparte porque lo leen DOS sitios: el
+   * regaño de cada amonestación y el cierre por RRHH, que juega la última.
+   * Escrito dos veces se separa, y entonces la tercera escena deja de ser
+   * la continuación de las otras dos.
+   *
+   * `warnScenes` es su pozo PROPIO: las `scenes` son charla de pasillo, y
+   * regañarte con un «te ves concentrada, sigue así» era el bug más
+   * desconcertante del juego.
+   */
+  function elegirWarnScenes(encounter) {
+    if (encounter?.warnScenes?.length) return encounter.warnScenes;
+    if (encounter?.scenes?.length > 1) return encounter.scenes.slice(1);
+    return encounter?.scenes ?? [];
+  }
+
+  /** El último aviso soltado, para no repetirlo dos veces seguidas. */
+  let ultimoAviso = -1;
+
   async function handleWarn({ warnings }) {
     if (warnings === game.rules.maxWarnings) return; // el outro de "despedida" ya cubre este caso
     // Si la ALARMA de nivel 3 estaba en pantalla, se cierra sola: acaban de
@@ -1023,33 +1059,30 @@ export function createEngine({
       return;
     }
 
-    // Decide: formal warning or casual intimidation? More casual as warnings pile up.
-    const softChance = warnings === 1 ? 0 : warnings === 2 ? 0.3 : 0.6;
-    const useSoft = Math.random() < softChance && encounter.softWarnings?.length;
-
+    // CADA AMONESTACIÓN TIENE LA SUYA, Y SIEMPRE LA MISMA.
+    //
+    // Esto sorteaba entre la escena formal y una pulla suelta de
+    // `softWarnings`, con la probabilidad SUBIENDO con el número de
+    // amonestaciones (0 / 0,3 / 0,6). O sea que el juego se volvía más
+    // CASUAL justo según se ponía más serio, y en la segunda —la que te
+    // deja a una de RRHH— había un 30 % de que Gabo soltara «y la de
+    // trabajar, ¿te la sabes?» y nada más. La gravedad del momento salía
+    // a cara o cruz, y una escalada que se sortea no es una escalada.
+    //
+    // Ahora la escena la elige EL NÚMERO: la primera es burocrática (la
+    // apunta, va a la carpeta), la segunda es personal (se lo toma a
+    // pecho) y la tercera ya no es él, es la máquina. Ese es el arco, y
+    // estaba escrito — solo que no se veía.
+    //
+    // Las pullas de `softWarnings` no se pierden: se van al AVISO, que es
+    // donde de verdad son intimidación de pasillo (ver `game.onAviso`).
     const persona = dialogues.cast.jefe;
-    let scene;
-
-    if (useSoft) {
-      // Casual intimidation line
-      const idx = Math.floor(Math.random() * encounter.softWarnings.length);
-      scene = encounter.softWarnings[idx];
-    } else {
-      // La amonestación FORMAL sale de su propio pozo (`warnScenes`): las
-      // `scenes` son charla de pasillo, y regañarte con un "te ves
-      // concentrada, sigue así" era el bug más desconcertante del juego.
-      // Sin pozo propio (contenido viejo), se cae a las scenes saltando la
-      // bienvenida, como antes.
-      const warnScenes =
-        encounter.warnScenes?.length
-          ? encounter.warnScenes
-          : encounter.scenes.length > 1
-            ? encounter.scenes.slice(1)
-            : encounter.scenes;
-      const seen = save.getFlag("talk:jefe_warn") ?? 0;
-      save.setFlag("talk:jefe_warn", seen + 1);
-      scene = warnScenes[seen % warnScenes.length];
-    }
+    // Sin pozo propio (contenido viejo), se cae a las scenes saltando la
+    // bienvenida, como antes.
+    const warnScenes = elegirWarnScenes(encounter);
+    // `warnings` es 1-based; la última se queda para quien llegue al final
+    // aunque el pozo sea más corto que el cupo.
+    const scene = warnScenes[Math.min(warnings, warnScenes.length) - 1];
 
     faceEachOther(boss);
     await withPause(
@@ -1105,8 +1138,22 @@ export function createEngine({
       playStinger("defeat");
       const strikes = save.getFlag("rrhh") ?? 0;
       save.setFlag("rrhh", strikes + 1);
+      // LA TERCERA AMONESTACIÓN SE VE. Estaba escrita —«¡OTRA VEZ! Esto ya
+      // es una relación. Una tóxica...  La próxima te asciendo a cliente»—
+      // y no se jugaba nunca: `handleWarn` se corta en seco al llegar al
+      // cupo (el outro cubre ese caso), así que el arco de las tres se leía
+      // 1 → 2 → corte a negro, y el remate del chiste moría sin decirse.
+      //
+      // Va aquí y no en `handleWarn` a propósito: `_warn()` llama a
+      // `onWarn` y en la línea siguiente cierra el día, así que las dos
+      // conversaciones se pisarían. Aquí es UNA sola, y en orden: primero
+      // él, y después la máquina.
+      const persona = dialogues.cast.jefe;
+      const pozo = elegirWarnScenes(dialogues.encounters.jefe);
+      const suya = pozo[pozo.length - 1] ?? [];
       await dialogue.play(
         withSprites([
+          ...suya.map((node) => ({ color: persona?.color, sheet: persona?.sheet, ...node })),
           {
             speaker: "Gabo (Barbie Malibú)",
             text: "Tres amonestaciones. No te despido porque el proceso es LARGUÍSIMO: te mando al curso de cumplimiento. Otra vez.",

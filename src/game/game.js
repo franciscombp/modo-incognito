@@ -280,6 +280,7 @@ export class Game {
     onPopup = null,
     onTalk = null,
     onWarn = null,
+    onAviso = null,
     onHeatAlert = null,
   }) {
     this.player = player;
@@ -288,6 +289,10 @@ export class Game {
     this.minions = minions;
     this.onTalk = onTalk;
     this.onWarn = onWarn;
+    // Qué le suelta el jefe al ACERCARSE (el primer tiempo, antes de la
+    // amonestación). Devuelve texto o null; lo pone engine.js desde los
+    // datos, para que el motor no sepa de diálogos.
+    this.onAviso = onAviso;
     this.onHeatAlert = onHeatAlert;
     this.hud = hud;
     this.canvas = canvas;
@@ -2321,7 +2326,16 @@ export class Game {
 
     this._avisoGracia = AVISO_GRACIA;
     this._avisoCooldown = AVISO_COOLDOWN;
-    this.announce("¿NECESITAS ALGO? ¿NO DEBERÍAS ESTAR TRABAJANDO?", "warn");
+    // EL AVISO TIENE VOZ. Era un rótulo fijo —siempre la misma frase— para
+    // el beat que más se repite del día, y encima el único de Gabo en el
+    // que no dice nada suyo. Las pullas de `softWarnings` estaban puestas
+    // en la AMONESTACIÓN, donde le quitaban gravedad al momento; aquí son
+    // exactamente lo que dicen ser: intimidación de pasillo.
+    //
+    // Sigue siendo un rótulo y no una conversación: el aviso da unos
+    // segundos de margen para volver a tu puesto, y abrir una caja de
+    // diálogo se comería justo ese margen.
+    this.announce(this.onAviso?.() ?? "¿NECESITAS ALGO? ¿NO DEBERÍAS ESTAR TRABAJANDO?", "warn");
     this.toast("Vuelve a tu puesto antes de que se dé la vuelta.");
     // Se queda mirándote los segundos de la gracia en vez de seguir su
     // ronda: un aviso al que le das la espalda no es un aviso.

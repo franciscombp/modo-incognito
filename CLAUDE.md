@@ -1112,11 +1112,36 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   segundos de GRACIA —el margen literal para volver a tu sitio— y, si sigues
   suelta al acabar, «¡TE VEO!» y arranca la caza. Antes chocarte con él con
   la sospecha baja no hacía absolutamente nada y se leía como un juego roto.
+  **Y el aviso HABLA**: el rótulo sale de `softWarnings` (`game.onAviso`, que
+  lo pone engine.js desde los datos) y no repite la pulla anterior. Es el
+  beat que más veces se ve en una jornada y era una frase fija.
+- **LAS TRES AMONESTACIONES SON UNA ESCALADA, y se ven las tres.** La escena
+  la elige EL NÚMERO, nunca un sorteo: la primera es burocrática (la apunta,
+  y NOMBRA el cupo y el curso que hay al final), la segunda es personal, y la
+  tercera ya no es él — es RRHH. Dos cosas que estaban rotas y no se veían:
+  la tercera escena no se jugaba NUNCA (`handleWarn` se corta al llegar al
+  cupo, así que ahora la juega `finishDay` antes de la línea de RRHH, y las
+  dos vías leen el mismo pozo con `elegirWarnScenes`), y la segunda se
+  sorteaba contra una pulla suelta con probabilidad CRECIENTE — el juego se
+  volvía más casual justo según se ponía más serio. Lo vigila
+  `npm run check:amonestaciones`, que lo comprueba leyendo el código (que no
+  haya dado es una regla de guion) Y jugándolo (que la frase salga).
 - **En un LUGAR SEGURO los halos RETROCEDEN.** Cortar la persecución no
   basta: los conos se quedaban rojos encima de ti justo donde no pueden
   tocarte. Entrar enfría la vigilancia de todos deprisa
   (`SAFE_COOLDOWN_MUL`) y baja los `redAlert`, así que el halo se apaga solo
   — que es lo que dice «llegaste».
+  **Y EL QUE TE SEGUÍA SE VA** (`Boss.giveUpFollow`, en el flanco de entrar).
+  Un secuaz no PERSIGUE, SIGUE: vive en INVESTIGATE y no en CHASE, así que
+  `breakPursuit()` —que solo mira CHASE, SEARCH y `lockedOn`— nunca lo
+  soltaba, y te sentabas en tu puesto con el jefe alejándose y Crispo
+  plantado a un palmo mirándote fingir. Bajarle el `localHeat` por debajo de
+  su umbral es parte IMPRESCINDIBLE de irse, no un extra: por encima, el
+  propio INVESTIGATE le vuelve a apuntar el objetivo a tu posición en el
+  cuadro siguiente y la retirada se deshace en el frame en que se ordena.
+  Queda justo por debajo y no a cero — la sospecha ganada no se borra porque
+  te sientes un segundo. Lo vigila `npm run check:sentarse`, que mide que se
+  ALEJA: un número que baja no es una escena.
 - **UN ESCONDITE PIDE SOLTAR EL MANDO.** Estar dentro no basta: solo cubre
   si te quedas QUIETA (`_updateHiding` mira `player.readIntent()`, no la
   velocidad — contra una pared la velocidad es cero y el hueco sería «entro
@@ -1284,6 +1309,25 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   DOM en cada frame porque todos cambian de tamaño con la pantalla; reservar
   una banda fija solo acierta en un tamaño. `npm run check:layout` es lo que
   lo vigila.
+- **EL PULGAR NAVEGA LOS MENÚS.** El cursor (`ui/focusNav.js`) es UNO para
+  todo lo que se elige, y la palanca de pantalla entra por `empujar` —no por
+  `mover`— para heredar la zona muerta y la repetición del mando físico:
+  escrito aparte, el cursor se movería distinto según con qué lo muevas. En
+  un menú el pulgar es del CURSOR y no de los pies, y el botón de acción
+  ACEPTA. Y el mando **se queda en pantalla**, encogido a una esquina
+  (`body.inc-nav-touch`): estaba `display: none` con cualquier menú abierto,
+  que era la otra mitad de por qué en un teléfono no se podía navegar —
+  aunque el pulgar mandara sobre el cursor, no había pulgar. No vuelve a su
+  tamaño de partida a propósito: la zona del stick ocupa MEDIA PANTALLA y ahí
+  se comería los toques de los botones del propio menú. Lo vigila
+  `npm run check:pulgar`, en un teléfono de verdad y con toques de verdad.
+- **NADA SE PISA CON NADA** (`npm run check:encimados`). Compara los
+  rectángulos de las piezas del HUD entre sí, que es otra cosa que
+  `check:layout` —ese mira que nada se SALGA del lienzo, y dos piezas pueden
+  caber las dos y estar una encima de la otra. El anuncio del centro es de la
+  BANDA, no de las esquinas: entraba en la lista de misiones, y estrecharlo
+  salió peor (a 477 px el rótulo se parte en tres líneas y tapa el reloj).
+  El conflicto era de ALTURA, no de ancho.
 - **LOS MANDOS SALEN DE UN SOLO SITIO** (`src/ui/controls.js`). Estuvieron en
   tres, y los tres se separaron: la píldora de bienvenida era HTML fijo en
   `index.html` —y encima se apaga en cuanto te mueves, así que a los diez
