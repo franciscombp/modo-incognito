@@ -1076,6 +1076,47 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   Ojo con lo que NO se puede probar conduciendo una persecución: dentro de
   una sala estás en un lugar seguro y el motor CORTA la caza cada cuadro, así
   que ahí no hay nada que medir — la ronda se comprueba en el plano.
+- **UN PUNTO DE UN JSON PUEDE SER UN POZO.** El sitio donde el día 1 planta
+  a Gabo para recibirte estuvo en (-3.8, -6.7) y ahí NO PODÍA ANDAR: giraba,
+  miraba y sospechaba igual, pero medido daba 0,6 unidades en cinco segundos
+  con cualquier destino, con correa y sin ella. O sea que la escolta de
+  apertura no ocurría nunca y el día abría con un jefe de estatua en la
+  puerta, sin un solo error por ningún lado. Una unidad de plano más allá
+  anda las 16 hasta el puesto. Si mueves un punto de spawn, MÍDELO:
+  `npm run check:escolta` barre la zona igual que `check:doors` con las
+  puertas.
+  **Y mientras te acompaña NO te vigila** (`_esperandoPuesto` corta
+  `_updateBossApproach`, y `clearGate` le da `ESCOLTA_GRACIA`): durante la
+  escolta vas pegada a él por definición, así que sin eso el día abría con
+  una caza tres segundos después de saludarte.
+- **LOS TRASLADOS LARGOS SE HACEN CON UN CORTE** (`ui/transition.js`).
+  `player.walkTo` va en LÍNEA RECTA, no por el navmesh: sirve para dos mesas
+  y es una lotería para cruzar el piso — una maceta en medio te deja
+  empujándola con el control bloqueado, que desde fuera se ve igual que un
+  juego colgado. `seatAtDesk` decide por distancia: cerca te lleva andando
+  (la escena se ve), lejos baja el telón y al subir ya estás. Detrás del
+  telón no hay teletransporte que ver — la regla habla de lo que el ojo ve.
+  El paseo corto lleva además un plazo, por si se atasca igual.
+- **QUIEN SE SIENTA MIRA HACIA DONDE MIRA LA SILLA**, y el rumbo se escribe
+  AL LLEGAR. Estaba puesto en el frame en que se reclama el asiento —o sea
+  ANTES de andar hasta él— y el propio paseo lo pisa: `player.update` gira el
+  cuerpo hacia donde camina, cada cuadro. Acercarte al puesto por detrás te
+  sentaba de espaldas a la mesa. El último que escribe un rumbo es el que se
+  ve, igual que con los huesos de una pose.
+- **A CADA QUIEN SE LE CONOCE CUANDO APARECE.** La apertura del día 1 tenía
+  DIECISÉIS líneas antes de poder tocar nada, y cuatro eran el pase de lista
+  de los secuaces contado en abstracto por Gabo… treinta segundos antes de
+  que Crispo llegue a presentarse en persona y diga lo mismo mejor y con su
+  voz. Ahora son ocho: el guion planta el sitio, el jefe y la amenaza, y del
+  resto se encarga cada uno con su `escenas.bienvenida`. Los mandos NO se
+  explican en un diálogo — para eso está la píldora, y contados dos veces se
+  quedan viejos. Lo vigila `npm run check:apertura-guion`, que mira las dos
+  mitades: que no vuelva a crecer, y que lo cortado siga llegando.
+- **EL BOTÓN DE ACCIÓN TAMBIÉN CONVERSA** (`dialogue.avanzar`). En un
+  teléfono el dedo vive en ese botón; la caja se pasaba solo tocándola, así
+  que una charla de doce líneas eran doce viajes del pulgar. Durante un
+  diálogo se queda el botón y se va el resto del mando: en una conversación
+  no se camina.
 - **El día 1 abre con GABO RECIBIÉNDOTE EN LA PUERTA**
   (`rules.gate.esperaEn`, un id de `puestos`; `sentadoEn` sigue soportado y
   se mira después). Está DE PIE delante del ascensor (`boss.waitAt()`: como

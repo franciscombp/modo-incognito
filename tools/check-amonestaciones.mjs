@@ -152,6 +152,13 @@ await p.evaluate(() => {
   const g = window.__game.engine.game;
   g.setPaused(false);
   g.clearGate();
+  // LA ESCOLTA, YA VIVIDA. Superar la puerta del día pone a Gabo a llevarte
+  // al puesto, y MIENTRAS TE ACOMPAÑA NO TE VIGILA: `_updateBossApproach` se
+  // corta entero, así que el aviso no llega a pintarse y lo que quedaba en
+  // pantalla era el anuncio de la escolta. La prueba lo leía como si fuera
+  // la pulla del jefe e informaba «repite» — con el juego haciendo justo lo
+  // que debe. Aquí se mide el aviso, así que la escolta se da por terminada.
+  g._esperandoPuesto = false;
 });
 
 // ── El AVISO habla, y no repite ──
