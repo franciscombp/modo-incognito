@@ -61,44 +61,85 @@ await p.evaluate(() => {
   g.setPaused(false);
 });
 
-// ── 1 · Gabo arranca SENTADO, y en el sitio que dice el nivel ──
+// ── 1 · Gabo TE RECIBE EN LA PUERTA ──
+// Antes empezaba sentado y la primera misión era ir a buscarlo. Ahora está
+// de pie delante del ascensor esperándote: sales, le saludas, y te lleva.
+// Un primer día no empieza buscando a tu jefe por la oficina.
 const inicio = await p.evaluate(() => {
   const g = window.__game.engine.game;
   const S = window.__floorplan.WORLD_SCALE;
-  // El id puede ser un PUESTO o un safeSpot, en ese orden — el mismo que
-  // usa el motor. Su puesto se mudó a una mesa de fuera: sentado en una
-  // sala estaba plantado dentro de tu escondite, y encerrado además.
-  const sala = g.gate?.sentadoEn;
+  const donde = g.gate?.esperaEn ?? g.gate?.sentadoEn;
   const sp =
-    window.__floorplan.puestos.find((s) => s.id === sala) ??
-    window.__floorplan.safeSpots.find((s) => s.id === sala);
-  // Se le dejan correr cuadros: sentado NO debe andar ni un palmo.
+    window.__floorplan.puestos.find((s) => s.id === donde) ??
+    window.__floorplan.safeSpots.find((s) => s.id === donde);
+  const ascensor = window.__floorplan.areas.find((a) => a.kind === "elevator");
+  // Se le dejan correr cuadros: esperando NO debe andar ni un palmo.
   const x0 = g.boss.position.x;
   const z0 = g.boss.position.z;
   for (let i = 0; i < 120; i++) g.update(1 / 60);
   return {
-    sala,
+    donde,
+    esperando: g.boss.esperando === true,
     sentado: g.boss.seated === true,
     quieto: Math.hypot(g.boss.position.x - x0, g.boss.position.z - z0) < 0.01,
-    enLaSala: sp
+    enSuSitio: sp
       ? Math.hypot(g.boss.position.x - sp.x, g.boss.position.z - sp.z) < (sp.radius ?? 2 * S) * 2
+      : false,
+    // Y CERCA DE LA PUERTA: el sitio importa, no solo que no se mueva. Si el
+    // punto se mudara al otro lado del piso, todo lo de arriba seguiría en
+    // verde y la escena habría dejado de existir.
+    aLaPuerta: ascensor
+      ? Math.hypot(g.boss.position.x - ascensor.x, g.boss.position.z - ascensor.z) < 8 * S
       : false,
   };
 });
-check("Gabo empieza SENTADO, no patrullando", inicio.sentado === true, JSON.stringify(inicio));
-check("y sentado no se mueve del sitio", inicio.quieto === true, JSON.stringify(inicio));
-check("en el puesto que dice el nivel, y FUERA de las salas", inicio.enLaSala === true, JSON.stringify(inicio));
+check(
+  "Gabo te RECIBE de pie, no sentado ni patrullando",
+  inicio.esperando === true && inicio.sentado === false,
+  JSON.stringify(inicio)
+);
+check("y esperando no se mueve del sitio", inicio.quieto === true, JSON.stringify(inicio));
+check(
+  "en el punto que dice el nivel, y JUNTO AL ASCENSOR",
+  inicio.enSuSitio === true && inicio.aLaPuerta === true,
+  JSON.stringify(inicio)
+);
 
-// ── 2 · Hablarle lo levanta y te manda a tu puesto ──
+// ── 2 · Saludarle y que TE LLEVE ──
 const trasHablar = await p.evaluate(() => {
   const g = window.__game.engine.game;
+  const mesa = window.__floorplan.safeSpots.find((s) => s.kind === "desk");
+  const antes = Math.hypot(g.boss.position.x - mesa.x, g.boss.position.z - mesa.z);
+  // CIEGO PARA ESTA MEDIDA. Lo que se mide es la ESCOLTA, y aquí la jugadora
+  // se queda plantada en mitad del pasillo sin moverse: Gabo la ve fuera de
+  // sitio, se pone a investigarla y acaba persiguiéndola, y eso pisa el
+  // acompañamiento. Con él viendo, lo que mediría esta prueba es su reacción
+  // a un montaje que ninguna persona reproduce — jugando, le sigues.
+  g.boss._updateVision = function () {
+    this.playerVisible = false;
+    this.redAlert = false;
+  };
   g.clearGate();
-  for (let i = 0; i < 30; i++) g.update(1 / 60);
-  return { sentado: g.boss.seated === true, esperandoPuesto: g._esperandoPuesto === true };
+  // Se le dan cuadros para que ECHE A ANDAR. Lo que se mide no es que diga
+  // «ve a tu puesto» —eso es una línea de texto— sino que se ponga en camino:
+  // «te lleva» tiene que verse.
+  for (let i = 0; i < 240; i++) g.update(1 / 60);
+  const despues = Math.hypot(g.boss.position.x - mesa.x, g.boss.position.z - mesa.z);
+  return {
+    sentado: g.boss.seated === true,
+    esperando: g.boss.esperando === true,
+    esperandoPuesto: g._esperandoPuesto === true,
+    seAcerco: +(antes - despues).toFixed(2),
+  };
 });
 check(
-  "hablarle lo LEVANTA de la reunión",
-  trasHablar.sentado === false,
+  "saludarle lo pone en marcha: deja de esperar en la puerta",
+  trasHablar.sentado === false && trasHablar.esperando === false,
+  JSON.stringify(trasHablar)
+);
+check(
+  "y TE LLEVA: echa a andar hacia tu puesto, no se queda en la puerta",
+  trasHablar.seAcerco > 1,
   JSON.stringify(trasHablar)
 );
 check(

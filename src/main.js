@@ -236,6 +236,13 @@ async function boot() {
   snapInPlace(floorplan.distractions);
   snapInPlace(floorplan.hidingSpots);
   snapInPlace(floorplan.safeSpots);
+  // LOS PUESTOS, al plano de los VIGILANTES: es donde se planta Gabo, y quien
+  // se planta ahí camina sobre ese plano. Sin snap, el punto de recepción
+  // caía medio metro dentro del bloque de los ascensores: Gabo se quedaba
+  // clavado en la puerta, sin ruta posible hacia ningún sitio, y la escena de
+  // «te acompaño a tu puesto» no llegaba a arrancar. Un punto autor no tiene
+  // por qué caer en suelo pisable — por eso existe este barrido.
+  snapInPlace(floorplan.puestos, navVigilancia);
 
   // El encuadre es SIEMPRE 16:9: forma parte del contrato del lienzo. Lo
   // que cambia con la pantalla son las bandas negras, nunca lo que se ve.

@@ -2,7 +2,7 @@
   "id": "dia-1",
   "number": 1,
   "title": "Lunes · Inducción",
-  "subtitle": "Tu primer día en la Célula Gris. El Daddy te respalda.",
+  "subtitle": "Tu primer día en la Célula Gris. Gabo te espera en la puerta.",
   "scene": "piso7",
   "theme": "morning",
   "rules": {
@@ -23,13 +23,13 @@
     ],
     "gate": {
       "guard": "jefe",
-      "$sentadoEn": "GABO EMPIEZA SENTADO ahi (id de scenes -> puestos, o -> safeSpots). Su puesto va FUERA de las salas: una sala es un ESCONDITE tuyo, y un vigilante ya no puede entrar en una. La primera mision deja de ser una persecucion: se le ve desde el ascensor y vas a hablarle. Se sienta al MONTAR el piso, nunca a mitad de partida.",
-      "sentadoEn": "puesto_gabo",
       "task": {
         "id": "meet-gabo",
-        "label": "Buscar a Gabo",
+        "label": "Saludar a Gabo",
         "icon": "person"
-      }
+      },
+      "$esperaEn": "GABO TE RECIBE EN LA PUERTA (id de scenes -> puestos). Esta de pie delante del ascensor esperandote: la primera mision no es buscarlo ni perseguirlo, es SALUDARLE, y de ahi te lleva andando a tu puesto. Se coloca al MONTAR el piso, nunca a mitad de partida.",
+      "esperaEn": "recepcion_gabo"
     }
   },
   "minions": [
@@ -84,32 +84,24 @@
       "text": "Y desde hoy, yo soy una más. Primer día."
     },
     {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "Hey, soy Steven el Daddy. Tu amigo, el que te consiguió el puesto. Ando en el call center, pero te vigilo."
+      "speaker": "gabo",
+      "text": "¡Ey! Tú debes ser la nueva. Gabo, jefe de diseño. Llevo aquí desde las siete, ¿eh?"
     },
     {
       "speaker": "Tú",
-      "text": "Steven. Claro. El que hace milagros."
+      "text": "Buenos días. Sí, soy yo."
     },
     {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "Primero: busca a Gabo, el jefe de diseño. Dile que es tu primer día — él te presenta."
+      "speaker": "gabo",
+      "text": "Camina conmigo que te dejo en tu puesto. Y ojo, aquí se nota mucho quién produce y quién no."
     },
     {
       "speaker": "Tú",
-      "text": "¿Y después?"
+      "text": "…Entendido."
     },
     {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "Un café, una peli y algo de comer. Nada de eso es trabajo, y todo te da reloj."
-    },
-    {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "ESPACIO para hacer cosas o fingir en zona segura. Si te trabas, me escribes."
+      "speaker": "gabo",
+      "text": "ESPACIO para hacer cosas, y para fingir si estás en un sitio seguro. Ya te irás enterando."
     }
   ],
   "outroWin": [

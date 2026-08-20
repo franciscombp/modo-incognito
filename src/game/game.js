@@ -367,7 +367,14 @@ export class Game {
     //
     // Se hace AQUÍ, al montar, y no más tarde: colocarlo a mitad de partida
     // sería justo el teletransporte que este trabajo viene a quitar.
-    if (this.gate?.sentadoEn) {
+    // GABO TE RECIBE EN LA PUERTA (`gate.esperaEn`). Es el arranque del día 1
+    // y sustituye a «busca a Gabo»: está plantado delante del ascensor
+    // esperándote, le hablas nada más salir, y de ahí te lleva a tu puesto.
+    // De pie y no sentado — recibir a alguien sentado es otra cosa.
+    if (this.gate?.esperaEn) {
+      const donde = puestos.find((p) => p.id === this.gate.esperaEn);
+      if (donde) this.boss.waitAt({ x: donde.x, z: donde.z, facing: donde.facing ?? Math.PI });
+    } else if (this.gate?.sentadoEn) {
       // El id se busca primero en los PUESTOS y luego en los safeSpots. El
       // orden importa: Gabo empezaba sentado en una SALA, y eso rompía dos
       // cosas a la vez — el jefe plantado dentro del sitio al que vas a huir
@@ -2998,7 +3005,23 @@ export class Game {
     // la segunda: Gabo te dice dónde te sientas, y llegar allí es lo que
     // dispara la presentación de Crispo (`_updateBienvenida`).
     this._esperandoPuesto = true;
-    this.announce("A TU PUESTO: GABO TE ESTÁ MIRANDO", "warn");
+    // Y TE LLEVA. No te lo dice desde la puerta y se queda ahí: ECHA A ANDAR
+    // hacia tu sitio y le sigues. `distract` es el camino de siempre para
+    // mandar a alguien a un punto —va por el navmesh, andando— así que esto
+    // no teletransporta a nadie ni inventa una segunda forma de caminar.
+    const mesa = safeSpots.find((s) => s.kind === "desk");
+    if (mesa) {
+      this.boss.distract({ x: mesa.x, z: mesa.z }, 30);
+      // Y LA CORREA APUNTA A TU MESA, no a ti. Sin esto no llegaba: la correa
+      // del día 1 hace que su ronda sea «donde estés tú», así que echaba a
+      // andar, te veía a un palmo (sigues en la puerta) y se quedaba
+      // orbitándote ahí mismo. Medido: se ALEJABA 0,88 del sitio al que
+      // supuestamente te llevaba. Mientras te acompaña, su sitio es el
+      // destino; al llegar se le devuelve la suya.
+      this._correaPrevia = this.boss.tether;
+      this.boss.setTether({ x: mesa.x, z: mesa.z }, { near: 1.2 * S, far: 1.8 * S });
+    }
+    this.announce("GABO TE LLEVA A TU PUESTO", "warn");
     this.onMissionDone?.(this.gate?.task?.id ?? "meet-gabo");
     return true;
   }
@@ -3026,6 +3049,16 @@ export class Game {
     if (!crispo) return;
     this._presentador = crispo;
     crispo.distract({ x: this.player.position.x, z: this.player.position.z }, 20);
+    // Y Gabo se despide: te dejó en tu sitio, ahora se va al suyo. Andando,
+    // como vino.
+    // Y se le devuelve su correa: a partir de aquí su ronda vuelve a ser
+    // «donde estés tú», que es el día 1 de siempre.
+    if (this._correaPrevia !== undefined) {
+      this.boss.tether = this._correaPrevia;
+      this._correaPrevia = undefined;
+    }
+    const suyo = puestos.find((p) => p.id === "puesto_gabo");
+    if (suyo) this.boss.distract({ x: suyo.x, z: suyo.z }, 25);
   }
 
   /** El diálogo con un NPC cumple su misión "como", si estaba pendiente. */

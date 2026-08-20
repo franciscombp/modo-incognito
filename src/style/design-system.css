@@ -13102,3 +13102,64 @@ body.inc-minijuego .inc-announce {
   color: var(--accent);
   border-color: var(--holo-line);
 }
+
+
+/* ── LOS MENÚS LARGOS SE DESPLAZAN POR DENTRO ─────────────────────────
+   Ajustes medía 1208 px de alto dentro de un lienzo de 1080: los controles
+   de abajo quedaban cortados y NO había forma de llegar a ellos. El panel
+   ya traía `max-height: 100%` con `overflow: auto`, pero ese `100%` se
+   resuelve contra un padre sin altura definida, así que no limitaba nada —
+   la pantalla crecía y la recortaba el lienzo, no su propio scroll. Y una
+   caja que desborda a su padre no se desplaza: no tiene nada que desplazar
+   (`scrollHeight` era exactamente igual a `height`).
+
+   Se cierra en unidades del LIENZO, que es la única altura de verdad aquí, y
+   se desplaza la zona de opciones dejando quietos el título y el pie: si
+   rueda todo, el botón de «Volver» se va de la pantalla justo cuando hace
+   falta. `min-height: 0` porque un hijo de flex no encoge por debajo de su
+   contenido sin él — y sin encoger no hay scroll, que es el mismo fallo otra
+   vez con otro nombre. */
+.inc-menu-screen {
+  /* El TOPE, en unidades del LIENZO. `max-height: 100%` no servía: se
+     resuelve contra un padre sin altura definida, así que no limitaba nada y
+     la pantalla crecía hasta 1208 px dentro de un lienzo de 1080. Lo que la
+     recortaba entonces era el lienzo, no su propio scroll — y una caja que
+     desborda a su padre no tiene nada que desplazar. */
+  max-height: calc(var(--stage-h, 1080px) - 72px);
+  overflow: hidden;
+}
+
+.inc-menu-panes,
+.inc-menu-menu-list,
+.inc-menu-help {
+  /* Que se COMA el alto que sobra: sin esto la zona de opciones se quedaba
+     en su alto natural mínimo y el panel usaba media pantalla, con una barra
+     de scroll al lado y hueco vacío debajo. */
+  flex: 1 1 auto;
+  /* `min(max-content, …)` en la pantalla no llegaba a estirarla: con un hijo
+     `overflow: auto` dentro, `max-content` se resuelve casi a cero y el panel
+     se quedaba en 648 de 1080. Se le pide el alto por abajo, en unidades del
+     LIENZO —la única altura de verdad aquí—, y así la zona de opciones usa
+     la pantalla en vez de dejar medio lienzo vacío bajo una barra de scroll.
+     `min-height: 0` va DESPUÉS para el caso contrario: un hijo de flex no
+     encoge por debajo de su contenido sin él, y sin encoger no hay scroll. */
+  min-height: calc(var(--stage-h, 1080px) * 0.5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* El dedo tiene que poder arrastrar aquí: el juego bloquea el scroll del
+     documento entero (ver main.js), así que sin esto en táctil no se llega
+     a las opciones de abajo de ninguna manera. */
+  touch-action: pan-y;
+}
+
+/* La barra, fina y del color del hilo: una barra de scroll del sistema
+   operativo dentro de una consola de mentira se ve como lo que es. */
+.inc-menu-panes::-webkit-scrollbar,
+.inc-menu-menu-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.inc-menu-panes::-webkit-scrollbar-thumb,
+.inc-menu-menu-list::-webkit-scrollbar-thumb {
+  background: var(--holo-line);
+}

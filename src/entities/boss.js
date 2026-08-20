@@ -466,6 +466,24 @@ export class Boss {
    * que se congela es que ande. Un jefe sentado que además fuera ciego sería
    * un mueble.
    */
+  /**
+   * ESPERAR DE PIE en un sitio. Es lo que hace que Gabo pueda RECIBIRTE en la
+   * puerta: está ahí plantado mirando al ascensor, no de ronda, y no se mueve
+   * hasta que le hablas. Es `sitAt` sin la silla — congela el paso y nada
+   * más: sigue viendo, girando la cabeza y sospechando, porque un jefe
+   * plantado y ciego sería un mueble.
+   */
+  waitAt({ x, z, facing = 0 }) {
+    this.position.x = x;
+    this.position.z = z;
+    this.esperando = true;
+    this.state = PATROL;
+    this.lockedOn = false;
+    this.facingDir = { x: Math.sin(facing), z: Math.cos(facing) };
+    this.desiredFacing = { ...this.facingDir };
+    this.sprite?.setHeading(this.facingDir.x, this.facingDir.z);
+  }
+
   sitAt({ x, z, facing = 0 }) {
     this.position.x = x;
     this.position.z = z;
@@ -480,6 +498,7 @@ export class Boss {
 
   /** Se levanta y vuelve a su ronda. Lo llama la puerta del día al superarse. */
   standUp() {
+    this.esperando = false;
     if (!this.seated) return;
     this.seated = false;
     this.sprite?.setPose?.(null);
@@ -598,7 +617,7 @@ export class Boss {
     // Sentado NO se mueve — pero sigue viendo, girando la cabeza y
     // sospechando: eso ya pasó por encima. Un jefe sentado y ciego sería un
     // mueble; uno sentado y atento es una reunión de la que te vigila.
-    const dir = this.seated ? null : this._moveToward(dt, this._steer(dt, target));
+    const dir = this.seated || this.esperando ? null : this._moveToward(dt, this._steer(dt, target));
     // LA RED DE SEGURIDAD, y va aquí porque el cuerpo se mueve desde CUATRO
     // sitios: el paso normal, los dos deslizamientos que bordean un mueble y
     // el empujón del anti-atasco. Guardando solo el primero se colaba por
@@ -907,7 +926,10 @@ export class Boss {
     // Gabo sin avanzar en su silla, lo daba por encajado contra un mueble y
     // le metía el codazo de abajo cada pocos segundos: el jefe se iba
     // deslizando solo por la sala de reuniones.
-    if (this.seated) {
+    // Ni ESPERANDO tampoco: plantado en la puerta se le vería igual de
+    // quieto, y el codazo del anti-atasco lo iría deslizando lejos del sitio
+    // donde te está esperando.
+    if (this.seated || this.esperando) {
       this._stuckTimer = 0;
       return;
     }

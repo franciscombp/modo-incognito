@@ -1594,7 +1594,10 @@
     "Su puesto va FUERA, en una mesa de las de en medio: se le ve desde",
     "el ascensor, se va a hablarle sin perseguirlo, y las salas siguen",
     "siendo tuyas.",
-    "radius: cuanto se busca una silla de verdad alrededor del punto."
+    "radius: cuanto se busca una silla de verdad alrededor del punto.",
+    "recepcion_gabo: donde Gabo te RECIBE. Justo delante de los ascensores,",
+    "de cara a la puerta. Es el arranque del dia 1: no vas a buscarlo, esta",
+    "ahi esperandote, y de ahi te lleva a tu puesto."
   ],
   "puestos": [
     {
@@ -1603,6 +1606,13 @@
       "x": -1.2,
       "z": 4.2,
       "radius": 3
+    },
+    {
+      "id": "recepcion_gabo",
+      "label": "Gabo, en la puerta",
+      "x": -3.8000000000000003,
+      "z": -6.7,
+      "radius": 2
     }
   ],
   "$barriers": [
