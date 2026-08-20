@@ -286,6 +286,17 @@ if (arranque.error) {
       g.player.position.z = st.z;
       g.update(1 / 60);
     }
+    // LA REFERENCIA SE TOMA AQUÍ, con la pantalla YA abierta. Estaba tomada
+    // en el montaje inicial, así que «¿anduvo el jefe?» respondía por todo lo
+    // que había pasado antes —minutos de juego con el mundo corriendo— y no
+    // por el rato que se viene a medir. Una medida acumulada desde el
+    // principio no dice nada de lo que pasa DURANTE.
+    window.__bossX0 = g.boss.position.x;
+    for (let i = 0; i < 60; i++) {
+      g.player.position.x = st.x;
+      g.player.position.z = st.z;
+      g.update(1 / 60);
+    }
   });
   const pantalla = await p.evaluate(() => {
     const cap = document.querySelector(".inc-mg");
