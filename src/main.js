@@ -483,10 +483,16 @@ async function boot() {
   }
 
   const focusNav = createFocusNav();
-  createTouchControls(player, app, {
+  const touch = createTouchControls(player, app, {
     onZoom: (delta) => view.zoomBy(delta),
     onInspect: toggleInspect,
     onPause: () => engine.openPause(),
+    // EL MANDO DEL PULGAR TAMBIÉN MANEJA LOS MENÚS. El cursor ya estaba
+    // preparado para esto —expone `empujar`/`aceptar` y su comentario dice
+    // «para la palanca de pantalla»— pero nadie se lo había enchufado, así
+    // que en un teléfono había pantallas a las que solo se llegaba con un
+    // teclado que no existe.
+    focusNav,
   });
 
   // -------- Camera input: zoom (wheel/pinch) and orbit (right-drag / 2 fingers)

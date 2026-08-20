@@ -9510,7 +9510,10 @@ body {
   position: absolute;
   top: 18px;
   right: 18px;
-  width: 380px;
+  /* EL ANCHO DE LA COLUMNA, en un token: el anuncio del centro lo lee para
+     no invadirla (ver `.inc-msg-centro`). Escrito dos veces, uno de los dos
+     se queda viejo y vuelve el solape. */
+  width: var(--hud-col, 380px);
   display: flex;
   flex-direction: column;
   pointer-events: none;
@@ -10090,7 +10093,8 @@ body {
    es una nota para los primeros segundos y comparte banda con esto. Ceder es
    más honesto que buscarle otro hueco — cuando estás haciendo algo prohibido,
    la lista de teclas no es lo que hay que leer. */
-body.inc-acting #hint {
+body.inc-acting #hint,
+body.inc-anunciando #hint {
   opacity: 0;
 }
 /* DELATADA: el valor está en el extremo y te están oyendo desde el pasillo.
@@ -13231,4 +13235,92 @@ body.inc-minijuego .inc-announce {
   box-shadow: none !important;
   -webkit-mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
   mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL PULGAR TAMBIÉN NAVEGA (`body.inc-nav-touch`)
+
+   En un teléfono había pantallas a las que solo se llegaba con un teclado
+   que no existe. Eran DOS fallos, y hacía falta arreglar los dos: el cursor
+   no escuchaba a la palanca de pantalla (eso vive en `touchControls.js`), y
+   el mando entero estaba `display: none` con cualquier menú abierto — o sea
+   que aunque el pulgar mandara sobre el cursor, no había pulgar.
+
+   Devolverlo tal cual no vale: la zona del stick ocupa MEDIA PANTALLA, que
+   es lo correcto para un stick flotante mientras juegas y aquí se comería
+   los toques de los propios botones del menú. Así que en este modo el mando
+   vuelve ENCOGIDO a una esquina, con el stick a la izquierda y el botón de
+   aceptar a la derecha, y el resto de la pantalla sigue siendo del dedo.
+
+   Las utilidades (zoom, plano, pausa) NO vuelven: son de partida, y en un
+   menú serían tres botones que no hacen nada.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+body.inc-nav-touch.touch-device .touch-controls,
+body.inc-nav-touch.touch-device .touch-stick-zone,
+body.inc-nav-touch.touch-device .touch-actions {
+  display: block !important;
+}
+
+body.inc-nav-touch.touch-device .touch-actions {
+  display: flex !important;
+}
+
+/* Ni las utilidades ni el resto del HUD: aquí se está eligiendo. */
+body.inc-nav-touch .touch-utils {
+  display: none !important;
+}
+
+/* LA ESQUINA. Lo justo para un pulgar —el mismo mínimo de 40 px reales que
+   vigila check:layout— y ni un píxel más, que lo demás es del menú. */
+body.inc-nav-touch .touch-stick-zone {
+  width: 190px;
+  height: 190px;
+}
+
+body.inc-nav-touch .touch-stick-base {
+  left: 95px;
+  top: 95px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL ANUNCIO NO INVADE LAS COLUMNAS
+
+   «¡GABO TE VIO!» se pintaba a `max-width: 86%` centrado, y a ese ancho el
+   rótulo entra de lleno en la esquina de las misiones — medido, 102×48 px
+   encima de la lista. Y pasa en EL PEOR momento posible: el anuncio existe
+   justo cuando te acaban de fichar, que es cuando hace falta leer qué tarea
+   llevabas y hacia dónde huir.
+
+   El HUD reparte cuatro esquinas y una banda central (docs/HUD.md). El
+   anuncio es de la BANDA, así que su ancho es el de la banda: lo que queda
+   entre la placa y la lista. Sale del mismo token que la columna
+   (`--hud-col`) para que no puedan separarse.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* El ancho de la columna del HUD (misiones a la derecha, placa a la
+     izquierda) y el aire que dejan contra el borde. */
+  --hud-col: 380px;
+  --hud-col-gap: 18px;
+}
+
+.inc-msg-centro,
+.inc-announce {
+  /* ── LA BANDA LIBRE ──
+     El primer arreglo fue estrecharlo hasta que no tocara las columnas, y
+     salió peor: a 477 px «¡GABO TE VIO!» se parte en tres líneas, la caja
+     crece hacia arriba y hacia abajo y acaba tapando el RELOJ y la píldora
+     de mandos. Un rótulo estrecho no es un rótulo, es una torre.
+
+     El conflicto nunca fue de ancho: era de ALTURA. La lista de misiones
+     llega hasta ~240 px y el anuncio se pintaba centrado en el 34 %, o sea
+     dentro de ella. Bajándolo a la banda que de verdad está libre —bajo la
+     lista y sobre la píldora— puede volver a ser ancho, que es lo que lo
+     hace legible de un vistazo con el jefe encima.
+
+     Medido en el lienzo pequeño (1280×720), que es el más apretado de los
+     dos: reloj hasta 77, misiones hasta 240, píldora desde 556. */
+  top: 52%;
+  max-width: 86%;
 }

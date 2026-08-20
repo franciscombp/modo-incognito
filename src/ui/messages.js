@@ -75,9 +75,16 @@ export function createMessageDirector(layer, iconEl = () => null) {
     centro.classList.remove("show");
     void centro.offsetWidth;
     centro.classList.add("show");
+    // LA PÍLDORA DE MANDOS CEDE. El anuncio es un rótulo grande de banda
+    // central y su pie llega hasta donde vive la píldora: medido, la tapaba
+    // 24 px. Ceder es lo mismo que ya hace mientras haces algo prohibido
+    // (`body.inc-acting`) y por la misma razón — cuando acaban de gritarte
+    // que te vieron, la lista de teclas no es lo que hay que leer.
+    document.body.classList.add("inc-anunciando");
     clearTimeout(centroTimer);
     centroTimer = setTimeout(() => {
       centro.classList.remove("show");
+      document.body.classList.remove("inc-anunciando");
       actual = null;
     }, msg.ttl ?? CENTRO_TTL);
   }

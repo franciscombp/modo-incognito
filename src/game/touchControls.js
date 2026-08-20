@@ -9,7 +9,11 @@
 import { buzz } from "./settings.js";
 import { icon as svgIcon, hasIcon } from "../ui/icons.js";
 
-export function createTouchControls(player, root, { onZoom, onInspect, onPause } = {}) {
+export function createTouchControls(
+  player,
+  root,
+  { onZoom, onInspect, onPause, focusNav = null } = {}
+) {
   const isTouch =
     "ontouchstart" in window ||
     navigator.maxTouchPoints > 0 ||
@@ -40,6 +44,15 @@ export function createTouchControls(player, root, { onZoom, onInspect, onPause }
     player.touchAxis.z = z;
   }
 
+  /**
+   * ¿Hay algo que elegir ahora mismo? Entonces el pulgar es del CURSOR, no
+   * de los pies. Es la misma regla que ya tenían el teclado y el mando —las
+   * flechas caminan en partida y navegan en un menú—, y sin ella un teléfono
+   * se quedaba con pantallas a las que no se podía llegar: el stick movía a
+   * una jugadora que no está en pantalla y el botón de acción no hacía nada.
+   */
+  const enMenu = () => !!focusNav?.activo;
+
   function stickMove(e) {
     let dx = e.clientX - origin.x;
     let dy = e.clientY - origin.y;
@@ -49,14 +62,54 @@ export function createTouchControls(player, root, { onZoom, onInspect, onPause }
       dy = (dy / dist) * RADIUS;
     }
     thumb.style.transform = `translate(${dx}px, ${dy}px)`;
+    if (enMenu()) {
+      // Por `empujar` y no por `mover`: así el paseo del cursor hereda la
+      // zona muerta y la repetición del mando físico. Escrito aparte, el
+      // cursor acabaría moviéndose distinto según con qué lo muevas.
+      //
+      // El reloj se lo pone el propio gesto: aquí no hay bucle por cuadro
+      // —`pointermove` solo llega cuando el dedo se mueve—, y con un dedo
+      // QUIETO fuera de la zona muerta no llegaría ninguno, así que la
+      // repetición se sostiene desde el temporizador de abajo.
+      focusNav.empujar(dx / RADIUS, dy / RADIUS, 1 / 60);
+      ejeMenu = { x: dx / RADIUS, y: dy / RADIUS };
+      setAxis(0, 0);
+      return;
+    }
     setAxis(dx / RADIUS, dy / RADIUS);
   }
+
+  // EL DEDO QUIETO TAMBIÉN REPITE. Un pulgar sostenido en una dirección no
+  // genera un solo `pointermove`, así que sin este latido el cursor daba UN
+  // paso por gesto y había que soltar y volver a empujar por cada opción.
+  let ejeMenu = null;
+  let ultimoTic = performance.now();
+  setInterval(() => {
+    const ahora = performance.now();
+    const dt = Math.min(0.25, (ahora - ultimoTic) / 1000);
+    ultimoTic = ahora;
+    // EL MANDO SE QUEDA EN PANTALLA cuando hay algo que elegir. Estaba
+    // `display: none` con cualquier menú abierto (`body.menu-open
+    // .touch-controls`), que es LA otra mitad de por qué en un teléfono no
+    // se podía navegar: aunque el pulgar mandara sobre el cursor, no había
+    // pulgar — el mando desaparecía justo en la pantalla que había que
+    // recorrer.
+    //
+    // Y no vuelve tal cual: la zona del stick ocupa MEDIA PANTALLA, que es
+    // lo correcto para un stick flotante en partida y se comería los toques
+    // de los propios botones del menú. En este modo se encoge a una
+    // esquina (ver `.inc-nav-touch` en el DS).
+    document.body.classList.toggle("inc-nav-touch", enMenu());
+    if (!ejeMenu || stickPointerId === null || !enMenu()) return;
+    focusNav.empujar(ejeMenu.x, ejeMenu.y, dt);
+  }, 1000 / 30);
 
   function stickEnd(e) {
     if (e.pointerId !== stickPointerId) return;
     stickPointerId = null;
     base.classList.remove("active");
     thumb.style.transform = "translate(0, 0)";
+    ejeMenu = null;
     setAxis(0, 0);
   }
 
@@ -67,7 +120,16 @@ export function createTouchControls(player, root, { onZoom, onInspect, onPause }
     base.style.left = `${e.clientX - rect.left}px`;
     base.style.top = `${e.clientY - rect.top}px`;
     base.classList.add("active");
-    zone.setPointerCapture(e.pointerId);
+    // Capturar puede fallar (un puntero sintético, o uno que se soltó entre
+    // el evento y esta línea) y tirar NotFoundError, y ahí se cae el resto
+    // del manejador: el stick se quedaría apoyado sin llegar a leerse nunca.
+    // La captura es una mejora —sostener el dedo fuera de la zona—, no un
+    // requisito para que la palanca funcione.
+    try {
+      zone.setPointerCapture(e.pointerId);
+    } catch {
+      /* sin captura: el stick sigue funcionando dentro de su zona */
+    }
     stickMove(e);
   });
   zone.addEventListener("pointermove", (e) => {
@@ -87,9 +149,18 @@ export function createTouchControls(player, root, { onZoom, onInspect, onPause }
     btn.innerHTML = `<span class="touch-btn-icon">${icon}</span><span>${label}</span>`;
     const press = (e) => {
       e.preventDefault();
-      player.keys.add(gameKey);
       btn.classList.add("active");
       buzz(8);
+      // CON UN MENÚ DELANTE, ESTE BOTÓN ACEPTA. Es el mismo trato que tienen
+      // espacio y el botón A del mando, y sin él la única forma de confirmar
+      // en un teléfono era acertarle al botón de la pantalla con el dedo —
+      // que en las pantallas de minijuego ni siquiera funciona, porque van
+      // con `pointer-events: none`.
+      if (enMenu()) {
+        focusNav.aceptar();
+        return;
+      }
+      player.keys.add(gameKey);
     };
     const release = () => {
       player.keys.delete(gameKey);

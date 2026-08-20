@@ -277,25 +277,39 @@ export function createFocusNav({ root = document } = {}) {
     }
     botonesAntes = pulsados;
 
+    empujar(dx, dy, dt);
+  }
+
+  /**
+   * UNA PALANCA, LA QUE SEA. Traduce un eje continuo en pasos del cursor:
+   * zona muerta, un paso al empujar y repetición mientras se sostenga.
+   *
+   * Está aparte del sondeo del mando porque hay DOS palancas —la del mando
+   * físico y la de pantalla del móvil— y el tacto tiene que ser el mismo.
+   * Escrita dos veces se separa al primer ajuste, y entonces el cursor se
+   * mueve distinto según con qué lo muevas, que es peor que no moverse.
+   */
+  function empujar(dx, dy, dt = 1 / 60) {
+    if (!grupoActivo()) return false;
     const eje = Math.abs(dx) > Math.abs(dy) ? [Math.sign(dx), 0] : [0, Math.sign(dy)];
     const fuerza = Math.max(Math.abs(dx), Math.abs(dy));
     if (fuerza < ZONA_MUERTA) {
       repetirEn = 0;
       ultimoEje = 0;
-      return;
+      return false;
     }
     const firma = eje[0] * 3 + eje[1];
     repetirEn -= dt;
     if (firma !== ultimoEje) {
       ultimoEje = firma;
       repetirEn = REPETIR_PRIMERO;
-      mover(eje[0], eje[1]);
-      return;
+      return mover(eje[0], eje[1]);
     }
     if (repetirEn <= 0) {
       repetirEn = REPETIR_LUEGO;
-      mover(eje[0], eje[1]);
+      return mover(eje[0], eje[1]);
     }
+    return false;
   }
 
   window.addEventListener("keydown", onKey, true);
@@ -309,6 +323,12 @@ export function createFocusNav({ root = document } = {}) {
     /** Para la palanca de pantalla y cualquier otro mando que quiera sumarse. */
     mover,
     aceptar,
+    /**
+     * La palanca de pantalla del móvil entra POR AQUÍ, no por `mover`: así
+     * hereda la zona muerta y la repetición del mando físico en vez de
+     * inventarse las suyas. Devuelve si se comió el empujón.
+     */
+    empujar,
     /** ¿Hay algo que elegir ahora mismo? Lo usa el táctil para no caminar. */
     get activo() {
       return !!grupoActivo();
