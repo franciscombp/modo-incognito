@@ -65,10 +65,56 @@ export function createMessageDirector(layer, iconEl = () => null) {
   let actual = null;
   let centroTimer = 0;
 
+  /**
+   * DÓNDE CABE EL ANUNCIO, MEDIDO.
+   *
+   * El rótulo grande es de la BANDA CENTRAL, y su vecina de arriba es la
+   * lista de misiones, que NO tiene un alto fijo: crece con las misiones que
+   * lleves y se repliega con la presión. Estuvo clavado a un porcentaje —el
+   * 52 % del lienzo— calibrado contra UNA lista concreta, y en cuanto la
+   * lista tuvo una fila más volvió a solaparse: 106×73 px encima de las
+   * misiones, y justo cuando te acaban de fichar, que es cuando hace falta
+   * leer qué llevabas y hacia dónde huir.
+   *
+   * Un porcentaje no puede saber cuánto ocupa la lista de hoy. Se mide, que
+   * es lo que ya hace la flecha del rastreador con los bloques del borde
+   * (ui/tracker.js) y por la misma razón.
+   */
+  function colocarCentro() {
+    const lista = document.querySelector(".inc-quests");
+    const escena = centro.parentElement ?? document.body;
+    const base = escena.getBoundingClientRect();
+    const alto = base.height || 1;
+    // El suelo de la lista, en fracción del lienzo, más un respiro. Sin
+    // lista (o vacía) se queda donde siempre.
+    const r = lista?.getBoundingClientRect();
+    // SU PROPIO ALTO CUENTA, y esto costó un intento: `top` posiciona el
+    // CENTRO del rótulo (lleva `translate(-50%, -50%)`), no su borde de
+    // arriba. Colocando el centro justo bajo la lista, un rótulo de tres
+    // líneas sigue subiendo media altura y se solapa igual — de hecho más,
+    // porque cuanto más alto es, más sube.
+    // `offsetHeight` y NO `getBoundingClientRect`, y esta es la segunda
+    // trampa: el rótulo está en reposo a `scale(0.7)`, así que el rectángulo
+    // medido viene ya ENCOGIDO —268 px de los 383 que ocupa— y colocarlo con
+    // esa cifra lo deja 100 px más arriba de donde acaba. `offsetHeight` da
+    // el alto de MAQUETA, que es el que no depende de la animación.
+    // El 1.06 es el rebote de `inc-announce-pop`: en su pico se pasa un 6 %,
+    // y es en ese cuadro cuando más invade.
+    const propio = centro.offsetHeight * 1.06;
+    const suelo = r && r.height > 4 ? r.bottom - base.top : alto * 0.34;
+    const y = (suelo + 24 + propio / 2) / alto;
+    // Ni tan abajo que se salga por el pie, ni tan arriba que vuelva al
+    // sitio del que viene.
+    centro.style.top = `${(Math.min(0.78, Math.max(0.42, y)) * 100).toFixed(1)}%`;
+  }
+
   function pintarCentro(msg) {
     actual = msg;
     centro.textContent = msg.text;
     centro.dataset.tone = msg.tone ?? "danger";
+    // Se coloca ANTES de enseñarlo: medir con el rótulo ya en pantalla
+    // enseñaría un salto de posición en el primer cuadro.
+    colocarCentro();
     // Reiniciar la animación: sin esto, dos anuncios seguidos con el mismo
     // tono no se distinguen — el segundo entra sin golpe y parece que el
     // primero sigue puesto.
