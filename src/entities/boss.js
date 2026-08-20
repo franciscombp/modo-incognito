@@ -398,6 +398,36 @@ export class Boss {
   }
 
   /**
+   * SE CANSA DE TI Y SE VA. Es la salida de un secuaz que te venía
+   * siguiendo, y existe porque `breakPursuit` no lo soltaba: un secuaz no
+   * persigue (`catches()` es false para él), sigue — o sea que vive en
+   * INVESTIGATE, y esa función solo mira CHASE, SEARCH y `lockedOn`. Te
+   * sentabas en tu puesto, el jefe se alejaba… y Crispo se quedaba plantado
+   * a un palmo mirándote trabajar, que es justo lo contrario de lo que
+   * dice el sitio donde te acabas de sentar.
+   *
+   * Bajarle la vigilancia es la mitad IMPRESCINDIBLE, no un extra: mientras
+   * su `localHeat` siga por encima de su umbral, el propio INVESTIGATE
+   * vuelve a apuntar el objetivo a tu posición cada cuadro, así que una
+   * retirada sin esto se deshace en el mismo frame en que se ordena.
+   *
+   * Se queda JUSTO por debajo del umbral y no a cero: la sospecha que ya se
+   * ganó no se borra porque te sientes un segundo, solo deja de bastarle
+   * para seguirte. Volver a levantarte y hacer algo raro lo trae enseguida.
+   */
+  giveUpFollow(pos) {
+    if (this.role !== "minion") return false;
+    if (this.localHeat < this.followThreshold && this.state !== INVESTIGATE) return false;
+    this.localHeat = Math.min(this.localHeat, this.followThreshold * 0.55);
+    // El flanco de la delación se rearma: si vuelve a cruzar el umbral más
+    // tarde, eso es una delación NUEVA y tiene que sonar como tal.
+    this._yaDelataba = false;
+    this.redAlert = false;
+    this.retreatFrom(pos);
+    return true;
+  }
+
+  /**
    * ALEJARSE de verdad. `breakPursuit` retoma la ronda en el punto MÁS
    * CERCANO — o sea que el jefe soltaba la presa y se quedaba merodeando a
    * dos mesas de ti, y "llegué a mi puesto" no se sentía como llegar a

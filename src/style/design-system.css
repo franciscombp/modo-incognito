@@ -13163,3 +13163,72 @@ body.inc-minijuego .inc-announce {
 .inc-menu-menu-list::-webkit-scrollbar-thumb {
   background: var(--holo-line);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL FIN DE JORNADA, TAMBIÉN SIN CAJA
+
+   Se quedó fuera de la conversión, y era la pantalla que más se ve: cae al
+   final de CADA día. Seguía siendo una tarjeta de vidrio con marco de 1 px,
+   radio grande y sombra proyectada — o sea, un cuadro de diálogo de app
+   pegado encima del piso, justo detrás de una evaluación que ya hablaba el
+   idioma del holograma. El corte entre las dos pantallas se veía más que
+   cualquiera de las dos.
+
+   No lleva reglas propias: entra en las MISMAS tres —hilo, lavado y sombra
+   dura— que el resto. Lo único suyo es el reparto vertical, porque aquí hay
+   un retrato y dos cifras que en un menú no existen.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.inc-modal__content {
+  background: none !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  /* Sin caja, el ancho lo tiene que poner el CONTENIDO: `width: 90%` sobre
+     el lienzo entero dejaba la tinta cruzando 1700 px de piso y el ojo no
+     encontraba dónde empieza la frase. */
+  max-width: 640px;
+  width: auto;
+  padding: 0;
+  text-align: center;
+}
+
+/* EL VELO lo pone la capa, como en los menús: la legibilidad no es asunto de
+   cada panel. Y aquí es SÓLIDO cuando el día ya terminó — no hay partida que
+   entrever detrás, solo el piso congelado en el peor momento. */
+.inc-modal {
+  background: var(--scrim);
+}
+
+/* EL HILO, en su sitio de siempre: bajo el titular y bajo las cifras. Son
+   las dos separaciones que la pantalla necesita — quién eres hoy, qué
+   sacaste, y qué puedes hacer ahora. */
+.inc-overlay-title {
+  border-bottom: 1px solid var(--holo-line-soft);
+  padding-bottom: var(--space-sm);
+  text-shadow: var(--holo-ink-glow);
+}
+
+.inc-overlay-score-box {
+  background: none !important;
+  border: 0 !important;
+  border-bottom: 1px solid var(--holo-line-soft) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: var(--space-sm) 0;
+  justify-content: center;
+}
+
+/* El retrato: se funde por abajo en vez de recortarse contra un borde. Es el
+   mismo recurso de la pantalla de personaje — un holograma que se disuelve,
+   no una foto pegada. */
+.inc-overlay-shot {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: none !important;
+  box-shadow: none !important;
+  -webkit-mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
+  mask-image: linear-gradient(180deg, #000 68%, transparent 100%);
+}

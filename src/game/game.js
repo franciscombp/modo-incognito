@@ -956,6 +956,28 @@ export class Game {
         m.redAlert = false;
       }
       this.boss.redAlert = false;
+      // Y EL QUE TE VENÍA SIGUIENDO SE VA. Enfriarle el halo no le movía los
+      // pies: un secuaz no persigue, SIGUE —vive en INVESTIGATE, no en
+      // CHASE— así que `_breakAllPursuits` no lo tocaba y se quedaba
+      // plantado a un palmo mirándote fingir. El jefe se alejaba y el
+      // secuaz no: la mitad de la escena decía «a salvo» y la otra mitad
+      // decía lo contrario.
+      //
+      // Se le suelta UNA VEZ, en el flanco de entrar, y no cada cuadro:
+      // repetido, cada frame le rearmaría la retirada y no llegaría a
+      // andar ni un paso.
+      if (!this._secuacesSoltados) {
+        this._secuacesSoltados = true;
+        const soltados = this.minions.filter((m) => m.giveUpFollow(this.player.position));
+        if (soltados.length) {
+          // Con NOMBRE: quién te deja en paz es información de juego —es a
+          // ese al que puedes darle la espalda— y además es el remate del
+          // chiste. Uno solo aunque se vayan dos: el HUD no es una lista.
+          this.toast(`${soltados[0].displayName ?? "Te dejan"} pierde el interés`, 1.5, "ok");
+        }
+      }
+    } else {
+      this._secuacesSoltados = false;
     }
     // EL RETO EN CURSO. Corre con el mundo vivo, como todo lo demás, y se
     // cierra si te alejas del sitio: no puedes dejarlo abierto y marcharte.

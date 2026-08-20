@@ -191,6 +191,46 @@ check(
   JSON.stringify(anuncio)
 );
 
+// ── EL FIN DE JORNADA ──
+// La que más se ve —cae al final de CADA día— y la que se quedó fuera de la
+// conversión: seguía siendo una tarjeta de vidrio con marco, radio grande y
+// sombra proyectada, justo detrás de una evaluación que ya hablaba el idioma
+// del holograma. Es exactamente el fallo que describe la cabecera de este
+// archivo: la regla vive en una lista de selectores y esta pantalla no
+// estaba en la lista.
+//
+// Se abre a mano (`hud.showResult`) en vez de jugando un día entero: lo que
+// se mira aquí es la PIEL, y llegar hasta ella jugando cuesta cuatro minutos
+// de reloj por cada vez que se toca un color.
+await p.evaluate(() => {
+  window.__game.engine.hud.showResult({
+    icon: "door",
+    title: "PRUEBA DE CIERRE",
+    body: "Una jornada cualquiera.",
+    win: false,
+    timeLeft: 12,
+    timeGained: 30,
+    actions: [{ label: "Reintentar", primary: true, onClick: () => {} }],
+  });
+});
+await p.waitForTimeout(300);
+// `.inc-modal`, la CAPA, y no `.inc-modal__content`: `cajas()` recorre
+// DESCENDIENTES (`${sel} *`), así que apuntar a la tarjeta la dejaba fuera
+// del recorrido — que es justo el elemento que lleva la caja. Comprobado al
+// revés: con esto puesto, devolverle el fondo y el marco a la tarjeta hace
+// fallar la prueba.
+const cierre = await cajas(".inc-modal:not(.inc-hidden)");
+check("el FIN DE JORNADA tampoco tiene caja", cierre.length === 0, JSON.stringify(cierre.slice(0, 3)));
+// Y sí tiene el hilo: sin caja, lo que separa el titular de las cifras y las
+// cifras de los botones es la línea. Sin ella la pantalla es un montón de
+// texto centrado flotando.
+const hiloCierre = await p.evaluate(() => {
+  const t = document.querySelector(".inc-overlay-title");
+  return t ? parseFloat(getComputedStyle(t).borderBottomWidth) : 0;
+});
+check("pero SÍ el hilo bajo el titular", hiloCierre >= 1, `${hiloCierre}px`);
+await p.evaluate(() => window.__game.engine.hud.hideResult());
+
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 
 await b.close();
