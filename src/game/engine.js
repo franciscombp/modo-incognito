@@ -458,6 +458,11 @@ export function createEngine({
 
     if (key === "escape") {
       e.preventDefault();
+      // ESCAPE SALE PRIMERO DEL MINIJUEGO. Antes iba directo a abrir la
+      // pausa, así que la única salida documentada de una pantalla de tarea
+      // no llegaba nunca al motor: se abría el menú encima y al cerrarlo
+      // seguías dentro. Lo de dentro se cierra antes que lo de fuera.
+      if (game?.salirMinijuego?.()) return;
       // El cruce no tiene forma de pausarse (su bucle es propio, no pasa por
       // game.setPaused) — abrir el menú encima solo taparía el tráfico
       // seguir avanzando sin que se vea.

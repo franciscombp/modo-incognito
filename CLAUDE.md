@@ -259,15 +259,37 @@ reparten la exposición:
    la gente sale a mirar), el café se le compra al Parce hablándole. El
    inventario es del DÍA (`game.inventario`). Sin el objeto, la estación
    avisa qué falta y el minijuego ni arranca.
-2. **ACTIVAR = el minijuego, CON EL PISO VIVO.** Esto congelaba el mundo
-   (`worldFrozen`) y fue el fallo que rompía la captura: mantener espacio en
-   CUALQUIER estación dejaba a Gabo de estatua a un palmo, en rojo, sin
-   llegar a tocarte nunca — y vaciaba el propio minijuego, porque sin nadie
-   acercándose no hay nada que apretar. Es literalmente lo que
-   `activityGame.js` lleva avisado desde antes del bucle v2: «un minijuego
-   que congela al jefe convierte las estaciones en el sitio MÁS SEGURO del
-   piso». Lo era. **No lo vuelvas a congelar.** El freno es la cuenta atrás
-   (`limite`): agotarla pierde lo hecho y convoca al jefe.
+2. **ACTIVAR = el minijuego, Y CON ÉL EL MUNDO SE PARA.** Esto cambió
+   (decisión explícita) y merece leerse entero, porque durante mucho tiempo
+   la regla fue la contraria y por buenos motivos.
+
+   La regla vieja decía: un minijuego NO congela al jefe. Congelarlo hacía
+   que mantener espacio en CUALQUIER estación dejara a Gabo de estatua a un
+   palmo, en rojo, sin llegar a tocarte nunca — la estación era el sitio MÁS
+   SEGURO del piso— y encima vaciaba el propio minijuego, porque sin nadie
+   acercándose no hay nada que apretar. Todo eso era cierto.
+
+   **Pero la causa no era la pausa: era poder ENTRAR con él encima.** Desde
+   que los verbos se juegan A PANTALLA COMPLETA, el mundo vivo detrás
+   significa que te cazan mientras no ves el piso ni puedes reaccionar, que
+   no es tensión sino una emboscada. Así que:
+   - con un vigilante COMPROMETIDO contigo (`_puedeAbrirMinijuego`: nadie en
+     `CHASE` ni `lockedOn`), **la pantalla no se abre**. Esa es la puerta, y
+     es lo ÚNICO que separa «pausar para poder jugar» de «pausar para no
+     perder». Si la quitas, vuelve el escudo — no el hecho de pausar.
+   - abierta, se paran el jefe, los secuaces, los compañeros y el reloj;
+   - **NO se para la cuenta atrás de la tarea** (`limite`). Esa es la
+     presión, y es lo que impide que abrir una tarea sea un botón de
+     «detener el día».
+   Lo vigila `npm run check:pausa`, que comprueba las tres piezas juntas —
+   por separado ninguna se sostiene.
+
+   ⚠️ **La bandera se calcula AL FINAL de `update()`** (`enMinijuego`).
+   Estuvo escrita dentro de la rama de PAUSA, unas líneas antes de su
+   `return`, así que solo se calculaba con el juego ya pausado — o sea nunca,
+   jugando. No se veía nada raro: el reloj «que se para en un minijuego»
+   jamás se paró. Una bandera que se escribe en la rama que no se recorre es
+   indistinguible de una que no existe.
    Y **mantener espacio YA NO TERMINA la tarea**: avanza a paso de tortuga
    (`RITMO_MANTENIENDO`, 0.3) y lo que la enciende son los TOQUES al ritmo.
    El suelo viejo —«mantener la termina igual, lento»— se había comido el
@@ -281,6 +303,19 @@ Lo vigilan `npm run check:pulse`, `npm run check:gesto` y
 `npm run check:objetos` — la primera comprobación es el congelado (jefe
 quieto, `limite` corriendo, reloj parado) y la última, que el aguante se
 paga al bancar.
+
+**SIEMPRE SE PUEDE SALIR, y hay un BOTÓN.** La pantalla lleva su «SALIR
+(ESC)» arriba a la derecha, y es lo único pulsable de esa barra. Hubo que
+ponerlo: el rótulo decía «suelta para dejarlo» y desde el pestillo eso pasó a
+ser mentira —soltar ya no soltaba nada—, mientras ESCAPE se lo quedaba el
+menú de pausa antes de llegar al motor. No quedaba NINGUNA salida más que
+irse andando a ciegas. Ahora ESCAPE cierra primero lo de dentro y solo abre
+la pausa si no hay nada abierto. Dos detalles que se rompen solos si se
+tocan: el botón necesita `pointer-events: auto` propio (la pantalla es
+`none`), y salir deja un pestillo (`_salidaManual`) que dura hasta que
+sueltes la tecla o te muevas — sin él, el cuadro siguiente vuelve a abrir la
+pantalla, porque sigues plantada en la estación con la tecla puesta, que es
+justo la situación desde la que se pulsa «salir».
 
 **EL PESTILLO, y es SOLO de la fase 2.** Un verbo que no sea el pulso
 (`verter`, `chisme`, `microondas`) echa el pestillo (`_pestillo`) al

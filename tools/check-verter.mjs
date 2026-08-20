@@ -84,9 +84,14 @@ const arranque = await p.evaluate(() => {
   g.boss.resetToPatrol();
   g.boss.position.x = st.x + 25 * S;
   g.boss.position.z = st.z;
-  g.suspicion = Math.max(g.suspicion, g.boss.chaseSuspicionFloor + 5);
-  g.boss.suspicion = g.suspicion;
-  g.boss.startChase();
+  // El jefe LEJOS y de ronda. Antes se le lanzaba a la caza a propósito, para
+  // demostrar que el minijuego no lo congelaba; ahora una pantalla de tarea NO
+  // SE ABRE con un vigilante encima —esa es la puerta que permite parar el
+  // mundo sin que la estación sea un escudo—, así que montar una persecución
+  // aquí solo impide que se abra lo que se viene a medir. La caza y el
+  // anti-escudo tienen su prueba en `check:pausa`.
+  g.suspicion = 0;
+  g.boss.suspicion = 0;
   window.__bossX0 = g.boss.position.x;
 
   g.player.position.x = st.x;
@@ -263,6 +268,25 @@ if (arranque.error) {
   );
 
   // ── 4 · El puntero, y el mundo ──
+  // Se REABRE antes de medir: los pasos de arriba resuelven vasos, y resolver
+  // vasos llena la barra y BANCA la tarea, que cierra la pantalla. Medir
+  // después de eso es medir una pantalla cerrada — y lo que se viene a ver
+  // aquí es cómo se comporta mientras está abierta.
+  await p.evaluate(() => {
+    const g = window.__game.engine.game;
+    const st = window.__st;
+    st.done = false;
+    st.encendida = false;
+    st.progress = 0;
+    g.player.keys.delete(" ");
+    for (let i = 0; i < 4; i++) g.update(1 / 60);
+    g.player.keys.add(" ");
+    for (let i = 0; i < 10; i++) {
+      g.player.position.x = st.x;
+      g.player.position.z = st.z;
+      g.update(1 / 60);
+    }
+  });
   const pantalla = await p.evaluate(() => {
     const cap = document.querySelector(".inc-mg");
     return {
@@ -284,17 +308,28 @@ if (arranque.error) {
     pantalla.abierta === true && pantalla.acecho === true,
     JSON.stringify(pantalla)
   );
+  // EL MUNDO SE PARA MIENTRAS DURA LA PANTALLA. Esto afirmaba lo
+  // contrario, y con razón en su momento: congelar al jefe convertía la
+  // estación en el sitio más seguro del piso. Lo que cambió es que ya no se
+  // puede ENTRAR con él encima, y sin esa puerta no hay escudo que
+  // explotar. El anti-escudo se comprueba ahora en `check:pausa`.
   check(
-    "y no congela el mundo: el jefe sigue viniendo",
-    pantalla.congelado === false && pantalla.bossAndó === true,
+    "y el MUNDO SE PARA mientras resuelves (ver check:pausa)",
+    pantalla.bossAndó === false,
     JSON.stringify(pantalla)
   );
 
-  // ── 5 · Al soltar, el puntero se cierra otra vez ──
+  // ── 5 · Al SALIR, el puntero se cierra otra vez ──
+  // Antes se cerraba al soltar la tecla. Ya no: un puzle que se resuelve con
+  // el ratón mientras el pulgar sujeta espacio es absurdo, así que los verbos
+  // de puntero echan el PESTILLO y se quedan abiertos solos. La salida es el
+  // botón (o ESCAPE) — y por eso hubo que ponerlo: sin él no había ninguna.
   const soltado = await p.evaluate(() => {
     const g = window.__game.engine.game;
     g.player.keys.delete(" ");
-    for (let i = 0; i < 40; i++) g.update(1 / 60);
+    for (let i = 0; i < 10; i++) g.update(1 / 60);
+    g.salirMinijuego();
+    for (let i = 0; i < 10; i++) g.update(1 / 60);
     const cap = document.querySelector(".inc-mg");
     return {
       activo: g.verter.active,
@@ -302,7 +337,7 @@ if (arranque.error) {
     };
   });
   check(
-    "soltar cierra el puzle Y devuelve los clics al juego",
+    "SALIR cierra el puzle Y devuelve los clics al juego",
     soltado.activo === false && soltado.puntero === false,
     JSON.stringify(soltado)
   );

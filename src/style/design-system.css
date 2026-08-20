@@ -13075,3 +13075,30 @@ body.inc-minijuego .inc-msg-centro,
 body.inc-minijuego .inc-announce {
   top: 13%;
 }
+
+
+/* ── EL BOTÓN DE SALIR DE UN MINIJUEGO ────────────────────────────────
+   Va en la barra de arriba de la pantalla, junto al título de la tarea, y
+   es lo único de ahí que se puede pulsar — por eso lleva el filo de lo
+   pulsable aunque el resto de la interfaz no lleve ninguno. La pantalla es
+   `pointer-events: none` por defecto, así que se le devuelven a él y solo a
+   él: sin esto el botón se ve y no se puede tocar, que es peor que no
+   tenerlo. */
+.inc-mg-salir {
+  pointer-events: auto;
+  cursor: pointer;
+  background: none;
+  color: var(--text-soft);
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  padding: 4px 10px;
+  border: 1px solid var(--btn-line);
+  border-radius: var(--radius-sm);
+  text-shadow: 0 2px 0 hsl(var(--p-shadow-hue) / 0.7);
+}
+
+.inc-mg-salir:hover {
+  color: var(--accent);
+  border-color: var(--holo-line);
+}

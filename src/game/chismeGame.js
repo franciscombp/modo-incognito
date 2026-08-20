@@ -30,11 +30,15 @@
  * ganas de quedarse — y entonces llega Gabo y tienes que dejarlo a medias.
  * Esa tensión ES el juego; sin las ganas de quedarse no hay tensión ninguna.
  *
- * ── La regla que NO cambia ──
+ * ── La regla, que CAMBIÓ ──
  *
- * NO PAUSA EL MUNDO. El jefe sigue viniendo mientras lees, y la cuenta atrás
- * de la tarea sigue corriendo. Un minijuego que congela al jefe convierte la
- * estación en el sitio más seguro del piso (ver `activityGame.js`).
+ * PAUSA EL MUNDO mientras dura la pantalla. Durante mucho tiempo fue al
+ * revés —el jefe seguía viniendo— porque congelarlo hacía de la estación un
+ * escudo: se mantenía espacio y se quedaba de estatua a un palmo. La causa
+ * no era la pausa, era poder ENTRAR con él encima; eso ahora no se puede
+ * (`_puedeAbrirMinijuego` en game.js), y sin esa puerta no hay escudo. Lo
+ * que NO se para es la cuenta atrás de la tarea: esa es la presión.
+ * Lo vigila `npm run check:pausa`.
  */
 
 /** Cuántas preguntas hay que acertar para completar una tanda. */

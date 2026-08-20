@@ -180,7 +180,12 @@ const mundo = await p.evaluate(() => {
   window.__paso(120);
   return { andó: Math.hypot(g.boss.position.x - x0, g.boss.position.z - z0) > 0.05 };
 });
-check("no congela el mundo: el jefe sigue viniendo mientras bailas", mundo.andó === true);
+// EL MUNDO SE PARA MIENTRAS DURA LA PANTALLA. Esto afirmaba lo
+// contrario, y con razón en su momento: congelar al jefe convertía la
+// estación en el sitio más seguro del piso. Lo que cambió es que ya no
+// se puede ENTRAR con él encima, y sin esa puerta abierta no hay escudo
+// que explotar. El anti-escudo se comprueba ahora en `check:pausa`.
+check("y el MUNDO SE PARA mientras bailas (ver check:pausa)", mundo.andó === false, JSON.stringify(mundo));
 
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 

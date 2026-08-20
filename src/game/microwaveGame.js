@@ -24,7 +24,11 @@
  *
  * ── La regla que NO cambia ──
  *
- * NO PAUSA EL MUNDO: Gabo sigue viniendo mientras centras el plato.
+ * PAUSA EL MUNDO mientras dura la pantalla. Fue al revés durante mucho
+ * tiempo, porque congelar al jefe hacía de la estación un escudo; la causa
+ * no era la pausa sino poder ENTRAR con él encima, y eso ya no se puede
+ * (`_puedeAbrirMinijuego`). La cuenta atrás de la tarea NO se para: esa es
+ * la presión. Lo vigila `npm run check:pausa`.
  */
 
 // Cuánto se aleja el plato por segundo si no lo tocas. Es lo que hace que

@@ -817,7 +817,10 @@ async function boot() {
         // Con el mundo congelado (activando una actividad) los compañeros
         // también se quedan quietos: un piso donde solo tú existes es la
         // señal visual de que estás DENTRO del modo de juego.
-        if (!engine.game?.worldFrozen) npcs.forEach((npc) => npc.update(dt, t));
+        // Los compañeros se paran con el resto del mundo mientras hay una
+        // pantalla de minijuego abierta: si el jefe se para y ellos no, el
+        // piso detrás sigue moviéndose y la pausa se ve rota a medias.
+        if (!engine.game?.enMinijuego) npcs.forEach((npc) => npc.update(dt, t));
       }
 
       bobbingMeshes.forEach((m) => {

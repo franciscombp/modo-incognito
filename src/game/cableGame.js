@@ -29,9 +29,15 @@
  * distintas de leer la entrada serían dos cosas que mantener; así, quien
  * quiera añadir un mando nuevo hace lo mismo en los dos.
  *
- * ── La regla que NO cambia ──
+ * ── La regla, que CAMBIÓ ──
  *
- * NO PAUSA EL MUNDO. Gabo sigue viniendo mientras conectas.
+ * PAUSA EL MUNDO mientras dura la pantalla. Durante mucho tiempo fue al
+ * revés —el jefe seguía viniendo— porque congelarlo hacía de la estación un
+ * escudo: se mantenía espacio y se quedaba de estatua a un palmo. La causa
+ * no era la pausa, era poder ENTRAR con él encima; eso ahora no se puede
+ * (`_puedeAbrirMinijuego` en game.js), y sin esa puerta no hay escudo. Lo
+ * que NO se para es la cuenta atrás de la tarea: esa es la presión.
+ * Lo vigila `npm run check:pausa`.
  */
 
 // Fallar una conexión hace RUIDO: estás trasteando con los cables de una

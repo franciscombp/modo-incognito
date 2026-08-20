@@ -715,6 +715,54 @@ export class Game {
   }
 
   /**
+   * ¿SE PUEDE ABRIR UNA PANTALLA DE MINIJUEGO AHORA MISMO?
+   *
+   * Es la puerta que permite que el mundo se pare mientras juegas. Con un
+   * vigilante COMPROMETIDO contigo (persiguiéndote, o siguiéndote de cerca),
+   * la pantalla no se abre: si se abriera, pararía el mundo justo cuando te
+   * viene encima y la estación volvería a ser el escudo que ya rompió esto
+   * una vez.
+   *
+   * Fuera de eso se abre siempre. No es un candado de dificultad — es lo
+   * único que separa «pausar para poder jugar» de «pausar para no perder».
+   */
+  _puedeAbrirMinijuego() {
+    if (this.boss.lockedOn || this.boss.state === BOSS_STATES.CHASE) return false;
+    return !this.minions.some((m) => m.lockedOn || m.state === BOSS_STATES.CHASE);
+  }
+
+  /**
+   * SALIR de la pantalla de minijuego a mano. Existe porque no había forma
+   * de salir: el rótulo decía «suelta para dejarlo», y desde que los verbos
+   * de puntero echan el pestillo eso dejó de ser cierto — soltar ya no
+   * soltaba nada, y ESCAPE se lo quedaba el menú de pausa antes de llegar
+   * aquí. Con el mundo parado detrás, quedarse encerrado es peor todavía.
+   */
+  salirMinijuego() {
+    if (!this.enMinijuego) return false;
+    this._pestillo = null;
+    // SALIR TIENE QUE DURAR. Sin esto, el cuadro siguiente volvía a abrir la
+    // pantalla: sigues plantada en la estación y con la tecla puesta, que es
+    // justo la situación desde la que se pulsa «salir». Se apunta de qué
+    // estación te saliste y no se vuelve a abrir hasta que sueltes o te
+    // muevas — pedirlo otra vez es pedirlo, seguir donde estabas no.
+    this._salidaManual = this.nearStation ?? null;
+    this.pulse.end();
+    this.gesture.end();
+    this.chisme.end();
+    this.verter.end();
+    this.baile.end();
+    this.microondas.end();
+    this.player.inputLocked = false;
+    this.player.isDoingActivity = false;
+    // Un reto abierto (cables, examen del Parce) se cierra por su camino:
+    // no es una actividad, es un objeto que te estabas ganando.
+    if (this.reto) this.cerrarReto();
+    this.enMinijuego = false;
+    return true;
+  }
+
+  /**
    * BANCAR una actividad encendida: la misión cae y el AGUANTE pagado.
    * Cuanto más tiempo la sostuviste con el mundo vivo, más reloj — la
    * calificación por aguantar que pide el diseño.
@@ -795,21 +843,10 @@ export class Game {
       // aquí antes de llegar a apagarla— y además dejaba al motor creyendo
       // que sigues en la actividad después de reanudar desde otro sitio.
       this.pulse.end();
-      // Se calcula AL FINAL, con los verbos ya resueltos, y lo lee el cuadro
-    // siguiente: aquí es donde se sabe de verdad si hay una pantalla de
-    // minijuego abierta.
-    this.enMinijuego = !!(
-      this.pulse.active ||
-      this.gesture.active ||
-      this.chisme.active ||
-      this.trivia.active ||
-      this.verter.active ||
-      this.baile.active ||
-      this.cables.active ||
-      this.microondas.active
-    );
-
-    this.hud.render(this._snapshot());
+      // En pausa no hay pantalla de tarea que valga: se apaga la bandera para
+      // que el mundo no se quede congelado por ella al reanudar.
+      this.enMinijuego = false;
+      this.hud.render(this._snapshot());
       return;
     }
 
@@ -1015,6 +1052,17 @@ export class Game {
     // ESCAPE, que se acabe la cuenta atrás, o terminarlo. El pulso sigue
     // como estaba, porque ahí mantener ES el mando.
     const stCerca = this.nearStation;
+    // LA PUERTA: con un vigilante comprometido contigo, la pantalla no se
+    // abre. Es lo que impide que parar el mundo se convierta en un escudo —
+    // ver `_puedeAbrirMinijuego`. Una tarea YA empezada no se corta por esto:
+    // lo que se prohíbe es EMPEZAR con él encima.
+    if (!this.enMinijuego && !this._puedeAbrirMinijuego() && holdingSpace && stCerca) {
+      if (!this._avisoEscudo || this._avisoEscudo <= 0) {
+        this.toast("Con Gabo encima no te vas a poner a eso.");
+        this._avisoEscudo = 3;
+      }
+    }
+    if ((this._avisoEscudo ?? 0) > 0) this._avisoEscudo -= dt;
     const conPestillo =
       stCerca && (stCerca.verter || stCerca.chisme || stCerca.microondas || stCerca.baile);
     if (enActividad && conPestillo && holdingSpace) this._pestillo = stCerca;
@@ -1029,8 +1077,16 @@ export class Game {
       this._pestillo = null;
       this.toast("Lo dejaste a medias.");
     }
+    // La salida a mano se olvida en cuanto sueltas la tecla o cambias de
+    // sitio: a partir de ahí, volver a ponerte es una decisión nueva.
+    if (this._salidaManual && (!holdingSpace || this.nearStation !== this._salidaManual)) {
+      this._salidaManual = null;
+    }
     const sosteniendoActividad =
-      enActividad && (holdingSpace || this._tapGrace > 0 || this._pestillo === stCerca);
+      enActividad &&
+      (holdingSpace || this._tapGrace > 0 || this._pestillo === stCerca) &&
+      this._salidaManual !== stCerca &&
+      (this.enMinijuego || this._puedeAbrirMinijuego());
     if (sosteniendoActividad) {
       const st = this.nearStation;
       // ── CONSEGUIR primero: sin el objeto no hay actividad ──
@@ -1375,7 +1431,24 @@ export class Game {
     //
     // La bandera se queda (la leen el HUD y las comprobaciones) pero ya no
     // detiene a nadie: una tarea TIENE que exponerte.
-    {
+    // ── EL MUNDO SE PARA MIENTRAS JUEGAS UNA PANTALLA COMPLETA ──────────
+    // Esto revierte una regla vieja, y conviene saber por qué se puede.
+    //
+    // La regla decía: un minijuego NO congela al jefe, porque congelarlo
+    // convertía la estación en el sitio más seguro del piso — se mantenía
+    // espacio y Gabo se quedaba de estatua a un palmo, en rojo, sin llegar a
+    // tocarte nunca. Era verdad, y el fallo era real.
+    //
+    // Pero la causa no era la pausa: era que se podía ENTRAR con él encima.
+    // Eso se cierra abajo (`_puedeAbrirMinijuego`): con un vigilante
+    // comprometido contigo, la pantalla no se abre. Sin esa puerta, no hay
+    // escudo que explotar, y entonces parar el mundo es lo correcto — una
+    // pantalla completa te quita el piso de la vista, y que te cacen mientras
+    // no puedes ver ni reaccionar no es tensión, es una emboscada.
+    //
+    // LO QUE NO SE PARA es la cuenta atrás de la tarea (`limite`): esa es la
+    // presión, y sigue corriendo abajo, fuera de este bloque.
+    if (!this.enMinijuego) {
       this.boss.update(dt, this.player, liveNpcs);
       this.minions.forEach((m) => {
         if (m.id === "crispo") {
@@ -1629,6 +1702,28 @@ export class Game {
       }
       this._prevBossState = this.boss.state;
     }
+
+    // ── LA BANDERA, AL FINAL DEL TODO ──────────────────────────────────
+    // Con los verbos ya resueltos: aquí es donde se sabe de verdad si hay una
+    // pantalla de tarea abierta. La lee el cuadro SIGUIENTE, que es lo que
+    // hace que el mundo se pare mientras dure.
+    //
+    // ⚠️ Estuvo escrita dentro de la rama de PAUSA, unas líneas antes del
+    // `return`, así que solo se calculaba con el juego ya pausado — o sea
+    // nunca, jugando. La consecuencia no se veía: el reloj «parado durante
+    // un minijuego» nunca se paró, y el mundo tampoco. Una bandera que se
+    // escribe en la rama que no se recorre es indistinguible de una bandera
+    // que no existe.
+    this.enMinijuego = !!(
+      this.pulse.active ||
+      this.gesture.active ||
+      this.chisme.active ||
+      this.trivia.active ||
+      this.verter.active ||
+      this.baile.active ||
+      this.cables.active ||
+      this.microondas.active
+    );
 
     this.hud.render(this._snapshot());
   }

@@ -150,11 +150,16 @@ const vivo = await p.evaluate(async () => {
   // búsqueda: pasado ese nivel, game.js pausa la partida con su aviso a
   // pantalla completa y lo que se mediría es un juego parado.
   g.onHeatAlert = null;
-  g.suspicion = Math.max(g.suspicion, g.boss.chaseSuspicionFloor + 5);
-  g.boss.suspicion = g.suspicion;
+  // El jefe LEJOS y de ronda. Antes se le lanzaba a la caza a propósito, para
+  // demostrar que el minijuego no lo congelaba; ahora una pantalla de tarea NO
+  // SE ABRE con un vigilante encima —esa es la puerta que permite parar el
+  // mundo sin que la estación sea un escudo—, así que montar una persecución
+  // aquí solo impide que se abra lo que se viene a medir. La caza y el
+  // anti-escudo tienen su prueba en `check:pausa`.
+  g.suspicion = 0;
+  g.boss.suspicion = 0;
   g.boss.position.x = g.player.position.x + 30;
   g.boss.position.z = g.player.position.z;
-  g.boss.startChase();
   const antes = { x: g.boss.position.x, z: g.boss.position.z };
   const st = (() => {
     // La actividad del gesto puede no estar ACTIVA hoy (la cadena de la
@@ -200,9 +205,14 @@ const vivo = await p.evaluate(async () => {
 });
 assert("activar NO es la pausa de menú", vivo.pausado === false, JSON.stringify(vivo));
 assert("y el mundo SIGUE VIVO mientras juegas", vivo.congelado === false, JSON.stringify(vivo));
-assert("el jefe SIGUE VINIENDO mientras juegas", vivo.jefeAnda === true, JSON.stringify(vivo));
+// EL MUNDO SE PARA MIENTRAS DURA LA PANTALLA. Esto exigía lo contrario, y
+// con razón entonces: congelar al jefe hacía de la estación un escudo. Lo que
+// cambió es que ya no se puede ENTRAR con él encima — ver `check:pausa`.
+assert("el MUNDO SE PARA mientras juegas (ver check:pausa)", vivo.jefeAnda === false, JSON.stringify(vivo));
 assert("la cuenta atrás del minijuego SÍ corre", vivo.limiteCorre === true, JSON.stringify(vivo));
-assert("y el reloj de la jornada NO se para", vivo.relojCorre === true, JSON.stringify(vivo));
+// Y EL RELOJ TAMPOCO CORRE: la jornada dura lo mismo, pero no se te cobra
+// el rato que pasas dentro de una pantalla que te tapa el piso.
+assert("y el RELOJ se para con ella", vivo.relojCorre === false, JSON.stringify(vivo));
 
 // ── 3 · Dentro de la zona acelera; el extremo hace RUIDO ────────────────
 // Se llama a `gesture.update()` DIRECTAMENTE, con el eje a mano: por el bucle

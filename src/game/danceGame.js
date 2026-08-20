@@ -29,10 +29,15 @@
  * el dedo — son botones de verdad, no dibujos. La cruceta de un mando cae
  * en las flechas sin escribir una línea más.
  *
- * ── La regla que NO cambia ──
+ * ── La regla, que CAMBIÓ ──
  *
- * NO PAUSA EL MUNDO. Gabo sigue viniendo mientras bailas, y esa es la
- * gracia: es la tarea más visible del piso.
+ * PAUSA EL MUNDO mientras dura la pantalla. Durante mucho tiempo fue al
+ * revés —el jefe seguía viniendo— porque congelarlo hacía de la estación un
+ * escudo: se mantenía espacio y se quedaba de estatua a un palmo. La causa
+ * no era la pausa, era poder ENTRAR con él encima; eso ahora no se puede
+ * (`_puedeAbrirMinijuego` en game.js), y sin esa puerta no hay escudo. Lo
+ * que NO se para es la cuenta atrás de la tarea: esa es la presión.
+ * Lo vigila `npm run check:pausa`.
  */
 
 export const DIRECCIONES = ["arriba", "abajo", "izquierda", "derecha"];

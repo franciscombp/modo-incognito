@@ -203,8 +203,16 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const mg = el("div", "inc-mg", layer);
   const mgTop = el("div", "inc-mg-top", mg);
   const mgTitulo = el("b", "inc-mg-titulo", mgTop);
-  const mgSalir = el("span", "inc-mg-salir", mgTop);
-  mgSalir.textContent = "SUELTA PARA DEJARLO";
+  // EL BOTÓN DE SALIR, y es un BOTÓN. Era un `<span>` que decía «SUELTA PARA
+  // DEJARLO», y desde que los verbos de puntero echan el pestillo eso pasó a
+  // ser mentira: soltar ya no soltaba nada, ESCAPE se lo quedaba el menú de
+  // pausa antes de llegar al motor, y no quedaba ninguna forma de salir de la
+  // pantalla más que irse andando a ciegas. Con el mundo parado detrás,
+  // encima, quedarse encerrado no se nota hasta que ya llevas ahí un rato.
+  const mgSalir = el("button", "inc-mg-salir", mgTop);
+  mgSalir.type = "button";
+  mgSalir.textContent = "SALIR  (ESC)";
+  mgSalir.addEventListener("click", () => window.__game?.engine?.game?.salirMinijuego());
   const mgBody = el("div", "inc-mg-body", mg);
   // EL ACECHO: la mitad del juego que ya no se ve. Es una barra que se llena
   // según se acerca, no un número: con el jefe encima nadie lee un número.

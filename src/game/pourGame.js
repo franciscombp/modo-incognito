@@ -36,10 +36,15 @@
  * movimiento que te deje encallada: siempre puedes devolver lo que vertiste.
  * Un puzle sin salida con el jefe acercándose no es difícil, es injusto.
  *
- * ── La regla que NO cambia ──
+ * ── La regla, que CAMBIÓ ──
  *
- * NO PAUSA EL MUNDO. Gabo sigue viniendo mientras resuelves, y por eso la
- * pantalla de la tarea lleva el acecho dentro (ver `ui/gamehud.js`).
+ * PAUSA EL MUNDO mientras dura la pantalla. Durante mucho tiempo fue al
+ * revés —el jefe seguía viniendo— porque congelarlo hacía de la estación un
+ * escudo: se mantenía espacio y se quedaba de estatua a un palmo. La causa
+ * no era la pausa, era poder ENTRAR con él encima; eso ahora no se puede
+ * (`_puedeAbrirMinijuego` en game.js), y sin esa puerta no hay escudo. Lo
+ * que NO se para es la cuenta atrás de la tarea: esa es la presión.
+ * Lo vigila `npm run check:pausa`.
  */
 
 // Cuánto avanza la tarea cada trasvase ÚTIL, como fracción de su duración.

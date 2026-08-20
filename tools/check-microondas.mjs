@@ -73,12 +73,17 @@ const arranque = await p.evaluate(() => {
   st.encendida = false;
   window.__st = st;
 
+  // El jefe LEJOS y de ronda, no persiguiendo. Antes se le lanzaba a la caza
+  // a propósito, para demostrar que el minijuego no lo congelaba; ahora una
+  // pantalla de tarea NO SE ABRE con un vigilante encima —esa es la puerta
+  // que permite parar el mundo sin que la estación sea un escudo—, así que
+  // montar una persecución aquí solo impide que se abra lo que se viene a
+  // medir. La caza tiene su prueba en `check:pausa`.
   g.boss.resetToPatrol();
   g.boss.position.x = st.x + 25 * S;
   g.boss.position.z = st.z;
-  g.suspicion = Math.max(g.suspicion, g.boss.chaseSuspicionFloor + 5);
-  g.boss.suspicion = g.suspicion;
-  g.boss.startChase();
+  g.suspicion = 0;
+  g.boss.suspicion = 0;
   window.__bossX0 = g.boss.position.x;
 
   g.player.position.x = st.x;
@@ -192,9 +197,14 @@ if (arranque.error) {
   });
   check("centrado, la tarea AVANZA", jugado.avanzoCentrado === true, JSON.stringify(jugado));
   check("fuera del centro se quema y hace RUIDO", jugado.quemaSubio === true, JSON.stringify(jugado));
+  // EL MUNDO SE PARA MIENTRAS DURA LA PANTALLA. Esto afirmaba lo
+// contrario, y con razón en su momento: congelar al jefe convertía la
+// estación en el sitio más seguro del piso. Lo que cambió es que ya no
+// se puede ENTRAR con él encima, y sin esa puerta abierta no hay escudo
+// que explotar. El anti-escudo se comprueba ahora en `check:pausa`.
   check(
-    "y no congela el mundo: el jefe sigue viniendo",
-    jugado.congelado === false && jugado.bossAndó === true,
+    "y el MUNDO SE PARA mientras centras el plato (ver check:pausa)",
+    jugado.bossAndó === false,
     JSON.stringify(jugado)
   );
 }
