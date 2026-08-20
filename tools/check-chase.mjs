@@ -41,6 +41,15 @@ const log = await page.evaluate(async () => {
   // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
   // es la campana al enterarse de que la mision de la puerta cayo.
   game.clearGate();
+  // Y LA ESCOLTA, YA VIVIDA. Superar la puerta del día pone a Gabo a
+  // llevarte a tu puesto, y durante ese trayecto NO te vigila a propósito:
+  // vas pegada a él, así que sin el respiro el día abriría con una caza.
+  // Esta prueba es del jefe con la jornada en marcha —no de la apertura—,
+  // así que la escena se da por terminada. Sin esto, las seis aserciones de
+  // visión de abajo miden a un jefe al que el juego le ha pedido, con toda
+  // la razón, que mire para otro lado.
+  game._esperandoPuesto = false;
+  game.boss._graceTimer = 0;
   // This test is about the boss, not the sidekicks: an on-duty minion could
   // walk up and start an unsolicited chat, which pauses the level and would
   // otherwise stall every assertion below on a dialogue nobody answers.

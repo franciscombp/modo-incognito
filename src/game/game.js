@@ -76,8 +76,8 @@ const SEAT_WALK_MAX = 5 * S;
 // Y el plazo del paseo corto, por si aun así se atasca (alguien parado en el
 // hueco). Generoso: lo normal es llegar mucho antes.
 const SEAT_WALK_TIMEOUT = 6;
-// Lo que dura la escolta de apertura sin que el jefe te vigile. Generoso: es
-// un trayecto largo y el respiro tiene que cubrirlo entero.
+// Lo que dura la escolta de apertura sin que el jefe te mire. Cubre el
+// trayecto entero: se acaba sola al llegar (`_updateBienvenida`).
 const ESCOLTA_GRACIA = 25;
 const DISTRACTION_EFFECT_DURATION = 7;
 // A hiding spot is a one-shot breather, not a safe room: once you have used
@@ -1480,9 +1480,21 @@ export class Game {
 
     // ---- Suspicion ----
     const susCfg = this.suspicionConfig;
-    if (this.gate && !this.metGabo) {
+    if ((this.gate && !this.metGabo) || this._esperandoPuesto) {
       // Antes de conocer al guardián de la puerta del día no hay nada que
       // reprochar todavía: ni tareas que hacer mal, ni vigilancia activa.
+      //
+      // Y TAMPOCO MIENTRAS TE ACOMPAÑA A TU PUESTO. Durante la escolta vas
+      // pegada a él por definición —es lo que es una escolta— así que su
+      // cono te tiene encima todo el trayecto y la sospecha de «suelta y
+      // fuera de tu sitio» subía sola: el día abría con una caza tres
+      // segundos después de saludarte.
+      //
+      // Se para AQUÍ, en el medidor, y no dejándole ciego con `grantGrace`:
+      // cegarlo apagaba su visión entera durante veinticinco segundos, que
+      // es media jornada y además rompía todo lo que depende de que el jefe
+      // VEA (media suite de `tools/` se cayó midiendo justo eso). Lo que
+      // sobra durante la escolta no es su vista: es que te lo apunte.
       this.suspicion = 0;
       this._decayMinionHeat(dt);
     } else if (this.rules.explore) {
@@ -3088,12 +3100,12 @@ export class Game {
       // destino; al llegar se le devuelve la suya.
       this._correaPrevia = this.boss.tether;
       this.boss.setTether({ x: mesa.x, z: mesa.z }, { near: 1.2 * S, far: 1.8 * S });
-      // Y NO TE MIRA MIENTRAS TE LLEVA. Sin esto la escolta se convertía en
-      // una caza a los tres segundos: vas pegada a él —es lo que es una
-      // escolta— así que su cono te tiene encima todo el rato y la sospecha
-      // de «suelta y fuera de tu puesto» sube sola. Es el mismo respiro que
-      // se le da después de amonestar, y por el mismo motivo: hay una
-      // escena en marcha y su vigilancia la pisa.
+      // Y VA A LO SUYO MIENTRAS TE LLEVA. Sin este respiro no ANDA: te tiene
+      // a un palmo —es lo que es una escolta— y su ronda se convierte en
+      // mirarte a ti en vez de caminar hacia tu mesa. Medido: 0,6 unidades
+      // en doce segundos con el respiro quitado, contra las 16,8 con él.
+      // Es el mismo que se le da después de amonestar y por el mismo motivo:
+      // hay una escena en marcha, y su vigilancia se la come.
       this.boss.grantGrace(ESCOLTA_GRACIA);
     }
     this.announce("GABO TE LLEVA A TU PUESTO", "warn");
@@ -3120,6 +3132,11 @@ export class Game {
     const enPuesto = this.currentSafeSpot?.kind === "desk";
     if (!enPuesto) return;
     this._esperandoPuesto = false;
+    // Y SE LE DEVUELVE LA VISTA EN EL ACTO. El respiro de la escolta se pide
+    // con margen de sobra para cubrir el trayecto, pero llegaste: dejarlo
+    // correr sería regalarte los segundos que sobren con el jefe ciego, y
+    // esos segundos son justo el principio de la jornada.
+    this.boss._graceTimer = 0;
     const crispo = this.minions.find((m) => m.id === "crispo") ?? this.minions[0];
     if (!crispo) return;
     this._presentador = crispo;
