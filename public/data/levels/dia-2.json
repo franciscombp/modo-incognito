@@ -2,7 +2,7 @@
   "id": "dia-2",
   "number": 2,
   "title": "Martes · Ritmo de crucero",
-  "subtitle": "Ya sabes dónde están las cámaras. Y las plantas.",
+  "subtitle": "Ya sabes dónde están las cámaras. Y las plantas. Falta saber qué se cuece.",
   "scene": "piso7",
   "minigame": {
     "id": "crossing",
@@ -12,15 +12,25 @@
         "narrator": true,
         "text": "Segundo dia y ya sabes lo que toca: la Amazonas no cruza sola. Y ojo, el reloj de la jornada YA esta corriendo."
       },
-      {"speaker":"Tú","text":"Genial. Mi bono de transporte es esquivar buses."}
+      {
+        "speaker": "Tú",
+        "text": "Genial. Mi bono de transporte es esquivar buses."
+      }
     ],
     "onFail": {
       "icon": "alert",
       "title": "No fue tu día",
       "body": "Te atropellaron antes de llegar al piso.",
       "dialogue": [
-        {"speaker":"Steven el Daddy","narrator":true,"text":"Oye... ¿tú estás bien? Cuéntame qué pasó."},
-        {"speaker":"Tú","text":"La avenida. Otra vez la avenida."},
+        {
+          "speaker": "Steven el Daddy",
+          "narrator": true,
+          "text": "Oye... ¿tú estás bien? Cuéntame qué pasó."
+        },
+        {
+          "speaker": "Tú",
+          "text": "La avenida. Otra vez la avenida."
+        },
         {
           "speaker": "Steven el Daddy",
           "narrator": true,
@@ -33,12 +43,25 @@
   "rules": {
     "duration": 240,
     "maxWarnings": 3,
-    "objectives": ["coffee","stretch","sleep","scroll"],
+    "objectives": [
+      "coffee",
+      "stretch",
+      "sleep",
+      "scroll"
+    ],
     "bossSpeedMul": 1,
     "visionMul": 1,
     "targetScore": 1100
   },
   "intro": [
+    {
+      "speaker": "Tú",
+      "text": "Segundo día. Nadie me presenta a nadie, nadie me explica nada, y todos parecen ocupadísimos."
+    },
+    {
+      "speaker": "Tú",
+      "text": "Y sigo dándole vueltas a lo de ayer: un proyecto del que se habla en voz baja y no está en ningún tablero."
+    },
     {
       "speaker": "Compañera",
       "text": "Regla no escrita: si caminas con una laptop abierta, nadie te pregunta nada."
@@ -46,16 +69,35 @@
     {
       "prompt": "¿Aceptas el consejo?",
       "options": [
-        {"label":"«Anotado.»","reply":"Anotado. Laptop como escudo.","flag":"escudo"},
-        {"label":"«Prefiero improvisar.»","reply":"Prefiero improvisar.","flag":"improvisa"}
+        {
+          "label": "«Anotado.»",
+          "reply": "Anotado. Laptop como escudo.",
+          "flag": "escudo"
+        },
+        {
+          "label": "«Prefiero improvisar.»",
+          "reply": "Prefiero improvisar.",
+          "flag": "improvisa"
+        }
       ]
     }
   ],
   "outroWin": [
-    {"speaker":"Tú","text":"Dormir en el escritorio es una habilidad. Y yo estoy escalando."}
+    {
+      "speaker": "Tú",
+      "text": "Dormir en el escritorio es una habilidad. Y yo estoy escalando."
+    },
+    {
+      "speaker": "Tú",
+      "text": "Otra pieza para la libreta. Todavía no sé qué arman, pero ya sé quiénes."
+    }
   ],
   "outroLose": [
-    {"speaker":"Gabo","mood":"angry","text":"Segundo día, segunda charla. Vamos mal."}
+    {
+      "speaker": "Gabo",
+      "mood": "angry",
+      "text": "Segundo día, segunda charla. Vamos mal."
+    }
   ],
   "prologue": {
     "kind": "elevator",
@@ -69,9 +111,21 @@
     "choice": {
       "prompt": "El ascensor está lleno. ¿Te metes igual?",
       "options": [
-        {"label":"Esperar el siguiente","reply":"Espero el siguiente.","effect":"wait"},
-        {"label":"Escaleras, otra vez","reply":"Escaleras. Otra vez.","effect":"stairs"},
-        {"label":"Meterte a presión","reply":"Cabe uno más. Yo.","effect":"cut"}
+        {
+          "label": "Esperar el siguiente",
+          "reply": "Espero el siguiente.",
+          "effect": "wait"
+        },
+        {
+          "label": "Escaleras, otra vez",
+          "reply": "Escaleras. Otra vez.",
+          "effect": "stairs"
+        },
+        {
+          "label": "Meterte a presión",
+          "reply": "Cabe uno más. Yo.",
+          "effect": "cut"
+        }
       ]
     }
   }
