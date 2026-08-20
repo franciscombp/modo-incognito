@@ -34,6 +34,34 @@ await p.evaluate(() => {
   window.__game.engine.startDay(0, { skipMinigame: true });
 });
 await p.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 30000 });
+
+// EL ARRANQUE SE MIRA ANTES DE HABLAR CON ÉL. Estaba medido DESPUÉS del
+// diálogo de apertura, y desde que el día 1 abre con Gabo recibiéndote en la
+// puerta esa charla termina superando la puerta del día: se levanta y echa a
+// andar para llevarte a tu sitio. O sea que la prueba medía «quieto» justo
+// en el cuadro en que el juego acaba de mandarle a moverse.
+const arranque = await p.evaluate(() => {
+  const { boss } = window.__game.engine.game;
+  const salas = window.__floorplan.areas.filter((a) => a.kind === "meeting");
+  const dentro = salas.find(
+    (a) =>
+      boss.position.x >= a.x - a.w / 2 &&
+      boss.position.x <= a.x + a.w / 2 &&
+      boss.position.z >= a.z - a.d / 2 &&
+      boss.position.z <= a.z + a.d / 2
+  );
+  return {
+    // QUIETO, de una de las dos formas: la puerta del día lo deja SENTADO en
+    // su puesto (`sentadoEn`) o DE PIE recibiéndote (`esperaEn`).
+    quieto: boss.seated || boss.esperando,
+    sentado: boss.seated,
+    esperando: boss.esperando,
+    sala: dentro?.id ?? null,
+    x: +boss.position.x.toFixed(2),
+    z: +boss.position.z.toFixed(2),
+  };
+});
+
 for (let i = 0; i < 40; i++) {
   if (!(await p.evaluate(() => window.__game.engine.dialogue.isOpen))) break;
   const hayOpciones = await p.evaluate(
@@ -53,13 +81,6 @@ const out = await p.evaluate(async () => {
     salas.find(
       (a) => x >= a.x - a.w / 2 && x <= a.x + a.w / 2 && z >= a.z - a.d / 2 && z <= a.z + a.d / 2
     );
-
-  const arranque = {
-    sentado: boss.seated,
-    sala: dentro(boss.position.x, boss.position.z)?.id ?? null,
-    x: +boss.position.x.toFixed(2),
-    z: +boss.position.z.toFixed(2),
-  };
 
   // Y AHORA SE LE EMPUJA. Se le manda a perseguir con la jugadora DENTRO de
   // cada sala: es la única forma de que el juego intente meterlo, y es
@@ -117,13 +138,13 @@ const out = await p.evaluate(async () => {
       if (dentro(p.x, p.z)) rondas.dentro++;
     }
   }
-  return { arranque, visitadas, coladas, rondas };
+  return { visitadas, coladas, rondas };
 });
 
 check(
-  "Gabo empieza sentado, y FUERA de cualquier sala",
-  out.arranque.sentado === true && out.arranque.sala === null,
-  JSON.stringify(out.arranque)
+  "Gabo empieza quieto (sentado o esperando), y FUERA de cualquier sala",
+  arranque.quieto === true && arranque.sala === null,
+  JSON.stringify(arranque)
 );
 check(
   "persiguiéndote DENTRO de cada sala, no entra en ninguna",

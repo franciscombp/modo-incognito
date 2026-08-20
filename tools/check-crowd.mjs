@@ -45,6 +45,12 @@ const res = await p.evaluate(async () => {
   // clava la ruta en su sitio para que el movimiento que midamos sea SOLO
   // el que la separación le hubiera metido.
   game.boss.setTether(null);
+  // Y SE LE CANCELA LA ESCOLTA. Desde que el día 1 abre con Gabo
+  // recibiéndote en la puerta, superar la puerta del día le manda a ANDAR
+  // hasta tu mesa (`clearGate` → `distract`). Ese paso es suyo, no un
+  // empujón, pero la prueba lo medía como si lo fuera: informaba «el jefe
+  // cedió 0,3» con la separación intacta.
+  game.boss.resetToPatrol();
   game.boss._updateVision = () => {
     game.boss.playerVisible = false;
     game.boss.redAlert = false;
@@ -53,6 +59,15 @@ const res = await p.evaluate(async () => {
   game.boss.routeIndex = 0;
   game.minions.forEach((m) => m.setActive(false));
   await new Promise((r) => setTimeout(r, 300));
+  // Y SE LE VUELVE A CLAVAR DESPUÉS DE LA ESPERA. Ese respiro no es tiempo
+  // muerto: el bucle de render real corre ~18 cuadros dentro, y en ellos el
+  // jefe seguía andando la escolta que le dejó puesta la puerta del día. Se
+  // le clavaba antes, se despegaba durante, y lo que la prueba medía luego
+  // era su propio paso — informaba «el jefe cedió 0,3» con la separación
+  // intacta.
+  game.boss.resetToPatrol();
+  game.boss.route = [{ x: game.boss.position.x, z: game.boss.position.z }];
+  game.boss.routeIndex = 0;
 
   const out = {};
   const paso = () => {

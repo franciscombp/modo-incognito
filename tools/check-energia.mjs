@@ -317,6 +317,21 @@ const cama = await p.evaluate(async () => {
     g.player.position.x = st.x;
     g.player.position.z = st.z;
     if (st.objeto) g.inventario.add(st.objeto.id);
+    // Y EL JEFE, EN FRÍO. Este bloque va el último del archivo y hereda un
+    // jefe ya movido por las secciones de arriba; desde que un minijuego no
+    // se abre con un vigilante comprometido (`_puedeAbrirMinijuego`, la
+    // puerta que impide que una estación sea un escudo), heredarlo cazando
+    // significaba que la actividad no arrancaba y el Zzz no llegaba a
+    // pintarse. La siesta estaba bien: lo que traía la caza era el montaje.
+    g.suspicion = 0;
+    g.boss.suspicion = 0;
+    g.boss.lockedOn = false;
+    g.boss.resetToPatrol();
+    g.minions.forEach((m) => {
+      m.lockedOn = false;
+      m.localHeat = 0;
+      m.resetToPatrol?.();
+    });
     g.player.keys.add(" ");
     for (let i = 0; i < 30; i++) {
       g.setPaused(false);
