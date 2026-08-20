@@ -108,11 +108,30 @@ const buena = await p.evaluate(() => {
   return g._chismes.find((x) => x.pregunta === s.pregunta).correcta;
 });
 await p.keyboard.press(String(buena + 1));
-await p.waitForTimeout(250);
-check(
-  "la TECLA del número que se lee en la tarjeta responde",
-  (await p.evaluate(() => window.__game.engine.game.trivia.snapshot()?.aciertos ?? "ganado")) !== 0
-);
+check("la TECLA del número que se lee en la tarjeta responde", await respondio(p));
+
+/**
+ * ESPERAR A QUE LA RESPUESTA CUENTE, en vez de dormir una cifra fija.
+ *
+ * Las dos aserciones de abajo leían `aciertos` exactamente 250 ms después de
+ * pulsar, y esa única muestra bajo carga cae ANTES de que la respuesta se
+ * registre: en la suite completa esto fallaba una de cada dos veces y suelto
+ * pasaba siempre, o sea que lo que medía era la máquina y no el mando (la
+ * misma lección que dejó escrita `check:chase`). Sondeando, el resultado deja
+ * de depender de lo ocupado que esté el equipo.
+ */
+async function respondio(pagina, ms = 3000) {
+  try {
+    await pagina.waitForFunction(
+      () => (window.__game.engine.game.trivia.snapshot()?.aciertos ?? "ganado") !== 0,
+      null,
+      { timeout: ms }
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 // ── 3 · EL CURSOR: flechas hasta la opción buena y Enter ──
 // Es el camino del mando: la cruceta y la palanca acaban en el mismo
@@ -136,11 +155,7 @@ const dondeEsta = await p.evaluate(() => {
 });
 check("las FLECHAS lo mueven de opción en opción", dondeEsta === buena3, `cursor en ${dondeEsta}`);
 await p.keyboard.press("Enter");
-await p.waitForTimeout(250);
-check(
-  "y ENTER responde con la que está señalada",
-  (await p.evaluate(() => window.__game.engine.game.trivia.snapshot()?.aciertos ?? "ganado")) !== 0
-);
+check("y ENTER responde con la que está señalada", await respondio(p));
 
 // ── El mando no puede robarle las teclas al juego ──
 await p.evaluate(() => window.__game.engine.game.cerrarReto());
