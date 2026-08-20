@@ -34,10 +34,11 @@ JSON que más se tocan— está en
 
 ## Estado: temporada 1, día 1
 
-La campaña publicada es **la temporada 1 sobre el día 1**: ascensor →
-presentarte con Gabo → y de ahí se abre la cadena de misiones (fingir, café,
-el chisme de Fran, la película, la comida) en el **ala sur**, con Gabo atado a
-la jugadora. El cruce de la avenida existe y funciona, pero está DESACTIVADO
+La campaña publicada es **la temporada 1 sobre los días 1 y 2** (los dos
+están en `manifest.json` → `levels`): ascensor → Gabo te recibe en la puerta
+y te lleva a tu puesto → y de ahí se abre la cadena de misiones (fingir,
+café, el chisme de Fran, la película, la comida) en el **ala sur**, con Gabo
+atado a la jugadora. El cruce de la avenida existe y funciona, pero está DESACTIVADO
 (ver más abajo) para tener el foco en el piso. Los archivos `dia-2`..`dia-5`
 siguen en `public/data/levels/` pero **no están en `manifest.json` →
 `levels`**, así que el juego no los ve. Si te piden reactivar un día, es
@@ -1225,8 +1226,9 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   su propia tarjeta (`.vn-narrator`) y la caja se aparta con `vn-narrating`.
   Estuvo con `bottom: -140px`, o sea entera fuera de pantalla, y como la
   PRIMERA línea del día 1 es del narrador, el juego abría con un panel en
-  blanco esperando un clic que nadie sabía que había que dar. Si tocas ese
-  bloque, comprueba que la línea de Steven se lee al arrancar el día 1.
+  blanco esperando un clic que nadie sabía que había que dar. El día 1 ya no
+  abre con narrador —Gabo te recibe en persona—, pero el modo sigue vivo (lo
+  usa el cruce de la avenida): si tocas ese bloque, compruébalo ahí.
 - **La flecha de un rastreador esquiva lo que ya ocupa el borde**
   (`src/ui/tracker.js`): la barra de arriba, la columna táctil, las tarjetas
   de abajo, la franja de controles y la OTRA flecha. Cada bloqueo se mide del
