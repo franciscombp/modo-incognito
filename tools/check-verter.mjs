@@ -155,10 +155,34 @@ if (arranque.error) {
   const jugado = await p.evaluate(() => {
     const g = window.__game.engine.game;
     const st = window.__st;
+    // SE REABRE AQUÍ DENTRO, no en un `evaluate` aparte. Con `mezclas: 1`
+    // basta un trasvase para resolver un vaso, y resolver un vaso llena la
+    // barra: la tarea se ENCIENDE y su pantalla se cierra sola —que es lo
+    // correcto, ahí empieza el aguante—. Reabrir en otra llamada no sirve:
+    // entre las dos corre el bucle de dibujo de verdad, la física devuelve a
+    // la jugadora fuera del radio de la estación y el puzle se cierra otra
+    // vez antes de medir nada.
+    st.done = false;
+    st.encendida = false;
+    st.progress = 0;
+    g.player.keys.delete(" ");
+    for (let i = 0; i < 4; i++) g.update(1 / 60);
+    g.player.keys.add(" ");
+    for (let i = 0; i < 12; i++) {
+      g.player.position.x = st.x;
+      g.player.position.z = st.z;
+      g.update(1 / 60);
+    }
     const v = () => g.verter.snapshot();
+    if (!v()) return { error: "el puzle no se reabrió", activo: g.verter.active, near: g.nearStation?.id };
     // Se busca un trasvase LEGAL leyendo el estado, no adivinando.
     const legal = () => {
       const s = v();
+      // El puzle puede haberse CERRADO a media medición: resolver un vaso
+      // llena la barra, la tarea se enciende y su pantalla se cierra sola —
+      // que es lo correcto, ahí empieza el aguante. Sin esta guarda, la
+      // prueba reventaba leyendo los vasos de una pantalla que ya no existe.
+      if (!s) return null;
       for (let a = 0; a < s.vasos.length; a++) {
         if (!s.vasos[a].length) continue;
         const color = s.vasos[a][s.vasos[a].length - 1];
@@ -173,6 +197,7 @@ if (arranque.error) {
     // Y uno ILEGAL: colores que no pegan.
     const ilegal = () => {
       const s = v();
+      if (!s) return null;
       for (let a = 0; a < s.vasos.length; a++) {
         if (!s.vasos[a].length) continue;
         const color = s.vasos[a][s.vasos[a].length - 1];
@@ -203,10 +228,13 @@ if (arranque.error) {
     // ping-pong entre dos vasos sin resolver nada.
     g.verter.soltar();
     const antesDeVerter = st.progress;
-    const resueltos0 = v().resueltos;
+    const resueltos0 = v()?.resueltos ?? 0;
     let vertidos = 0;
     for (let i = 0; i < 30; i++) {
       const s = v();
+      // Cerrado a media tanda: resolver un vaso enciende la tarea y la
+      // pantalla se va sola. No es un fallo — es el final que se persigue.
+      if (!s) break;
       let elegido = null;
       for (let a = 0; a < s.vasos.length && !elegido; a++) {
         if (!s.vasos[a].length) continue;

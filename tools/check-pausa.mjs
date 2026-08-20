@@ -63,6 +63,22 @@ await p.evaluate(() => {
   g.clearGate();
   g.onHeatAlert = null;
   g.rules.maxWarnings = 99;
+  // Y EL TECHO DE SOSPECHA, POR LAS NUBES. Bailar sin responder falla pasos,
+  // fallar hace RUIDO, y al nivel 3 de búsqueda `game.js` PAUSA la partida
+  // por su cuenta — cerrando la pantalla justo cuando esta prueba está
+  // intentando pulsar su botón de salir. Subiendo el techo, el nivel nunca
+  // llega a 3 y lo que se mide es lo que se vino a medir.
+  g.suspicionConfig.max = 1e6;
+  // Y EL JEFE, CIEGO — hasta el último caso, que es el que lo necesita
+  // viendo. Esta prueba tarda minutos entre pasos y la jugadora se los pasa
+  // plantada en una estación haciendo algo prohibido: sin esto la alcanza,
+  // la amonestación le limpia las teclas y a partir de ahí lo que falla es
+  // el montaje. `_vistaOriginal` se guarda para devolvérsela abajo.
+  window.__vistaOriginal = g.boss._updateVision;
+  g.boss._updateVision = function () {
+    this.playerVisible = false;
+    this.redAlert = false;
+  };
   window.__ponerse = (id) => {
     const st = g.objectives.find((o) => o.id === id);
     window.__st = st;
@@ -70,10 +86,31 @@ await p.evaluate(() => {
       for (let i = 0; i < n; i++) {
         g.player.position.x = st.x;
         g.player.position.z = st.z;
+        // LA ENERGÍA, LLENA. Esta prueba tarda minutos entre pasos, y a cero
+        // la jugadora SE DUERME —lo cual corta la actividad y cierra la
+        // pantalla—: entonces lo que fallaba no era la salida, era el sueño.
+        // Aquí se mide la pausa y el botón, no la gestión de la energía (esa
+        // tiene su `check:energia`).
+        g.energy = g.energyMax;
         if (g.paused) g.setPaused(false);
         g.update(1 / 60);
       }
     };
+    // LA JUGADORA, CLAVADA A SU ESTACIÓN entre paso y paso. Las medidas de
+    // esta prueba van en llamadas separadas, y ENTRE ellas corre el bucle de
+    // dibujo de verdad: la física la devuelve fuera del radio de la estación,
+    // la pantalla se cierra sola, y lo que fallaba después era el clic sobre
+    // un botón que ya no estaba. Con esto, «entre paso y paso» deja de ser un
+    // agujero por el que se escapa el montaje.
+    const fijar = () => {
+      if (window.__pinned === false) return;
+      g.player.position.x = st.x;
+      g.player.position.z = st.z;
+      g.energy = g.energyMax;
+      requestAnimationFrame(fijar);
+    };
+    window.__pinned = true;
+    requestAnimationFrame(fijar);
     // El jefe lejos y tranquilo: aquí se mide la pausa, no la persecución.
     g.boss.resetToPatrol();
     g.suspicion = 0;
@@ -123,17 +160,55 @@ check(
 );
 
 // ── 3 · SE PUEDE SALIR ──
+// Se REABRE justo antes. Las medidas de arriba consumen tiempo real, y la
+// cuenta atrás de la tarea (12 s) sigue corriendo con la pantalla abierta —
+// esa es justo la mitad que hace que la pausa no sea gratis. Al agotarse, la
+// pantalla se cierra y suelta la tecla a la fuerza, así que llegar aquí sin
+// reabrir es llegar a un piso sin minijuego que probar.
+await p.evaluate(() => {
+  const g = window.__game.engine.game;
+  const st = window.__st;
+  st.done = false;
+  st.encendida = false;
+  st.progress = 0;
+  st.limiteLeft = null;
+  // Y NADIE COMPROMETIDO: la puerta que impide abrir una pantalla con un
+  // vigilante encima también aplica a los SECUACES, y tras minutos de prueba
+  // alguno acaba siguiéndote. Devolverlos a su ronda es restablecer la
+  // precondición del caso —«sin nadie encima»—, que es lo que este trozo da
+  // por supuesto. El caso contrario tiene su propia comprobación abajo.
+  g.boss.resetToPatrol();
+  g.minions.forEach((m) => m.resetToPatrol());
+  g.suspicion = 0;
+  g.boss.suspicion = 0;
+  g.player.keys.delete(" ");
+  window.__paso(4);
+  g.player.keys.add(" ");
+  window.__paso(10);
+});
 const salir = await p.evaluate(() => {
   const btn = document.querySelector(".inc-mg-salir");
   return {
     esBoton: btn?.tagName === "BUTTON",
     sePuedeTocar: btn ? getComputedStyle(btn).pointerEvents !== "none" : false,
     texto: btn?.textContent ?? "",
+    // LA PANTALLA TIENE QUE ESTAR ABIERTA, y esto faltaba: sin ello la
+    // afirmación pasaba con el minijuego cerrado (el botón conserva sus
+    // propios `pointer-events`), y el fallo aparecía dos líneas después como
+    // un clic que se agota — que no dice qué pasó.
+    pantallaAbierta: !!document.querySelector(".inc-mg.on"),
+    verboVivo: window.__game.engine.game.enMinijuego,
+    _near: window.__game.engine.game.nearStation?.id ?? null,
+    _teclas: [...window.__game.engine.game.player.keys],
+    _salida: !!window.__game.engine.game._salidaManual,
+    _puede: window.__game.engine.game._puedeAbrirMinijuego(),
+    _done: window.__st.done,
+    _lim: window.__st.limiteLeft,
   };
 });
 check(
   "HAY un botón de salir, y se puede tocar de verdad",
-  salir.esBoton && salir.sePuedeTocar,
+  salir.esBoton && salir.sePuedeTocar && salir.pantallaAbierta,
   JSON.stringify(salir)
 );
 
@@ -172,6 +247,9 @@ check(
 // escudo: mantener espacio con Gabo a un palmo y que se quedara de estatua.
 const escudo = await p.evaluate(() => {
   const g = window.__game.engine.game;
+  // Aquí SÍ tiene que ver: el caso es justo «con un vigilante encima».
+  g.boss._updateVision = window.__vistaOriginal;
+  window.__pinned = false;
   g.salirMinijuego();
   const st = g.objectives.find((o) => o.id === "stretch");
   g.player.position.x = st.x;

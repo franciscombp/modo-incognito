@@ -185,14 +185,47 @@ if (abierto.error) {
     JSON.stringify(ganado)
   );
 
-  // ── El mundo, vivo ──
-  const mundo = await p.evaluate(() => ({
-    congelado: window.__game.engine.game.worldFrozen,
-    bossAndó: Math.abs(window.__game.engine.game.boss.position.x - window.__bossX0) > 0.01,
-  }));
+  // ── El mundo, PARADO ──
+  // Un reto ocupa la pantalla entera igual que un verbo, así que también
+  // para el mundo. Esto exigía lo contrario, y con razón entonces: congelar
+  // al jefe hacía de la estación un escudo. Lo que cambió es que ya no se
+  // puede ENTRAR con él encima — ver `check:pausa`.
+  const mundo = await p.evaluate(() => {
+    const g = window.__game.engine.game;
+    // SE REABRE: los pasos de arriba GANAN el reto, y ganarlo lo cierra —que
+    // es su final—. Medir sin reabrir sería medir un piso sin reto, y el
+    // mundo anda, claro que anda.
+    let reabierto = false;
+    if (!g.reto) {
+      reabierto = true;
+      const item = [...g._carriables.values()].find((i) => i.reto);
+      g.inventario.delete(item.id);
+      g.boss.resetToPatrol();
+      g.minions.forEach((m) => m.resetToPatrol());
+      g.suspicion = 0;
+      g.boss.suspicion = 0;
+      g._abrirReto(item);
+      for (let i = 0; i < 6; i++) g.update(1 / 60);
+    }
+    const x0 = g.boss.position.x;
+    for (let i = 0; i < 90; i++) {
+      if (g.paused) g.setPaused(false);
+      g.update(1 / 60);
+    }
+    const out = {
+      abierto: !!g.reto,
+      bossAndó: Math.abs(g.boss.position.x - x0) > 0.01,
+    };
+    // SE CIERRA LO QUE SE ABRIÓ. Si esta medida deja un reto abierto, el
+    // bloque siguiente llama a `_abrirReto` y se encuentra con que ya hay uno
+    // —`_abrirReto` sale si `this.reto`— y acaba midiendo el reto
+    // equivocado, con el objeto equivocado y a la distancia equivocada.
+    if (reabierto) g.cerrarReto();
+    return out;
+  });
   check(
-    "y el jefe siguió viniendo mientras conectabas",
-    mundo.congelado === false && mundo.bossAndó === true,
+    "y el MUNDO SE PARA mientras conectas (ver check:pausa)",
+    mundo.abierto === true && mundo.bossAndó === false,
     JSON.stringify(mundo)
   );
 
@@ -213,7 +246,13 @@ if (abierto.error) {
       g.player.position.z = lejos.z;
       g.update(1 / 60);
     }
-    return { abierto, cerrado: g.reto === null, sinObjeto: !g.inventario.has(it.id) };
+    return {
+      abierto,
+      cerrado: g.reto === null,
+      sinObjeto: !g.inventario.has(it.id),
+      pausado: g.paused,
+      dist: +Math.hypot(it.x - g.player.position.x, it.z - g.player.position.z).toFixed(1),
+    };
   });
   check(
     "alejarse cierra el reto y no regala nada",

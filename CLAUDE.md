@@ -251,6 +251,55 @@ minijuego", el cambio va **ahí**, no en `game.js` ni en `engine.js`:
   y falló sin que nada del juego estuviera roto. Si añades un verbo, búscalo
   también en `tools/`.
 
+### EL REGISTRO DE VERBOS (`src/game/verbos.js`)
+
+**La lista de qué se puede hacer en una estación vive en UN sitio.** Añadir un
+verbo costaba tocar ocho, y ninguno se parecía al anterior: la cadena de `if`
+del bucle de actividad (donde cada rama tenía que acordarse de apagar las
+OTRAS cinco, a mano — 31 llamadas sueltas), la lista del pestillo, la de
+`enMinijuego`, el snapshot, el HUD, y un par de comprobaciones de `tools/`.
+
+Nada de eso fallaba a la vista: fallaba EN SILENCIO. Al pasar estirarse al
+baile, `check:minijuego` dejó de ver la única actividad jugable del día y
+`check:pulse` se puso a medir el pulso en una estación que ya no lo juega. Los
+dos «funcionaban» — preguntaban por un juego que ya no existía.
+
+**Para añadir un verbo:** su módulo (`begin`/`end`/`update`/`snapshot`/
+`active`), crearlo en `game.js`, una fila en `verbos.js`, y pintarlo en
+`gamehud.js`. El apagado de los demás, el pestillo, la bandera de pantalla
+abierta y el orden de prioridad salen solos de la tabla. Y `tools/` la
+IMPORTA, así que una comprobación no puede volver a quedarse preguntando por
+dos verbos cuando hay seis.
+
+Dos cosas de la tabla: `id` es la instancia en `game` y `campo` la clave del
+JSON, y **no siempre coinciden** (`gesture`/`gesto`, y el pulso no tiene clave
+porque es EL SUELO — se juega cuando no se pidió otra cosa). Y **el ORDEN es
+la prioridad**: una actividad juega a uno y nunca a dos.
+
+Tres apagados a medias que salieron al hacerlo, y que estaban ahí desde que
+los verbos eran dos: pausar, agotar la cuenta atrás y ENCENDER una tarea solo
+cerraban el pulso y el gesto — con un puzle de vasos abierto se quedaba vivo
+por debajo.
+
+### EL CONTENIDO SE REVISA SOLO (`npm run check:contenido`)
+
+La historia y el juego se referencian **por id y por nombre** entre siete
+JSON, y nadie comprobaba esas referencias. Una misión que apunta a una
+estación renombrada, un día que espera a Gabo en un puesto que ya no existe,
+una actividad que le pide un objeto a alguien que no está en el piso: nada de
+eso rompe al arrancar. Rompe DESPUÉS, con la misión imposible a mitad de
+partida.
+
+No abre el navegador —lee los archivos y cruza referencias— y dice **en qué
+archivo y en qué clave** está el cabo suelto. La primera vez que corrió
+encontró uno de verdad: el día 2, que está publicado, pedía una actividad
+`scroll` que no existe en el piso.
+
+Comprueba además dos invariantes de datos que antes solo se descubrían
+jugando: que una actividad no declare DOS verbos (jugaría uno y el otro sería
+texto muerto) y que `limite` sea mayor que `time` (al revés, la tarea no se
+puede terminar y nada lo explica a la vista).
+
 **EL BUCLE v2 DE UNA ACTIVIDAD: conseguir → activar → aguantar.** El contrato
 cambió (decisión de diseño explícita, agosto 2026) y las tres fases se
 reparten la exposición:

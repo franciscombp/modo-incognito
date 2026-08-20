@@ -17,6 +17,17 @@
  * Uso: npm run check:minijuego   (necesita `npm run preview` en :4173)
  */
 import { chromium } from "playwright";
+// DEL REGISTRO. La lista estuvo escrita a mano aquí con DOS verbos cuando ya
+// había seis, y al pasar estirarse al baile esta prueba dejó de ver la única
+// actividad jugable del día: falló sin que nada del juego estuviera roto.
+import { VERBOS } from "../src/game/verbos.js";
+
+const CAMPOS_VERBO = VERBOS.map((v) => v.campo).filter(Boolean);
+// Los PARES {id, campo}: el id es cómo se llama la instancia en `game` y el
+// campo es la clave del JSON. No coinciden (`gesture`/`gesto`,
+// `pulse`/sin clave), y traducirlos a mano en cada sitio es de donde salían
+// los desajustes.
+const PARES = VERBOS.map(({ id, campo }) => ({ id, campo }));
 
 const url = process.argv[2] ?? "http://localhost:4173/";
 const b = await chromium.launch({
@@ -24,6 +35,13 @@ const b = await chromium.launch({
   args: ["--no-sandbox", "--enable-unsafe-swiftshader"],
 });
 const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+await p.addInitScript(
+  ({ campos, pares }) => {
+    window.__VERBOS = campos;
+    window.__PARES = pares;
+  },
+  { campos: CAMPOS_VERBO, pares: PARES }
+);
 const errores = [];
 p.on("pageerror", (e) => errores.push(String(e).slice(0, 160)));
 
@@ -66,7 +84,7 @@ const arranque = await p.evaluate(() => {
   // cuanto el piso tuvo seis: al pasar estirarse al baile, esta prueba dejó
   // de ver la única actividad jugable sin recados y falló sin que nada del
   // juego estuviera roto. Si añades un verbo, va aquí.
-  window.__VERBOS = ["pulso", "gesto", "chisme", "verter", "microondas", "baile"];
+  // (lo inyecta `addInitScript`, ver arriba)
   const tieneVerbo = (o) => window.__VERBOS.some((v) => o[v]);
   // Una actividad sin ningún verbo declarado cae al PULSO, que es el suelo:
   // también es jugable ya.
@@ -102,10 +120,13 @@ const jugada = await p.evaluate(async () => {
   g.player.position.x = st.x;
   g.player.position.z = st.z;
   g.player.keys.add(" ");
+  // Se espera a que arranque CUALQUIER verbo. Preguntando solo por dos, con
+  // una estación de baile la espera se agotaba entera y luego se informaba
+  // «no arrancó» — cuando lo que no sabía mirar era la prueba.
   for (let i = 0; i < 60; i++) {
     if (g.paused) g.setPaused(false);
     await sleep(30);
-    if (g.pulse.active || g.gesture.active) break;
+    if (window.__PARES.some((v) => g[v.id]?.active)) break;
   }
   const tira = document.querySelector(".inc-pulse");
   const tarjeta = document.querySelector(".inc-action");
@@ -114,10 +135,14 @@ const jugada = await p.evaluate(async () => {
     label: st.label,
     // Cualquiera de los verbos, por lo mismo que arriba: mirar solo dos era
     // preguntar por un juego que ya no existe.
-    activo: VERBOS.some((v) => g[v === "pulso" ? "pulse" : v === "gesto" ? "gesture" : v]?.active),
+    activo: window.__PARES.some((v) => g[v.id]?.active),
     // Que esté "activo" por dentro no basta: tiene que PINTARSE.
     tiraVisible: !!tira?.classList.contains("on"),
     tarjetaVisible: !!tarjeta?.classList.contains("on"),
+    // LA PANTALLA es lo que comparten TODOS los verbos desde que se juegan a
+    // pantalla completa: preguntar por la tira del pulso o la tarjeta del
+    // gesto era preguntar por dos de seis.
+    pantallaVisible: !!document.querySelector(".inc-mg.on"),
     mundoCongelado: g.worldFrozen,
   };
 });
@@ -128,7 +153,7 @@ check(
 );
 check(
   "y el minijuego SE PINTA (la tira o la tarjeta de acción)",
-  jugada.tiraVisible === true || jugada.tarjetaVisible === true,
+  jugada.pantallaVisible === true || jugada.tiraVisible === true || jugada.tarjetaVisible === true,
   JSON.stringify(jugada)
 );
 // Y SE JUEGA CON EL PISO VIVO. Esto exigía lo contrario —activar congelaba

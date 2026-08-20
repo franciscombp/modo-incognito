@@ -182,10 +182,22 @@ if (arranque.error) {
 
     // FUERA: se quema y hace ruido.
     const susAntes = g.suspicion;
+    // Y la referencia del MUNDO se toma AQUÍ, con la pantalla ya abierta.
+    // Estaba tomada en el montaje, así que «¿anduvo el jefe?» respondía por
+    // todo lo anterior y no por el rato que se mide.
+    window.__bossX0 = g.boss.position.x;
     for (let i = 0; i < 260; i++) {
       g.microondas.poner(0.95, 0);
       g.player.position.x = st.x;
       g.player.position.z = st.z;
+      // Quemarse hace RUIDO, y al nivel 3 de búsqueda `game.js` PAUSA la
+      // partida por su cuenta: pausar limpia las teclas y cierra la pantalla,
+      // y entonces «el mundo anduvo» sería cierto por el motivo equivocado.
+      // Se deja subir lo justo para comprobar el ruido y se corta ahí.
+      if (g.suspicion > susAntes + 12) {
+        g.suspicion = susAntes + 12;
+        g.boss.suspicion = g.suspicion;
+      }
       g.update(1 / 60);
     }
     return {

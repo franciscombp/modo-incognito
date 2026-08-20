@@ -175,10 +175,51 @@ check(
 // ── Y NO CONGELA EL MUNDO ──
 const mundo = await p.evaluate(() => {
   const g = window.__game.engine.game;
+  const st = window.__st;
+  // SE REABRE ANTES DE MEDIR. A esta altura la rutina ya ha corrido y la
+  // tarea puede haberse ENCENDIDO, y encenderse cierra su pantalla —ahí
+  // empieza el aguante, con el mundo vivo otra vez—. Midiendo sin reabrir,
+  // lo que se comprobaría es que el mundo anda DESPUÉS del minijuego, que es
+  // justo lo contrario de lo que se viene a ver.
+  st.done = false;
+  st.encendida = false;
+  st.progress = 0;
+  // Y SE LE DEVUELVE EL PLAZO. La cuenta atrás pudo agotarse durante las
+  // pruebas de arriba (la del compás sola son dos segundos), y agotarse
+  // suelta la tecla a la fuerza para que no se reentre en bucle: sin esto la
+  // pantalla no vuelve a abrirse y la medición del mundo mide un piso sin
+  // minijuego, que es otra cosa.
+  st.limiteLeft = null;
+  g.player.keys.delete(" ");
+  window.__paso(6);
+  g.player.keys.add(" ");
+  window.__paso(10);
   const x0 = g.boss.position.x;
   const z0 = g.boss.position.z;
-  window.__paso(120);
-  return { andó: Math.hypot(g.boss.position.x - x0, g.boss.position.z - z0) > 0.05 };
+  // LA SOSPECHA, CLAVADA A CERO durante la medición. Bailar sin responder
+  // falla pasos, fallar hace RUIDO, y al nivel 3 de búsqueda `game.js` PAUSA
+  // la partida por su cuenta — y pausar limpia las teclas y cierra la
+  // pantalla. El resultado era «el mundo anduvo» cuando lo que había pasado
+  // es que el minijuego se había cerrado solo. Es la trampa que ya está
+  // documentada para las pruebas del jefe.
+  for (let i = 0; i < 120; i++) {
+    g.suspicion = 0;
+    g.boss.suspicion = 0;
+    window.__paso(1);
+  }
+  return {
+    andó: Math.hypot(g.boss.position.x - x0, g.boss.position.z - z0) > 0.05,
+    // Se informa si la pantalla seguía abierta: sin esto, «el mundo anduvo»
+    // no distingue entre «la pausa no funciona» y «no había pantalla que
+    // pausara nada», que son dos fallos muy distintos.
+    abierta: g.baile.active,
+    near: g.nearStation?.id ?? null,
+    doing: g.player.isDoingActivity,
+    done: st.done,
+    enc: st.encendida,
+    salida: !!g._salidaManual,
+    teclas: [...g.player.keys],
+  };
 });
 // EL MUNDO SE PARA MIENTRAS DURA LA PANTALLA. Esto afirmaba lo
 // contrario, y con razón en su momento: congelar al jefe convertía la

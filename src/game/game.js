@@ -20,6 +20,7 @@ import { runEffect } from "./effects.js";
 import { createActivityPulse } from "./activityGame.js";
 import { createActivityGesture } from "./gestures.js";
 import { createDanceGame } from "./danceGame.js";
+import { VERBOS, verboDe } from "./verbos.js";
 import { createChismeGame } from "./chismeGame.js";
 import { createPourGame } from "./pourGame.js";
 import { createCableGame } from "./cableGame.js";
@@ -722,6 +723,19 @@ export class Game {
   }
 
   /**
+   * APAGAR TODOS LOS VERBOS menos uno. Sale del REGISTRO, no de una lista
+   * escrita a mano: cada rama del bucle tenía que acordarse de apagar las
+   * otras cinco, y olvidarse de una dejaba DOS pantallas vivas a la vez
+   * —se veía la tarjeta del chisme y la caña encima, con el título de la
+   * tarea equivocada—. Con seis verbos eran treinta y una llamadas sueltas
+   * repartidas por el archivo; añadir el séptimo era acordarse de seis
+   * sitios más.
+   */
+  _apagarVerbos(excepto = null) {
+    for (const v of VERBOS) if (v.id !== excepto) this[v.id].end();
+  }
+
+  /**
    * ¿SE PUEDE ABRIR UNA PANTALLA DE MINIJUEGO AHORA MISMO?
    *
    * Es la puerta que permite que el mundo se pare mientras juegas. Con un
@@ -754,12 +768,7 @@ export class Game {
     // estación te saliste y no se vuelve a abrir hasta que sueltes o te
     // muevas — pedirlo otra vez es pedirlo, seguir donde estabas no.
     this._salidaManual = this.nearStation ?? null;
-    this.pulse.end();
-    this.gesture.end();
-    this.chisme.end();
-    this.verter.end();
-    this.baile.end();
-    this.microondas.end();
+    this._apagarVerbos();
     this.player.inputLocked = false;
     this.player.isDoingActivity = false;
     // Un reto abierto (cables, examen del Parce) se cierra por su camino:
@@ -838,8 +847,10 @@ export class Game {
       // bloqueo del gesto se quedaría puesto: quien pausara a mitad de una
       // tarea volvería sin poder andar hasta tocar una estación otra vez.
       this.player.inputLocked = false;
-      this.pulse.end();
-      this.gesture.end();
+      // TODOS los verbos, no solo dos. Estaba escrito «pulso y gesto» de
+      // cuando eran los únicos que había: pausar con un puzle de vasos
+      // abierto lo dejaba vivo por debajo.
+      this._apagarVerbos();
     }
   }
 
@@ -849,7 +860,9 @@ export class Game {
       // ENCIMA del menú de pausa y del aviso de alarma —`update` sale por
       // aquí antes de llegar a apagarla— y además dejaba al motor creyendo
       // que sigues en la actividad después de reanudar desde otro sitio.
-      this.pulse.end();
+      // Todos los verbos, por lo mismo: cualquiera de las seis pantallas se
+      // quedaba encima del menú de pausa.
+      this._apagarVerbos();
       // En pausa no hay pantalla de tarea que valga: se apaga la bandera para
       // que el mundo no se quede congelado por ella al reanudar.
       this.enMinijuego = false;
@@ -1070,8 +1083,9 @@ export class Game {
       }
     }
     if ((this._avisoEscudo ?? 0) > 0) this._avisoEscudo -= dt;
-    const conPestillo =
-      stCerca && (stCerca.verter || stCerca.chisme || stCerca.microondas || stCerca.baile);
+    // Del REGISTRO: `pestillo: true` en `verbos.js`. Escrito a mano aquí, el
+    // verbo séptimo entraría sin pestillo y nadie se enteraría hasta jugarlo.
+    const conPestillo = !!stCerca && !!verboDe(stCerca)?.pestillo;
     if (enActividad && conPestillo && holdingSpace) this._pestillo = stCerca;
     if (this._pestillo && (!enActividad || this.nearStation !== this._pestillo)) {
       this._pestillo = null;
@@ -1105,12 +1119,7 @@ export class Game {
       // ── CONSEGUIR primero: sin el objeto no hay actividad ──
       if (st.objeto && !this.inventario.has(st.objeto.id)) {
         this._faltaObjeto(st);
-        this.pulse.end();
-        this.gesture.end();
-        this.chisme.end();
-        this.verter.end();
-        this.microondas.end();
-        this.baile.end();
+        this._apagarVerbos();
         this.player.inputLocked = false;
         this.player.isDoingActivity = false;
         this._updatePretendPose();
@@ -1131,12 +1140,7 @@ export class Game {
           // ── AGUANTAR: la actividad YA está activada y el mundo VIVE ──
           // Cada segundo sostenida a la vista paga extra; al techo se banca
           // sola (soltar o irte también banca — ver el barrido de abajo).
-          this.pulse.end();
-          this.gesture.end();
-          this.chisme.end();
-          this.verter.end();
-          this.microondas.end();
-          this.baile.end();
+          this._apagarVerbos();
           this.player.inputLocked = false;
           st.aguante = Math.min(AGUANTE_MAX, (st.aguante ?? 0) + dt);
           if (st.aguante >= AGUANTE_MAX) this._bankActivity(st);
@@ -1154,102 +1158,50 @@ export class Game {
           // Una estación juega al GESTO o al PULSO, según su JSON. Nunca a
           // los dos: pedir ritmo y pulso firme a la vez no es difícil, es
           // ruido.
-          const conBaile = !!st.baile;
-          const conMicro = !conBaile && !!st.microondas;
-          const conVasos = !conBaile && !conMicro && !!st.verter;
-          const conChisme = !conBaile && !conMicro && !conVasos && !!st.chisme;
-          const conGesto =
-            !conBaile && !conMicro && !conVasos && !conChisme && !!st.gesto;
-          let ritmo = 1;
-          if (conBaile) {
-            // EL BAILE. Como el chisme, mantener NO avanza: lo que empuja la
-            // tarea son los pasos acertados. El compás corre en su `update`
-            // y no espera a nadie — eso es lo que lo hace un baile.
-            this.pulse.end();
-            this.gesture.end();
-            this.chisme.end();
-            this.verter.end();
-            this.microondas.end();
-            this.baile.begin(st);
-            this.baile.update(dt);
-            ritmo = 0;
-          } else if (conMicro) {
-            // EL MICROONDAS. Como los otros de puntero, mantener no avanza:
-            // lo que calienta la comida es tener el plato centrado, y de eso
-            // se encarga su propio `update`.
-            this.pulse.end();
-            this.gesture.end();
-            this.chisme.end();
-            this.verter.end();
-            this.baile.end();
-            this.microondas.begin(st);
-            this.microondas.update(dt);
-            // El paso se bloquea: el mando de andar es lo que empuja el plato
-            // para quien no use ratón ni dedo. Mismo trato que el gesto, y
-            // por eso no hay tecla nueva que aprender ni nada que inventar
-            // en táctil.
+          // ── QUÉ VERBO JUEGA ESTA ESTACIÓN ─────────────────────────
+          // Sale del REGISTRO (game/verbos.js), no de una cadena de `if`.
+          // Eran seis ramas y cada una tenía que acordarse de apagar las
+          // otras cinco a mano: olvidarse de una dejaba dos pantallas vivas
+          // encima, con el título de la tarea equivocada. Ahora se apaga
+          // todo menos el que toca, y el orden de prioridad es el orden de
+          // la tabla.
+          //
+          // Una estación juega a UNO y nunca a dos: pedir ritmo y pulso
+          // firme a la vez con el jefe rondando no es difícil, es ruido.
+          const verbo = verboDe(st);
+          this._apagarVerbos(verbo.id);
+          const juego = this[verbo.id];
+          juego.begin(st);
+          let ritmo = verbo.ritmo ?? 1;
+          if (verbo.bloqueaPaso) {
+            // El paso se bloquea MIENTRAS dura: el eje del mando queda libre
+            // para el propio verbo, así que no hay tecla nueva que aprender
+            // ni nada que inventar en táctil. Se sale soltando la tecla de
+            // acción (la rama `else` de fuera lo devuelve).
             this.player.inputLocked = true;
+          }
+          if (verbo.id === "gesture") {
+            // El gesto es el único que DEVUELVE ritmo: cuánto avanza depende
+            // de lo bien que sostengas, y eso solo lo sabe él.
+            ritmo = juego.update(dt, this.player.readIntent());
+          } else if (verbo.id === "microondas") {
+            juego.update(dt);
+            // El mando de andar EMPUJA EL PLATO, para quien no use ratón ni
+            // dedo. Mismo trato que el gesto.
             const intento = this.player.readIntent();
             if (Math.hypot(intento.right ?? 0, intento.up ?? 0) > 0.1) {
-              this.microondas.empujar((intento.right ?? 0) * dt * 1.6, -(intento.up ?? 0) * dt * 1.6);
+              juego.empujar((intento.right ?? 0) * dt * 1.6, -(intento.up ?? 0) * dt * 1.6);
             }
-            ritmo = 0;
-          } else if (conVasos) {
-            this.microondas.end();
-            // LOS VASOS. Como el chisme, mantener NO avanza: lo que empuja la
-            // tarea son los vasos que dejas resueltos.
-            this.pulse.end();
-            this.gesture.end();
-            this.chisme.end();
-            this.baile.end();
-            this.verter.begin(st);
-            this.verter.update(dt);
-            ritmo = 0;
-          } else if (conChisme) {
-            this.microondas.end();
-            // EL CHISME. No avanza solo: aquí mantener la tecla es lo que te
-            // deja LEYENDO, y lo que empuja la tarea son las respuestas
-            // (`responder`, desde las teclas 1-3). Ritmo 0 a propósito — si
-            // goteara progreso, la tanda se terminaría sola mientras lees y
-            // el minijuego volvería a ser decoración, que es de donde venimos.
-            this.pulse.end();
-            this.gesture.end();
-            this.baile.end();
-            this.chisme.begin(st);
-            this.chisme.update(dt);
-            ritmo = 0;
-          } else if (conGesto) {
-            this.microondas.end();
-            this.verter.end();
-            // Cada rama apaga LAS OTRAS. Con solo apagar una, cambiar de
-            // estación dejaba dos verbos vivos a la vez y la pantalla de la
-            // tarea pintaba los dos encima — se veía la tarjeta del chisme y
-            // la caña juntas, con el título de la tarea equivocada.
-            this.chisme.end();
-            this.pulse.end();
-            this.baile.end();
-            this.gesture.begin(st);
-            // El paso se bloquea MIENTRAS dura el gesto: el eje del mando
-            // queda libre y no hace falta tecla nueva. Se sale soltando la
-            // tecla de acción (la rama `else` de fuera lo devuelve).
-            this.player.inputLocked = true;
-            ritmo = this.gesture.update(dt, this.player.readIntent());
           } else {
-            this.microondas.end();
-            this.verter.end();
-            this.chisme.end();
-            this.gesture.end();
-            this.baile.end();
-            this.pulse.begin(st);
-            this.pulse.update(dt);
+            juego.update(dt);
+          }
+          if (verbo.id === "pulse") {
             // MANTENER YA NO TERMINA LA TAREA. Avanza a paso de tortuga —lo
-            // justo para que soltar no sea un castigo— y lo que la termina
-            // son los toques al ritmo. Con esto en 1, que es como estuvo, el
+            // justo para que soltar no sea un castigo— y lo que la enciende
+            // son los TOQUES al ritmo. Con esto en 1, que es como estuvo, el
             // pulso era decoración: se podía jugar el día entero sin tocar
-            // un solo minijuego. (Cambia el invariante viejo de «mantener la
-            // termina igual, lento»: era el suelo, y el suelo se había
-            // comido el juego.)
-            ritmo = this.pulse.ritmoMantenido;
+            // un solo minijuego.
+            ritmo = juego.ritmoMantenido;
           }
 
           this._updateActivityDeadline(dt, st);
@@ -1259,7 +1211,11 @@ export class Game {
             // correr y empieza el aguante. La misión cae al BANCAR, no aquí.
             st.encendida = true;
             st.aguante = 0;
-            const bonus = conGesto ? this.gesture.bonusReloj() : this.pulse.bonusReloj();
+            // El bono de jugar limpio lo da el verbo que se estuvo jugando,
+            // y solo dos lo tienen. `verbo` sigue en alcance: es la fila del
+            // registro que se eligió arriba.
+            const bonus =
+              typeof this[verbo.id].bonusReloj === "function" ? this[verbo.id].bonusReloj() : 0;
             if (bonus > 0) {
               this._grantTime(bonus, {
                 at: this.player.position,
@@ -1267,8 +1223,10 @@ export class Game {
                 kind: "nerve",
               });
             }
-            this.pulse.end();
-            this.gesture.end();
+            // La tarea se ENCENDIÓ: la pantalla del verbo se cierra y
+            // empieza el aguante. Todos, no solo dos — quedó escrito así de
+            // cuando el pulso y el gesto eran los únicos.
+            this._apagarVerbos();
             this.player.inputLocked = false;
             st.limiteLeft = null;
             this.toast(`${st.label}: en marcha. AGUANTA para que cuente más.`);
@@ -1276,12 +1234,7 @@ export class Game {
         }
       }
     } else {
-      this.pulse.end();
-      this.gesture.end();
-      this.chisme.end();
-      this.verter.end();
-      this.baile.end();
-      this.microondas.end();
+      this._apagarVerbos();
       this.player.inputLocked = false;
       this.player.isDoingActivity = false;
       this._updatePretendPose();
@@ -1727,16 +1680,10 @@ export class Game {
     // un minijuego» nunca se paró, y el mundo tampoco. Una bandera que se
     // escribe en la rama que no se recorre es indistinguible de una bandera
     // que no existe.
-    this.enMinijuego = !!(
-      this.pulse.active ||
-      this.gesture.active ||
-      this.chisme.active ||
-      this.trivia.active ||
-      this.verter.active ||
-      this.baile.active ||
-      this.cables.active ||
-      this.microondas.active
-    );
+    // Del REGISTRO, más los dos RETOS (cables y examen), que no son verbos de
+    // actividad pero sí ocupan la pantalla entera igual.
+    this.enMinijuego =
+      VERBOS.some((v) => this[v.id].active) || this.trivia.active || this.cables.active;
 
     this.hud.render(this._snapshot());
   }
@@ -1778,8 +1725,10 @@ export class Game {
   _activityTimeout(station) {
     station.progress = 0;
     station.limiteLeft = null; // se puede reintentar, empezando de cero
-    this.pulse.end();
-    this.gesture.end();
+    // Todos: se acabó el plazo, no queda ninguna pantalla abierta. Con
+    // «pulso y gesto» a secas, agotar la cuenta atrás de una tarea de vasos
+    // dejaba el puzle en pantalla sin tarea detrás.
+    this._apagarVerbos();
     this.player.inputLocked = false;
     // SE SUELTA LA TECLA A LA FUERZA. Sin esto, el CUADRO SIGUIENTE volvía a
     // encontrar `holdingSpace && nearStation` true (nada le impide seguir

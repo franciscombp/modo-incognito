@@ -14,6 +14,14 @@
  * Uso: npm run check:pulse   (necesita `npm run preview` en :4173)
  */
 import { chromium } from "playwright";
+// DEL REGISTRO, no de una lista escrita a mano. Estuvo escrita —y con dos
+// verbos, cuando ya había seis—, así que al pasar estirarse al baile esta
+// prueba se puso a medir el pulso en una estación que ya no lo juega. Una
+// comprobación que pregunta por un juego que no existe no falla: pasa.
+import { VERBOS } from "../src/game/verbos.js";
+
+/** Las claves de JSON de los verbos que NO son el pulso (el pulso es el suelo). */
+const OTROS_VERBOS = VERBOS.map((v) => v.campo).filter(Boolean);
 
 const url = process.argv[2] ?? "http://localhost:4173/";
 const b = await chromium.launch({
@@ -21,6 +29,11 @@ const b = await chromium.launch({
   args: ["--no-sandbox", "--enable-unsafe-swiftshader"],
 });
 const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+// El registro viaja a la página: dentro de un `evaluate` no hay imports, y
+// copiar la lista a mano es exactamente cómo se quedó vieja la vez anterior.
+await p.addInitScript((lista) => {
+  window.__OTROS_VERBOS = lista;
+}, OTROS_VERBOS);
 const errores = [];
 p.on("pageerror", (e) => errores.push(String(e).slice(0, 200)));
 
@@ -60,13 +73,13 @@ await p.evaluate(() => {
   // La guarda usa el MISMO criterio que la búsqueda de abajo: preguntando
   // solo por `gesto`, daba por buena una lista donde la única candidata era
   // el baile, se saltaba el adelanto y luego no había estación que medir.
-  const YA = ["gesto", "chisme", "verter", "microondas", "baile"];
+  const YA = window.__OTROS_VERBOS;
   if (g.objectives.some((o) => !o.dynamic && !YA.some((v) => o[v]))) return;
   // EL PULSO ES EL SUELO: lo juega la actividad que NO declara otro verbo.
   // Estaba escrito «la que no tenga gesto», y se quedó viejo en cuanto hubo
   // seis verbos — al pasar estirarse al baile, esto elegía `stretch` y medía un
   // pulso que ya no existe ahí. Si añades un verbo, va a esta lista.
-  const OTROS = ["gesto", "chisme", "verter", "microondas", "baile"];
+  const OTROS = window.__OTROS_VERBOS;
   const soloPulso = (a) => !OTROS.some((v) => a[v]);
   const base = (g._allStations ?? window.__floorplan.activityStations ?? []).find(soloPulso);
   if (base) g.objectives.push({ ...base, progress: 0, done: false });
@@ -79,7 +92,7 @@ const arranque = await p.evaluate(async () => {
   // SIN `gesto`: esa juega al otro minijuego (check-gesto.mjs). Pedir "una
   // estación" a secas empezó a caer en el café en cuanto los gestos
   // entraron, y el pulso salía apagado sin que nada estuviera roto.
-  const OTROS = ["gesto", "chisme", "verter", "microondas", "baile"];
+  const OTROS = window.__OTROS_VERBOS;
   const st = g.objectives.find((o) => !o.dynamic && !OTROS.some((v) => o[v]));
   if (!st) return { error: "el día no trae ninguna estación de pulso" };
   g.player.position.x = st.x;
@@ -177,7 +190,7 @@ const golpes = await p.evaluate(async () => {
   g.suspicion = 0;
   g.boss.suspicion = 0;
   g.boss.resetToPatrol();
-  const OTROS = ["gesto", "chisme", "verter", "microondas", "baile"];
+  const OTROS = window.__OTROS_VERBOS;
   const st0 = g.objectives.find((o) => !o.dynamic && !OTROS.some((v) => o[v]));
   g.player.position.x = st0.x;
   g.player.position.z = st0.z;
@@ -252,11 +265,11 @@ const suelo = await p.evaluate(async () => {
     g.objectives.find(
       (o) =>
         !o.dynamic &&
-        !["gesto", "chisme", "verter", "microondas", "baile"].some((v) => o[v]) &&
+        !window.__OTROS_VERBOS.some((v) => o[v]) &&
         !o.done
     ) ??
     g.objectives.find(
-      (o) => !o.dynamic && !["gesto", "chisme", "verter", "microondas", "baile"].some((v) => o[v])
+      (o) => !o.dynamic && !window.__OTROS_VERBOS.some((v) => o[v])
     );
   st.done = false;
   st.progress = 0;
@@ -345,11 +358,11 @@ const toqueReal = await p.evaluate(async () => {
     g.objectives.find(
       (o) =>
         !o.dynamic &&
-        !["gesto", "chisme", "verter", "microondas", "baile"].some((v) => o[v]) &&
+        !window.__OTROS_VERBOS.some((v) => o[v]) &&
         !o.done
     ) ??
     g.objectives.find(
-      (o) => !o.dynamic && !["gesto", "chisme", "verter", "microondas", "baile"].some((v) => o[v])
+      (o) => !o.dynamic && !window.__OTROS_VERBOS.some((v) => o[v])
     );
   st.done = false;
   st.progress = 0;

@@ -1,5 +1,6 @@
 import { iconEl } from "./icons.js";
 import { createMessageDirector, URGENCIA } from "./messages.js";
+import { VERBOS } from "../game/verbos.js";
 import { createPortrait3D } from "./portrait3d.js";
 // La proyección de suelo → pantalla, la MISMA que usan los mandos y la
 // flecha del rastreador: así el «hacia allá» de la lista y el «hacia allá»
@@ -414,32 +415,23 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   function renderPantalla(state) {
     // La pantalla se abre si hay CUALQUIER verbo en marcha. Uno solo a la
     // vez, siempre: lo garantiza el motor (chisme > caña > pulso).
-    const jugando = !!(
-      state.chisme ||
-      state.trivia ||
-      state.gesture ||
-      state.pulse ||
-      state.verter ||
-      state.baile ||
-      state.cables ||
-      state.microondas
-    );
+    // Del REGISTRO más los dos RETOS. Escritas a mano, estas listas se
+    // quedaban viejas cada vez que entraba un verbo — y el síntoma era una
+    // pantalla que no se abría, o que se abría sin poder tocarla.
+    const jugando =
+      VERBOS.some((v) => state[v.id]) || !!state.trivia || !!state.cables;
     // EL PUNTERO SOLO SE ENCIENDE PARA LOS MINIJUEGOS QUE LO USAN. La
     // pantalla es `pointer-events: none` por defecto — un panel a pantalla
     // completa que se coma los clics rompería la cámara y los menús. Con
     // vasos en marcha hay que poder tocarlos, así que se abre solo entonces.
     // El chisme y la trivia también: sus opciones son botones, y sin esto
     // los clics les pasan por encima.
+    // El puntero se abre para los verbos que se TOCAN, que son los del
+    // pestillo (los que no se juegan con la misma tecla que los sostiene) más
+    // los dos retos.
     mg.classList.toggle(
       "puntero",
-      !!(
-        state.verter ||
-        state.cables ||
-        state.microondas ||
-        state.chisme ||
-        state.trivia ||
-        state.baile
-      )
+      VERBOS.some((v) => v.pestillo && state[v.id]) || !!state.trivia || !!state.cables
     );
     mg.classList.toggle("on", jugando);
     // El <body> lo marca para que la píldora de mandos y el resto de la
