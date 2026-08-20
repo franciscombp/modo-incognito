@@ -227,13 +227,22 @@ export function createFocusNav({ root = document } = {}) {
     if (dir) {
       if (!mover(dir[0], dir[1])) return;
     } else if (e.key === "Enter") {
-      // ENTER SOLO ES DEL CURSOR SI ALGUIEN LO MOVIÓ. Varias pantallas ya le
-      // dan a Enter un significado propio —en la de personaje es «entrar al
-      // juego», y lo dice en pantalla—, y quedárselo por el simple hecho de
-      // que haya un grupo abierto rompía esa tecla sin avisar: activaba lo
-      // que hubiera bajo un cursor que nadie había pedido. Después de mover,
-      // el cursor SÍ es lo que estás mirando, y ahí Enter es suyo.
-      if (!movido || !aceptar()) return;
+      // ENTER ES DEL CURSOR SI ALGUIEN LO MOVIÓ… O SI NO HAY OTRA COSA QUE
+      // PUEDA SER.
+      //
+      // Lo primero está para los MENÚS: varias pantallas le dan a Enter un
+      // significado propio —en la de personaje es «entrar al juego», y lo
+      // dice en pantalla— y quedárselo por el simple hecho de que haya un
+      // grupo abierto rompía esa tecla sin avisar.
+      //
+      // Pero dentro de una tarjeta de minijuego el cursor es la ÚNICA forma
+      // de elegir, y ahí exigir un movimiento previo es una trampa: si la
+      // opción que quieres es la primera —donde el cursor se posa solo— no
+      // hay nada que mover, y Enter no hacía nada. Y como la ficha del
+      // chisme sale al azar, fallaba una de cada tres veces y parecía cosa
+      // de la máquina. No lo era: dependía de qué carta tocara.
+      const soloCursor = !grupoActivo()?.matches?.(".inc-menu");
+      if ((!movido && !soloCursor) || !aceptar()) return;
     } else {
       return;
     }

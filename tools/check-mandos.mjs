@@ -157,6 +157,32 @@ check("las FLECHAS lo mueven de opción en opción", dondeEsta === buena3, `curs
 await p.keyboard.press("Enter");
 check("y ENTER responde con la que está señalada", await respondio(p));
 
+// ── 3bis · Y CON LA PRIMERA OPCIÓN, QUE ES EL CASO QUE FALLABA ──
+// El cursor SE POSA solo en la primera al abrirse la tarjeta. Si la
+// respuesta buena es justamente esa, no hay nada que mover… y Enter no hacía
+// nada, porque el cursor solo se quedaba la tecla DESPUÉS de moverse (una
+// regla que existe para los menús, donde Enter ya significa otra cosa).
+//
+// Como la ficha sale al azar, esto fallaba una de cada tres veces y parecía
+// cosa de la máquina. No lo era: dependía de qué carta tocara. Así que aquí
+// se FUERZA esa carta en vez de esperar a tener suerte.
+await abrirExamen();
+const sinMover = await p.evaluate(async () => {
+  const g = window.__game.engine.game;
+  const s = g.trivia.snapshot();
+  const ficha = g._chismes.find((x) => x.pregunta === s.pregunta);
+  // La buena, a la primera: es donde el cursor ya está posado.
+  ficha.correcta = 0;
+  await new Promise((r) => setTimeout(r, 60));
+  return { correcta: ficha.correcta, aciertos: g.trivia.snapshot()?.aciertos ?? null };
+});
+await p.keyboard.press("Enter");
+check(
+  "y también SIN mover el cursor, cuando la buena ya es la señalada",
+  await respondio(p),
+  JSON.stringify(sinMover)
+);
+
 // ── El mando no puede robarle las teclas al juego ──
 await p.evaluate(() => window.__game.engine.game.cerrarReto());
 await p.waitForTimeout(700);
