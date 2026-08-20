@@ -69,6 +69,10 @@ const res = await p.evaluate(async () => {
   );
   g.setPaused(false);
   g.clearGate();
+  // La escolta de apertura, ya vivida: mientras dura, la sospecha no
+  // cuenta y el jefe no te aborda —vas pegada a él— así que una prueba
+  // de la jornada EN MARCHA tiene que darla por terminada.
+  g.saltarEscolta();
   g.minions.forEach((m) => m.setActive(false));
   g.boss.setTether(null);
   g._caughtCooldown = 999;

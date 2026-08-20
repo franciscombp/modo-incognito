@@ -49,6 +49,10 @@ const res = await p.evaluate(async () => {
   document.head.appendChild(css);
   g.setPaused(false);
   g.clearGate();
+  // La escolta de apertura, ya vivida: mientras dura, la sospecha no
+  // cuenta y el jefe no te aborda —vas pegada a él— así que una prueba
+  // de la jornada EN MARCHA tiene que darla por terminada.
+  g.saltarEscolta();
   g.minions.forEach((m) => m.setActive(false));
   // La correa del día 1 fuera: aquí se mide la retirada, y la correa lo
   // volvería a acercar por diseño.

@@ -55,6 +55,10 @@ const out = await page.evaluate(() => {
   // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
   // es la campana al enterarse de que la mision de la puerta cayo.
   game.clearGate();
+  // La escolta de apertura, ya vivida: mientras dura, la sospecha no
+  // cuenta y el jefe no te aborda —vas pegada a él— así que una prueba
+  // de la jornada EN MARCHA tiene que darla por terminada.
+  game.saltarEscolta();
   return { dialogueOpenBefore: engine.dialogue.isOpen };
 });
 

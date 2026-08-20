@@ -41,6 +41,10 @@ const res = await p.evaluate(async () => {
   document.querySelector(".vn-layer")?.classList.add("hidden");
   game.setPaused(false);
   game.clearGate();
+  // La escolta de apertura, ya vivida: mientras dura, la sospecha no
+  // cuenta y el jefe no te aborda —vas pegada a él— así que una prueba
+  // de la jornada EN MARCHA tiene que darla por terminada.
+  game.saltarEscolta();
   // El jefe quieto y ciego: aquí se mide la separación, no su IA. Se le
   // clava la ruta en su sitio para que el movimiento que midamos sea SOLO
   // el que la separación le hubiera metido.

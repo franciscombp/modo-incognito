@@ -52,6 +52,10 @@ const out = await p.evaluate(() => {
   g.onHeatAlert = null;
   g.setPaused(false);
   g.clearGate();
+  // La escolta de apertura, ya vivida: mientras dura, la sospecha no
+  // cuenta y el jefe no te aborda —vas pegada a él— así que una prueba
+  // de la jornada EN MARCHA tiene que darla por terminada.
+  g.saltarEscolta();
 
   // La misión del chisme puede no estar ACTIVA todavía (la cadena de la
   // temporada la abre más tarde), y lo que se prueba aquí es el minijuego,
