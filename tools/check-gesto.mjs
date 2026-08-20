@@ -57,6 +57,9 @@ await p.evaluate(() => {
   const g = window.__game.engine.game;
   g.setPaused(false);
   g.clearGate();
+  // La escolta de apertura, ya vivida: mientras dura, la sospecha no
+  // cuenta (vas pegada a él). Aquí se mide la jornada en marcha.
+  g.saltarEscolta();
   g.minions.forEach((m) => m.setActive(false));
 });
 await p.waitForTimeout(600);

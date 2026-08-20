@@ -126,6 +126,49 @@ check(
   JSON.stringify(escolta)
 );
 
+// ── 3 · Y SI NO LE SIGUES, LA ESCENA CADUCA ──
+// La otra cara de «mientras te acompaña no te vigila»: a nadie se le puede
+// obligar a seguirle. Quien se largara por su cuenta se quedaba con el
+// medidor CONGELADO EN CERO toda la jornada — el piso entero convertido en
+// un lugar seguro, que es exactamente lo contrario del juego.
+const plantado = await p.evaluate(async () => {
+  const g = window.__game.engine.game;
+  // Se rearma la escena y la jugadora se va al lado contrario del piso.
+  g._esperandoPuesto = true;
+  g._escoltaPlazo = null;
+  g.boss._graceTimer = 0;
+  const lejos = window.__floorplan.patrolRoute[2];
+  g.player.position.x = lejos.x;
+  g.player.position.z = lejos.z;
+  g.suspicion = 0;
+  let frames = 0;
+  // Algo más del plazo (30 s), en cuadros.
+  for (let i = 0; i < 34 * 60 && g._esperandoPuesto; i++) {
+    if (g.paused) g.setPaused(false);
+    g.update(1 / 60);
+    frames++;
+  }
+  // Y con la escena caída, la sospecha vuelve a poder moverse.
+  g.boss.redAlert = true;
+  g.player.isDoingActivity = true;
+  for (let i = 0; i < 60; i++) g.update(1 / 60);
+  return {
+    caduco: g._esperandoPuesto === false,
+    segundos: +(frames / 60).toFixed(1),
+    sospecha: +g.suspicion.toFixed(1),
+  };
+});
+check(
+  "si no le sigues, la escolta CADUCA sola",
+  plantado.caduco === true,
+  JSON.stringify(plantado)
+);
+check(
+  "y entonces la sospecha vuelve a contar: el piso no es un lugar seguro",
+  plantado.sospecha > 0,
+  JSON.stringify(plantado)
+);
+
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 
 await b.close();

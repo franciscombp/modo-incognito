@@ -79,6 +79,9 @@ const SEAT_WALK_TIMEOUT = 6;
 // Lo que dura la escolta de apertura sin que el jefe te mire. Cubre el
 // trayecto entero: se acaba sola al llegar (`_updateBienvenida`).
 const ESCOLTA_GRACIA = 25;
+// Y su PLAZO: si no le sigues, la escena se cae sola. Sin esto, largarse por
+// tu cuenta el día 1 dejaba la sospecha congelada en cero toda la jornada.
+const ESCOLTA_PLAZO = 30;
 const DISTRACTION_EFFECT_DURATION = 7;
 // A hiding spot is a one-shot breather, not a safe room: once you have used
 // it, it needs to cool off before it hides you again.
@@ -3149,8 +3152,22 @@ export class Game {
    */
   _updateBienvenida(dt) {
     if (!this._esperandoPuesto || this.gameOver) return;
+    // LA ESCOLTA CADUCA. Mientras dura, la sospecha no cuenta y el jefe no
+    // te aborda — a propósito, porque vas pegada a él. Pero solo terminaba
+    // LLEGANDO a tu puesto, y a nadie se le puede obligar a seguirle: quien
+    // se largara por su cuenta el día 1 se quedaba con el medidor congelado
+    // en cero PARA TODA LA JORNADA, o sea con el piso entero convertido en
+    // un lugar seguro. Justo lo contrario del juego.
+    //
+    // Así que hay plazo. Si no llegaste, la escena se da por terminada y el
+    // día empieza de verdad: él vuelve a lo suyo y tú tienes un jefe otra
+    // vez. La misión de ir a tu puesto no se cancela — sigue en la lista.
+    this._escoltaPlazo = (this._escoltaPlazo ?? ESCOLTA_PLAZO) - dt;
     const enPuesto = this.currentSafeSpot?.kind === "desk";
-    if (!enPuesto) return;
+    if (!enPuesto) {
+      if (this._escoltaPlazo <= 0) this.saltarEscolta();
+      return;
+    }
     this._esperandoPuesto = false;
     // Y SE LE DEVUELVE LA VISTA EN EL ACTO. El respiro de la escolta se pide
     // con margen de sobra para cubrir el trayecto, pero llegaste: dejarlo
