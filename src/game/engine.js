@@ -11,6 +11,7 @@ import { createGuides } from "../ui/guides.js";
 import { createMinimap } from "../ui/minimap.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
 import { createLobby } from "../ui/lobby.js";
+import { createTransition } from "../ui/transition.js";
 import { createGameHud } from "../ui/gamehud.js";
 import { createCampaign } from "./campaign.js";
 import { createHrCourse } from "../ui/hrCourse.js";
@@ -131,6 +132,9 @@ export function createEngine({
     onClose: () => dialogueCam.exit(),
   });
   const lobby = createLobby(app);
+  // EL TELÓN entre escenas (ui/transition.js). Vive aquí, con el resto de la
+  // interfaz: el motor pide un corte, no lo dibuja.
+  const transition = createTransition(app);
   const eggReveal = createEggReveal(app);
   // El HUD de partida (ui/gamehud.js): la placa con la cara viva, la lista
   // de misiones, el reloj centrado y el nombre de zona. Sustituye a la barra
@@ -783,6 +787,8 @@ export function createEngine({
       onPopup,
       onTalk: (npc, opts) => talkTo(npc, opts),
       onWarn: (info) => handleWarn(info),
+      // EL CORTE: el telón para los traslados largos (ver game.seatAtDesk).
+      onCorte: (enElNegro) => transition.cortar(enElNegro),
       // LA VOZ DEL AVISO. `softWarnings` vivía en la amonestación, donde le
       // quitaba peso al golpe; aquí es lo que siempre pareció — la pulla
       // que te suelta al pasar por al lado. Rota sin repetir la anterior:

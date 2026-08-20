@@ -1610,8 +1610,9 @@
     {
       "id": "recepcion_gabo",
       "label": "Gabo, en la puerta",
-      "x": -3.8000000000000003,
-      "z": -6.7,
+      "$comment": "OJO: este punto se MIDIÓ, no se eligió a ojo. En (-3.8, -6.7) Gabo se quedaba clavado: podía girar y mirar, pero no daba un paso — medido, 0.6 unidades en cinco segundos con cualquier destino. O sea que la escolta de apertura no ocurría nunca y la primera misión del día abría con el jefe de estatua en la puerta. Aquí anda las 16 unidades hasta el puesto. La diferencia es menos de una unidad de plano: si mueves esto, vuelve a medirlo con npm run check:escolta.",
+      "x": -4,
+      "z": -7,
       "radius": 2
     }
   ],

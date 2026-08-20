@@ -451,6 +451,20 @@ export function createDialogue(root, { looks = null, onSpeaker = null, onClose =
     play,
     showNarrator,
     hideNarrator,
+    /**
+     * Pasar la línea desde fuera. Lo usa el BOTÓN DEL PULGAR: en un teléfono
+     * la caja se pasa tocándola —eso ya funcionaba— pero el dedo está
+     * esperando en el botón de acción, y ahí no pasaba nada. Un juego que se
+     * juega con un botón tiene que poder conversar con ese mismo botón.
+     *
+     * Con opciones en pantalla NO avanza: ahí elegir es del cursor, y pasar
+     * de largo una decisión sería peor que no responder.
+     */
+    avanzar() {
+      if (!active || optionButtons.length) return false;
+      advance();
+      return true;
+    },
     get isOpen() {
       return active;
     },

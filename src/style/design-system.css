@@ -13324,3 +13324,56 @@ body.inc-nav-touch .touch-stick-base {
   top: 52%;
   max-width: 86%;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL BOTÓN DE ACCIÓN TAMBIÉN CONVERSA
+
+   La caja de diálogo se pasa tocándola, y eso ya funcionaba. Pero en un
+   teléfono el dedo está apoyado en el botón de acción —es donde vive toda la
+   jornada— y ahí no pasaba nada: había que soltar, subir a la caja y tocarla.
+   En una conversación de doce líneas eso son doce viajes.
+
+   Así que durante un diálogo el botón se queda, y el resto del mando no: ni
+   la palanca (en una conversación no se camina) ni las utilidades. Es el
+   mismo criterio que `body.inc-nav-touch`, con la pieza que aquí sirve.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+body.vn-open.touch-device .touch-controls,
+body.vn-open.touch-device .touch-actions {
+  display: flex !important;
+}
+
+body.vn-open .touch-stick-zone,
+body.vn-open .touch-utils {
+  display: none !important;
+}
+
+/* EL CORTE (ui/transition.js): el telón entre escenas. Negro, corto y por
+   encima de todo lo del lienzo — si algo del HUD se le colara por delante,
+   dejaría de ser un corte y sería un filtro oscuro. Pero por DEBAJO de la
+   cortina de orientación, que es la única capa que manda sobre el juego
+   entero. `pointer-events` en none hasta que baja: bajado sí come clics, o
+   se podría pulsar a ciegas lo que hay detrás. */
+.inc-corte {
+  position: absolute;
+  inset: 0;
+  background: hsl(var(--p-shadow-hue) / 1);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 90;
+  transition: opacity 320ms var(--ease-pop, ease);
+}
+
+.inc-corte.on {
+  opacity: 1;
+  pointer-events: auto;
+  transition-duration: 260ms;
+}
+
+/* Con `prefers-reduced-motion` el corte NO desaparece —haría falta otra cosa
+   para tapar el cambio— pero deja de fundirse: aparece y se va. */
+@media (prefers-reduced-motion: reduce) {
+  .inc-corte {
+    transition-duration: 1ms;
+  }
+}

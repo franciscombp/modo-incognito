@@ -12,7 +12,7 @@ import { icon as svgIcon, hasIcon } from "../ui/icons.js";
 export function createTouchControls(
   player,
   root,
-  { onZoom, onInspect, onPause, focusNav = null } = {}
+  { onZoom, onInspect, onPause, focusNav = null, onAvanzarDialogo = null } = {}
 ) {
   const isTouch =
     "ontouchstart" in window ||
@@ -160,6 +160,10 @@ export function createTouchControls(
         focusNav.aceptar();
         return;
       }
+      // Y TAMBIÉN CONVERSA. La caja de diálogo se pasa tocándola, pero el
+      // dedo está esperando AQUÍ. Devuelve si se comió el toque, para que el
+      // mismo gesto no acabe además manteniendo la tecla de acción.
+      if (onAvanzarDialogo?.()) return;
       player.keys.add(gameKey);
     };
     const release = () => {

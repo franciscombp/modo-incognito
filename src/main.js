@@ -493,6 +493,7 @@ async function boot() {
     // que en un teléfono había pantallas a las que solo se llegaba con un
     // teclado que no existe.
     focusNav,
+    onAvanzarDialogo: () => engine.dialogue.avanzar(),
   });
 
   // -------- Camera input: zoom (wheel/pinch) and orbit (right-drag / 2 fingers)

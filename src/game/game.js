@@ -69,6 +69,16 @@ const MINION_HEAT_DECAY = 0.12; // ratio/seg, sin verte
 const CAMUFLAJE_MIN = 0.3;
 const CAMUFLAJE_MAX = 2.2;
 const INTERACT_RADIUS = 1.5 * S;
+// A partir de aquí, llevarte a tu puesto se hace con un CORTE en vez de
+// andando: `walkTo` va en línea recta y cruzar el piso entero a pie se
+// atasca contra el primer mueble. Cinco puestos de trabajo de margen.
+const SEAT_WALK_MAX = 5 * S;
+// Y el plazo del paseo corto, por si aun así se atasca (alguien parado en el
+// hueco). Generoso: lo normal es llegar mucho antes.
+const SEAT_WALK_TIMEOUT = 6;
+// Lo que dura la escolta de apertura sin que el jefe te vigile. Generoso: es
+// un trayecto largo y el respiro tiene que cubrirlo entero.
+const ESCOLTA_GRACIA = 25;
 const DISTRACTION_EFFECT_DURATION = 7;
 // A hiding spot is a one-shot breather, not a safe room: once you have used
 // it, it needs to cool off before it hides you again.
@@ -281,6 +291,7 @@ export class Game {
     onTalk = null,
     onWarn = null,
     onAviso = null,
+    onCorte = null,
     onHeatAlert = null,
   }) {
     this.player = player;
@@ -293,6 +304,9 @@ export class Game {
     // amonestación). Devuelve texto o null; lo pone engine.js desde los
     // datos, para que el motor no sepa de diálogos.
     this.onAviso = onAviso;
+    // BAJAR EL TELÓN. Lo pone engine.js: el motor no dibuja, y una
+    // transición es de la interfaz. Recibe qué cambiar mientras está abajo.
+    this.onCorte = onCorte;
     this.onHeatAlert = onHeatAlert;
     this.hud = hud;
     this.canvas = canvas;
@@ -996,6 +1010,7 @@ export class Game {
     this._updateCampaignObjectives(dt);
     this._updateBienvenida(dt);
     this._updateBossApproach(dt);
+    this._updatePaseoAlPuesto(dt);
     this._updatePresentacion(dt);
 
     // "Tu sitio" ya no es media planta: es exactamente el lugar seguro en el
@@ -2042,13 +2057,25 @@ export class Game {
         // es el mismo pecado que el del regaño: los cuerpos no parpadean de
         // sitio. `walkTo` la lleva por el camino normal; la pose de sentada
         // la pone `_updatePretendPose` cuando ya está encima.
-        this.player.walkTo = { x: seat.x, z: seat.z, tol: 0.12 * S };
         // Sentada de cara a SU MESA: es la única orientación en la que
         // sentarse a un escritorio significa algo. Se pierde el "de frente a
         // la cámara" de la versión de pie, y es un cambio buscado — un
         // muñeco sentado y tecleando en un puesto real se lee como trabajo
         // mucho antes que uno flotando de cara a ti.
-        this.player.sprite.setHeading(Math.sin(seat.facing), Math.cos(seat.facing));
+        //
+        // Y SE ORIENTA AL LLEGAR, NO AL SALIR. Estaba escrito aquí, en el
+        // frame en que se reclama el asiento — o sea ANTES de andar hasta
+        // él — y el propio paseo lo pisa: `player.update` gira el cuerpo
+        // hacia donde camina, cada cuadro. Resultado: te sentabas mirando
+        // hacia donde venías, así que acercarte al puesto por detrás te
+        // sentaba DE ESPALDAS a la mesa. El último que escribe el rumbo es
+        // el que se ve.
+        this.player.walkTo = {
+          x: seat.x,
+          z: seat.z,
+          tol: 0.12 * S,
+          onArrive: () => this.player.sprite.setHeading(Math.sin(seat.facing), Math.cos(seat.facing)),
+        };
       }
     }
 
@@ -2298,6 +2325,13 @@ export class Game {
    */
   _updateBossApproach(dt) {
     if (this.gameOver || this.rules.explore || (this.gate && !this.metGabo)) return;
+    // MIENTRAS TE ACOMPAÑA NO TE VIGILA. Acaba de decirte «ven, que te
+    // enseño tu sitio» y va andando delante: el aviso de «¿no deberías
+    // estar trabajando?» —y la caza que viene detrás si no te apartas— no
+    // tienen ningún sentido ahí. Y pasaba SIEMPRE, porque durante la
+    // escolta estás pegada a él por definición: el día 1 abría con Gabo
+    // persiguiéndote a los tres segundos de saludarte.
+    if (this._esperandoPuesto) return;
     if (this._avisoGracia > 0) {
       this._avisoGracia -= dt;
       if (this._avisoGracia <= 0) {
@@ -2587,26 +2621,69 @@ export class Game {
     this.player.keys.clear();
     this.player.touchAxis.x = 0;
     this.player.touchAxis.z = 0;
-    // TE LLEVA ANDANDO, no te teletransporta. Esto plantaba a la jugadora en
-    // su puesto de un frame al siguiente, y un salto de posición rompe el
-    // hilo de que estás mirando a una persona en un piso: el personaje deja
-    // de ser un cuerpo y pasa a ser un cursor. Ahora camina hasta allí sola
-    // —por el mismo camino, las mismas colisiones y la misma animación que
-    // cuando la llevas tú— y se sienta AL LLEGAR.
-    this.player.walkTo = {
-      x: desk.x,
-      z: desk.z,
-      onArrive: () => {
-        this._pretendSeat = null;
-        this._pretendToggle = true;
-        this.player.isPretending = true;
-        this.player.inputLocked = false;
-      },
+
+    // ── ANDANDO SI ESTÁ CERCA, DE UN CORTE SI ESTÁ LEJOS ────────────────
+    //
+    // Andar es lo correcto y no se toca: un cuerpo que parpadea de sitio deja
+    // de ser un cuerpo. Pero `walkTo` va en LÍNEA RECTA —no por el navmesh—
+    // así que cruzar medio piso a pie es una lotería: basta una maceta en
+    // medio para quedarte empujándola para siempre, con el control bloqueado.
+    // Y eso, desde fuera, se ve exactamente igual que un juego colgado.
+    //
+    // Así que la distancia decide. Cerca, la escena entera se ve: te lleva y
+    // te sienta. Lejos, se baja el telón (`onCorte`, que lo pone engine.js
+    // porque el motor no dibuja) y al subir ya estás en tu sitio. Detrás del
+    // telón no hay teletransporte que ver.
+    const d = Math.hypot(desk.x - this.player.position.x, desk.z - this.player.position.z);
+    const sentarse = () => {
+      this._pretendSeat = null;
+      this._pretendToggle = true;
+      this.player.isPretending = true;
+      this.player.inputLocked = false;
+      this._paseoAlPuesto = null;
     };
-    this.player.inputLocked = true;
-    // La pose de sentada la resuelve _updatePretendPose en el próximo
-    // frame (busca la silla libre del puesto); aquí solo se anuncia.
+
     this.announce("TE SENTÓ EN TU PUESTO: A TRABAJAR", "warn");
+
+    if (d > SEAT_WALK_MAX && this.onCorte) {
+      this.player.inputLocked = true;
+      this.onCorte(() => {
+        this.player.position.x = desk.x;
+        this.player.position.z = desk.z;
+        this.player.walkTo = null;
+        sentarse();
+      });
+      return;
+    }
+
+    this.player.walkTo = { x: desk.x, z: desk.z, onArrive: sentarse };
+    this.player.inputLocked = true;
+    // Y UN PLAZO, porque cerca también se puede uno atascar: un compañero
+    // parado justo en el hueco basta. Si el paseo no ha llegado a tiempo, el
+    // telón lo remata (ver `_updatePaseoAlPuesto`). Sin esto, atascarse
+    // significaba quedarse sin control para el resto de la jornada.
+    this._paseoAlPuesto = { destino: desk, restante: SEAT_WALK_TIMEOUT, sentarse };
+  }
+
+  /**
+   * El plazo del paseo al puesto. Si se agota —te atascaste contra un mueble,
+   * o alguien te tapa el hueco— se baja el telón y se remata el traslado.
+   * Es una RED, no la vía normal: lo normal es llegar andando.
+   */
+  _updatePaseoAlPuesto(dt) {
+    const p = this._paseoAlPuesto;
+    if (!p) return;
+    p.restante -= dt;
+    if (p.restante > 0) return;
+    this._paseoAlPuesto = null;
+    const acabar = () => {
+      this.player.position.x = p.destino.x;
+      this.player.position.z = p.destino.z;
+      this.player.walkTo = null;
+      p.sentarse();
+    };
+    if (this.onCorte) this.onCorte(acabar);
+    else acabar();
   }
 
   /**
@@ -3011,6 +3088,13 @@ export class Game {
       // destino; al llegar se le devuelve la suya.
       this._correaPrevia = this.boss.tether;
       this.boss.setTether({ x: mesa.x, z: mesa.z }, { near: 1.2 * S, far: 1.8 * S });
+      // Y NO TE MIRA MIENTRAS TE LLEVA. Sin esto la escolta se convertía en
+      // una caza a los tres segundos: vas pegada a él —es lo que es una
+      // escolta— así que su cono te tiene encima todo el rato y la sospecha
+      // de «suelta y fuera de tu puesto» sube sola. Es el mismo respiro que
+      // se le da después de amonestar, y por el mismo motivo: hay una
+      // escena en marcha y su vigilancia la pisa.
+      this.boss.grantGrace(ESCOLTA_GRACIA);
     }
     this.announce("GABO TE LLEVA A TU PUESTO", "warn");
     this.onMissionDone?.(this.gate?.task?.id ?? "meet-gabo");
