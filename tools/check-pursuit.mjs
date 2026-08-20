@@ -40,6 +40,10 @@ const out = await p.evaluate(() => {
   // pero deja la lista de tareas VACIA (la campana suelta el plan del dia al
   // enterarse de que la mision de la puerta cayo).
   g.clearGate();
+  // LA ESCOLTA, YA VIVIDA. Superar la puerta del día pone a Gabo a
+  // llevarte al puesto, y durante ese trayecto no te vigila a propósito:
+  // vas pegada a él. Esto mide la jornada EN MARCHA, no la apertura.
+  g.saltarEscolta();
   g.minions.forEach((m) => m.setActive(false));
   const blind = function () { this.playerVisible = false; this.redAlert = false; };
   const sees = function () { this.playerVisible = true; this.redAlert = true; };

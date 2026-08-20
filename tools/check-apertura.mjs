@@ -176,17 +176,28 @@ check(
 check("y Crispo viene ANDANDO, no aparece", bienvenida.caminó === true, JSON.stringify(bienvenida));
 
 // ── 4 · NADIE SE TELETRANSPORTA ──
+//
+// Y AHORA SON DOS CAMINOS, según lo lejos que estés (ver `seatAtDesk`):
+// CERCA te lleva andando y la escena entera se ve; LEJOS baja el telón,
+// porque `walkTo` va en línea recta y cruzar el piso a pie se atasca contra
+// el primer mueble — con el control bloqueado, que desde fuera se ve igual
+// que un juego colgado.
+//
+// Esta prueba mide EL CAMINO ANDADO, que es donde vive la promesa de que
+// nadie parpadea de sitio, así que se coloca a la jugadora CERCA. Estaba
+// puesta lejos y por eso empezó a fallar: medía un salto que ya no existe
+// —el telón— como si fuera un teletransporte.
 const cuerpo = await p.evaluate(() => {
   const g = window.__game.engine.game;
   const S = window.__floorplan.WORLD_SCALE;
-  // Lejos del puesto, y que la sienten: antes esto la plantaba allí de un
-  // frame al siguiente.
-  const lejos = window.__floorplan.patrolRoute[2];
-  g.player.position.x = lejos.x;
-  g.player.position.z = lejos.z;
+  const desk0 = window.__floorplan.safeSpots.find((s) => s.kind === "desk");
+  // A tres unidades de plano: dentro del margen del paseo, y lo bastante
+  // lejos como para que la caminata se pueda medir.
+  g.player.position.x = desk0.x + 3 * S;
+  g.player.position.z = desk0.z;
   g.player.keys.clear();
   g._pretendToggle = false;
-  const desk = window.__floorplan.safeSpots.find((s) => s.kind === "desk");
+  const desk = desk0;
   const d0 = Math.hypot(g.player.position.x - desk.x, g.player.position.z - desk.z);
   g.seatAtDesk();
   let saltoMax = 0;
@@ -210,6 +221,51 @@ check(
   `salto máximo en un cuadro: ${cuerpo.saltoMax} unidades de plano`
 );
 check("y de verdad llega hasta allí", cuerpo.seAcercó === true, JSON.stringify(cuerpo));
+
+// ── 4bis · Y DESDE LEJOS, EL TELÓN ──
+// El otro camino, que es el que arregló «me quedo atrapada por una maceta y
+// no llego nunca». Aquí no se mide que ande —no debe— sino que el traslado
+// SE COMPLETA y que el negro llega a bajar: un cambio de sitio a cara
+// descubierta sí sería el teletransporte que este archivo persigue.
+const lejano = await p.evaluate(async () => {
+  const g = window.__game.engine.game;
+  const desk = window.__floorplan.safeSpots.find((s) => s.kind === "desk");
+  const lejos = window.__floorplan.patrolRoute[2];
+  g.player.position.x = lejos.x;
+  g.player.position.z = lejos.z;
+  g.player.keys.clear();
+  g._pretendToggle = false;
+  g.player.isPretending = false;
+  const d0 = Math.hypot(g.player.position.x - desk.x, g.player.position.z - desk.z);
+  g.seatAtDesk();
+  // EN TIEMPO REAL, no en cuadros: el telón se mueve con `setTimeout`, así
+  // que un bucle síncrono de `update()` lo dejaría a medias para siempre —
+  // que es justo lo que hacía fallar a la aserción de arriba.
+  let vioNegro = false;
+  for (let i = 0; i < 40; i++) {
+    await new Promise((r) => setTimeout(r, 50));
+    const velo = document.querySelector(".inc-corte");
+    if (velo && parseFloat(getComputedStyle(velo).opacity) > 0.5) vioNegro = true;
+    if (g.player.isPretending) break;
+  }
+  return {
+    d0: +d0.toFixed(1),
+    d1: +Math.hypot(g.player.position.x - desk.x, g.player.position.z - desk.z).toFixed(1),
+    vioNegro,
+    sentada: g.player.isPretending === true,
+  };
+});
+check(
+  "desde el otro lado del piso el traslado SE COMPLETA (no te quedas atrapada)",
+  lejano.d1 < 2,
+  JSON.stringify(lejano)
+);
+check(
+  "y se hace detrás del telón, no a cara descubierta",
+  lejano.vioNegro === true,
+  JSON.stringify(lejano)
+);
+check("y acabas sentada, fingiendo", lejano.sentada === true, JSON.stringify(lejano));
 
 // ── 5 · En un lugar seguro, los halos RETROCEDEN ──
 const refugio = await p.evaluate(() => {

@@ -54,6 +54,10 @@ const out = await p.evaluate(async () => {
   const g = window.__game.engine.game;
   g.setPaused(false);
   g.clearGate();
+  // LA ESCOLTA, YA VIVIDA. Superar la puerta del día pone a Gabo a
+  // llevarte al puesto, y durante ese trayecto no te vigila a propósito:
+  // vas pegada a él. Esto mide la jornada EN MARCHA, no la apertura.
+  g.saltarEscolta();
   const m = g.minions[0];
   if (!m) return { error: "no hay secuaces" };
 
