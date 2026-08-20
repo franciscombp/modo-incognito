@@ -84,7 +84,7 @@
       "text": "Y desde hoy, yo soy una más. Primer día."
     },
     {
-      "speaker": "gabo",
+      "speaker": "Gabo",
       "text": "¡Ey! Tú debes ser la nueva. Gabo, jefe de diseño. Llevo aquí desde las siete, ¿eh?"
     },
     {
@@ -92,7 +92,7 @@
       "text": "Buenos días. Sí, soy yo."
     },
     {
-      "speaker": "gabo",
+      "speaker": "Gabo",
       "text": "Camina conmigo que te dejo en tu puesto. Y ojo, aquí se nota mucho quién produce y quién no."
     },
     {
@@ -100,7 +100,7 @@
       "text": "…Entendido."
     },
     {
-      "speaker": "gabo",
+      "speaker": "Gabo",
       "text": "ESPACIO para hacer cosas, y para fingir si estás en un sitio seguro. Ya te irás enterando."
     }
   ],
@@ -114,21 +114,22 @@
       "text": "Excelente primer día. Todo el tiempo ocupada. Aquí eso es lo único que cuenta."
     },
     {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "Lo hiciste bien. Descansa hoy. Mañana es otro día."
+      "speaker": "Tú",
+      "text": "Ni siquiera preguntó QUÉ hice. Solo que no paré."
+    },
+    {
+      "speaker": "Tú",
+      "text": "Y lo del proyecto que nadie nombra… mañana sigo tirando de ese hilo."
     }
   ],
   "outroLose": [
     {
       "speaker": "Gabo",
-      "mood": "angry",
       "text": "Vaya. En tu primer día. No pensé que fuera posible."
     },
     {
-      "speaker": "Steven el Daddy",
-      "narrator": true,
-      "text": "No te desanimes. Mañana volvemos. Tengo más confianza en ti."
+      "speaker": "Tú",
+      "text": "Mañana llego antes y me aprendo dónde mira cada uno."
     }
   ],
   "prologue": {

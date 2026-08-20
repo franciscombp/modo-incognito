@@ -1026,13 +1026,30 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   Ojo con lo que NO se puede probar conduciendo una persecución: dentro de
   una sala estás en un lugar seguro y el motor CORTA la caza cada cuadro, así
   que ahí no hay nada que medir — la ronda se comprueba en el plano.
-- **El día 1 abre con GABO SENTADO** (`rules.gate.sentadoEn`, un id de
-  `puestos` — o de `safeSpots`, que se mira después). Su puesto está FUERA de
-  las salas, en una mesa de las de en medio: sentado en la Sala 1 estaba
-  plantado dentro de tu escondite Y encerrado, por lo de arriba. `puestos` es
-  una lista aparte a propósito: un safeSpot es donde te escondes TÚ.
-  La primera misión no es una persecución: está en su puesto, se le
-  ve desde el otro lado del piso y vas a hablarle. Sentado SIGUE MIRANDO
+- **El día 1 abre con GABO RECIBIÉNDOTE EN LA PUERTA**
+  (`rules.gate.esperaEn`, un id de `puestos`; `sentadoEn` sigue soportado y
+  se mira después). Está DE PIE delante del ascensor (`boss.waitAt()`: como
+  `sitAt` pero sin silla, y fuera del detector de atascos), le saludas al
+  salir y **te acompaña andando a tu puesto**; llegar allí dispara la
+  presentación de Crispo, como siempre. Un primer día no empieza buscando a
+  tu jefe por la oficina — antes empezaba sentado y la primera misión era ir
+  a encontrarlo. `puestos` es una lista aparte de `safeSpots` a propósito: un
+  safeSpot es donde te escondes TÚ.
+  Dos cosas que costaron:
+  - **La escolta apunta la CORREA a tu mesa**, no a ti. La correa del día 1
+    hace que su ronda sea «donde estés tú», así que echaba a andar, te veía a
+    un palmo —sigues en la puerta— y se quedaba orbitándote ahí. Medido: se
+    ALEJABA 0,88 del sitio al que supuestamente te llevaba. Al llegar se le
+    devuelve la suya.
+  - **Los `puestos` pasan por el barrido que pega los puntos al suelo
+    pisable** (`snapInPlace`, con el plano de los VIGILANTES). Sin eso el
+    punto de recepción caía medio metro dentro del bloque de los ascensores y
+    Gabo se quedaba clavado, sin ruta posible a ningún sitio.
+  **Steven sale del arranque** y se queda como contacto de Teams: sigue
+  escribiéndote durante el día, que es su sitio. Si tocas la apertura,
+  comprueba que la escena de Gabo en tu puesto CONTINÚA la de la puerta en
+  vez de repetirla — se volvió a presentar y a citar a Steven durante un
+  rato, y eso es exactamente lo que `npm run guion` sirve para ver. Sentado SIGUE MIRANDO
   —cono, halo y sospecha funcionan igual—; lo único congelado es que ande, y
   el detector de atascos se salta (si no, lo daba por encajado contra un
   mueble y lo iba deslizando por la sala). Hablarle lo levanta y te manda a
@@ -1528,6 +1545,20 @@ importan el código REAL del motor (`character3d.js`, `main.js`), así que nunca
 desincronzan de lo que sale al jugar.
 
 ## Cómo probar cambios
+
+**`npm run guion` es la PRUEBA DE ESCRITORIO.** No comprueba nada: juega el
+día entero y escupe, EN ORDEN, todo lo que la jugadora lee — intro, cada
+anuncio, cada aviso, cada misión cumplida, el cierre y la libreta. El guion
+vive repartido en seis archivos (nivel, temporada, diálogos, libreta,
+evaluación y los avisos del motor) y ninguno se lee en el orden en que
+ocurre: por separado la historia parece coherente, seguida es donde se ve que
+no. Así se cazó que la apertura se contaba DOS VECES y que la segunda citaba
+a un personaje ya retirado. Córrelo después de tocar cualquier texto.
+
+Y OJO con lo que un tirón de esos NO significa: la primera versión informó
+«la libreta no se escribe nunca» y lo único vacío era la ruta por la que
+preguntaba (`save.data.libreta` en vez de `save.libreta`). Antes de dar por
+rota una pieza de contenido, comprueba que la estás leyendo por donde es.
 
 Los tests (`tools/check-*.mjs`) son scripts de Playwright que
 abren el juego real en un navegador headless y leen su estado interno vía

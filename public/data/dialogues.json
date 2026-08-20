@@ -108,24 +108,31 @@
         [
           {
             "speaker": "Gabo",
-            "mood": "tense",
-            "text": "¡Bienvenida a la Célula Gris! Yo soy Gabo, trabajo aquí en diseño. Bueno, «trabajo»."
+            "text": "Bueno, este es tu puesto. Enchufe, silla, y visibilidad total desde mi mesa. Cortesía de la casa."
           },
           {
             "speaker": "Tú",
-            "text": "Steven me dijo que te buscara. Que eres quien me presenta formalmente."
+            "text": "Qué detalle."
           },
           {
             "speaker": "Gabo",
-            "text": "Ese es Steven. Mi compa de siempre. Bueno, perfecto. Aquí anda Crispo vigilando todo — no habla mucho, pero ve TODO. O al menos eso cree."
+            "text": "Aquí anda Crispo apuntando todo — no habla mucho, pero ve TODO. O al menos eso cree."
           },
           {
             "speaker": "Gabo",
-            "text": "También tengo a Chispita corriendo por todos lados, trayéndome chismes. Y Washo, que está en una esquina pero ve el piso completo sin parpadear. Son mis ojos."
+            "text": "También tengo a Chispita corriendo por ahí trayéndome chismes, y a Washo en una esquina que ve el piso completo sin parpadear. Son mis ojos."
+          },
+          {
+            "speaker": "Tú",
+            "text": "¿Y trabajan en algo, o solo miran?"
           },
           {
             "speaker": "Gabo",
-            "text": "El punto es: trabajo aquí. Ustedes trabajan aquí. Si estás donde deberías estar, haciendo lo que deberías estar haciendo, yo estoy feliz. Si no... bueno, nos vemos."
+            "text": "Miran. Es un puesto muy demandado."
+          },
+          {
+            "speaker": "Gabo",
+            "text": "El punto es: si estás donde deberías estar, haciendo lo que deberías estar haciendo, yo estoy feliz. Si no… bueno, nos vemos."
           },
           {
             "speaker": "Tú",
@@ -133,7 +140,7 @@
           },
           {
             "speaker": "Gabo",
-            "text": "Excelente. Ahora sí, que comience el día. Ve y haz lo que tengas que hacer."
+            "text": "Excelente. Que comience el día."
           }
         ],
         [

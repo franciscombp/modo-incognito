@@ -212,6 +212,9 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const mgSalir = el("button", "inc-mg-salir", mgTop);
   mgSalir.type = "button";
   mgSalir.textContent = "SALIR  (ESC)";
+  // El cursor no se posa aquí al abrir la pantalla (ver focusNav): con el
+  // examen delante, Enter cerraría el minijuego en vez de responder.
+  mgSalir.dataset.navUltimo = "";
   mgSalir.addEventListener("click", () => window.__game?.engine?.game?.salirMinijuego());
   const mgBody = el("div", "inc-mg-body", mg);
   // EL ACECHO: la mitad del juego que ya no se ve. Es una barra que se llena

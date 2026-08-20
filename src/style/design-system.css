@@ -12791,7 +12791,7 @@ body.inc-acting #hint {
   border: 1px solid var(--btn-line) !important;
 }
 
-/* ⚠️ UN BOTÓN QUE ES UNA FOTO NO ES UNA FILA. Las caras del reparto son
+/* OJO: UN BOTÓN QUE ES UNA FOTO NO ES UNA FILA. Las caras del reparto son
    `<button>` cuyo FONDO es el retrato (`background: … center / cover`), así
    que el `background: none` de arriba no les quitaba una caja: les borraba
    la cara. La fila de personajes quedó con cinco nombres y ningún retrato, y

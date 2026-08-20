@@ -85,6 +85,15 @@ export function createFocusNav({ root = document } = {}) {
         !b.closest("[data-nav-off]") &&
         visible(b)
     );
+    // `[data-nav-ultimo]` va AL FINAL de la lista, no fuera de ella. Existe
+    // por el botón de SALIR de un minijuego: está antes que nada en el DOM
+    // (vive en la barra de arriba), así que el cursor se posaba ahí al abrir
+    // la pantalla — y con la tarjeta del examen delante, Enter cerraba el
+    // minijuego en vez de responder la pregunta. Sigue siendo alcanzable,
+    // pero deja de ser lo primero.
+    lista.sort(
+      (a, b) => (a.hasAttribute("data-nav-ultimo") ? 1 : 0) - (b.hasAttribute("data-nav-ultimo") ? 1 : 0)
+    );
     return lista;
   }
 
@@ -104,6 +113,9 @@ export function createFocusNav({ root = document } = {}) {
   // dejaba el aro dibujado sobre un botón de un menú ya cerrado, esperando
   // a que alguien pulsara Enter encima.
   let marcado = null;
+  // ¿Ha movido ALGUIEN el cursor en este grupo? Ver `onKey`: hasta que no lo
+  // muevas, Enter no es de aquí.
+  let movido = false;
   function pintar(lista) {
     if (marcado && marcado !== cursor) marcado.classList.remove("nav-cursor");
     lista.forEach((b) => b.classList.toggle("nav-cursor", b === cursor));
@@ -116,6 +128,7 @@ export function createFocusNav({ root = document } = {}) {
     if (g !== grupo) {
       grupo = g;
       cursor = null;
+      movido = false;
     }
     if (!grupo) {
       marcado?.classList.remove("nav-cursor");
@@ -163,6 +176,7 @@ export function createFocusNav({ root = document } = {}) {
       mejor = lista[(i + paso + lista.length) % lista.length];
     }
     cursor = mejor;
+    movido = true;
     pintar(lista);
     cursor.scrollIntoView?.({ block: "nearest" });
     return true;
@@ -213,7 +227,13 @@ export function createFocusNav({ root = document } = {}) {
     if (dir) {
       if (!mover(dir[0], dir[1])) return;
     } else if (e.key === "Enter") {
-      if (!aceptar()) return;
+      // ENTER SOLO ES DEL CURSOR SI ALGUIEN LO MOVIÓ. Varias pantallas ya le
+      // dan a Enter un significado propio —en la de personaje es «entrar al
+      // juego», y lo dice en pantalla—, y quedárselo por el simple hecho de
+      // que haya un grupo abierto rompía esa tecla sin avisar: activaba lo
+      // que hubiera bajo un cursor que nadie había pedido. Después de mover,
+      // el cursor SÍ es lo que estás mirando, y ahí Enter es suyo.
+      if (!movido || !aceptar()) return;
     } else {
       return;
     }

@@ -1093,7 +1093,13 @@ export class Game {
       enActividad &&
       (holdingSpace || this._tapGrace > 0 || this._pestillo === stCerca) &&
       this._salidaManual !== stCerca &&
-      (this.enMinijuego || this._puedeAbrirMinijuego());
+      // La puerta es para EMPEZAR, no para seguir. Una actividad ya ENCENDIDA
+      // está en el aguante —sostenerla a la vista es lo que paga— y ahí el
+      // jefe encima no es un impedimento, es el juego. Sin esta excepción,
+      // que se comprometiera contigo apagaba la tarea que estabas
+      // aguantando: dejabas de estar «haciendo algo prohibido» justo cuando
+      // venía a por ti, y ni siquiera saltaba la alerta roja.
+      (this.enMinijuego || stCerca?.encendida || this._puedeAbrirMinijuego());
     if (sosteniendoActividad) {
       const st = this.nearStation;
       // ── CONSEGUIR primero: sin el objeto no hay actividad ──
@@ -1715,7 +1721,7 @@ export class Game {
     // pantalla de tarea abierta. La lee el cuadro SIGUIENTE, que es lo que
     // hace que el mundo se pare mientras dure.
     //
-    // ⚠️ Estuvo escrita dentro de la rama de PAUSA, unas líneas antes del
+    // OJO: Estuvo escrita dentro de la rama de PAUSA, unas líneas antes del
     // `return`, así que solo se calculaba con el juego ya pausado — o sea
     // nunca, jugando. La consecuencia no se veía: el reloj «parado durante
     // un minijuego» nunca se paró, y el mundo tampoco. Una bandera que se

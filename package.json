@@ -54,6 +54,7 @@
     "check:delacion": "node tools/check-delacion.mjs",
     "check:coartada": "node tools/check-coartada.mjs",
     "check:quietud": "node tools/check-quietud.mjs",
+    "guion": "node tools/guion.mjs",
     "check:apertura": "node tools/check-apertura.mjs",
     "check:chisme": "node tools/check-chisme.mjs",
     "check:verter": "node tools/check-verter.mjs",
