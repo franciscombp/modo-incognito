@@ -82,7 +82,25 @@ await p.evaluate(() => {
   const OTROS = window.__OTROS_VERBOS;
   const soloPulso = (a) => !OTROS.some((v) => a[v]);
   const base = (g._allStations ?? window.__floorplan.activityStations ?? []).find(soloPulso);
-  if (base) g.objectives.push({ ...base, progress: 0, done: false });
+  if (!base) return;
+  // Y NO PUEDE SER UNA SIESTA. Hoy la única estación del piso que no declara
+  // otro verbo es la cabezada (`type: "sleep"`), así que esto inyectaba ESA
+  // y el archivo entero medía el pulso sobre una siesta. Se nota en una sola
+  // aserción —«mantener pulsado no basta»— y encima solo a veces: dormir se
+  // TERMINA quedándote quieta, que es exactamente lo que una cabezada es,
+  // así que la regla del pulso no le aplica y salía FAIL con el juego
+  // intacto.
+  //
+  // Se le quita el `type` a la copia en vez de buscar otra estación: no hay
+  // otra, y lo que este archivo tiene que medir es EL VERBO, no qué tareas
+  // trae el día 1. La copia es de la prueba y no toca el piso.
+  //
+  // `time` con margen por lo mismo: seis segundos a ritmo mantenido (0.3)
+  // son 1.8 de progreso, así que sobre una tarea de 2.5 la afirmación queda
+  // al filo y depende de la calibración — que es justo lo que su comentario
+  // promete que no pasa.
+  const { type, ...pulso } = base;
+  g.objectives.push({ ...pulso, time: Math.max(base.time ?? 0, 5), progress: 0, done: false });
 });
 
 // ── 1 · El pulso arranca al ponerse a hacer una actividad ──
@@ -261,16 +279,11 @@ const suelo = await p.evaluate(async () => {
   g.boss.position.x = g.player.position.x + 40;
   g.setPaused(false);
   await sleep(200);
-  const st =
-    g.objectives.find(
-      (o) =>
-        !o.dynamic &&
-        !window.__OTROS_VERBOS.some((v) => o[v]) &&
-        !o.done
-    ) ??
-    g.objectives.find(
-      (o) => !o.dynamic && !window.__OTROS_VERBOS.some((v) => o[v])
-    );
+  // La MISMA estación que el resto del archivo: la que no declara otro
+  // verbo, o sea la que juega al pulso. La inyecta el bloque de arriba ya
+  // saneada (sin `type: "sleep"` y con margen de tiempo).
+  const juegaAlPulso = (o) => !o.dynamic && !window.__OTROS_VERBOS.some((v) => o[v]);
+  const st = g.objectives.find((o) => juegaAlPulso(o) && !o.done) ?? g.objectives.find(juegaAlPulso);
   st.done = false;
   st.progress = 0;
   st.encendida = false;
