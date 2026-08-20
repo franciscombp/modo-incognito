@@ -72,7 +72,7 @@ const out = await p.evaluate(() => {
   // una escena escrita gana a la regla de ambiente. Pero aquí se mide la
   // regla, así que la escena se da por vivida. Sin esto la prueba medía a
   // Crispo viniendo a saludar y lo contaba como «no se va».
-  g._esperandoPuesto = false;
+  g.saltarEscolta();
 
   // En CUADROS, no en milisegundos: una prueba de IA medida con `sleep`
   // mide la máquina (ver la nota de check:chase en CLAUDE.md).

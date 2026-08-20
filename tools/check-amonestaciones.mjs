@@ -158,7 +158,7 @@ await p.evaluate(() => {
   // pantalla era el anuncio de la escolta. La prueba lo leía como si fuera
   // la pulla del jefe e informaba «repite» — con el juego haciendo justo lo
   // que debe. Aquí se mide el aviso, así que la escolta se da por terminada.
-  g._esperandoPuesto = false;
+  g.saltarEscolta();
 });
 
 // ── El AVISO habla, y no repite ──

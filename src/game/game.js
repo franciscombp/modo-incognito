@@ -2678,6 +2678,26 @@ export class Game {
   }
 
   /**
+   * DAR LA ESCOLTA POR VIVIDA. Es la costura para las comprobaciones de
+   * `tools/` que miden la jornada EN MARCHA y no la apertura.
+   *
+   * Existe porque son DOS banderas y ninguna se adivina: superar la puerta
+   * del día pone a Gabo a llevarte al puesto (`_esperandoPuesto`) y le da un
+   * respiro para que ande en vez de quedarse mirándote (`_graceTimer`).
+   * Mientras dure eso, la sospecha no sube y el jefe no te aborda — a
+   * propósito, porque vas pegada a él. Tres pruebas del jefe se cayeron por
+   * esto a la vez, y cada una lo estaba «arreglando» copiando las mismas dos
+   * líneas: eso es lo que se separa al primer cambio.
+   *
+   * No es un atajo del juego: en partida la escolta se termina llegando a tu
+   * puesto (`_updateBienvenida`), que es su único final.
+   */
+  saltarEscolta() {
+    this._esperandoPuesto = false;
+    this.boss._graceTimer = 0;
+  }
+
+  /**
    * El plazo del paseo al puesto. Si se agota —te atascaste contra un mueble,
    * o alguien te tapa el hueco— se baja el telón y se remata el traslado.
    * Es una RED, no la vía normal: lo normal es llegar andando.

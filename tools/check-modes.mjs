@@ -32,6 +32,13 @@ const report = await page.evaluate(async () => {
   // congela en 0 pase lo que pase (ver rules.gate) y varias de las
   // aserciones de abajo pasarían por el motivo equivocado.
   game.clearGate(); // la puerta del dia, por la via unica (ver Game.clearGate)
+  // Y LA ESCOLTA, YA VIVIDA. Superar la puerta pone a Gabo a llevarte al
+  // puesto, y durante ese trayecto no te vigila a propósito: vas pegada a
+  // él. Aquí se miden los MODOS con la jornada en marcha, no la apertura,
+  // así que la escena se da por terminada — si no, la sospecha se queda
+  // clavada en cero y la última aserción mide a un jefe al que el juego le
+  // ha pedido que mire para otro lado.
+  game.saltarEscolta();
 
   const fp = window.__floorplan;
   const out = {};
@@ -111,8 +118,11 @@ const report = await page.evaluate(async () => {
   game2.minions.forEach((m) => m.setActive(false));
   // La sospecha no sube mientras la puerta del día 1 siga sin superar (ver
   // rules.gate) — este test es sobre la mecánica ya en marcha, no sobre esa
-  // puerta.
+  // puerta. Y por lo mismo tampoco mientras Gabo te ESCOLTA al puesto: vas
+  // pegada a él por definición, así que durante ese trayecto no te lo
+  // apunta. Las dos escenas se dan por vividas.
   game2.clearGate();
+  game2.saltarEscolta();
   game2.player.position.x = fp.spawn.x;
   game2.player.position.z = fp.spawn.z;
   game2.player.isDoingActivity = false;

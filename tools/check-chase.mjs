@@ -48,8 +48,7 @@ const log = await page.evaluate(async () => {
   // así que la escena se da por terminada. Sin esto, las seis aserciones de
   // visión de abajo miden a un jefe al que el juego le ha pedido, con toda
   // la razón, que mire para otro lado.
-  game._esperandoPuesto = false;
-  game.boss._graceTimer = 0;
+  game.saltarEscolta();
   // This test is about the boss, not the sidekicks: an on-duty minion could
   // walk up and start an unsolicited chat, which pauses the level and would
   // otherwise stall every assertion below on a dialogue nobody answers.
