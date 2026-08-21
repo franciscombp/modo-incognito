@@ -204,27 +204,41 @@ const res = await p.evaluate(async () => {
   movie.progress = movie.time - 0.01;
   for (let i = 0; i < 20 && !movie.encendida; i++) {
     calma();
+    // CLAVADA A LA ESTACIÓN también aquí, no solo en el bucle del aguante:
+    // en estos frames reales un figurante de paseo podía EMPUJARLA fuera
+    // del radio justo al encenderse, y el barrido de «te fuiste → banca»
+    // cobraba la misión en el acto — aguante 0, hecha ya, y las dos
+    // aserciones siguientes cayendo con la mecánica intacta. Dependía del
+    // reloj de los NPC: por eso iba y venía entre tandas.
+    g.player.position.x = movie.x;
+    g.player.position.z = movie.z;
     await sleep(100);
   }
   out.encendida = movie.encendida === true;
   const energia0 = g.energy;
-  // AGUANTAR sostenida: el mundo ya vive y el contador sube.
-  for (let i = 0; i < 15; i++) {
+  // AGUANTAR sostenida: el mundo ya vive y el contador sube. EN CUADROS,
+  // no en reloj de pared: con `sleep(100)` esto medía cuántos frames le
+  // dio la máquina al bucle real en 1.5 s — bajo la carga de la suite
+  // completa salían de menos, `aguante` se quedaba corto y el check caía
+  // con la mecánica intacta (y pasaba al reintentarlo solo). La lección de
+  // siempre: si el resultado depende de lo ocupado que esté el equipo, lo
+  // que se mide es el equipo.
+  for (let i = 0; i < 90; i++) {
     calma();
     g.player.position.x = movie.x;
     g.player.position.z = movie.z;
-    await sleep(100);
+    g.update(1 / 60);
   }
   out.aguantando = {
     vivo: g.worldFrozen === false,
     aguante: +(movie.aguante ?? 0).toFixed(1),
     sinCobrar: movie.done === false,
   };
-  // Soltar BANCA: misión hecha y el aguante pagado.
+  // Soltar BANCA: misión hecha y el aguante pagado. También en cuadros.
   g.player.keys.delete(" ");
-  for (let i = 0; i < 20 && !movie.done; i++) {
+  for (let i = 0; i < 60 && !movie.done; i++) {
     calma();
-    await sleep(100);
+    g.update(1 / 60);
   }
   // EL AGUANTE SE PAGA EN ENERGÍA, no en reloj: la jornada dura siempre lo
   // mismo, así que el reloj dejó de ser moneda. Se mide la energía.
