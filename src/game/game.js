@@ -1220,7 +1220,12 @@ export class Game {
           // encima abría la pantalla completa, que es lo contrario de una
           // siesta a la vista de todos: el riesgo de dormirte donde te ven
           // ES el juego, y taparlo con un panel lo borraba.
-          const verbo = this._enSiesta(st) ? null : verboDe(st);
+          // Siesta = type sleep Y SIN verbo declarado. Solo el tipo no
+          // basta: `stretch` es type sleep (comparte la carita del Zzz) pero
+          // declara BAILE — con el tipo a secas, estirarse se convirtió en
+          // una cabezada y el baile no abría nunca.
+          const fila = verboDe(st);
+          const verbo = this._enSiesta(st) && fila.campo === null ? null : fila;
           this._apagarVerbos(verbo?.id);
           const juego = verbo ? this[verbo.id] : null;
           juego?.begin(st);
@@ -2727,6 +2732,12 @@ export class Game {
     this._esperandoPuesto = false;
     this.boss._graceTimer = 0;
     this.boss.prisa = 1;
+    // Y EL PASO DE LA ESCOLTA SE SUELTA. El auto-seguimiento escribe
+    // `walkTo` cada cuadro mientras la escena vive; cortar la escena sin
+    // soltarlo dejaba a la jugadora andando SOLA hacia el puesto con el
+    // mando ignorado — media suite se cayó midiendo a una jugadora que se
+    // iba caminando de la estación que la prueba acababa de pisar.
+    this.player.walkTo = null;
   }
 
   /**

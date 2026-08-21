@@ -263,8 +263,58 @@ export function createFocusNav({ root = document } = {}) {
   // Se sondea, porque la API de mandos no avisa: no hay evento de «se movió
   // la palanca», solo un estado que hay que leer. Se lee solo cuando hay un
   // grupo abierto, así que en partida esto no cuesta nada.
+
+  // EL BAILE SE QUEDA EL MANDO FÍSICO. Su pantalla no es un grupo del
+  // cursor (`data-nav-juego`), así que sin esta rama el dpad y la palanca
+  // de un mando de verdad no hacían NADA durante el baile — la promesa es
+  // que el juego entero se juega con teclado O con mando, y el baile es
+  // exactamente un juego de cruceta. Mismo tacto que la palanca táctil:
+  // flanco, y se rearma pasando por el centro.
+  let baileArmado = true;
+  function sondearBaile() {
+    const b2 = window.__game?.engine?.game?.baile;
+    if (!b2?.active || !navigator.getGamepads) return false;
+    const pads = [...navigator.getGamepads()].filter(Boolean);
+    if (!pads.length) return true; // sin mando conectado, pero el baile manda
+    let dx = 0;
+    let dy = 0;
+    for (const pad of pads) {
+      dx += pad.axes?.[0] ?? 0;
+      dy += pad.axes?.[1] ?? 0;
+      pad.buttons?.forEach?.((btn, i) => {
+        if (!btn.pressed) return;
+        const cruz = CRUCETA[i];
+        if (cruz) {
+          dx += cruz[0];
+          dy += cruz[1];
+        }
+      });
+    }
+    const fuerza = Math.hypot(dx, dy);
+    if (fuerza < 0.35) {
+      baileArmado = true;
+      return true;
+    }
+    if (!baileArmado || fuerza < 0.6) return true;
+    baileArmado = false;
+    const dir =
+      Math.abs(dx) > Math.abs(dy)
+        ? dx > 0
+          ? "derecha"
+          : "izquierda"
+        : dy > 0
+          ? "abajo"
+          : "arriba";
+    b2.pulsar(dir);
+    return true;
+  }
+
   function sondearMando(dt) {
     if (!navigator.getGamepads) return;
+    if (sondearBaile()) {
+      botonesAntes = new Set();
+      return;
+    }
     if (!grupoActivo()) {
       botonesAntes = new Set();
       return;

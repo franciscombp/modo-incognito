@@ -65,7 +65,24 @@ await p.evaluate(() => {
   g.player.position.z = st.z;
   g.player.keys.add(" ");
 });
-await p.waitForTimeout(1200);
+// Por ESTADO, no por cronómetro — y con EVALUATES sueltos, no con
+// waitForFunction: en el contexto móvil emulado su sondeo (rAF o intervalo,
+// da igual) devolvía falso quince segundos seguidos mientras un evaluate
+// inmediatamente después veía `baile: true`. Dos mundos que no se ponen de
+// acuerdo no son una espera: son una moneda al aire. El evaluate a secas es
+// el único testigo que este archivo se cree.
+{
+  let abierto = false;
+  for (let i = 0; i < 60 && !abierto; i++) {
+    abierto = await p.evaluate(() => window.__game.engine.game?.baile?.active === true);
+    if (!abierto) await p.waitForTimeout(250);
+  }
+  if (!abierto) {
+    console.log("FAIL  el baile no abrió en 15 s");
+    process.exit(1);
+  }
+}
+await p.waitForTimeout(300);
 
 const abierto = await p.evaluate(() => {
   const g = window.__game.engine.game;
@@ -131,24 +148,60 @@ check(
 );
 
 // ── 3 · Y LA CASILLA SE PUEDE TOCAR con el dedo ──
-// Esperar un paso nuevo (el actual ya se gastó) y tocar su casilla.
-await p.waitForTimeout(1000);
-const paso2 = await p.evaluate(() => {
-  const g = window.__game.engine.game;
-  const s = g.baile.snapshot();
-  return { dir: s.pasos[s.indice]?.dir, aciertos: s.aciertos };
-});
-const pad = await p.locator(`.inc-baile-pad[data-dir="${paso2.dir}"]`).boundingBox().catch(() => null);
-if (pad) {
+// CON REINTENTOS: el compás avanza cada ~0.9 s, así que entre leer el paso
+// y tocar su casilla el paso puede haber CAMBIADO — y tocar la dirección
+// vieja es un fallo que además GASTA el paso nuevo. Una sola tirada era una
+// carrera contra el compás; cuatro con lectura fresca, no.
+let padOk = false;
+let padDetalle = "";
+for (let intento = 0; intento < 4 && !padOk; intento++) {
+  await p.waitForTimeout(1000);
+  const paso2 = await p.evaluate(() => {
+    const g = window.__game.engine.game;
+    const s2 = g.baile.snapshot();
+    return { dir: s2.pasos[s2.indice]?.dir, aciertos: s2.aciertos };
+  });
+  const pad = await p.locator(`.inc-baile-pad[data-dir="${paso2.dir}"]`).boundingBox().catch(() => null);
+  if (!pad) break;
   await p.touchscreen.tap(pad.x + pad.width / 2, pad.y + pad.height / 2);
   await p.waitForTimeout(200);
   const trasPad = await p.evaluate(() => window.__game.engine.game.baile.snapshot().aciertos);
-  check("tocar la casilla del paso también cuenta", trasPad > paso2.aciertos, `${paso2.aciertos} → ${trasPad}`);
-} else {
-  // Las casillas pueden no llevar data-dir: entonces se toca por índice.
-  const pads = await p.locator(".inc-baile-pad").all();
-  check("hay casillas que tocar", pads.length >= 4, `${pads.length} casillas`);
+  padOk = trasPad > paso2.aciertos;
+  padDetalle = `${paso2.aciertos} → ${trasPad} (dir ${paso2.dir}, intento ${intento + 1})`;
 }
+check("tocar la casilla del paso también cuenta", padOk, padDetalle);
+
+// ── 4 · Y EL MANDO FÍSICO TAMBIÉN BAILA ──
+// La API de gamepads no se puede emular desde Playwright, así que se STUBEA
+// `navigator.getGamepads` con un mando de mentira: lo que se prueba es la
+// rama de focusNav que lo lee — flanco, dirección dominante, rearme.
+let mandoOk = false;
+let mandoDetalle = "";
+for (let intento = 0; intento < 4 && !mandoOk; intento++) {
+  await p.waitForTimeout(1000);
+  const conMando = await p.evaluate(async () => {
+    const g = window.__game.engine.game;
+    const EJE = { arriba: [0, -1], abajo: [0, 1], izquierda: [-1, 0], derecha: [1, 0] };
+    const pad = (x, y) => [{ axes: [x, y], buttons: [], connected: true }];
+    // Reposo primero (rearma el flanco), y la dirección se lee FRESCA justo
+    // antes del empujón: el compás avanza cada ~0.9 s y una lectura vieja
+    // empuja el paso equivocado — que además gasta el nuevo.
+    navigator.getGamepads = () => pad(0, 0);
+    await new Promise((r) => setTimeout(r, 120));
+    const s2 = g.baile.snapshot();
+    const dir = s2.pasos[s2.indice]?.dir;
+    const antes = s2.aciertos;
+    const [ax, ay] = EJE[dir] ?? [0, -1];
+    navigator.getGamepads = () => pad(ax, ay);
+    await new Promise((r) => setTimeout(r, 150));
+    navigator.getGamepads = () => pad(0, 0);
+    await new Promise((r) => setTimeout(r, 80));
+    return { dir, antes, despues: g.baile.snapshot().aciertos };
+  });
+  mandoOk = conMando.despues > conMando.antes;
+  mandoDetalle = `${JSON.stringify(conMando)} (intento ${intento + 1})`;
+}
+check("un empujón del MANDO FÍSICO en la dirección buena es un acierto", mandoOk, mandoDetalle);
 
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 
