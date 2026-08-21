@@ -42,6 +42,14 @@ const result = await page.evaluate(async () => {
   // pero deja la lista de tareas VACIA, porque quien suelta el plan del dia
   // es la campana al enterarse de que la mision de la puerta cayo.
   game.clearGate();
+  // Y LA ESCOLTA, SALTADA: desde que es una cinemática, `clearGate` la
+  // ARRANCA — el auto-follow escribe `walkTo` cada cuadro y se lleva a la
+  // jugadora andando hacia su mesa mientras este archivo la pinza en una
+  // estación. Café y peli se medían DURANTE ese paseo (pose de andar, no la
+  // del JSON) y snack ya con la escolta terminada — por eso fallaban dos de
+  // tres sin que ninguna pose estuviera rota. Aquí se prueban poses, no la
+  // apertura (esa es de check-apertura y check-escolta).
+  game.saltarEscolta();
 
   const out = { hasPoses: player.sprite.hasPoses, activities: [] };
 
