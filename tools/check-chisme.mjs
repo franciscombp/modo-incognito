@@ -147,11 +147,20 @@ const out = await p.evaluate(() => {
   // sola sin que nada del juego estuviera roto.
   let falloResta = false;
   let falloHaceRuido = false;
+  // LA MALA SE LEE, NO SE PRUEBA. El bucle de «prueba 0,1,2 hasta que una
+  // falle» era una ruleta: cada respuesta cambia de ficha, así que tres
+  // tiradas podían salir las tres buenas — o completar la tarea por el
+  // camino (aciertos: 3) y dejar a `responder` sin nada que contestar. Una
+  // de cada ~15 vueltas el check fallaba con el juego intacto. La ficha en
+  // pantalla dice cuál es la correcta: se contesta OTRA, y listo.
   for (let i = 0; i < 3; i++) {
+    const snap = g.chisme.snapshot?.();
+    const correcta = snap?.correcta ?? g._chismes?.find((f) => f.pregunta === snap?.pregunta)?.correcta;
+    const mala = correcta === 0 ? 1 : 0;
     const progAntes = 0.5 * (st.time || 1);
     st.progress = progAntes;
     g.suspicion = 10;
-    if (g.chisme.responder(i) !== "fallo") continue;
+    if (g.chisme.responder(mala) !== "fallo") continue;
     falloResta = st.progress < progAntes;
     falloHaceRuido = g.suspicion > 10;
     break;

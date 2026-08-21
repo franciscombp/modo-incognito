@@ -1213,19 +1213,28 @@ export class Game {
           //
           // Una estación juega a UNO y nunca a dos: pedir ritmo y pulso
           // firme a la vez con el jefe rondando no es difícil, es ruido.
-          const verbo = verboDe(st);
-          this._apagarVerbos(verbo.id);
-          const juego = this[verbo.id];
-          juego.begin(st);
-          let ritmo = verbo.ritmo ?? 1;
-          if (verbo.bloqueaPaso) {
+          // LA SIESTA NO JUEGA A NADA. Es la única actividad sin verbo que
+          // queda (check:contenido lo exige así), y su mecánica ES quedarse
+          // quieta: sostener es dormir, y dormir avanza a ritmo pleno. Sin
+          // esta rama caía al pulso — una cabezada con toques al ritmo — y
+          // encima abría la pantalla completa, que es lo contrario de una
+          // siesta a la vista de todos: el riesgo de dormirte donde te ven
+          // ES el juego, y taparlo con un panel lo borraba.
+          const verbo = this._enSiesta(st) ? null : verboDe(st);
+          this._apagarVerbos(verbo?.id);
+          const juego = verbo ? this[verbo.id] : null;
+          juego?.begin(st);
+          let ritmo = verbo ? verbo.ritmo ?? 1 : 1;
+          if (verbo?.bloqueaPaso) {
             // El paso se bloquea MIENTRAS dura: el eje del mando queda libre
             // para el propio verbo, así que no hay tecla nueva que aprender
             // ni nada que inventar en táctil. Se sale soltando la tecla de
             // acción (la rama `else` de fuera lo devuelve).
             this.player.inputLocked = true;
           }
-          if (verbo.id === "gesture") {
+          if (!verbo) {
+            // La siesta: nada que actualizar — dormir es el propio sostener.
+          } else if (verbo.id === "gesture") {
             // El gesto es el único que DEVUELVE ritmo: cuánto avanza depende
             // de lo bien que sostengas, y eso solo lo sabe él.
             ritmo = juego.update(dt, this.player.readIntent());
@@ -1240,7 +1249,7 @@ export class Game {
           } else {
             juego.update(dt);
           }
-          if (verbo.id === "pulse") {
+          if (verbo?.id === "pulse") {
             // MANTENER YA NO TERMINA LA TAREA. Avanza a paso de tortuga —lo
             // justo para que soltar no sea un castigo— y lo que la enciende
             // son los TOQUES al ritmo. Con esto en 1, que es como estuvo, el
@@ -1260,7 +1269,9 @@ export class Game {
             // y solo dos lo tienen. `verbo` sigue en alcance: es la fila del
             // registro que se eligió arriba.
             const bonus =
-              typeof this[verbo.id].bonusReloj === "function" ? this[verbo.id].bonusReloj() : 0;
+              verbo && typeof this[verbo.id].bonusReloj === "function"
+                ? this[verbo.id].bonusReloj()
+                : 0;
             if (bonus > 0) {
               this._grantTime(bonus, {
                 at: this.player.position,

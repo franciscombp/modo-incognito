@@ -848,13 +848,7 @@
       "limite": 7,
       "pose": "doze",
       "reward": 37,
-      "energy": 35,
-      "pulso": {
-        "periodo": 2.4,
-        "zona": 0.34,
-        "aciertos": 2,
-        "ruido": 9
-      }
+      "energy": 35
     },
     {
       "id": "snack",
@@ -926,10 +920,9 @@
       "pose": "movie",
       "reward": 38,
       "energy": 10,
-      "pulso": {
-        "periodo": 1.3,
-        "zona": 0.24,
-        "aciertos": 3
+      "chisme": {
+        "aciertos": 3,
+        "ruido": 8
       }
     },
     {
@@ -946,11 +939,17 @@
       "pose": "coffee",
       "reward": 28,
       "energy": 12,
-      "pulso": {
-        "periodo": 2,
-        "zona": 0.36,
-        "aciertos": 2,
-        "ruido": 4
+      "gesto": {
+        "verbo": "Sorbe despacio, que dure",
+        "eje": "y",
+        "valor": 0.5,
+        "zonaAt": 0.62,
+        "zona": 0.22,
+        "deriva": 0.16,
+        "control": 0.8,
+        "bono": 2.4,
+        "ruido": 4,
+        "extremo": 0.9
       }
     }
   ],

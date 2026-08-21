@@ -141,6 +141,17 @@ for (const [sid, escena] of escenas) {
       `scenes/${sid}.json → ${a.id}`,
       `declara DOS verbos (${declarados.join(", ")}): solo se jugará "${declarados[0]}"`
     );
+    // NADA CAE AL PULSO (decisión de diseño, agosto 2026): toda actividad
+    // declara un verbo INTERACTIVO. La única excepción es la SIESTA
+    // (`type: "sleep"` sin verbo): dormir se termina quedándote quieta — un
+    // minijuego de destreza dentro de una cabezada sería un contrasentido.
+    // El pulso sigue existiendo en el motor como red (una actividad sin
+    // verbo no revienta), pero el contenido no puede apoyarse en él.
+    exige(
+      declarados.length === 1 || a.type === "sleep",
+      `scenes/${sid}.json → ${a.id}`,
+      "no declara ningún verbo: caería al pulso, y ya nada juega al pulso"
+    );
     // LA CUENTA ATRÁS SIEMPRE MAYOR QUE LA DURACIÓN. Al revés, la tarea no se
     // puede terminar y no hay nada a la vista que lo explique.
     if (a.limite != null && a.time != null) {

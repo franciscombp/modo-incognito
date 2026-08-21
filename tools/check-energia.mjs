@@ -249,19 +249,47 @@ const pillada = await p.evaluate(() => {
     g.boss.playerVisible = true;
     g.boss.redAlert = false;
   };
-  for (let i = 0; i < 5; i++) g.update(1 / 60);
+  // REANUDAR DENTRO DEL BUCLE, la trampa de siempre: la alarma de nivel 3
+  // pausa la partida desde game.js y se rearma sola — si una sección
+  // anterior dejó el medidor caliente, estos updates corrían con el juego
+  // PARADO y el toque no llegaba a cobrarse nunca («alTocar: 0» con la
+  // mecánica intacta).
+  for (let i = 0; i < 5; i++) {
+    if (g.paused) g.setPaused(false);
+    g.update(1 / 60);
+  }
   const sinTocar = { warnings: g.warnings, cazando: g.boss.isHunting === true };
-  // Y cuando LLEGA (se le planta encima), el toque amonesta.
-  g.boss.position.x = g.player.position.x + 0.1;
-  for (let i = 0; i < 5; i++) g.update(1 / 60);
-  return { ...sinTocar, alTocar: g.warnings };
+  // Y cuando LLEGA (se le planta AL LADO), el toque amonesta. A 0.1 —
+  // solapado con ella— la separación de cuerpos la EMPUJABA fuera y la
+  // distancia quedaba en el filo del radio de toque (1.23 contra ~1.02):
+  // cara o cruz. A distancia de toque real no hay empujón que medir.
+  g.boss.position.x = g.player.position.x + 0.8;
+  for (let i = 0; i < 5; i++) {
+    if (g.paused) g.setPaused(false);
+    g.update(1 / 60);
+  }
+  return {
+    ...sinTocar,
+    alTocar: g.warnings,
+    dbg: {
+      safe: g.inSafeSpot,
+      cool: +g._caughtCooldown.toFixed(2),
+      hunt: g.boss.isHunting,
+      red: g.boss.redAlert,
+      catches: g.boss.catches(g.player.position, g.player.radius),
+      paused: g.paused,
+      dormida: g.asleepFor > 0,
+      finge: g.player.isPretending,
+      d: +Math.hypot(g.boss.position.x - g.player.position.x, g.boss.position.z - g.player.position.z).toFixed(2),
+    },
+  };
 });
 check(
   pillada.warnings === 0 && pillada.cazando === true,
   "verte dormida NO amonesta de lejos: arranca la caza hacia ti",
   JSON.stringify(pillada)
 );
-check(pillada.alTocar === 1, "y la amonestación cae cuando llega y te TOCA", `${pillada.alTocar}`);
+check(pillada.alTocar === 1, "y la amonestación cae cuando llega y te TOCA", JSON.stringify(pillada));
 
 const enSalaSegura = await p.evaluate(() => {
   const g = window.__game.engine.game;
@@ -316,7 +344,15 @@ const cama = await p.evaluate(async () => {
   // La SIESTA como actividad: Zzz sí, carita no.
   g.asleepFor = 0;
   g.energy = 80;
-  const st = g.objectives.find((o) => o.type === "sleep") ?? null;
+  // LA SIESTA DE VERDAD: `type: "sleep"` Y sin verbo declarado. `stretch`
+  // también es type sleep pero juega al BAILE — elegirlo aquí abría el
+  // minijuego a pantalla completa con pestillo, el mundo se pausaba y las
+  // DOS aserciones siguientes medían un piso congelado (el jefe nunca
+  // llegaba a tocar: «amonestación — 0»).
+  const st =
+    g.objectives.find(
+      (o) => o.type === "sleep" && !window.__VERBOS_SLEEP?.some?.((v) => o[v]) && !o.baile
+    ) ?? null;
   if (st) {
     g.player.position.x = st.x;
     g.player.position.z = st.z;
