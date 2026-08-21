@@ -104,6 +104,18 @@ const BORDEO_MIN = 0.5;
 /** Cada cuánto se puede volver a pedir ruta (el A* no es gratis). */
 const REPLAN_COOLDOWN = 0.4;
 
+/**
+ * Cuánto puede haberse ido el blanco de donde estaba al trazar la ruta antes
+ * de que ese plan deje de valer.
+ *
+ * Un par de mesas: por debajo, el tirón de cuerda ya corrige solo —apunta al
+ * waypoint más lejano visible, y unos centímetros de deriva no cambian cuál
+ * es—. Por encima, se está caminando hacia donde el otro ESTABA. Es el mismo
+ * criterio y el mismo número que usa `boss._steer` para su `goalMoved`, que
+ * es donde se aprendió.
+ */
+const BLANCO_SE_FUE = 1.2;
+
 /** Cuántos waypoints mira el tirón de cuerda. Más allá no se nota. */
 const CUERDA = 6;
 
@@ -118,6 +130,11 @@ const CUERDA = 6;
 export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } = {}) {
   let destino = null;
   let ruta = null;
+  // PARA QUÉ PUNTO SE TRAZÓ LA RUTA. Sin esta memoria, un blanco que se
+  // desplaza poco a poco —la escolta reescribe el suyo cada cuadro con la
+  // posición de Gabo— actualizaba el destino en el sitio y la ruta se quedaba
+  // apuntando a donde el otro ESTABA. Se caminaba un plan viejo.
+  let rutaPara = null;
   let sinAvanzar = 0;
   let sinAcercarse = 0;
   let mejorDistancia = Infinity;
@@ -127,6 +144,7 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
 
   function limpiar() {
     ruta = null;
+    rutaPara = null;
     sinAvanzar = 0;
     sinAcercarse = 0;
     mejorDistancia = Infinity;
@@ -158,11 +176,25 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
     return total;
   }
 
-  function planificar(desde) {
+  /**
+   * @param {object} desde  desde dónde se traza.
+   * @param {boolean} [opts.blancoNuevo]  si se replanifica porque EL BLANCO SE
+   *   MOVIÓ (no porque estemos trabados). La diferencia importa para el reloj
+   *   de rendirse: no acercarse a algo que se está yendo no es culpa de quien
+   *   camina, así que ahí el reloj se pone a cero y se sigue. Trabado contra un
+   *   mueble, en cambio, el reloj SIGUE corriendo — si no, replanificar cada
+   *   0,4 s sería una forma de no rendirse nunca.
+   */
+  function planificar(desde, { blancoNuevo = false } = {}) {
     if (!destino) return;
     replanEn = REPLAN_COOLDOWN;
+    rutaPara = { x: destino.x, z: destino.z };
     if (!navmesh) {
       ruta = [{ x: destino.x, z: destino.z }];
+      if (blancoNuevo) {
+        mejorDistancia = restante(desde);
+        sinAcercarse = 0;
+      }
       return;
     }
     // El destino se ARRIMA a suelo pisable antes de pedir ruta. Un punto
@@ -173,6 +205,16 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
     const meta = navmesh.snap(destino.x, destino.z) ?? destino;
     ruta = navmesh.path(desde, meta) ?? null;
     if (!ruta?.length) ruta = null;
+    if (blancoNuevo) {
+      // EL BLANCO SE MOVIÓ: la tarea es otra, así que la vara de medir el
+      // progreso se pone a cero. Perseguir a alguien que se aleja no puede
+      // contar como estar atascado — con la marca vieja, seguir a Gabo dos
+      // pasos por detrás se leía como «no me acerco» y el caminante soltaba
+      // la persecución a los cuatro segundos.
+      mejorDistancia = restante(desde);
+      sinAcercarse = 0;
+      return;
+    }
     // UNA RUTA NUEVA PUEDE SER MÁS LARGA que la vieja, legítimamente (te
     // empujaron al lado equivocado de una fila de mesas). Si se dejara la
     // marca antigua, esa ruta correcta no bajaría nunca del mejor valor
@@ -215,6 +257,11 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
      */
     ir(x, z) {
       if (destino && Math.hypot(destino.x - x, destino.z - z) < 0.4 * S) {
+        // Movimiento pequeño: se actualiza en el sitio y NO se tira la ruta —
+        // ni los relojes de atasco, que reiniciados cada cuadro no cazarían
+        // nada. Que la ruta siga sirviendo se comprueba aparte, en `paso`
+        // (`rutaPara`): la deriva se acumula, y sesenta pasitos de nada son
+        // una mesa entera.
         destino.x = x;
         destino.z = z;
         return;
@@ -269,6 +316,18 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
 
       replanEn -= dt;
       if (!ruta && replanEn <= 0) planificar(pos);
+      // ── ¿SIGUE VALIENDO ESTE PLAN? ───────────────────────────────────
+      // El blanco puede MOVERSE: la escolta reescribe su destino cada cuadro
+      // con la posición de Gabo, y `ir()` deja pasar los movimientos pequeños
+      // sin tocar la ruta (si no, replanificaría sesenta veces por segundo).
+      // Pero la deriva SE ACUMULA, y sesenta pasitos de nada son una mesa
+      // entera: sin esto se camina un plan trazado para donde el otro ESTABA,
+      // y solo lo corregía —de rebote y tarde— el reloj de atasco.
+      const seFue =
+        ruta &&
+        rutaPara &&
+        Math.hypot(rutaPara.x - destino.x, rutaPara.z - destino.z) > BLANCO_SE_FUE * S;
+      if (seFue && replanEn <= 0) planificar(pos, { blancoNuevo: true });
       // Replanificar mira el reloj de PROGRESO (o el de clavado, que es más
       // rápido): moverse sin acortar camino es justo el síntoma que hay que
       // atender, no una razón para no hacer nada.

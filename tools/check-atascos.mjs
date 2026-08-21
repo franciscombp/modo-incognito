@@ -269,6 +269,98 @@ check(
   JSON.stringify(figurantes)
 );
 
+// ── 3bis · UN BLANCO QUE SE MUEVE ──
+// La escolta reescribe su destino CADA CUADRO con la posición de Gabo, y un
+// destino que se desplaza poco a poco se actualizaba en el sitio sin volver a
+// trazar la ruta: se caminaba un plan hecho para donde el otro ESTABA.
+//
+// Se prueba sin depender de la escena: un punto que se aleja andando en línea
+// recta y una jugadora que lo persigue. Tiene que ALCANZARLO —va más rápida—
+// y, sobre todo, no puede RENDIRSE por el camino: no acercarse a algo que se
+// está yendo no es culpa de quien camina, y con la vara vieja seguir a alguien
+// dos pasos por detrás se leía como estar atascada.
+const movil = await p.evaluate(async () => {
+  const g = window.__game.engine.game;
+  const S = window.__floorplan.WORLD_SCALE;
+  const world = window.__game.world;
+  const nav = window.__game.navmesh;
+  const ruta = window.__floorplan.patrolRoute;
+  // Dos puntos que el juego GARANTIZA caminables (waypoints de la ronda): un
+  // blanco colocado a mano puede caer dentro de un mueble, y entonces lo que
+  // mide la prueba es su propio montaje.
+  const a = ruta[0];
+  const b = ruta[Math.min(2, ruta.length - 1)];
+  g.player.position.x = a.x;
+  g.player.position.z = a.z;
+  g.player.keys.clear();
+  world.resolveCircle(g.player.position, g.player.radius);
+
+  // El blanco: empieza junto a la jugadora y se va hacia el otro waypoint a
+  // paso de figurante, o sea más despacio que ella.
+  const blanco = { x: a.x, z: a.z };
+  const vx = b.x - a.x;
+  const vz = b.z - a.z;
+  const len = Math.hypot(vx, vz) || 1;
+  const VEL = 1.6 * S;
+
+  let rindio = false;
+  let alcanzo = false;
+  let peorDistancia = 0;
+  for (let i = 0; i < 900 && !rindio && !alcanzo; i++) {
+    window.__vivo();
+    // El blanco camina (arrimado a suelo pisable, como cualquiera del piso).
+    const paso = Math.min(VEL * (1 / 60), Math.hypot(b.x - blanco.x, b.z - blanco.z));
+    if (paso > 0.001) {
+      const n = nav.snap(blanco.x + (vx / len) * paso, blanco.z + (vz / len) * paso);
+      if (n) {
+        blanco.x = n.x;
+        blanco.z = n.z;
+      }
+    }
+    // Y LA ESCOLTA REESCRIBE EL DESTINO CADA CUADRO, igual que en el juego.
+    g.player.walkTo = {
+      x: blanco.x,
+      z: blanco.z,
+      tol: 1.1 * S,
+      onArrive: () => {
+        alcanzo = true;
+      },
+      onGiveUp: () => {
+        rindio = true;
+      },
+    };
+    g.update(1 / 60);
+    g.player.update(1 / 60, world);
+    peorDistancia = Math.max(
+      peorDistancia,
+      Math.hypot(g.player.position.x - blanco.x, g.player.position.z - blanco.z)
+    );
+  }
+  return {
+    alcanzo,
+    rindio,
+    peorDistancia: +(peorDistancia / S).toFixed(2),
+    separacionFinal: +(
+      Math.hypot(g.player.position.x - blanco.x, g.player.position.z - blanco.z) / S
+    ).toFixed(2),
+  };
+});
+check(
+  "siguiendo a un blanco que SE MUEVE, no se rinde por el camino",
+  movil.rindio === false,
+  JSON.stringify(movil)
+);
+check(
+  "y lo alcanza (la ruta se rehace, no se camina el plan viejo)",
+  movil.alcanzo === true,
+  JSON.stringify(movil)
+);
+check(
+  "y nunca se descuelga más de tres mesas mientras lo sigue",
+  movil.peorDistancia < 3,
+  JSON.stringify(movil)
+);
+
 // ── 4 · EL JEFE, ENCAJADO CONTRA UN MUEBLE ──
 // Se le planta pegado a un escritorio con la jugadora justo detrás, que es la
 // postura que producía el baile de tropezones. Tiene que salir de ahí.

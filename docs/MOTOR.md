@@ -346,6 +346,22 @@ mientras bordea el piso en círculos. Medido con un destino imposible: quince
 segundos dando vueltas sin que nada lo viera raro. Por eso el peldaño de
 rendirse mira si **se ACERCA**, no si se mueve.
 
+**Y el blanco puede MOVERSE.** Quien pide el paseo puede reescribir el destino
+cada cuadro (la escolta lo hace con la posición de Gabo), y los movimientos
+pequeños se aceptan sin tocar la ruta — replanificar sesenta veces por segundo
+sería gastar el A* entero en volver a trazar lo mismo. Pero **la deriva se
+acumula**: sesenta pasitos de nada son una mesa entera, y entonces se está
+caminando un plan hecho para donde el otro ESTABA. Por eso el caminante
+recuerda **para qué punto trazó** su ruta (`rutaPara`) y la rehace cuando el
+blanco se ha ido más de 1,2·S de ahí — el mismo criterio que el `goalMoved` de
+`boss._steer`, que es donde se aprendió.
+
+Y esa replanificación **pone a cero el reloj de rendirse**, a diferencia de la
+que dispara un atasco: no acercarse a algo que se está yendo no es culpa de
+quien camina. Con la vara equivocada, seguir a alguien dos pasos por detrás se
+lee como estar atascada y la persecución se soltaba sola a los cuatro
+segundos.
+
 Y **rendirse avisando** es la mitad importante: quien pidió el paseo decide
 —el figurante adopta el sitio donde está, la escolta baja el telón—. Un
 caminante que no puede llegar y no lo dice es exactamente el bug.
