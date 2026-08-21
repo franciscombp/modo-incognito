@@ -443,6 +443,10 @@ Lo que ya se siente como continuar: cada slot recuerda su día
 está ACTIVO** en `manifest.json`, con lo que superar el día 1 lleva de
 verdad a una mañana siguiente (con cruce).
 
+**El martes ya está activo** (`dia-2` en el manifiesto, con su cruce de la
+avenida y su intro de continuidad; lo juega entero `npm run check:dia2` —
+que además vive el ARCO: primero un lunes de verdad, porque la cadena de
+`requiere` hace que un martes sin lunes amanezca con una sola misión).
 Lo que falta para que sea una semana entera: activar `dia-3`..`dia-5` en
 `manifest.json` cuando su contenido esté revisado — es una línea, no hay
 código que tocar — y decidir la pregunta del reloj de abajo.

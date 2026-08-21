@@ -13,8 +13,22 @@ un mapa de "quiero cambiar X → edito Y" (eso es el `README.md`).
 están en `public/data/`. Los que llevan 🔒 están en el código y cambiarlos es
 una edición de verdad.
 
-> **Estado.** El día 1 es lo único publicado. Los días 2–5 existen como JSON
-> pero no están en `manifest.json → levels`, así que el juego no los ve.
+> **Estado.** Se publican los días 1 Y 2 (`check:partida` juega el lunes
+> entero; `check:dia2`, el arco lunes → martes). Los días 3–5 existen como
+> JSON pero no están en `manifest.json → levels`, así que el juego no los ve.
+> La foto completa de pendientes vive en [`PENDIENTES.md`](PENDIENTES.md).
+>
+> **Tres reglas nuevas de agosto 2026, con su porqué en §§ abajo:**
+> · **NADA JUEGA AL PULSO.** Toda actividad declara un verbo interactivo
+>   (baile, verter, chisme, gesto, microondas); la única excepción es la
+>   siesta, porque dormir ES quedarse quieta. El pulso queda en el motor
+>   como red, y `check:contenido` impide que el contenido se apoye en él.
+> · **SENTADA TRABAJANDO NADIE TE TOCA.** La cobertura del puesto ya lo
+>   decía; lo roto era el «fantasma de la silla» (el ciclo de ocupación
+>   corría contigo dentro). El toque del jefe espera a que te levantes.
+> · **LA ESCOLTA DE APERTURA ES UNA CINEMÁTICA.** Gabo te recibe, TE LLEVA
+>   (le sigues sola, por `walkTo`), se aparta al llegar y quedas SENTADA.
+>   Con caducidad y telón anti-atasco. Lo vigila `check:escolta`.
 >
 > ⚠️ **Las tareas del día YA NO SALEN DE AQUÍ: las reparte la campaña.**
 > `public/data/campaign/temporada-1.json` manda sobre qué se te pide y en qué

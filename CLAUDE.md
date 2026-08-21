@@ -32,17 +32,21 @@ JSON que más se tocan— está en
 > Cada uno abre con una tabla de qué está construido y qué no. Esa tabla es la
 > verdad; si implementas algo de ahí, actualízala en el mismo commit.
 
-## Estado: temporada 1, día 1
+## Estado: temporada 1, días 1 y 2
 
-La campaña publicada es **la temporada 1 sobre los días 1 y 2** (los dos
-están en `manifest.json` → `levels`): ascensor → Gabo te recibe en la puerta
-y te lleva a tu puesto → y de ahí se abre la cadena de misiones (fingir,
-café, el chisme de Fran, la película, la comida) en el **ala sur**, con Gabo
-atado a la jugadora. El cruce de la avenida existe y funciona, pero está DESACTIVADO
-(ver más abajo) para tener el foco en el piso. Los archivos `dia-2`..`dia-5`
-siguen en `public/data/levels/` pero **no están en `manifest.json` →
-`levels`**, así que el juego no los ve. Si te piden reactivar un día, es
-añadir su id a esa lista y nada más — no hay código que tocar.
+La campaña publicada es **la temporada 1 sobre los días 1 y 2** (los dos en
+`manifest.json` → `levels`; `check:partida` juega el lunes entero y
+`check:dia2` el arco lunes → martes). El lunes: ascensor → Gabo te recibe en
+la puerta y **TE LLEVA a tu puesto** (cinemática: le sigues sola, él se
+aparta al llegar, quedas sentada — `check:escolta`) → y de ahí la cadena de
+misiones (fingir, café, el chisme de Fran, la película, la comida) en el
+**ala sur**, con Gabo atado a la jugadora. El martes no tiene puerta —Gabo
+de ronda desde el primer minuto— y SÍ trae el cruce de la avenida; en el
+día 1 el cruce sigue desactivado a propósito (ver más abajo) para tener el
+foco en el piso. Los archivos `dia-3`..`dia-5` siguen en
+`public/data/levels/` pero **no están en `manifest.json` → `levels`**, así
+que el juego no los ve. Reactivar un día es añadir su id a esa lista — y
+pasarle `check:contenido` y un arco como el de `check-dia2`.
 
 Si te piden algo del día 1, revisa que no rompas ninguna de sus **cuatro**
 piezas: `campaign/temporada-1.json` (qué se te pide y en qué orden),

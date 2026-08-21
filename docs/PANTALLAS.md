@@ -1,6 +1,9 @@
 # Las pantallas y el lienzo
 
-**Estado: §1 CONSTRUIDO, el resto en diseño.** Guía para desarrollarlo, como
+**Estado: §1 CONSTRUIDO, el resto en diseño.** Los menús ya se recorren
+ENTEROS con la palanca táctil y el botón (`ui/focusNav.js` + el modo
+`inc-nav-touch`; lo vigila `check:pulgar`) — la foto completa de pendientes
+está en [`PENDIENTES.md`](PENDIENTES.md). Guía para desarrollarlo, como
 [`MOTOR.md`](MOTOR.md) (reglas), [`CAMPANA.md`](CAMPANA.md) (progresión) y
 [`HUD.md`](HUD.md) (interfaz de partida). Aquí va todo lo que NO es la partida: el lienzo sobre el que se
 dibuja todo, y las pantallas de menú.
