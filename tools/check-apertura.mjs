@@ -205,6 +205,10 @@ const cuerpo = await p.evaluate(() => {
     const ax = g.player.position.x;
     const az = g.player.position.z;
     g.update(1 / 60);
+    // El paso de la jugadora vive en el bucle de render de main.js: sin
+    // esto, `walkTo` no se consume nunca y la prueba mide a una jugadora
+    // clavada con el juego perfecto.
+    g.player.update(1 / 60, window.__game.world);
     saltoMax = Math.max(saltoMax, Math.hypot(g.player.position.x - ax, g.player.position.z - az));
   }
   const d1 = Math.hypot(g.player.position.x - desk.x, g.player.position.z - desk.z);

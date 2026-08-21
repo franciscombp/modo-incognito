@@ -77,7 +77,11 @@ for (let i = 0; i < 40; i++) {
   await p.waitForTimeout(140);
 }
 
-// ── 2 · Y ECHA A ANDAR. En cuadros, no en reloj de pared. ──
+// ── 2 · Y ECHA A ANDAR — Y TÚ CON ÉL. En cuadros, no en reloj de pared. ──
+// La escolta es una CINEMÁTICA: la jugadora lo sigue sola (por `walkTo`, o
+// sea por las mismas colisiones y la misma animación de andar). Antes era
+// una misión con flecha, y en la mano se leía como un fallo: él decía
+// «camina conmigo», se iba, y cada uno quedaba fuera de la pantalla del otro.
 const escolta = await p.evaluate(() => {
   const g = window.__game.engine.game;
   const b2 = g.boss;
@@ -85,18 +89,35 @@ const escolta = await p.evaluate(() => {
   g.setPaused(false);
   const d0 = Math.hypot(b2.position.x - mesa.x, b2.position.z - mesa.z);
   const p0 = { x: b2.position.x, z: b2.position.z };
+  const j0 = { x: g.player.position.x, z: g.player.position.z };
   let cazo = false;
-  // 12 segundos de juego. El trayecto son ~17 unidades de plano; con este
-  // margen tiene que haber llegado, y si se queda clavado se ve enseguida.
-  for (let i = 0; i < 12 * 60; i++) {
+  let dMax = 0;
+  let dJMin = Infinity;
+  // 18 segundos de juego: el trayecto son ~17 unidades y ella va detrás.
+  for (let i = 0; i < 18 * 60; i++) {
     if (g.paused) g.setPaused(false);
     g.update(1 / 60);
+    // El paso de la jugadora vive en el bucle de render de main.js, no en
+    // `game.update` — sin esta línea el `walkTo` de la cinemática no se
+    // consume nunca y la prueba mide a una jugadora clavada (joAnduve: 0)
+    // con el juego perfecto. Es la lección de siempre de las pruebas de IA.
+    g.player.update(1 / 60, window.__game.world);
     if (b2.state === "CHASE") cazo = true;
+    dMax = Math.max(
+      dMax,
+      Math.hypot(b2.position.x - g.player.position.x, b2.position.z - g.player.position.z)
+    );
+    dJMin = Math.min(dJMin, Math.hypot(b2.position.x - mesa.x, b2.position.z - mesa.z));
   }
   return {
     d0: +d0.toFixed(1),
     d1: +Math.hypot(b2.position.x - mesa.x, b2.position.z - mesa.z).toFixed(1),
+    dJMin: +dJMin.toFixed(1),
     ando: +Math.hypot(b2.position.x - p0.x, b2.position.z - p0.z).toFixed(1),
+    joAnduve: +Math.hypot(g.player.position.x - j0.x, g.player.position.z - j0.z).toFixed(1),
+    dMax: +dMax.toFixed(1),
+    sentada: g.player.isPretending === true,
+    escoltaViva: g._esperandoPuesto === true,
     cazo,
     estado: b2.state,
   };
@@ -108,14 +129,20 @@ check(
   escolta.ando >= 4,
   JSON.stringify(escolta)
 );
-// LLEGA A TU PUESTO — y «llegar» aquí es la zona, no el centímetro: la
-// correa le deja una holgura a propósito mientras la sospecha está baja
-// (ver el bloque `holgura` en boss.js), así que se planta a unas unidades y
-// no encima de tu silla. Lo que esto vigila es que el trayecto se COMPLETA,
-// que es lo que no pasaba: se quedaba a 17,6, o sea sin salir de la puerta.
+// LLEGA A TU PUESTO Y LUEGO SE APARTA. «Llegar» es haberse plantado junto a
+// la mesa (dJMin, el punto más cercano de todo el trayecto); quedarse ahí
+// sería peor — quien está de servicio no cede el paso, así que si se queda
+// delante del puesto la jugadora no puede sentarse nunca (pasó: 12 segundos
+// empujándole la espalda). El final correcto es él en SU sitio y tú en el
+// tuyo.
 check(
-  "y LLEGA a tu puesto: la escolta termina donde tiene que terminar",
-  escolta.d1 <= 5,
+  "y LLEGA a tu puesto (pasó a plantarse junto a la mesa)…",
+  escolta.dJMin <= 5,
+  JSON.stringify(escolta)
+);
+check(
+  "…y luego SE APARTA: no se queda plantado delante de tu silla",
+  escolta.d1 >= 4,
   JSON.stringify(escolta)
 );
 // Y NO TE PERSIGUE MIENTRAS TE LLEVA: durante la escolta vas pegada a él por
@@ -125,48 +152,58 @@ check(
   escolta.cazo === false,
   JSON.stringify(escolta)
 );
+// LA CINEMÁTICA SE VE: la jugadora anda CON él (nunca se quedan cada uno
+// fuera de la pantalla del otro) y la escena remata con ella SENTADA.
+check(
+  "y TÚ VAS CON ÉL: la jugadora lo sigue sola",
+  escolta.joAnduve >= 8 && escolta.dMax <= 12,
+  JSON.stringify(escolta)
+);
+check(
+  "y la escena remata contigo SENTADA en tu puesto",
+  escolta.sentada === true && escolta.escoltaViva === false,
+  JSON.stringify(escolta)
+);
 
-// ── 3 · Y SI NO LE SIGUES, LA ESCENA CADUCA ──
-// La otra cara de «mientras te acompaña no te vigila»: a nadie se le puede
-// obligar a seguirle. Quien se largara por su cuenta se quedaba con el
-// medidor CONGELADO EN CERO toda la jornada — el piso entero convertido en
-// un lugar seguro, que es exactamente lo contrario del juego.
-const plantado = await p.evaluate(async () => {
+// ── 3 · Y SI EL PASEO SE ATASCA, EL TELÓN LO REMATA ──
+// La escolta ya no se puede abandonar (te lleva sola), pero SÍ se puede
+// atascar: un mueble, un compañero en el hueco. Un cuerpo trabado con el
+// control fuera se ve igual que un juego colgado, así que al agotarse el
+// plazo el telón te deja EN el puesto — la escena se termina, no se cancela.
+const atasco = await p.evaluate(async () => {
   const g = window.__game.engine.game;
-  // Se rearma la escena y la jugadora se va al lado contrario del piso.
+  const mesa = window.__floorplan.safeSpots.find((s) => s.kind === "desk");
+  // Se rearma la escena con la jugadora "atascada": clavamos su paso.
   g._esperandoPuesto = true;
-  g._escoltaPlazo = null;
-  g.boss._graceTimer = 0;
+  g._escoltaPlazo = 0.05;
+  g._pretendToggle = false;
+  g.player.isPretending = false;
   const lejos = window.__floorplan.patrolRoute[2];
   g.player.position.x = lejos.x;
   g.player.position.z = lejos.z;
-  g.suspicion = 0;
-  let frames = 0;
-  // Algo más del plazo (30 s), en cuadros.
-  for (let i = 0; i < 34 * 60 && g._esperandoPuesto; i++) {
+  // El telón real corre con setTimeout y aquí el bucle es síncrono: se
+  // sustituye por su versión inmediata SOLO para esta medición.
+  g.onCorte = (fn) => (fn(), true);
+  for (let i = 0; i < 240; i++) {
     if (g.paused) g.setPaused(false);
     g.update(1 / 60);
-    frames++;
+    if (g._esperandoPuesto && g._escoltaPlazo > 0.1) break;
   }
-  // Y con la escena caída, la sospecha vuelve a poder moverse.
-  g.boss.redAlert = true;
-  g.player.isDoingActivity = true;
-  for (let i = 0; i < 60; i++) g.update(1 / 60);
+  for (let i = 0; i < 120; i++) {
+    if (g.paused) g.setPaused(false);
+    g.update(1 / 60);
+    g.player.update(1 / 60, window.__game.world);
+  }
   return {
-    caduco: g._esperandoPuesto === false,
-    segundos: +(frames / 60).toFixed(1),
-    sospecha: +g.suspicion.toFixed(1),
+    escoltaViva: g._esperandoPuesto === true,
+    enMesa: Math.hypot(g.player.position.x - mesa.x, g.player.position.z - mesa.z) < 2,
+    sentada: g.player.isPretending === true,
   };
 });
 check(
-  "si no le sigues, la escolta CADUCA sola",
-  plantado.caduco === true,
-  JSON.stringify(plantado)
-);
-check(
-  "y entonces la sospecha vuelve a contar: el piso no es un lugar seguro",
-  plantado.sospecha > 0,
-  JSON.stringify(plantado)
+  "si el paseo se atasca, el telón te deja EN el puesto (la escena se termina)",
+  atasco.enMesa === true && atasco.escoltaViva === false && atasco.sentada === true,
+  JSON.stringify(atasco)
 );
 
 check("sin errores de página", errores.length === 0, errores.join(" | "));

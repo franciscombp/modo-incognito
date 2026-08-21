@@ -2491,7 +2491,23 @@ export class Game {
         } else {
           state.nextBusy -= dt;
           if (state.nextBusy <= 0) {
-            state.busyLeft = spot.busyFor ?? 12;
+            // NADIE TE QUITA LA SILLA CON TU CUERPO ENCIMA. El ciclo de
+            // ocupación de tu puesto existe para que dejarlo vacío tenga
+            // riesgo — pero corría IGUAL contigo sentada dentro: cada ~70 s
+            // «alguien se sentaba en tu sitio» mientras tú estabas en la
+            // silla, el fingir se apagaba solo y el jefe te amonestaba
+            // SENTADA Y TRABAJANDO. Medido: 1 amonestación en dos segundos
+            // con la jugadora sin moverse del asiento. Se leía como que el
+            // toque no respeta el puesto; el toque estaba bien — lo roto era
+            // el fantasma que te robaba la silla ocupada.
+            if (spot.kind === "desk" && this._insideSafeSpot(spot, pos) && this.player.isPretending) {
+              // Posponer SIN cortar: un `return` aquí se saltaba también el
+              // cálculo de cobertura de este mismo cuadro, y ese único
+              // cuadro sin cobertura bastaba — medido, 1 amonestación con
+              // la jugadora sentada y el ciclo recién pospuesto.
+              state.nextBusy = (spot.busyEvery ?? 70) * (0.7 + Math.random() * 0.6);
+            } else {
+              state.busyLeft = spot.busyFor ?? 12;
             // TU PUESTO también se ocupa (alguien se sentó en tu silla), y
             // eso se avisa SIEMPRE, estés donde estés: es tu plan B el que
             // acaba de caerse, y enterarte al llegar corriendo con el jefe
@@ -2501,6 +2517,7 @@ export class Game {
               this.toast(`${spot.label}: alguien se sentó en tu sitio. Búscate otro.`);
             } else if (this._insideSafeSpot(spot, pos)) {
               this.toast(`${spot.label}: llegó gente a reunirse de verdad.`);
+            }
             }
           }
         }
@@ -2698,6 +2715,7 @@ export class Game {
   saltarEscolta() {
     this._esperandoPuesto = false;
     this.boss._graceTimer = 0;
+    this.boss.prisa = 1;
   }
 
   /**
@@ -3130,6 +3148,10 @@ export class Game {
       // Es el mismo que se le da después de amonestar y por el mismo motivo:
       // hay una escena en marcha, y su vigilancia se la come.
       this.boss.grantGrace(ESCOLTA_GRACIA);
+      // Y CON PRISA: es una escena, no una ronda. A paso normal el paseo
+      // duraba ~25 s; con el multiplicador queda en unos diez, que es lo
+      // que aguanta una apertura sin control. Se apaga al llegar.
+      this.boss.prisa = 1.9;
     }
     this.announce("GABO TE LLEVA A TU PUESTO", "warn");
     this.onMissionDone?.(this.gate?.task?.id ?? "meet-gabo");
@@ -3165,10 +3187,85 @@ export class Game {
     this._escoltaPlazo = (this._escoltaPlazo ?? ESCOLTA_PLAZO) - dt;
     const enPuesto = this.currentSafeSpot?.kind === "desk";
     if (!enPuesto) {
-      if (this._escoltaPlazo <= 0) this.saltarEscolta();
+      // ── LA ESCOLTA ES UNA CINEMÁTICA: LE SIGUES SOLA ────────────────
+      // Estaba planteada como misión («ve a tu puesto», con la flecha») y
+      // en la mano se leía como un fallo: Gabo decía «camina conmigo», se
+      // iba andando… y tú te quedabas en la puerta, cada uno fuera de la
+      // pantalla del otro. La escena de que ÉL TE LLEVA solo existe si de
+      // verdad LO SIGUES, así que se sigue sola: el paso entra por
+      // `walkTo`, o sea por las mismas colisiones y la misma animación de
+      // andar de siempre — no hay una segunda forma de caminar.
+      //
+      // El objetivo del paseo es ÉL mientras camina, y EL PUESTO cuando él
+      // ya llegó — sin ese relevo la jugadora se paraba a un paso de Gabo
+      // (la tolerancia del cuerpo) y nunca pisaba el radio de su mesa.
+      const mesa = safeSpots.find((sp) => sp.kind === "desk");
+      // El umbral del relevo tiene que ser MÁS ANCHO que la correa floja:
+      // con la sospecha baja la correa se afloja ×1.9 y Gabo se planta a
+      // ~4.2 del puesto. Con el relevo en 3.2·S nunca se disparaba — la
+      // jugadora se quedaba a un paso de él, mirándolo, sin sentarse jamás.
+      // Entre la correa floja (se planta a ~4.2 del puesto) y el pasillo:
+      // con 5·S el relevo saltaba a MEDIA RUTA y Gabo se desviaba a su
+      // mesa sin haber llegado a la tuya — la jugadora cortaba en diagonal
+      // por entre los escritorios y se quedaba trabada a 9 del puesto.
+      // Y «LLEGÓ» ES QUEDARSE, no pasar por al lado: su ruta cruza a menos
+      // de cuatro puestos de tu mesa mucho antes de llegar, y con un umbral
+      // de distancia a secas el relevo saltaba ahí — Gabo se desviaba a su
+      // sitio a media escolta y te dejaba tirada entre los escritorios. Un
+      // segundo QUIETO junto a tu mesa es lo que distingue «te la está
+      // enseñando» de «va de camino».
+      const cercaDeMesa =
+        mesa &&
+        Math.hypot(this.boss.position.x - mesa.x, this.boss.position.z - mesa.z) < 4 * S;
+      this._escoltaJuntoAMesa = cercaDeMesa ? (this._escoltaJuntoAMesa ?? 0) + dt : 0;
+      const bossLlego = this._escoltaJuntoAMesa > 1;
+      // El relevo LATCHEA (`_escoltaRelevo`): la primera versión volvía a
+      // preguntar «¿está junto a la mesa?» cada cuadro, y en cuanto Gabo se
+      // apartaba la respuesta era no — así que el destino regresaba a ÉL y
+      // la jugadora lo seguía hasta SU escritorio en vez de sentarse en el
+      // suyo. Enseñada la mesa, la mesa queda enseñada.
+      const destino = (this._escoltaRelevo || bossLlego) && mesa ? mesa : this.boss.position;
+      // Y EN EL RELEVO, GABO SE APARTA. Llegaba a TU puesto y se quedaba
+      // plantado delante — y quien está de servicio no cede, así que la
+      // jugadora acababa clavada a medio paso de su espalda, a 3.2 del
+      // puesto, sin poder sentarse jamás (medido: 12 segundos empujándole
+      // la espalda). «Este es tu sitio» termina con él yéndose al SUYO,
+      // que además es lo que la escena pide.
+      if (bossLlego && !this._escoltaRelevo) {
+        this._escoltaRelevo = true;
+        const suyo = puestos.find((pu) => pu.id === "puesto_gabo");
+        if (suyo) this.boss.distract({ x: suyo.x, z: suyo.z }, 25);
+      }
+      const d = Math.hypot(destino.x - this.player.position.x, destino.z - this.player.position.z);
+      if (d > 1.1 * S) {
+        this.player.walkTo = { x: destino.x, z: destino.z, tol: 0.9 * S };
+      }
+      // Y SI EL PASEO SE ATASCA, EL TELÓN LO REMATA. Es la misma red que el
+      // traslado tras un regaño: un cuerpo trabado contra un mueble con el
+      // control fuera se ve exactamente igual que un juego colgado. El
+      // telón te deja EN el puesto — no se cancela la escena, se termina.
+      if (this._escoltaPlazo <= 0 && mesa) {
+        const acabar = () => {
+          this.player.position.x = mesa.x;
+          this.player.position.z = mesa.z;
+          this.player.walkTo = null;
+        };
+        if (this.onCorte) this.onCorte(acabar);
+        else acabar();
+        this._escoltaPlazo = ESCOLTA_PLAZO; // no reencolar cortes cada cuadro
+      }
       return;
     }
     this._esperandoPuesto = false;
+    this.player.walkTo = null;
+    this.boss.prisa = 1;
+    // Y TE SIENTA: es el remate de la escena — «este es tu puesto» con el
+    // cuerpo ya en la silla, no de pie al lado. El interruptor de fingir
+    // queda encendido, que es como se queda cualquiera al que acaban de
+    // enseñarle su sitio delante del jefe.
+    this._pretendSeat = null;
+    this._pretendToggle = true;
+    this.player.isPretending = true;
     // Y SE LE DEVUELVE LA VISTA EN EL ACTO. El respiro de la escolta se pide
     // con margen de sobra para cubrir el trayecto, pero llegaste: dejarlo
     // correr sería regalarte los segundos que sobren con el jefe ciego, y

@@ -284,6 +284,9 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   for (const dir of ["izquierda", "arriba", "abajo", "derecha"]) {
     const pad = el("button", "inc-baile-pad", bailePads);
     pad.type = "button";
+    // Con su dirección en el DOM: es lo que deja probar el toque de verdad
+    // (check:baile-pulgar toca «la casilla del paso actual», no una al azar).
+    pad.dataset.dir = dir;
     pad.textContent = FLECHA[dir];
     pad.addEventListener("click", () => window.__game?.engine?.game?.baile?.pulsar(dir));
   }
@@ -434,6 +437,11 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       VERBOS.some((v) => v.pestillo && state[v.id]) || !!state.trivia || !!state.cables
     );
     mg.classList.toggle("on", jugando);
+    // El BAILE se juega con direcciones: flechas, palanca o el dedo sobre
+    // sus casillas. Marcarlo aparta al cursor de menús (ver focusNav.js →
+    // `data-nav-juego`): sin esto, en un teléfono la palanca movía un cursor
+    // cuya única opción es SALIR y el botón de acción cerraba el minijuego.
+    mg.toggleAttribute("data-nav-juego", !!state.baile);
     // El <body> lo marca para que la píldora de mandos y el resto de la
     // banda de abajo se aparten, igual que ya hacían con la acción.
     document.body.classList.toggle("inc-minijuego", jugando);

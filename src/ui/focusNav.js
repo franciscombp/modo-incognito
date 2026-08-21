@@ -102,6 +102,15 @@ export function createFocusNav({ root = document } = {}) {
     for (const sel of GRUPOS) {
       for (const nodo of root.querySelectorAll(sel)) {
         if (!visible(nodo)) continue;
+        // UNA PANTALLA QUE SE JUEGA CON DIRECCIONES NO ES UN MENÚ. El baile
+        // marca su pantalla con `data-nav-juego` y el cursor la deja EN PAZ:
+        // aquí una flecha es un paso, la palanca es un paso, y el botón de
+        // acción no puede ser «aceptar» — su única opción navegable es
+        // SALIR, así que en un teléfono el primer toque del botón CERRABA
+        // el minijuego. El dedo sigue pudiendo tocar los botones de la
+        // pantalla directamente (`pointer-events` los cubre); lo que se
+        // apaga es el cursor.
+        if (nodo.hasAttribute("data-nav-juego")) continue;
         if (opciones(nodo).length) return nodo;
       }
     }

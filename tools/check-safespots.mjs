@@ -120,6 +120,38 @@ const out = await page.evaluate(async () => {
   res.deskIdle = await probe({ at: desk, pretend: false });
   res.deskPretend = await probe({ at: desk, pretend: true });
 
+  // ── SENTADA TRABAJANDO, NADIE TE TOCA — ni el fantasma de la silla ──
+  // El ciclo de ocupación de tu puesto («alguien se sentó en tu sitio»)
+  // corría IGUAL contigo sentada dentro: el fingir se apagaba solo, la
+  // cobertura caía y el jefe te amonestaba SENTADA. Aquí se fuerza el ciclo
+  // a disparar con la jugadora en la silla y el jefe encima, comprometido:
+  // no puede caer ni una amonestación, y el fingir tiene que sobrevivir.
+  res.sentadaIntocable = await (async () => {
+    const iDesk = window.__floorplan.safeSpots.indexOf(desk);
+    player.position.x = desk.x;
+    player.position.z = desk.z;
+    game._pretendToggle = true;
+    player.isPretending = true;
+    game.suspicion = 90;
+    game.boss.suspicion = 90;
+    game.boss.position.x = desk.x + 0.5;
+    game.boss.position.z = desk.z;
+    game.boss.lockedOn = true;
+    game.boss.startChase();
+    game._caughtCooldown = 0;
+    game.warnings = 0;
+    game.safeSpotState[iDesk].nextBusy = 0.01; // el ciclo dispara YA
+    for (let f = 0; f < 120; f++) {
+      if (game.paused) game.setPaused(false);
+      game.update(1 / 60);
+    }
+    return {
+      warnings: game.warnings,
+      finge: player.isPretending,
+      cubierta: game.inSafeSpot,
+    };
+  })();
+
   // El aviso rojo: por encima del 90% la pantalla se tiñe, y es lo que te
   // manda a buscar una sala. Va aquí porque es la otra mitad de la misma
   // mecánica: sin el aviso, el jugador no sabe cuándo tiene que correr.
@@ -217,6 +249,13 @@ assert(
 
 assert("en tu puesto, parada, NO estás a cubierto", out.deskIdle?.inSafeSpot === false);
 assert("en tu puesto, fingiendo, sí lo estás", out.deskPretend?.inSafeSpot === true);
+assert(
+  "sentada trabajando NADIE te toca: ni el jefe, ni el fantasma de la silla",
+  out.sentadaIntocable?.warnings === 0 &&
+    out.sentadaIntocable?.finge === true &&
+    out.sentadaIntocable?.cubierta === true,
+  JSON.stringify(out.sentadaIntocable)
+);
 
 assert("con la sospecha al 95% la pantalla avisa en rojo", out.dangerHigh === true);
 assert("y con la sospecha baja no", out.dangerLow === false);

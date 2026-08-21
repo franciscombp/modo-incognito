@@ -13377,3 +13377,34 @@ body.vn-open .touch-utils {
     transition-duration: 1ms;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EN UN MINIJUEGO, LA PALANCA SE ENCOGE
+
+   La zona de la palanca ocupa MEDIA PANTALLA (48%×56%, abajo-izquierda), y
+   eso es lo correcto para caminar con el stick flotante. Pero un minijuego a
+   pantalla completa pone sus botones justo ahí — medido en un Pixel 7, el
+   centro de una casilla del baile caía DENTRO de la zona: el dedo tocaba la
+   casilla y el toque se lo quedaba la palanca. Lo mismo les pasaba a los
+   vasos de VERTER y a las opciones del chisme en la mitad izquierda.
+
+   Con `body.inc-minijuego` la zona se encoge a la esquina — la palanca sigue
+   ahí (en el baile ES un mando: un empujón es un paso) pero deja de tapar la
+   pantalla. Mismo tratamiento que ya tiene en los menús (`inc-nav-touch`).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+body.inc-minijuego .touch-stick-zone {
+  width: 190px;
+  height: 190px;
+}
+
+body.inc-minijuego .touch-stick-base {
+  left: 95px;
+  top: 95px;
+}
+
+/* Y las utilidades (zoom, plano, pausa) se apartan: dentro de un minijuego
+   no hay cámara que mover, y son tres dianas que robar toques. */
+body.inc-minijuego .touch-utils {
+  display: none !important;
+}

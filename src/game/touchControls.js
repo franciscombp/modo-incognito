@@ -53,6 +53,36 @@ export function createTouchControls(
    */
   const enMenu = () => !!focusNav?.activo;
 
+  // ── LA PALANCA TAMBIÉN BAILA ─────────────────────────────────────────
+  // Con el baile abierto, un EMPUJÓN de la palanca es un paso: se dispara en
+  // el flanco (cruzar de la zona muerta hacia fuera), no sosteniendo — el
+  // baile pide un toque por compás, y una palanca sostenida marcando
+  // «arriba» sesenta veces por segundo gastaría el paso y los cinco
+  // siguientes. Volver al centro rearma el gesto.
+  let baileArmado = true;
+  function empujonDeBaile(nx, ny) {
+    const g = window.__game?.engine?.game;
+    if (!g?.baile?.active) return false;
+    const fuerza = Math.hypot(nx, ny);
+    if (fuerza < 0.35) {
+      baileArmado = true;
+      return true; // el baile se queda la palanca aunque esté en reposo
+    }
+    if (!baileArmado || fuerza < 0.6) return true;
+    baileArmado = false;
+    const dir =
+      Math.abs(nx) > Math.abs(ny)
+        ? nx > 0
+          ? "derecha"
+          : "izquierda"
+        : ny > 0
+          ? "abajo"
+          : "arriba";
+    g.baile.pulsar(dir);
+    buzz(8);
+    return true;
+  }
+
   function stickMove(e) {
     let dx = e.clientX - origin.x;
     let dy = e.clientY - origin.y;
@@ -62,6 +92,11 @@ export function createTouchControls(
       dy = (dy / dist) * RADIUS;
     }
     thumb.style.transform = `translate(${dx}px, ${dy}px)`;
+    if (empujonDeBaile(dx / RADIUS, dy / RADIUS)) {
+      // Bailando no se camina: el eje es del baile entero.
+      setAxis(0, 0);
+      return;
+    }
     if (enMenu()) {
       // Por `empujar` y no por `mover`: así el paseo del cursor hereda la
       // zona muerta y la repetición del mando físico. Escrito aparte, el

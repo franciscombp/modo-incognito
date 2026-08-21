@@ -1182,6 +1182,11 @@ export class Boss {
   }
 
   _speed() {
+    // CON PRISA: un multiplicador temporal que pone quien dirige una escena
+    // (la escolta de apertura, ver game.clearGate). A paso de ronda el
+    // paseo hasta tu puesto duraba ~25 segundos, y una cinemática de
+    // veinticinco segundos no es una cinemática: es una espera.
+    const prisa = this.prisa ?? 1;
     if (this.state === CHASE) {
       // El jefe (no los secuaces, que nunca persiguen) tarda en tomar
       // velocidad mientras la sospecha no es crítica — eso da margen para
@@ -1194,8 +1199,8 @@ export class Boss {
       return this.chaseSpeed;
     }
     if (this.state === SEARCH) return this.searchSpeed;
-    if (this.state === INVESTIGATE) return this.investigateSpeed;
-    return this.speed;
+    if (this.state === INVESTIGATE) return this.investigateSpeed * prisa;
+    return this.speed * prisa;
   }
 
   _moveToward(dt, target) {
