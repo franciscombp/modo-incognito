@@ -10092,10 +10092,18 @@ body {
 /* La píldora de bienvenida cede el sitio mientras haya una acción en curso:
    es una nota para los primeros segundos y comparte banda con esto. Ceder es
    más honesto que buscarle otro hueco — cuando estás haciendo algo prohibido,
-   la lista de teclas no es lo que hay que leer. */
+   la lista de teclas no es lo que hay que leer.
+   Y CEDER ES CEDER YA: la transición base de #hint es de 0.6 s (la despedida
+   suave de `hints-done`, donde está bien tomarse su tiempo), pero el anuncio
+   del centro ENTRA en 220 ms (el pico del pop) — con la lenta, rótulo y
+   píldora convivían medio segundo uno encima de la otra. check:encimados lo
+   cazaba a cara o cruz: medía a los 500 ms, justo cuando la opacidad cruzaba
+   su umbral. La VUELTA sí es lenta (al quitarse la clase manda otra vez la
+   transición base), que es lo que se quiere: irse de golpe, volver con calma. */
 body.inc-acting #hint,
 body.inc-anunciando #hint {
   opacity: 0;
+  transition-duration: 0.15s;
 }
 /* DELATADA: el valor está en el extremo y te están oyendo desde el pasillo.
    Es el único estado que grita, porque es el único que cuesta sospecha por
