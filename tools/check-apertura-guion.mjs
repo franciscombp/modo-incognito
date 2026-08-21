@@ -103,10 +103,39 @@ check(
   textoIntro.slice(0, 60)
 );
 check("sigue estando quién es él", /gabo/i.test(textoIntro));
+
+// ── 6 · LA AMENAZA SE DICE ANDANDO ──
+// Y esto es un paso más en la misma dirección que este archivo defiende. La
+// caja de diálogo PAUSA la partida, así que cada línea que va en ella es
+// tiempo mirando sin jugar; el globo (`ui/speechBubble.js`) no pausa nada.
+// Desde que la escolta camina y habla, lo que Gabo cuenta del piso —el trato,
+// la visibilidad desde su mesa— viaja en `escolta` / `escoltaLlegada` y sale
+// GRATIS: se lee mientras le sigues.
+//
+// Así que la amenaza se busca en los DOS sitios. Exigirla en la caja, como se
+// hacía, empujaba justo a lo contrario de lo que este check existe para
+// conseguir: devolver líneas al panel que hay que sentarse a leer.
+const escoltaJefe = [
+  ...(dialogos.encounters?.jefe?.escolta ?? []),
+  ...(dialogos.encounters?.jefe?.escoltaLlegada ?? []),
+];
+const textoEscolta = escoltaJefe.map((n) => n.text ?? "").join(" ");
 check(
   "y sigue estando la amenaza: te ve desde su mesa",
-  /visibilidad|desde mi mesa|no existo/i.test(textoPuesto),
-  textoPuesto.slice(0, 90)
+  /visibilidad|desde mi mesa|no existo/i.test(`${textoPuesto} ${textoEscolta}`),
+  `caja: ${textoPuesto.slice(0, 60)} | andando: ${textoEscolta.slice(0, 60)}`
+);
+check(
+  "y la escolta tiene guion propio (se cuenta el piso mientras camináis)",
+  escoltaJefe.length >= 3,
+  `${escoltaJefe.length} frases`
+);
+// El techo del OTRO lado: los globos tampoco pueden convertirse en una
+// novela. Se leen de un vistazo y con el reloj corriendo.
+check(
+  "y ninguna frase de globo pasa de una línea leíble",
+  escoltaJefe.every((n) => (n.text ?? "").length <= 110),
+  escoltaJefe.map((n) => (n.text ?? "").length).join(",")
 );
 
 console.log(
