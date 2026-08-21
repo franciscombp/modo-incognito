@@ -241,21 +241,37 @@ const lejano = await p.evaluate(async () => {
   g._pretendToggle = false;
   g.player.isPretending = false;
   const d0 = Math.hypot(g.player.position.x - desk.x, g.player.position.z - desk.z);
+  // POR ESTADO, no espiando la opacidad. La versión anterior sondeaba el velo
+  // cada 50 ms buscando `opacity > 0.5`, y el telón entero dura ~760 ms: bajo
+  // carga, dos sondeos consecutivos se separaban más que eso y el corte
+  // completo pasaba ENTRE ellos — fallaba con la jugadora ya sentada y el
+  // traslado hecho como se debe (una vez cada tantas suites). Lo que promete
+  // el juego es que el traslado LARGO pasa por el corte — y eso se pregunta
+  // en la costura: se envuelve `onCorte` y se mira que el teletransporte
+  // ocurrió DENTRO de su negro, no a cara descubierta.
+  let corteUsado = false;
+  let cambioEnElNegro = false;
+  const onCorte0 = g.onCorte;
+  g.onCorte = (enElNegro) => {
+    corteUsado = true;
+    return onCorte0.call(g, () => {
+      enElNegro?.();
+      cambioEnElNegro = g.player.isPretending === true;
+    });
+  };
   g.seatAtDesk();
+  g.onCorte = onCorte0;
   // EN TIEMPO REAL, no en cuadros: el telón se mueve con `setTimeout`, así
-  // que un bucle síncrono de `update()` lo dejaría a medias para siempre —
-  // que es justo lo que hacía fallar a la aserción de arriba.
-  let vioNegro = false;
+  // que un bucle síncrono de `update()` lo dejaría a medias para siempre.
   for (let i = 0; i < 40; i++) {
     await new Promise((r) => setTimeout(r, 50));
-    const velo = document.querySelector(".inc-corte");
-    if (velo && parseFloat(getComputedStyle(velo).opacity) > 0.5) vioNegro = true;
     if (g.player.isPretending) break;
   }
   return {
     d0: +d0.toFixed(1),
     d1: +Math.hypot(g.player.position.x - desk.x, g.player.position.z - desk.z).toFixed(1),
-    vioNegro,
+    corteUsado,
+    cambioEnElNegro,
     sentada: g.player.isPretending === true,
   };
 });
@@ -266,7 +282,7 @@ check(
 );
 check(
   "y se hace detrás del telón, no a cara descubierta",
-  lejano.vioNegro === true,
+  lejano.corteUsado === true && lejano.cambioEnElNegro === true,
   JSON.stringify(lejano)
 );
 check("y acabas sentada, fingiendo", lejano.sentada === true, JSON.stringify(lejano));
