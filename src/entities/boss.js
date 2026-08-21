@@ -969,7 +969,11 @@ export class Boss {
     // Ni ESPERANDO tampoco: plantado en la puerta se le vería igual de
     // quieto, y el codazo del anti-atasco lo iría deslizando lejos del sitio
     // donde te está esperando.
-    if (this.seated || this.esperando) {
+    // Ni ACOMPASADO A CERO: durante la escolta de apertura, `prisa: 0` es
+    // «me paro a esperarte» (game._acompasarEscolta). Sin esta rama el
+    // detector lo daba por encajado contra un mueble y le metía el codazo,
+    // así que el jefe que te espera se iba deslizando solo por el pasillo.
+    if (this.seated || this.esperando || this.prisa === 0) {
       this._stuckTimer = 0;
       return;
     }
@@ -1026,11 +1030,39 @@ export class Boss {
     // cuadro al siguiente: un teletransporte pequeño, y de los que más se
     // notan porque pasa justo cuando estás mirando al jefe atascado contra
     // una mesa. Ahora es un CODAZO (0.12): suficiente para romper un empate
-    // numérico, demasiado poco para verse como un salto. Si de verdad sigue
-    // encajado, el del cuadro siguiente lo termina de sacar.
-    const nudge = Math.random() * Math.PI * 2;
-    this.position.x += Math.cos(nudge) * 0.12 * S;
-    this.position.z += Math.sin(nudge) * 0.12 * S;
+    // numérico, demasiado poco para verse como un salto.
+    //
+    // Y VA HACIA UN LADO CONCRETO, no al azar. Aleatorio, el codazo tanto
+    // podía sacarlo del bloqueo como meterlo más adentro —y contra un mueble
+    // largo, «más adentro» significa varios segundos raspando el borde. Se
+    // prueban los DOS costados de su rumbo y gana el que de verdad tenga
+    // sitio; solo si ninguno lo tiene se recurre a la moneda al aire, que
+    // para un empate numérico exacto sigue siendo la salida correcta.
+    const r0 = this._ultimoRumbo;
+    let ex = 0;
+    let ez = 0;
+    if (r0 && this.world) {
+      const prueba = (signo) => ({
+        x: this.position.x - r0.z * signo * S,
+        z: this.position.z + r0.x * signo * S,
+      });
+      const izq = prueba(1);
+      const der = prueba(-1);
+      const izqLibre = !this.world.pathBlocked(this.position, izq, this.radius);
+      const derLibre = !this.world.pathBlocked(this.position, der, this.radius);
+      if (izqLibre !== derLibre) {
+        const signo = izqLibre ? 1 : -1;
+        ex = -r0.z * signo;
+        ez = r0.x * signo;
+      }
+    }
+    if (ex === 0 && ez === 0) {
+      const nudge = Math.random() * Math.PI * 2;
+      ex = Math.cos(nudge);
+      ez = Math.sin(nudge);
+    }
+    this.position.x += ex * 0.12 * S;
+    this.position.z += ez * 0.12 * S;
     if (this.world) this.world.resolveCircle(this.position, this.radius);
   }
 
@@ -1223,6 +1255,10 @@ export class Boss {
 
     const nx = dx / dist;
     const nz = dz / dist;
+    // HACIA DÓNDE INTENTABA IR. Lo guarda para el anti-atasco: sin esto, su
+    // única salida de un bloqueo era un empujón en dirección ALEATORIA, que
+    // tanto podía sacarlo como meterlo más adentro (ver `_updateStuck`).
+    this._ultimoRumbo = { x: nx, z: nz };
 
     // No camina de lado ni de espaldas: si el objetivo le queda a la
     // espalda, primero gira sobre sí mismo (a velocidad limitada, ver

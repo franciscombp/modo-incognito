@@ -13416,3 +13416,97 @@ body.inc-minijuego .touch-stick-base {
 body.inc-minijuego .touch-utils {
   display: none !important;
 }
+
+/* ═════════════════════════════════════════════════════════════════════
+   EL GLOBO DE HABLA (src/ui/speechBubble.js)
+
+   El canal que faltaba: hablar SIN parar el juego. La caja de diálogo es
+   modal y pausa la partida — correcta para una conversación, imposible
+   para lo que se dice EN MARCHA. Con solo la caja, la escolta del día 1
+   era «te hablo con el mundo congelado» y DESPUÉS «echo a andar»: dos
+   cosas pegadas en vez de una escena.
+
+   Es del mismo idioma que el resto: mono, versalitas no (aquí se lee una
+   frase, no un rótulo), hilo fino en vez de marco, y su pico apuntando a
+   quien habla. Nada de colores crudos: todo sale de la capa 2.
+   ═════════════════════════════════════════════════════════════════════ */
+.inc-globos {
+  position: absolute;
+  inset: 0;
+  /* Como todo el layer de mensajes: NUNCA roba un clic. */
+  pointer-events: none;
+  z-index: 24;
+}
+
+.inc-globo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  max-width: 30ch;
+  padding: 10px 14px;
+  font-family: var(--mono);
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  /* Entra desde ABAJO, como si lo dijera: aparecer en el sitio se lee como
+     una etiqueta pegada, no como alguien hablando. */
+  transform-origin: 50% 100%;
+  transition:
+    opacity var(--dur-2, 0.18s) var(--ease-pop, ease-out),
+    scale var(--dur-2, 0.18s) var(--ease-pop, ease-out);
+  scale: 0.9;
+}
+
+.inc-globo.on {
+  opacity: 1;
+  scale: 1;
+}
+
+/* El PICO: es lo que convierte una tarjeta flotando en algo que sale de una
+   boca concreta. Sin él, con siete cuerpos en pantalla, no se sabe quién
+   habló. */
+.inc-globo-pico {
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  width: 12px;
+  height: 12px;
+  translate: -50% 0;
+  rotate: 45deg;
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+/* EL JEFE SE DISTINGUE. Es el único cuya frase puede costarte la jornada,
+   así que su globo lleva el filo de aviso — el mismo idioma que su halo. */
+.inc-globo[data-tone="jefe"] {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+.inc-globo[data-tone="jefe"] .inc-globo-pico {
+  border-right-color: var(--warn);
+  border-bottom-color: var(--warn);
+}
+
+.inc-globo[data-tone="aviso"] {
+  border-color: var(--accent);
+}
+.inc-globo[data-tone="aviso"] .inc-globo-pico {
+  border-right-color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* Con mareo vestibular, una tarjeta que crece es una barrera: se queda el
+   desvanecido, que dice lo mismo sin mover nada. */
+@media (prefers-reduced-motion: reduce) {
+  .inc-globo {
+    transition: opacity var(--dur-2, 0.18s) linear;
+    scale: 1;
+  }
+}

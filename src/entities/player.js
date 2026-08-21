@@ -2,6 +2,7 @@ import { Character3D } from "./character3d.js";
 import { screenToGround, groundToScreen, facingFromGround } from "../scene/iso.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
 import { createSleepIcon, updateSleepIcon, createHappyIcon, updateHappyIcon } from "./alertIcon.js";
+import { createWalker } from "./walk.js";
 
 // The protagonist. Input is interpreted in *screen* space and then rotated
 // into world space, so W/A/S/D (and the joystick) move her up/left/down/right
@@ -9,12 +10,28 @@ import { createSleepIcon, updateSleepIcon, createHappyIcon, updateHappyIcon } fr
 export class Player {
   // Sizes and speeds arrive already in world units (the data loader scales
   // them by WORLD_SCALE), so nothing is multiplied twice.
-  constructor(look, { x = 0, z = 12.6, radius = 0.26 * S, height = 1.45 * S, speed = 4.4 * S } = {}) {
+  constructor(
+    look,
+    {
+      x = 0,
+      z = 12.6,
+      radius = 0.26 * S,
+      height = 1.45 * S,
+      speed = 4.4 * S,
+      // El navmesh del piso. Sin él la caminata guiada degrada a línea recta,
+      // que es lo que hacía antes — y lo que la dejaba trabada contra una
+      // maceta el resto de la jornada (ver walk.js).
+      navmesh = null,
+      world = null,
+    } = {}
+  ) {
     this.speed = speed;
     this.radius = radius;
     this.position = { x, z };
     this.keys = new Set();
     this.touchAxis = { x: 0, z: 0 };
+    this.navmesh = navmesh;
+    this._walker = createWalker({ navmesh, world, radius });
 
     this.speedMul = 1; // perks (coffee) scale this
     this.isHiding = false;
@@ -98,23 +115,41 @@ export class Player {
     // pasa por las MISMAS colisiones, el mismo giro y la misma animación de
     // andar que cuando caminas tú. Un movimiento paralelo por fuera de este
     // método volvería a atravesar mesas.
+    // Y VA POR EL NAVMESH, no en línea recta. Ir derecho al punto es lo que
+    // dejaba a la jugadora empujando una maceta el resto de la jornada, con
+    // el control bloqueado — el bug de la escolta. El caminante compartido
+    // (walk.js) rutea, bordea lo que no está en el mapa y, si de verdad no
+    // puede llegar, LO DICE (`onGiveUp`) en vez de moler en silencio.
+    this._walker.usarMundo(world);
     let guiada = null;
     if (this.walkTo) {
-      const dx = this.walkTo.x - this.position.x;
-      const dz = this.walkTo.z - this.position.z;
-      if (Math.hypot(dx, dz) < (this.walkTo.tol ?? 0.35 * this.radius * 4)) {
-        this.walkTo.onArrive?.();
+      this._walker.ir(this.walkTo.x, this.walkTo.z);
+      const r = this._walker.paso(dt, this.position, {
+        tol: this.walkTo.tol ?? 0.35 * this.radius * 4,
+        velocidad: this.speed * this.speedMul,
+      });
+      if (r.llego) {
+        const cb = this.walkTo.onArrive;
         this.walkTo = null;
-      } else {
+        cb?.();
+      } else if (r.abandonado) {
+        // No se pudo. Quien mandó el paseo decide: la escolta baja el telón,
+        // un traslado se remata. Lo que no pasa nunca es quedarse empujando.
+        const cb = this.walkTo.onGiveUp;
+        this.walkTo = null;
+        cb?.();
+      } else if (r.dir) {
         // El rumbo se pasa a INTENCIÓN DE MANDO (la misma que devuelve el
         // joystick) y no a un desplazamiento directo: así el paso, el giro y
         // la animación salen del mismo camino de siempre. Normalizada, para
         // que la escena camine a velocidad de andar y no a la que toque por
         // lo lejos que esté el destino.
-        const s = groundToScreen(dx, dz);
+        const s = groundToScreen(r.dir.x, r.dir.z);
         const len = Math.hypot(s.right, s.up) || 1;
         guiada = { right: s.right / len, up: s.up / len };
       }
+    } else if (this._walker.activo) {
+      this._walker.parar();
     }
     const { right, up } = guiada ?? (this.inputLocked ? { right: 0, up: 0 } : this._readInput());
     const magnitude = Math.min(Math.hypot(right, up), 1);

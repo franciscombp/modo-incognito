@@ -296,6 +296,11 @@ export class Game {
     onAviso = null,
     onCorte = null,
     onHeatAlert = null,
+    // HABLAR EN MARCHA, sin pausar (ui/speechBubble.js), y de dónde sale el
+    // texto. Los dos los pone engine.js: el motor no dibuja ni escribe
+    // diálogo — pide un globo y pide una frase.
+    onDecir = null,
+    guionEscolta = null,
   }) {
     this.player = player;
     this.boss = boss;
@@ -311,6 +316,8 @@ export class Game {
     // transición es de la interfaz. Recibe qué cambiar mientras está abajo.
     this.onCorte = onCorte;
     this.onHeatAlert = onHeatAlert;
+    this.onDecir = onDecir;
+    this.guionEscolta = guionEscolta;
     this.hud = hud;
     this.canvas = canvas;
     this.seats = seats;
@@ -1014,6 +1021,7 @@ export class Game {
     this._updateBienvenida(dt);
     this._updateBossApproach(dt);
     this._updatePaseoAlPuesto(dt);
+    this._updateCorreaVuelve(dt);
     this._updatePresentacion(dt);
 
     // "Tu sitio" ya no es media planta: es exactamente el lugar seguro en el
@@ -2732,6 +2740,17 @@ export class Game {
     this._esperandoPuesto = false;
     this.boss._graceTimer = 0;
     this.boss.prisa = 1;
+    this._escoltaFreno = null;
+    this._escoltaTropiezos = 0;
+    // Y SU CORREA VUELVE A SER LA DEL DÍA. Durante la escolta apunta a tu
+    // mesa (para que ande hacia allá en vez de orbitarte); dar la escena por
+    // vivida sin deshacer eso dejaba al jefe atado a tu escritorio el resto
+    // de la jornada — o sea, una prueba midiendo un piso que no existe.
+    if (this._correaPrevia !== undefined) {
+      this.boss.tether = this._correaPrevia;
+      this._correaPrevia = undefined;
+    }
+    this._correaVuelveEn = null;
     // Y EL PASO DE LA ESCOLTA SE SUELTA. El auto-seguimiento escribe
     // `walkTo` cada cuadro mientras la escena vive; cortar la escena sin
     // soltarlo dejaba a la jugadora andando SOLA hacia el puesto con el
@@ -2745,6 +2764,22 @@ export class Game {
    * o alguien te tapa el hueco— se baja el telón y se remata el traslado.
    * Es una RED, no la vía normal: lo normal es llegar andando.
    */
+  /**
+   * La correa del día 1 vuelve unos segundos DESPUÉS de la escolta, para que
+   * la escena tenga final: Gabo se va a su puesto y ahí se le vuelve a atar.
+   * Ver el remate de `_updateBienvenida`.
+   */
+  _updateCorreaVuelve(dt) {
+    if (this._correaVuelveEn == null) return;
+    this._correaVuelveEn -= dt;
+    if (this._correaVuelveEn > 0) return;
+    this._correaVuelveEn = null;
+    if (this._correaPrevia !== undefined) {
+      this.boss.tether = this._correaPrevia;
+      this._correaPrevia = undefined;
+    }
+  }
+
   _updatePaseoAlPuesto(dt) {
     const p = this._paseoAlPuesto;
     if (!p) return;
@@ -3173,11 +3208,137 @@ export class Game {
       // Y CON PRISA: es una escena, no una ronda. A paso normal el paseo
       // duraba ~25 s; con el multiplicador queda en unos diez, que es lo
       // que aguanta una apertura sin control. Se apaga al llegar.
-      this.boss.prisa = 1.9;
+      //
+      // PERO EL PASO SE ACOMPASA, y esto es lo que arregla «Gabo aparece
+      // teletransportado»: a 1.9 fijo salía disparado en cuanto se despausaba
+      // el diálogo, se plantaba a media sala en dos segundos y volvía a
+      // entrar en plano de golpe — con la cámara siguiéndote a TI, un cuerpo
+      // que cruza el encuadre a esa velocidad no se lee como que camina, se
+      // lee como que apareció. Ahora la prisa la fija `_acompasarEscolta`
+      // según lo lejos que vayas: quien acompaña, espera.
+      this.boss.prisa = 1;
+      this._escoltaFrase = 0;
+      this._escoltaProxima = 1.2; // deja respirar el arranque
     }
     this.announce("GABO TE LLEVA A TU PUESTO", "warn");
     this.onMissionDone?.(this.gate?.task?.id ?? "meet-gabo");
     return true;
+  }
+
+  /**
+   * UN PUNTO A DOS MESAS DE `destino`, por el lado desde el que se viene.
+   *
+   * Es la parada de la escolta: acompañar a alguien a su sitio termina AL
+   * LADO del sitio, no dentro. Y en un puesto de trabajo «dentro» es un hueco
+   * de un metro cuadrado con una mesa, una silla y una persona sentada — un
+   * cuerpo que entra ahí no vuelve a salir.
+   *
+   * Se arrima al navmesh: el punto calculado puede caer sobre otro mueble, y
+   * un destino inalcanzable es indistinguible de un jefe que se ha rendido.
+   */
+  _aDosMesasDe(destino, desde) {
+    const vx = desde.x - destino.x;
+    const vz = desde.z - destino.z;
+    const len = Math.hypot(vx, vz) || 1;
+    const nav = this.boss?.navmesh;
+    // SE PRUEBAN VARIAS DISTANCIAS Y SE DESCARTA, NO SE ARRIMA.
+    //
+    // La primera versión pasaba el punto por `navmesh.snap`, que devuelve la
+    // casilla pisable MÁS CERCANA — y el navmesh del jefe es el de vigilancia,
+    // que deja fuera las salas enteras. Con el puesto pegado a una, el
+    // «arrímalo» no lo movía un palmo: lo mandaba a DOCE unidades de la mesa,
+    // al otro lado del tabique. Y el jefe hacía exactamente lo que se le
+    // pedía: andaba hasta allí y se plantaba, con la escolta a medias y la
+    // jugadora esperándole en mitad del pasillo.
+    //
+    // Arrimar sirve para colocar a alguien «por ahí»; para un punto que tiene
+    // que estar EN una relación concreta con otro (a dos mesas de tu puesto,
+    // en su misma línea) hay que probar candidatos y quedarse con uno que
+    // valga, o con ninguno.
+    for (const d of [2.4, 1.8, 1.2]) {
+      const cand = {
+        x: destino.x + (vx / len) * d * S,
+        z: destino.z + (vz / len) * d * S,
+      };
+      if (!nav || nav.isWalkable(cand.x, cand.z)) return cand;
+    }
+    // Ninguna valía: que vaya a la mesa como antes. Meterse en el hueco es
+    // malo; no llegar es peor.
+    return { x: destino.x, z: destino.z };
+  }
+
+  /**
+   * ACOMPASAR LA ESCOLTA — y es lo que convierte «Gabo aparece
+   * teletransportado» en «Gabo te lleva».
+   *
+   * ── El fallo ──────────────────────────────────────────────────────────
+   *
+   * La prisa era FIJA (×1.9), y con la cámara siguiéndote a TI el resultado
+   * era que en cuanto se cerraba el diálogo el jefe salía disparado, cruzaba
+   * el encuadre en dos segundos y reaparecía al fondo. Un cuerpo que cruza
+   * la pantalla a esa velocidad no se lee como que camina: se lee como que
+   * apareció en otro sitio. Y si te trababas contra una maceta, se iba solo
+   * y te dejaba mirando un pasillo vacío.
+   *
+   * ── La regla ──────────────────────────────────────────────────────────
+   *
+   * QUIEN ACOMPAÑA, ESPERA. Es lo único que hace un escolta de verdad, y sale
+   * de una sola cifra: la distancia a la que vas.
+   *
+   *   · Pegada (< 3 mesas): va a su ritmo, ligero — es una escena, no una
+   *     ronda, y arrastrarse tampoco vale.
+   *   · Descolgada (3–6): afloja el paso para que le alcances.
+   *   · Perdida (> 6): SE PARA y te llama. Nunca se va del plano.
+   *
+   * Y mientras camina, habla — en globos, sin pausar (ui/speechBubble.js).
+   * Que es lo que se pidió: que caminen mientras hablan.
+   */
+  _acompasarEscolta(dt, mesa) {
+    const b = this.boss;
+    const d = Math.hypot(b.position.x - this.player.position.x, b.position.z - this.player.position.z);
+
+    if (d > 6 * S) {
+      // PARADO Y LLAMÁNDOTE. La prisa a cero no basta: `distract` lo tiene
+      // caminando hacia la mesa, así que se le quita el destino y se queda
+      // donde está hasta que aparezcas.
+      b.prisa = 0;
+      this._escoltaEsperando = (this._escoltaEsperando ?? 0) + dt;
+      if (this._escoltaEsperando > 3.5) {
+        this._escoltaEsperando = 0;
+        this._decirEscolta("escoltaEspera");
+      }
+      return;
+    }
+    this._escoltaEsperando = 0;
+    // Pegada, va LIGERO: es una escena de apertura y hay que salir de ella
+    // pronto — arrastrarla es tan malo como que salga disparado, solo que de
+    // la otra manera. Descolgada, afloja para que le alcances.
+    //
+    // Y 1.45 ES UN TECHO MEDIDO, no una cifra bonita. Con 1.85 —casi el 1.9
+    // fijo de antes— el trayecto no salía más rápido: salía TRES VECES más
+    // lento (recorrido 5,6 contra 17,3 en la misma ventana). A ese paso el
+    // jefe llega a los muebles antes de haber terminado de girar hacia donde
+    // va, se los come, y el anti-atasco le borra el destino cada segundo y
+    // pico: acaba peleándose con el pasillo en vez de recorrerlo. El paseo
+    // acompasado es más rápido yendo más despacio.
+    b.prisa = d > 3 * S ? 0.7 : 1.45;
+
+    // Y VA CONTANDO EL DÍA. Una frase cada pocos segundos, en su globo, con
+    // el mundo corriendo: es la diferencia entre una escena y dos cosas
+    // pegadas (hablar, luego andar).
+    this._escoltaProxima = (this._escoltaProxima ?? 0) - dt;
+    if (this._escoltaProxima <= 0) {
+      this._escoltaProxima = 4.2;
+      this._decirEscolta(this._escoltaRelevo ? "escoltaLlegada" : "escolta");
+    }
+  }
+
+  /** Una frase del guion de la escolta, en un globo sobre Gabo. */
+  _decirEscolta(tramo) {
+    const texto = this.guionEscolta?.(tramo, this._escoltaFrase ?? 0);
+    if (!texto) return;
+    this._escoltaFrase = (this._escoltaFrase ?? 0) + 1;
+    this.onDecir?.(this.boss, texto, { clave: "jefe", tone: "jefe" });
   }
 
   /**
@@ -3239,6 +3400,38 @@ export class Game {
       const cercaDeMesa =
         mesa &&
         Math.hypot(this.boss.position.x - mesa.x, this.boss.position.z - mesa.z) < 4 * S;
+      // ── Y AL LLEGAR, FRENA DONDE ESTÁ ────────────────────────────────
+      //
+      // «Un segundo junto a la mesa» no era quedarse: era un segundo de
+      // margen mientras SEGUÍA caminando hacia el centro del puesto. Con el
+      // paso acompasado llega a la vez que tú, y ese segundo lo mete en el
+      // hueco —mesa, silla y tú sentada— del que no vuelve a salir: medido,
+      // DIECINUEVE SEGUNDOS clavado en el mismo metro cuadrado, con el
+      // anti-atasco cancelándole el destino cada segundo y pico y sus codazos
+      // deshechos por las colisiones en el mismo cuadro. Desde fuera, un jefe
+      // pegado a tu silla el resto de la jornada.
+      //
+      // Así que en cuanto se pone a tiro se le PARA EN SECO, en el sitio
+      // exacto en el que está. Y ese sitio vale por construcción: está de pie
+      // en él. (Se intentó calcularle una parada «a dos mesas del puesto» y
+      // fue peor — un punto elegido por geometría puede caer donde el jefe no
+      // pisa, y entonces la escolta entera se paraba a cinco unidades de la
+      // puerta. Su propia posición no puede estar mal.)
+      // El freno se echa MÁS ADENTRO que el umbral del relevo (3·S contra
+      // 4·S), y no es un detalle: frenando justo en la raya se quedaba
+      // EXACTAMENTE encima de ella, «cerca de la mesa» dejaba de ser cierto al
+      // cuadro siguiente, el contador de «lleva un segundo aquí» se reseteaba
+      // solo y el relevo no saltaba nunca — la jugadora se pasaba la jornada
+      // siguiéndole a un paso, sin sentarse jamás. Un freno tiene que dejarte
+      // dentro de la zona que activa lo siguiente, no en su frontera.
+      const frenar =
+        mesa &&
+        Math.hypot(this.boss.position.x - mesa.x, this.boss.position.z - mesa.z) < 3 * S;
+      if (frenar && !this._escoltaFreno) {
+        this._escoltaFreno = { x: this.boss.position.x, z: this.boss.position.z };
+        this.boss.distract(this._escoltaFreno, 20);
+        this.boss.setTether(this._escoltaFreno, { near: 0.6 * S, far: 1.2 * S });
+      }
       this._escoltaJuntoAMesa = cercaDeMesa ? (this._escoltaJuntoAMesa ?? 0) + dt : 0;
       const bossLlego = this._escoltaJuntoAMesa > 1;
       // El relevo LATCHEA (`_escoltaRelevo`): la primera versión volvía a
@@ -3260,8 +3453,29 @@ export class Game {
       }
       const d = Math.hypot(destino.x - this.player.position.x, destino.z - this.player.position.z);
       if (d > 1.1 * S) {
-        this.player.walkTo = { x: destino.x, z: destino.z, tol: 0.9 * S };
+        this.player.walkTo = {
+          x: destino.x,
+          z: destino.z,
+          tol: 0.9 * S,
+          // SI EL PASEO NO PUEDE LLEGAR, SE REINTENTA, Y SOLO A LA TERCERA SE
+          // REMATA. El caminante compartido (walk.js) avisa en vez de moler
+          // contra el mueble, pero «no pude» casi siempre es PASAJERO: durante
+          // la escolta el estorbo suele ser el propio Gabo, parado justo en la
+          // boca de tu puesto mientras te la enseña — y se aparta él solo un
+          // segundo después. Rematando a la primera, la escena se cortaba por
+          // un bloqueo que se resolvía sin hacer nada. Como `walkTo` se
+          // reescribe cada cuadro, soltar el destino ya reintenta con la ruta
+          // recalculada; lo único que hay que contar son los intentos.
+          // A la tercera sí: entonces no es un cuerpo de paso, y el remate es
+          // el telón, la misma red que el traslado tras un regaño.
+          onGiveUp: () => {
+            this._escoltaTropiezos = (this._escoltaTropiezos ?? 0) + 1;
+            if (this._escoltaTropiezos >= 3) this._escoltaPlazo = 0;
+          },
+        };
       }
+      // ── EL PASO SE ACOMPASA, Y GABO HABLA ANDANDO ────────────────────
+      this._acompasarEscolta(dt, mesa);
       // Y SI EL PASEO SE ATASCA, EL TELÓN LO REMATA. Es la misma red que el
       // traslado tras un regaño: un cuerpo trabado contra un mueble con el
       // control fuera se ve exactamente igual que un juego colgado. El
@@ -3281,6 +3495,8 @@ export class Game {
     this._esperandoPuesto = false;
     this.player.walkTo = null;
     this.boss.prisa = 1;
+    this._escoltaFreno = null;
+    this._escoltaTropiezos = 0;
     // Y TE SIENTA: es el remate de la escena — «este es tu puesto» con el
     // cuerpo ya en la silla, no de pie al lado. El interruptor de fingir
     // queda encendido, que es como se queda cualquiera al que acaban de
@@ -3293,20 +3509,36 @@ export class Game {
     // correr sería regalarte los segundos que sobren con el jefe ciego, y
     // esos segundos son justo el principio de la jornada.
     this.boss._graceTimer = 0;
+
+    // ── GABO SE DESPIDE: te dejó en tu sitio, ahora se va al suyo ────────
+    //
+    // VA ANTES QUE CRISPO A PROPÓSITO, y esto era un fallo de verdad: la
+    // despedida colgaba DEBAJO de `if (!crispo) return`, o sea que si el
+    // secuaz que se presenta no estaba, el jefe se quedaba atado a tu
+    // escritorio el resto de la jornada — orbitándote a dos metros y medio,
+    // que es exactamente el final que la escena no puede tener. Que el jefe
+    // se vaya no puede depender de que otro personaje exista.
+    //
+    // Y LA CORREA VUELVE, PERO NO EN ESTE INSTANTE. La del día 1 hace que su
+    // ronda sea «donde estés tú», y devolvérsela en el mismo cuadro en que te
+    // sientas lo reengancha ANTES de que llegue a apartarse: se quedaba
+    // orbitando tu mesa a dos metros y medio, que es justo el final que la
+    // escena no puede tener («él en SU sitio y tú en el tuyo»). Con la prisa
+    // fija de antes esto no se veía porque llegaba mucho antes que tú y le
+    // sobraban segundos para irse; acompasado, llegáis juntos y la despedida
+    // se quedaba sin sitio. Se le dan unos segundos sueltos para que ande
+    // hasta su puesto y ahí se le engancha otra vez.
+    this.boss.setTether(null);
+    this._correaVuelveEn = 8;
+    const suyo = puestos.find((p) => p.id === "puesto_gabo");
+    if (suyo) this.boss.distract({ x: suyo.x, z: suyo.z }, 25);
+
+    // Y AHORA SÍ, CRISPO viene a presentarse: en tu sitio, a salvo, antes de
+    // que te persiga nadie. Camina hasta ti con su propio INVESTIGATE.
     const crispo = this.minions.find((m) => m.id === "crispo") ?? this.minions[0];
     if (!crispo) return;
     this._presentador = crispo;
     crispo.distract({ x: this.player.position.x, z: this.player.position.z }, 20);
-    // Y Gabo se despide: te dejó en tu sitio, ahora se va al suyo. Andando,
-    // como vino.
-    // Y se le devuelve su correa: a partir de aquí su ronda vuelve a ser
-    // «donde estés tú», que es el día 1 de siempre.
-    if (this._correaPrevia !== undefined) {
-      this.boss.tether = this._correaPrevia;
-      this._correaPrevia = undefined;
-    }
-    const suyo = puestos.find((p) => p.id === "puesto_gabo");
-    if (suyo) this.boss.distract({ x: suyo.x, z: suyo.z }, 25);
   }
 
   /** El diálogo con un NPC cumple su misión "como", si estaba pendiente. */

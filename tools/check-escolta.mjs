@@ -93,8 +93,20 @@ const escolta = await p.evaluate(() => {
   let cazo = false;
   let dMax = 0;
   let dJMin = Infinity;
-  // 18 segundos de juego: el trayecto son ~17 unidades y ella va detrás.
-  for (let i = 0; i < 18 * 60; i++) {
+  // CUÁNTO DURA LA ESCENA, en segundos de juego. Es un número de DISEÑO: una
+  // apertura sin control que se pasa de larga cansa, y una que se pasa de
+  // corta es el jefe saliendo disparado (que es de lo que venimos). Sin
+  // medirlo, «se aparta poco» y «la escena acaba tarde» se ven igual.
+  let sentoEn = null;
+  // 26 segundos de juego. Eran 18, calculados con el jefe yendo a prisa FIJA
+  // (×1.9). Ahora SE ACOMPASA a la jugadora —afloja si se descuelga, se para
+  // si la pierde de vista (game._acompasarEscolta)—, así que la escena dura
+  // más A PROPÓSITO: es lo que hace que no se salga del plano. Con la ventana
+  // vieja daba tiempo a llegar y a soltarla en su sitio, pero no a que se
+  // APARTARA del todo, y la prueba cazaba el final de la escena a medias
+  // (d1: 2.3) en vez de un jefe plantado delante de la silla, que es lo que
+  // vino a vigilar.
+  for (let i = 0; i < 26 * 60; i++) {
     if (g.paused) g.setPaused(false);
     g.update(1 / 60);
     // El paso de la jugadora vive en el bucle de render de main.js, no en
@@ -108,6 +120,7 @@ const escolta = await p.evaluate(() => {
       Math.hypot(b2.position.x - g.player.position.x, b2.position.z - g.player.position.z)
     );
     dJMin = Math.min(dJMin, Math.hypot(b2.position.x - mesa.x, b2.position.z - mesa.z));
+    if (sentoEn === null && g._esperandoPuesto === false) sentoEn = +(i / 60).toFixed(1);
   }
   return {
     d0: +d0.toFixed(1),
@@ -117,6 +130,7 @@ const escolta = await p.evaluate(() => {
     joAnduve: +Math.hypot(g.player.position.x - j0.x, g.player.position.z - j0.z).toFixed(1),
     dMax: +dMax.toFixed(1),
     sentada: g.player.isPretending === true,
+    sentoEn,
     escoltaViva: g._esperandoPuesto === true,
     cazo,
     estado: b2.state,
@@ -150,6 +164,15 @@ check(
 check(
   "y no te caza mientras te acompaña",
   escolta.cazo === false,
+  JSON.stringify(escolta)
+);
+// Y NO SE HACE ETERNA. Es una apertura sin control: acompasarse a la
+// jugadora la alarga a propósito (el jefe espera), pero pasada cierta raya
+// deja de leerse como una escena y se lee como un juego que no te deja
+// jugar. Dieciocho segundos es el techo.
+check(
+  "y la escena no se hace eterna (18 s de techo)",
+  escolta.sentoEn !== null && escolta.sentoEn <= 18,
   JSON.stringify(escolta)
 );
 // LA CINEMÁTICA SE VE: la jugadora anda CON él (nunca se quedan cada uno

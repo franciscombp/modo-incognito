@@ -1,5 +1,6 @@
 import { Character3D } from "./character3d.js";
 import { WORLD_SCALE as S } from "../scene/config.js";
+import { createWalker } from "./walk.js";
 
 // Background coworker. Mostly set dressing, but they also block the boss's
 // line of sight and one of them anchors the "conversar con colegas" activity.
@@ -38,6 +39,7 @@ export class NPC {
       sway = 0,
       pose = "sitWork",
       navmesh = null,
+      world = null,
       // El puesto REAL que le tocó (scene/furniture.js → claimNearestSeat) y
       // cómo mover su silla. Sin asiento, se queda donde lo puso el JSON.
       seat = null,
@@ -66,6 +68,14 @@ export class NPC {
       ? { x: Math.sin(seat.facing), z: Math.cos(seat.facing) }
       : WORLD_FACING[facing] ?? WORLD_FACING.south;
     this.navmesh = navmesh;
+    this.world = world;
+    // SU PASEO, con anti-atasco (walk.js). Antes esto era un recorrer la ruta
+    // waypoint a waypoint sin resolver colisiones ni medir si avanzaba: como
+    // la separación de cuerpos (game.js → `_updateCrowdSeparation`) empuja a
+    // los figurantes fuera de su ruta, uno empujado contra un mueble se
+    // quedaba moliendo contra él para siempre — su waypoint seguía estando al
+    // otro lado y nada le decía que dejara de intentarlo.
+    this._walker = createWalker({ navmesh, world, radius });
     // La pose de "estar en su puesto". `null` explícito en el JSON = de pie.
     //
     // SIN SILLA NO HAY SENTARSE. Quien no consiguió puesto (el plano lo dejó
@@ -86,7 +96,6 @@ export class NPC {
     // entero se levanta a pasear a la vez como un simulacro de incendio.
     this._timer = 6 + Math.random() * 20;
     this._target = null;
-    this._path = null;
   }
 
   get object3D() {
@@ -160,7 +169,7 @@ export class NPC {
     // oficina tiene que quedar vacía; nadie está contando cabezas.
     this._leaveLeft = 15;
     this._state = "leaving";
-    this._path = null;
+    this._walker.parar();
   }
 
   /** Un punto alcanzable a un par de mesas de distancia, o null. */
@@ -171,32 +180,67 @@ export class NPC {
       const dist = (2 + Math.random() * 3) * S;
       const cand = this.navmesh.snap(this.home.x + Math.cos(ang) * dist, this.home.z + Math.sin(ang) * dist);
       if (!cand) continue;
-      const path = this.navmesh.path(this.position, cand);
-      if (path?.length) return { target: cand, path };
+      // Se comprueba que HAY camino antes de echar a andar: un destino
+      // inalcanzable no se distingue, mirándolo, de alguien que se quedó
+      // pasmado. El paseo de verdad lo lleva el caminante compartido.
+      if (this.navmesh.path(this.position, cand)?.length) return cand;
     }
     return null;
   }
 
-  _walkAlong(dt) {
-    if (!this._path?.length) return true;
-    while (
-      this._path.length > 1 &&
-      Math.hypot(this._path[0].x - this.position.x, this._path[0].z - this.position.z) < ARRIVE_EPS
-    ) {
-      this._path.shift();
-    }
-    const wp = this._path[0];
-    const dx = wp.x - this.position.x;
-    const dz = wp.z - this.position.z;
-    const d = Math.hypot(dx, dz);
-    if (d < ARRIVE_EPS && this._path.length <= 1) return true;
-    const step = Math.min(d, STROLL_SPEED * dt);
-    this.position.x += (dx / d) * step;
-    this.position.z += (dz / d) * step;
-    this.sprite.setHeading(dx / d, dz / d);
+  /**
+   * UN CUADRO DE PASEO. Devuelve qué pasó, y el «atascado» es la novedad:
+   * antes no existía, así que un figurante empujado contra un mueble se
+   * quedaba moliendo contra él indefinidamente.
+   *
+   * @returns {"andando"|"llego"|"atascado"}
+   */
+  _andar(dt) {
+    const r = this._walker.paso(dt, this.position, {
+      tol: ARRIVE_EPS,
+      velocidad: STROLL_SPEED,
+    });
+    if (r.llego) return "llego";
+    if (r.abandonado) return "atascado";
+    if (!r.dir) return "andando";
+    const step = STROLL_SPEED * dt;
+    this.position.x += r.dir.x * step;
+    this.position.z += r.dir.z * step;
+    // Y PASA POR LAS COLISIONES, que es lo que aquí faltaba entero: el paseo
+    // viejo escribía la posición a pelo, así que un figurante desviado de su
+    // ruta caminaba DENTRO de los muebles hasta volver a ella.
+    this.world?.resolveCircle(this.position, this.radius);
+    this.sprite.setHeading(r.dir.x, r.dir.z);
     this.sprite.setMoving(true);
     this.sprite.setPosition(this.position.x, this.position.z);
-    return false;
+    return "andando";
+  }
+
+  /**
+   * NO PUEDE VOLVER A SU SITIO. Pasa poco (hace falta que algo se plante en
+   * el hueco de su mesa un buen rato), pero cuando pasa hay que resolverlo
+   * SIN teletransportar a nadie y sin dejarlo moliendo.
+   *
+   * Se reintenta un par de veces —normalmente el estorbo se aparta solo— y,
+   * si no hay manera, ADOPTA EL SITIO donde está: se queda ahí de pie, suelta
+   * su silla y sigue con su ciclo. Un figurante de fondo plantado en otro
+   * metro cuadrado no lo nota nadie; uno vibrando contra una maceta, sí.
+   */
+  _rendirseVolviendo() {
+    this._intentosVuelta = (this._intentosVuelta ?? 0) + 1;
+    if (this._intentosVuelta < 3) {
+      this._state = "pause";
+      this._timer = 1 + Math.random() * 2;
+      return;
+    }
+    this._intentosVuelta = 0;
+    this.home = { x: this.position.x, z: this.position.z };
+    this.homePose = null; // de pie: sentarse sin silla debajo deja a alguien flotando
+    this._moveSeatChair?.(this.seat, null);
+    this.seat = null;
+    this.sprite.setMoving(false);
+    this._state = "settle";
+    this._timer = 15 + Math.random() * 30;
   }
 
   update(dt, t) {
@@ -290,8 +334,8 @@ export class NPC {
           this._moveSeatChair?.(this.seat, this.position.x, this.position.z, this.sprite._targetYaw);
         } else {
           this.sprite.setPose(null);
-          this._path = this.navmesh?.path(this.position, this.home) ?? null;
-          this._state = this._path?.length ? "return" : "teleportHome";
+          this._walker.ir(this.home.x, this.home.z);
+          this._state = "return";
           this._timer = 0;
         }
         break;
@@ -321,11 +365,11 @@ export class NPC {
           this.sprite.setPosition(this.position.x, this.position.z);
         }
         if (this._timer <= 0) {
-          const pick = this._pickStrollTarget();
-          if (pick) {
+          const cand = this._pickStrollTarget();
+          if (cand) {
             this.sprite.setPose(null);
-            this._target = pick.target;
-            this._path = pick.path;
+            this._target = cand;
+            this._walker.ir(cand.x, cand.z);
             this._state = "stroll";
           } else {
             this._timer = 10 + Math.random() * 15;
@@ -334,7 +378,10 @@ export class NPC {
         break;
       }
       case "stroll": {
-        if (this._walkAlong(dt)) {
+        const r = this._andar(dt);
+        // Atascarse dando una vuelta no es un drama: se da por paseado y se
+        // vuelve. Lo que no puede pasar es seguir empujando el obstáculo.
+        if (r === "llego" || r === "atascado") {
           this.sprite.setMoving(false);
           this._state = "pause";
           this._timer = 2 + Math.random() * 4;
@@ -343,13 +390,19 @@ export class NPC {
       }
       case "pause": {
         if (this._timer <= 0) {
-          this._path = this.navmesh?.path(this.position, this.home) ?? null;
-          this._state = this._path?.length ? "return" : "teleportHome";
+          this._walker.ir(this.home.x, this.home.z);
+          this._state = "return";
         }
         break;
       }
       case "return": {
-        if (this._walkAlong(dt)) {
+        const r = this._andar(dt);
+        if (r === "atascado") {
+          this._rendirseVolviendo();
+          break;
+        }
+        if (r === "llego") {
+          this._intentosVuelta = 0;
           this.position.x = this.home.x;
           this.position.z = this.home.z;
           this.sprite.setPosition(this.position.x, this.position.z);

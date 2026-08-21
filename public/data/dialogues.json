@@ -103,24 +103,20 @@
   },
   "encounters": {
     "jefe": {
-      "$comment": "Primer encuentro y conversaciones normales. Las amonestaciones usan handleWarn() con talk:jefe_warn.",
+      "$comment": "Primer encuentro y conversaciones normales. Las amonestaciones usan handleWarn() con talk:jefe_warn. `escolta` / `escoltaLlegada` / `escoltaEspera` NO son escenas de la caja: son frases sueltas que Gabo dice en GLOBOS mientras te lleva a tu puesto el día 1 (ui/speechBubble.js). La caja pausa el juego; una escolta que pausa el juego no es una escolta, son dos cosas pegadas. Frases CORTAS: se leen caminando y con el reloj corriendo.",
       "scenes": [
         [
           {
             "speaker": "Gabo",
-            "text": "Bueno, este es tu puesto. Enchufe, silla, y visibilidad total desde mi mesa. Cortesía de la casa."
+            "text": "¡Llegaste! Puntual y todo. Anota eso, que no se repite."
           },
           {
             "speaker": "Tú",
-            "text": "Qué detalle."
+            "text": "Buenos días…"
           },
           {
             "speaker": "Gabo",
-            "text": "El trato es simple: si estás donde deberías, haciendo lo que deberías, yo no existo."
-          },
-          {
-            "speaker": "Gabo",
-            "text": "Y si no… bueno. También existo. Que comience el día."
+            "text": "Camina conmigo, que te enseño dónde te vamos a tener vigilada. Digo, sentada."
           }
         ],
         [
@@ -220,6 +216,36 @@
             "text": "La próxima te asciendo a cliente. Y a los clientes no los saludo ni en Teams."
           }
         ]
+      ],
+      "escolta": [
+        {
+          "text": "Vamo a calmarno, es tu primer día. Sígueme el paso."
+        },
+        {
+          "text": "Piso 7: diseño. O sea, gente mirando pantallas con cara de estar resolviendo algo."
+        },
+        {
+          "text": "El trato es simple: si estás donde deberías, haciendo lo que deberías, yo no existo."
+        },
+        {
+          "text": "Y si no… bueno. También existo. Pregúntale a Crispo."
+        }
+      ],
+      "escoltaLlegada": [
+        {
+          "text": "Aquí. Enchufe, silla, y visibilidad total desde mi mesa. Cortesía de la casa."
+        },
+        {
+          "text": "Ponte cómoda. Es un decir. Que comience el día."
+        }
+      ],
+      "escoltaEspera": [
+        {
+          "text": "¿Te perdiste? Es en línea recta, mija."
+        },
+        {
+          "text": "Te espero. Tengo todo el día. Tú no."
+        }
       ]
     },
     "manu": {

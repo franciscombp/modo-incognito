@@ -10,6 +10,7 @@ import { createMenus } from "../ui/menus.js";
 import { createGuides } from "../ui/guides.js";
 import { createMinimap } from "../ui/minimap.js";
 import { createWorldPrompt } from "../ui/worldPrompt.js";
+import { createSpeechBubbles } from "../ui/speechBubble.js";
 import { createLobby } from "../ui/lobby.js";
 import { createTransition } from "../ui/transition.js";
 import { createGameHud } from "../ui/gamehud.js";
@@ -85,6 +86,11 @@ export function createEngine({
   const worldPrompt = createWorldPrompt(app, camera.camera, {
     isTouch: matchMedia("(pointer: coarse)").matches,
   });
+  // EL GLOBO DE HABLA (ui/speechBubble.js): el canal para lo que se dice EN
+  // MARCHA. La caja de diálogo pausa la partida —correcta para conversar,
+  // imposible para una escena andando— y por eso la escolta del día 1 era
+  // «te hablo con el mundo parado» y luego «echo a andar», dos cosas pegadas.
+  const globos = createSpeechBubbles(app, camera.camera);
   // LA CÁMARA DE DIÁLOGO. El retrato flotante se retiró: quien habla se
   // encuadra EN EL ESCENARIO (ver scene/dialogueCamera.js). `hablantes` es
   // quién está en escena para esta conversación, y lo pone quien la abre.
@@ -838,6 +844,16 @@ export function createEngine({
         return texto ? texto.toUpperCase() : null;
       },
       onHeatAlert: () => showHeatAlert(),
+      // HABLAR EN MARCHA. El motor no dibuja, así que pide un globo y ya
+      // (ui/speechBubble.js). Es lo que permite que una escena —la escolta de
+      // apertura— pase ANDANDO en vez de con el mundo congelado.
+      onDecir: (quien, texto, opts) => globos.decir(quien, texto, opts),
+      // Y DE DÓNDE SALE LO QUE DICE: del JSON, como todo el diálogo. El motor
+      // pide «dame la frase n de la escolta» y no sabe qué dice.
+      guionEscolta: (tramo, i) => {
+        const pozo = dialogues.encounters.jefe?.[tramo] ?? [];
+        return pozo.length ? pozo[i % pozo.length]?.text ?? null : null;
+      },
     });
 
     // ── LA CAMPAÑA TOMA EL DÍA (docs/CAMPANA.md) ──
@@ -1373,6 +1389,11 @@ export function createEngine({
     guides.update(live);
     minimap.update(live);
     worldPrompt.update(dialogue.isOpen ? null : live);
+    // Los globos se callan con la caja abierta (la cámara está cerrada sobre
+    // los dos hablantes: un globo encima sería una tercera capa de texto en
+    // la misma cara) pero su reloj sigue, así que al volver no reaparece una
+    // frase a destiempo.
+    globos.update({ oculto: dialogue.isOpen || menus.isOpen });
     if (live && !dialogue.isOpen) {
       updateMoodFromSnapshot(live);
       updateGabo(dt, live);

@@ -15,7 +15,9 @@ la tabla del documento dueño en el mismo commit.
 entero) y `check:dia2` (el arco lunes → martes, con la evaluación en medio).
 
 - **Lunes**: ascensor → Gabo te recibe en la puerta y TE LLEVA a tu puesto
-  (cinemática con relevo: él se aparta, tú te sientas) → Crispo se presenta →
+  (cinemática **andando y hablando**: te va contando el piso en globos, se
+  ACOMPASA a tu paso —afloja si te descuelgas, se para y te llama si te
+  pierdes— y al llegar se aparta para que te sientes) → Crispo se presenta →
   la cadena de la temporada 1 (fingir, estirar-baile, café-examen-verter, el
   chisme de Fran, la peli, la comida) → a las seis, el ascensor.
 - **Martes**: sin puerta — Gabo de ronda desde el primer minuto, el cruce de
@@ -28,9 +30,11 @@ entero) y `check:dia2` (el arco lunes → martes, con la evaluación en medio).
 
 | Regla | Doc | Guardia |
 |---|---|---|
+| **NADIE se queda trabado**: un solo caminar por navmesh, que bordea, y si no puede llegar lo DICE | MOTOR §3.6bis | `check:atascos` |
+| **Se camina MIENTRAS se habla**: la caja pausa, el globo no | MOTOR §6.1 | `check:escolta` |
 | Nada juega al PULSO: toda actividad declara verbo interactivo (la siesta es la única excepción — dormir es quedarse quieta) | MOTOR §2 | `check:contenido` |
 | Sentada trabajando NADIE te toca (ni el jefe ni el «fantasma de la silla») | MOTOR §4 | `check:safespots` |
-| La escolta de apertura es una CINEMÁTICA con caducidad y telón anti-atasco | MOTOR §1 | `check:escolta` |
+| La escolta de apertura es una CINEMÁTICA: se acompasa a ti, frena al llegar y se aparta | MOTOR §3.6ter | `check:escolta` |
 | El juego entero se juega con teclado O con palanca+botón (menús, diálogos, baile incluidos) | HUD | `check:pulgar`, `check:baile-pulgar`, `check:mandos` |
 | Hablar con la fuente de un encargo va AL GRANO (el examen antes que la charla) | CAMPANA §3 | `check:objetos` |
 | La conversación se VE: soliloquio en primer plano, dúo en plano medio SOBRE la caja | HUD | captura + `check:apertura` |
@@ -65,11 +69,25 @@ entero) y `check:dia2` (el arco lunes → martes, con la evaluación en medio).
 
 ## 4. Pendiente de MOTOR
 
-1. **Mando físico (gamepad) dentro del BAILE** — el dpad/stick físico navega
-   menús (focusNav) pero no marca pasos; la palanca TÁCTIL sí. Es una rama
-   pequeña en el sondeo del mando.
-2. **Los NPC no se esquivan entre ellos** (MOTOR §7 📌) — se apartan de ti y
-   del jefe; dos figurantes pueden atravesarse.
+1. **El globo de habla solo lo usa la escolta** — el canal existe
+   (`ui/speechBubble.js`) y `dialogues.barks` lleva desde siempre siendo dato
+   MUERTO. Colgarle los barks de pasillo es contenido casi gratis: el
+   figurante que comenta al pasar, el secuaz que refunfuña.
+1bis. **El caminante no replanifica al perseguir un blanco que se MUEVE**
+   (`src/entities/walk.js` → `ir()`). Un destino que se desplaza poco a poco
+   —la escolta reescribe el suyo cada cuadro con la posición de Gabo— se
+   actualiza en el sitio sin volver a trazar la ruta, así que se camina un
+   plan hecho para donde el otro ESTABA. Hoy no se nota (los relojes de
+   atasco acaban forzando la replanificación, y `check:escolta` mide la
+   escena entera en verde), pero es deuda: lo correcto es recordar para qué
+   posición se trazó la ruta y rehacerla cuando el blanco se haya ido más de
+   un par de mesas de ahí. No se tocó ahora por no meter riesgo en el mismo
+   commit que cambia las tres formas de caminar.
+
+2. **Los NPC no se esquivan entre ellos AL PLANIFICAR** (MOTOR §3.6bis 📌) —
+   se apartan por separación de cuerpos y ahora se BORDEAN al caminar, pero
+   dos que van al mismo sitio siguen negociándolo a empujones en vez de
+   trazar la ruta contando con el otro.
 3. **Reactivar el cruce en el día 1** — decidido que NO por ahora (foco en
    el piso); el día 2 ya lo trae. Si se quiere de vuelta: renombrar
    `$minigame` → `minigame` en `dia-1.json`.

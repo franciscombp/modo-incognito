@@ -1048,6 +1048,26 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
     pulso), y es quien mantiene `timeGained` en sincronía con `timeLeft`.
     Lo que ya no pasa por ahí son las actividades, que pagan en energía.
   Lo vigila `npm run check:energia`.
+- **NADIE SE QUEDA TRABADO, y hay UN SOLO CAMINAR** (`src/entities/walk.js`).
+  Había tres —la caminata guiada de la jugadora en LÍNEA RECTA, el paseo de
+  los figurantes sin colisiones ni detector, y el jefe saliendo de los
+  atascos a manotazos— y las tres tenían su propio agujero. Ahora rutean por
+  el navmesh, tiran de la cuerda, y escalan: replanificar (0,5 s) → BORDEAR
+  (0,9 s) → rendirse AVISANDO (4 s). Tres cosas que no se pueden romper:
+  - **El reloj mide PROGRESO, no movimiento.** `resolveCircle` empuja fuera
+    del obstáculo por el eje corto, así que un cuerpo apretado contra una
+    maceta se DESLIZA por su borde: eso es moverse, y midiendo desplazamiento
+    el paso lateral no se activaba jamás. Se mide lo que queda de RUTA
+    (`restante`), que además hace que rodear cuente como progreso — en línea
+    recta, ir hacia la puerta del muro «aleja» y daba atasco falso.
+  - **Bordear es obligatorio porque el navmesh no lo sabe todo.** Su casilla
+    mide 0.5·S y el colisionador de una maceta 0.6·S: cabe ENTRE los puntos
+    que sondea, así que el A* le pasa por encima tan tranquilo. Y los
+    cuerpos, y las sillas que rodaron, no están en él en absoluto.
+  - **Rendirse AVISA** (`onGiveUp` / `abandonado`). Quien pidió el paseo
+    decide: el figurante adopta el sitio donde está, la escolta baja el
+    telón. Un caminante que no puede llegar y no lo dice ES el bug.
+  Lo vigila `npm run check:atascos`.
 - **NADIE SE TELETRANSPORTA. NUNCA.** Un cuerpo que parpadea de sitio deja
   de ser un cuerpo, y es lo primero que delata que esto es un prototipo.
   Cuando el juego necesita llevar a alguien a un sitio se usa
@@ -1341,6 +1361,39 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   mejor», se pierde la escalada: en ronda a tope, la caza solo puede cambiar
   de tono. El degradado a lo largo del haz es OTRA cosa y vive en el alfa por
   vértice (`CONE_ALPHA_CORE`); la opacidad del material es el mando global.
+- **HAY DOS CANALES PARA HABLAR, y confundirlos rompió la apertura.** La
+  CAJA (`ui/dialogue.js`) es modal y PAUSA la partida: correcta para una
+  conversación, imposible para lo que se dice EN MARCHA. El GLOBO
+  (`ui/speechBubble.js`) es lo contrario: una frase sobre la cabeza, sin
+  pausa y sin clic. Con solo la caja, la escolta del día 1 era «te hablo con
+  el mundo congelado» y DESPUÉS «echo a andar» — dos cosas pegadas en vez de
+  una escena, que es justo lo que se veía mal. Reglas del globo: nunca pide
+  un clic (si hay que contestar, eso es la caja), UNA frase por persona (la
+  nueva sustituye a la vieja; apiladas son un muro de texto flotando sobre el
+  piso), se calla con la caja abierta pero su reloj sigue, y dura según el
+  LARGO del texto. El texto sale del JSON como todo lo demás
+  (`encounters.jefe.escolta` / `escoltaLlegada` / `escoltaEspera`).
+- **QUIEN ACOMPAÑA, ESPERA** (`game._acompasarEscolta`). La escolta de
+  apertura iba a prisa FIJA (×1.9) y con la cámara siguiéndote a ti eso no se
+  lee como que camina: se lee como que APARECIÓ al fondo. Ahora el paso sale
+  de lo lejos que vayas — ligero si vas pegada, afloja si te descuelgas, y se
+  PARA a llamarte si te pierdes. Ojo: `prisa: 0` es «me paro a esperarte», y
+  por eso `_updateStuck` lo excluye — sin eso, el anti-atasco daba al jefe
+  que te espera por encajado y lo iba deslizando por el pasillo. Y NO subas
+  la prisa «para que sea más ágil»: a ×1.85 el trayecto salió TRES VECES más
+  lento (5,6 de recorrido contra 17,3), porque llega a los muebles antes de
+  terminar de girar y se pelea con ellos.
+- **UN FRENO TIENE QUE DEJARTE DENTRO DE LA ZONA QUE ACTIVA LO SIGUIENTE, NO
+  EN SU FRONTERA.** Al acompasarse, Gabo llega a tu puesto a la vez que tú, y
+  si sigue andando se mete en el hueco (mesa + silla + tú sentada) y no sale:
+  19 segundos clavado, medidos. Así que FRENA al entrar en la zona, en su
+  propia posición —válida por construcción, está de pie en ella; calcularle
+  una parada por geometría fue peor, porque puede caer donde su navmesh no
+  pisa y ahí la escolta se paraba entera—. Pero el freno va en 3·S y el
+  relevo mira 4·S: puestos al mismo número, frenaba justo en la raya, «está
+  junto a la mesa» dejaba de ser cierto al cuadro siguiente, el contador de
+  «lleva un segundo aquí» se reseteaba solo y el relevo NO SALTABA NUNCA — la
+  jugadora siguiéndole a un paso toda la jornada sin llegar a sentarse.
 - **Una línea de diálogo con `narrator: true` no usa la caja**: se dibuja en
   su propia tarjeta (`.vn-narrator`) y la caja se aparta con `vn-narrating`.
   Estuvo con `bottom: -140px`, o sea entera fuera de pantalla, y como la

@@ -215,6 +215,32 @@ alinearlo con el bisel del resto.
 nueva, y se va solo en 2 s. Tenemos las zonas definidas en `piso7.json` y
 hoy esa información se desperdicia. Es barato y da muchísimo sitio.
 
+### 4.3bis El GLOBO DE HABLA (sobre la cabeza) ← **CONSTRUIDO**
+
+`src/ui/speechBubble.js`. El canal que faltaba, y no es cosmética: **es lo
+único que permite que una escena pase ANDANDO**.
+
+La caja de diálogo es modal y **pausa la partida**. Correcta para conversar
+—te paras, escuchas, eliges— e imposible para lo que se dice en marcha. Con
+solo la caja, la escolta del día 1 era «te hablo con el mundo congelado» y
+DESPUÉS «echo a andar»: dos cosas pegadas donde tenía que haber una escena.
+
+- Una frase corta sobre la cabeza de quien habla, con su pico. **Nunca pide
+  un clic ni pausa nada.** Si hay que contestar, eso es un diálogo y va en la
+  caja.
+- **Una por persona**: la nueva sustituye a la vieja. Apiladas son un muro de
+  texto flotando sobre el piso, que es lo que las medallas vinieron a quitar.
+- **Se calla cuando habla la caja** (la cámara está cerrada sobre los dos
+  hablantes; un globo encima sería una tercera capa de texto en la misma
+  cara), pero su reloj sigue: al volver no reaparece una frase a destiempo.
+- Dura **según el largo del texto**. Un tiempo fijo o corta las frases largas
+  o deja colgadas las cortas.
+- El jefe tiene tono propio (filo de aviso, el mismo idioma que su halo): es
+  el único cuya frase puede costarte la jornada.
+
+📌 Hoy solo lo usa la escolta. `dialogues.barks` lleva desde siempre siendo
+dato muerto y es contenido casi gratis para este canal.
+
 ### 4.4 Prompt de acción (inf. izq.)
 
 Hoy tenemos el botón táctil. Falta el equivalente de teclado: **glifo de

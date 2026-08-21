@@ -322,6 +322,10 @@ async function boot() {
     radius: chars.player.radius,
     height: chars.player.height,
     speed: chars.player.speed,
+    // Para la CAMINATA GUIADA (te escoltan, te sientan): con el navmesh va
+    // rodeando los muebles; sin él iba derecha y se quedaba trabada.
+    navmesh,
+    world,
   });
   scene.add(player.object3D);
   scene.add(player.sleepIcon);
@@ -352,6 +356,11 @@ async function boot() {
         radius: stats.radius,
         height: stats.height,
         navmesh,
+        // El mundo de colisiones, para que su paseo sepa BORDEAR: el navmesh
+        // conoce el edificio, pero no los cuerpos ni las sillas que rodaron
+        // (ver walk.js). Sin esto, un figurante empujado contra una maceta se
+        // quedaba moliendo contra ella el resto de la jornada.
+        world,
         seat,
         moveSeatChair,
       });

@@ -315,11 +315,83 @@ tramos rectos.
 - Se miran como mucho **6 nodos por delante** 🔒. Más allá no se nota: lo que
   ve el ojo es el quiebro de al lado, no el de dentro de diez metros. Y con
   ~20 personajes a la vez, cada traza de línea se paga.
-- Si se queda atascado 1,4 s, replanifica y se da un empujón lateral.
+- Si se queda atascado 1,4 s, replanifica y **se aparta hacia el costado que
+  tiene sitio**. El empujón era en dirección ALEATORIA y tanto podía sacarlo
+  como meterlo más adentro; ahora se prueban los dos lados de su rumbo y gana
+  el que de verdad esté libre (la moneda al aire se queda solo para el empate
+  numérico exacto, que es lo único para lo que servía).
 
-> 📌 **Sigue pendiente:** los personajes no se esquivan **entre ellos**. Dos
-> que van al mismo sitio se empujan. Se arregla con un radio de separación,
-> pero es trabajo aparte.
+### 3.6bis NADIE SE QUEDA TRABADO ← **NUEVO**
+
+Había **tres formas de caminar** hacia un punto y cada una con su agujero: la
+caminata guiada de la jugadora iba en **línea recta** (una maceta la dejaba
+empujando el resto de la jornada, con el control bloqueado — que desde fuera
+se ve igual que un juego colgado), el paseo de los figurantes no resolvía
+colisiones ni medía si avanzaba, y el jefe salía de los atascos a manotazos.
+
+Ahora las tres salen del mismo sitio: **`src/entities/walk.js`**, y la promesa
+es una escalada de tres peldaños.
+
+| Peldaño | Cuándo | Qué hace |
+|---|---|---|
+| Replanificar | 0,45 s sin moverse | Pide ruta otra vez desde donde está. Cubre el caso más común: te empujaron fuera de la ruta. |
+| Bordear | 1,1 s sin moverse | Se aparta al costado que tenga sitio y **lo sostiene medio segundo**. Es lo único que vale contra lo que NO está en el navmesh: cuerpos, sillas que rodaron, macetas. |
+| Rendirse | 4 s **sin acercarse** | Suelta el destino y **AVISA** (`abandonado`). |
+
+**Los dos relojes son distintos a propósito, y la diferencia costó una
+prueba.** Rendirse por «no me he movido» deja fuera el peor caso: el que SÍ se
+mueve y no llega. `resolveCircle` desliza a lo largo de las paredes, así que
+un cuerpo empujando contra un muro camina de verdad —centímetros por cuadro—
+mientras bordea el piso en círculos. Medido con un destino imposible: quince
+segundos dando vueltas sin que nada lo viera raro. Por eso el peldaño de
+rendirse mira si **se ACERCA**, no si se mueve.
+
+Y **rendirse avisando** es la mitad importante: quien pidió el paseo decide
+—el figurante adopta el sitio donde está, la escolta baja el telón—. Un
+caminante que no puede llegar y no lo dice es exactamente el bug.
+
+Lo vigila `npm run check:atascos`.
+
+> 📌 **Sigue pendiente:** los personajes no se esquivan **entre ellos** al
+> planificar. Se apartan por separación de cuerpos y ahora se bordean, pero
+> dos que van al mismo sitio siguen negociándolo a empujones.
+
+### 3.6ter LA ESCOLTA: acompasarse, frenar, apartarse ← **NUEVO**
+
+Tres reglas, y las tres salieron de verla fallar:
+
+1. **QUIEN ACOMPAÑA, ESPERA.** El paso del jefe sale de lo lejos que vayas:
+   ligero si le sigues (×1.45), afloja si te descuelgas (×0.7), y **se PARA a
+   llamarte** si te pierde (más de seis mesas). Iba a ×1.9 fijo, y con la
+   cámara puesta en ti eso no se lee como que camina: se lee como que
+   **apareció** al fondo. Medido con el acompasamiento: los dos cuerpos nunca
+   se separan más de 2,6 unidades en toda la escena.
+   ⚠️ Ojo con subirlo «para que sea más ágil»: a ×1.85 el trayecto salió
+   **tres veces más lento** (recorrido 5,6 contra 17,3), porque llega a los
+   muebles antes de terminar de girar, se los come, y el anti-atasco le borra
+   el destino cada segundo. El paseo acompasado es más rápido yendo más
+   despacio.
+2. **FRENA DONDE ESTÁ, no en un punto calculado.** Al acompasarse llega A LA
+   VEZ que tú, y si sigue andando se mete en el hueco del puesto —mesa, silla
+   y tú sentada— del que no vuelve a salir (medido: 19 s clavado, con los
+   codazos del anti-atasco deshechos por las colisiones en el mismo cuadro).
+   En cuanto entra en la zona se le para EN SU SITIO, que es válido por
+   construcción porque está de pie en él. Calcularle una parada «a dos mesas
+   del puesto» fue peor: un punto elegido por geometría puede caer donde el
+   jefe no pisa —su navmesh excluye las salas— y entonces la escolta entera se
+   detenía a cinco unidades de la puerta.
+   ⚠️ **Y el freno va MÁS ADENTRO que el umbral del relevo** (3·S contra 4·S).
+   Frenando en la raya se quedaba justo encima de ella: «está junto a la mesa»
+   dejaba de ser cierto al cuadro siguiente, el contador de «lleva un segundo
+   aquí» se reseteaba solo, y el relevo no saltaba nunca — la jugadora se
+   pasaba la jornada siguiéndole a un paso sin llegar a sentarse.
+3. **Y SE APARTA**, a su propio puesto, antes de que la correa del día vuelva
+   a engancharlo (`_correaVuelveEn`, 8 s). Devolvérsela en el mismo cuadro en
+   que te sientas lo dejaba orbitando tu mesa a dos metros y medio.
+
+Un tropiezo del paseo de la jugadora durante la escena **no la cancela**: se
+reintenta, y solo a la tercera cae el telón. Casi siempre el estorbo es el
+propio Gabo, y se aparta él solo un segundo después.
 
 ### 3.7 El halo
 
@@ -455,6 +527,34 @@ la jornada te deja jugar más, no retroceder el reloj de la oficina.
 - Una línea con `narrator: true` no usa la caja: va en su propia tarjeta.
 - Los efectos de diálogo se registran en `src/game/effects.js`, nunca en el
   motor. Un nombre desconocido avisa por consola.
+
+### 6.1 DOS CANALES: la caja y el globo ← **NUEVO**
+
+Hasta aquí solo había UNA forma de hablar, y era **modal**: la caja pausa la
+partida (`engine.withPause`). Es la correcta para una conversación —te paras,
+escuchas, eliges— y deja fuera todo lo que se dice **en marcha**.
+
+Ahí estaba el fallo de la escolta del día 1: Gabo te decía «camina conmigo»
+con el mundo congelado y **después**, con la caja cerrada, echaba a andar. O
+sea que la escena de que te lleva no era una escena: eran dos cosas pegadas.
+
+| Canal | Cuándo | Pausa | Dónde |
+|---|---|---|---|
+| **La caja** | Una conversación: te paras a hablar | Sí | `ui/dialogue.js` + `scene/dialogueCamera.js` |
+| **El globo** | Lo que se dice andando | **No** | `ui/speechBubble.js` |
+
+Reglas del globo: nunca pide un clic (si hace falta contestar, eso es un
+diálogo y va en la caja), **una frase por persona** (la nueva sustituye a la
+vieja; dos apiladas son un muro de texto flotando en el piso, que es lo que
+las medallas vinieron a quitar), y **se calla cuando habla la caja** —pero su
+reloj sigue, así que al volver no reaparece una frase a destiempo—.
+
+El tiempo en pantalla se calcula **por largo del texto**: uno fijo o corta las
+frases largas o deja colgadas las cortas.
+
+El texto sale del JSON como todo el diálogo: `encounters.jefe.escolta`,
+`escoltaLlegada` y `escoltaEspera`. El motor pide «la frase n del tramo» y no
+sabe qué dice.
 
 ---
 
