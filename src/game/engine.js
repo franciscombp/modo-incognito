@@ -102,7 +102,7 @@ export function createEngine({
      * personaje GIRA A CÁMARA — la cuarta pared se rompe girando al muñeco,
      * nunca moviendo el ojo.
      */
-    onSpeaker: ({ narrator }) => {
+    onSpeaker: ({ narrator, speaker }) => {
       // EL NARRADOR NO ESTÁ EN EL PISO. Es una llamada de Steven el Daddy: no
       // hay a quién encuadrar, así que se SALE del plano cerrado en vez de
       // dejarlo puesto. Si no, su tarjeta caía sobre un primer plano de
@@ -112,7 +112,38 @@ export function createEngine({
         dialogueCam.exit();
         return;
       }
-      const otro = hablantes.otro;
+      // EL INTERLOCUTOR SE RESUELVE POR NOMBRE si la escena no declaró
+      // reparto. El guion de apertura mezcla líneas tuyas con líneas de
+      // Gabo, y sin esto TODAS se encuadraban como soliloquio: la captura
+      // enseñaba a Gabo hablando… con solo la jugadora en pantalla, él
+      // fuera de cuadro. La caja dice quién habla — la cámara también tiene
+      // que saberlo. Con guarda de distancia: a un personaje que habla
+      // desde la otra punta del piso (o que no está en él) no se le
+      // encuadra, o el punto medio sería media pantalla de moqueta vacía.
+      let otro = hablantes.otro;
+      if (!otro && speaker) {
+        const nombre = speaker.toLowerCase();
+        const esBoss = nombre.startsWith((boss?.displayName ?? "gabo").toLowerCase().split(" ")[0]) || nombre.startsWith("gabo");
+        const candidato = esBoss
+          ? boss
+          : [...(minions?.values?.() ?? [])].find(
+              (m) => (m.displayName ?? m.name ?? "").toLowerCase() === nombre
+            ) ??
+            npcs.find((n) => (n.displayName ?? "").toLowerCase() === nombre);
+        if (candidato?.position) {
+          const d = Math.hypot(
+            candidato.position.x - player.position.x,
+            candidato.position.z - player.position.z
+          );
+          if (d < 8 * S) {
+            otro = candidato;
+            // Y SE MIRAN: resolver quién habla sin girar los cuerpos dejaba
+            // a la jugadora de cara a cámara (del soliloquio anterior) y a
+            // Gabo hablándole a la nuca.
+            faceEachOther(candidato);
+          }
+        }
+      }
       // POR DEFECTO, SOLILOQUIO DE LA JUGADORA. Casi todas las escenas del
       // juego que no declaran reparto son suyas: el guion de apertura, el
       // cierre del día, el pensamiento al encontrar un secreto. Antes esto
@@ -941,8 +972,10 @@ export function createEngine({
     if (len < 0.001) return;
     const toNpc = { x: dx / len, z: dz / len };
     const toPlayer = { x: -toNpc.x, z: -toNpc.z };
-    player.sprite.setHeading(toNpc.x, toNpc.z);
-    npc.sprite.setHeading(toPlayer.x, toPlayer.z);
+    // `snap`: durante un diálogo la partida está en pausa y el tween del
+    // giro no avanza — sin esto, «se miran» no se veía en toda la charla.
+    player.sprite.setHeading(toNpc.x, toNpc.z, { snap: true });
+    npc.sprite.setHeading(toPlayer.x, toPlayer.z, { snap: true });
     if (npc.facingDir) npc.facingDir = toPlayer;
   }
 
@@ -956,6 +989,29 @@ export function createEngine({
 
     const encounter = dialogues.encounters[npc.cast];
     if (!encounter?.scenes?.length) return;
+
+    // ── EL ENCARGO VA ANTES QUE LA CHARLA ─────────────────────────────
+    // Si este personaje es LA FUENTE de un objeto pendiente (el café se le
+    // compra al Parce), hablarle tiene que ir al grano: abrir el examen o
+    // entregar el objeto. Antes primero soltaba su escena de pozo —el
+    // chisme de la petaca de Amarillo— y el examen llegaba DESPUÉS de una
+    // charla entera que no tenía nada que ver, con el jefe rondando. La
+    // regla es la del mostrador: a quien viene a comprar no se le cuenta la
+    // vida. La charla no se pierde — la escena queda en el pozo para la
+    // próxima visita SIN encargo (el turno `seen` no se gasta aquí).
+    const encargoPendiente =
+      !opts?.caught &&
+      !opts?.escena &&
+      game?.objectives?.some(
+        (st) => st.objeto?.de === npc.cast && !st.done && !game.inventario?.has(st.objeto.id)
+      );
+    if (encargoPendiente) {
+      faceEachOther(npc);
+      game?.completeTalk?.(npc.cast);
+      anotarPista("charla", npc.cast);
+      return;
+    }
+
     const seen = save.getFlag(`talk:${npc.cast}`) ?? 0;
     save.setFlag(`talk:${npc.cast}`, seen + 1);
 

@@ -1206,9 +1206,14 @@ export class Character3D {
   }
 
   /** Giro continuo hacia una dirección del mundo. */
-  setHeading(dx, dz) {
+  setHeading(dx, dz, { snap = false } = {}) {
     if (!dx && !dz) return;
     this._targetYaw = Math.atan2(dx, dz);
+    // `snap` existe para las ESCENAS: el giro normal es un tween que avanza
+    // en update(), y durante un diálogo la partida está en PAUSA — así que
+    // «ponerse de frente al otro» no llegaba a verse en toda la
+    // conversación. Una escena coloca; el juego, tuenea.
+    if (snap && this.object) this.object.rotation.y = this._targetYaw;
     // El nombre sale del mismo reparto de siempre (iso.js) y no de un cálculo
     // paralelo: hay código y un test que comparan `facing` con hacia dónde
     // apunta el cono del jefe.

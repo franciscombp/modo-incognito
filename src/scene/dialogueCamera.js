@@ -45,6 +45,16 @@ import { getCameraSettings } from "./cameraSettings.js";
  */
 const FRAMING_CERCA = 1;
 
+/**
+ * EMPUJE DEL DÚO HACIA LA CÁMARA, en unidades de mundo. La caja de texto se
+ * come el tercio de abajo de la pantalla, y quien está del lado de la cámara
+ * en una conversación cae justo ahí: en el saludo de apertura Gabo quedaba
+ * ENTERO detrás de la caja — la captura enseñaba «Gabo:» hablando sin Gabo.
+ * Correr el foco hacia la cámara sube a la PAREJA por encima de la caja sin
+ * girar nada: la vista se desliza, el mundo se queda quieto.
+ */
+const DUO_ALZA = 2.2;
+
 /** Lo que tarda en llegar y en volver, en segundos. */
 const ENTRADA = 0.45;
 
@@ -56,7 +66,15 @@ export function createDialogueCamera(camera, { onDrama = null } = {}) {
 
   /** El objetivo de mundo al que apuntar, ya resuelto a {x,z}. */
   function punto(a, b) {
-    if (a && b) return { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
+    if (a && b) {
+      const yaw = (getCameraSettings().yawDeg * Math.PI) / 180;
+      // El mismo vector «hacia la cámara» que usa faceCamera: así «subir en
+      // pantalla» significa lo mismo con cualquier yaw que traiga el ajuste.
+      return {
+        x: (a.x + b.x) / 2 + Math.sin(yaw) * DUO_ALZA,
+        z: (a.z + b.z) / 2 + Math.cos(yaw) * DUO_ALZA,
+      };
+    }
     return a ? { x: a.x, z: a.z } : null;
   }
 
@@ -71,7 +89,11 @@ export function createDialogueCamera(camera, { onDrama = null } = {}) {
      * UN dueño y no dos peleándose cuadro a cuadro.
      */
     get cinematic() {
-      return activo && cerrado;
+      // Graduado: 1 = soliloquio (primer plano), 0.62 = diálogo de dos
+      // (plano medio: los dos en cuadro, por encima de la caja de texto),
+      // 0 = sin conversación. main.js se lo pasa tal cual a setCinematic.
+      if (!activo) return 0;
+      return cerrado ? 1 : 0.62;
     },
 
     /**

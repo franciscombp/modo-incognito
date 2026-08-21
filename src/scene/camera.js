@@ -167,7 +167,11 @@ export class DioramaCamera {
    * libre encima de la caja de diálogo.
    */
   setCinematic(active) {
-    this._cineTarget = active ? 1 : 0;
+    // GRADUADO, no binario: 1 es el primer plano del soliloquio; el DIÁLOGO
+    // de dos pide un plano MEDIO (~0.6) — con 0 se quedaba en el encuadre de
+    // jugar, o sea dos figuras diminutas arriba y media pantalla de moqueta
+    // vacía sobre la caja de texto, que es exactamente lo que se veía.
+    this._cineTarget = typeof active === "number" ? Math.max(0, Math.min(1, active)) : active ? 1 : 0;
   }
 
   /** Live orbit, used by right-drag on desktop and two-finger drag on touch. */

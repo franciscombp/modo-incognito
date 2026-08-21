@@ -512,6 +512,13 @@ export class Boss {
     this.facingDir = { x: Math.sin(facing), z: Math.cos(facing) };
     this.desiredFacing = { ...this.facingDir };
     this.sprite?.setHeading(this.facingDir.x, this.facingDir.z);
+    // EL CUERPO SE MUEVE YA, no en el próximo update(): la puerta del día se
+    // coloca con la partida en PAUSA (el guion de apertura está en pantalla),
+    // así que el primer update tarda en llegar — y hasta entonces la MALLA
+    // seguía plantada en el punto 0 de la ronda, al otro lado del piso. El
+    // saludo de apertura decía «Gabo» y en pantalla no había ningún Gabo.
+    // Esto es colocación AL MONTAR, la única teletransportación legal.
+    this.sprite?.setPosition(x, z);
   }
 
   sitAt({ x, z, facing = 0 }) {
@@ -523,6 +530,9 @@ export class Boss {
     this.facingDir = { x: Math.sin(facing), z: Math.cos(facing) };
     this.desiredFacing = { ...this.facingDir };
     this.sprite?.setHeading(this.facingDir.x, this.facingDir.z);
+    // Mismo motivo que en waitAt: la malla se coloca YA, que la pausa del
+    // guion de apertura retrasa el primer update.
+    this.sprite?.setPosition(x, z);
     this.sprite?.setPose?.("sitWork");
   }
 

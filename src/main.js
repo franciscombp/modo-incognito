@@ -866,7 +866,10 @@ async function boot() {
       // medio personaje detrás de la caja y un techo enorme encima. Se
       // pregunta en vez de que el diálogo lo escriba, para no tener dos
       // escritores peleándose por el mismo valor cada cuadro.
-      view.setCinematic(!!engine.cinematic);
+      // Graduado (0 / 0.62 / 1), no booleano: el `!!` de antes aplastaba el
+      // plano medio del diálogo de dos a «nada» y la charla se veía con el
+      // encuadre de jugar — dos figuras diminutas y media pantalla vacía.
+      view.setCinematic(engine.cinematic);
       view.update(dt, player.position);
       popups.update(dt);
       pixels.render(scene, camera);

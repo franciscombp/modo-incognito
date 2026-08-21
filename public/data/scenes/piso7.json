@@ -1610,8 +1610,8 @@
     {
       "id": "recepcion_gabo",
       "label": "Gabo, en la puerta",
-      "$comment": "OJO: este punto se MIDIÓ, no se eligió a ojo. En (-3.8, -6.7) Gabo se quedaba clavado: podía girar y mirar, pero no daba un paso — medido, 0.6 unidades en cinco segundos con cualquier destino. O sea que la escolta de apertura no ocurría nunca y la primera misión del día abría con el jefe de estatua en la puerta. Aquí anda las 16 unidades hasta el puesto. La diferencia es menos de una unidad de plano: si mueves esto, vuelve a medirlo con npm run check:escolta.",
-      "x": -4,
+      "$comment": "OJO: este punto se MIDIÓ dos veces, no se eligió a ojo. (1) En (-3.8, -6.7) Gabo se quedaba CLAVADO: 0.6 unidades en cinco segundos con cualquier destino — la escolta no ocurría nunca. (2) En (-4, -7) andaba, pero quedaba a 0.4 de la jugadora al saludar: los cuerpos SOLAPADOS, y en el plano de conversación él desaparecía entero detrás de ella (la captura enseñaba a Gabo hablando sin Gabo en pantalla). Dos que conversan se separan como personas: ~1.5 unidades. Si mueves esto, npm run check:escolta re-mide el pozo y check:apertura el saludo.",
+      "x": -5,
       "z": -7,
       "radius": 2
     }
