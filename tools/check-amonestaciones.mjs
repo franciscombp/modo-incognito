@@ -175,8 +175,16 @@ for (let n = 0; n < 4; n++) {
       g.boss.position.x = g.player.position.x;
       g.boss.position.z = g.player.position.z;
       g.player.isPretending = false;
-      g._updateBossApproach(1 / 60);
-      return document.querySelector(".inc-msg-centro")?.textContent ?? "";
+      // EN CUADROS, y no uno solo: el aviso es de DOS TIEMPOS y el primer
+      // tick puede limitarse a armar la gracia — el rótulo cae en un cuadro
+      // posterior. Con una sola llamada, el primer aviso salía vacío una de
+      // cada tantas y la prueba culpaba al texto con el juego intacto.
+      let texto = "";
+      for (let i = 0; i < 30 && !texto; i++) {
+        g._updateBossApproach(1 / 60);
+        texto = document.querySelector(".inc-msg-centro")?.textContent ?? "";
+      }
+      return texto;
     })
   );
   await p.waitForTimeout(150);
