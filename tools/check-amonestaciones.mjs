@@ -215,12 +215,21 @@ for (const n of [1, 2, 3]) {
     g.warnings = k - 1;
     g._warn();
   }, n);
-  await p.waitForTimeout(900);
-  vistas.push(
-    await p.evaluate(
+  // POR ESTADO, no por cronómetro. Esto esperaba 900 ms fijos y leía: con la
+  // máquina cargada, la caja de la PRIMERA amonestación tardaba más que eso
+  // en pintar su primer carácter y la prueba leía «» — con el juego haciendo
+  // exactamente lo que debe. Es el mismo anti-patrón ya desterrado del resto
+  // de la suite (el telón, el baile): se sondea hasta que el mecanismo
+  // responde, y lo estricto sigue intacto — el texto tiene que ser EL DE SU
+  // escena, no cualquiera.
+  let visto = "";
+  for (let i = 0; i < 40 && !visto; i++) {
+    await p.waitForTimeout(120);
+    visto = await p.evaluate(
       () => document.querySelector(".vn-text, .inc-dialogue-text")?.textContent?.trim() ?? ""
-    )
-  );
+    );
+  }
+  vistas.push(visto);
 }
 check(
   "cada amonestación abre SU escena, y las tres son distintas",
