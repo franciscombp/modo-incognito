@@ -89,7 +89,7 @@ export function buildNavmesh(world, { radius = 0.4 * S, excluir = [] } = {}) {
   // vecinas se alcanzan DE VERDAD con el ancho del cuerpo — la misma
   // geometría que `world.pathBlocked`, solo que contra una LISTA CORTA.
   //
-  // ⚠️ La primera versión preguntaba `pathBlocked` a pelo: ~134k tramos
+  // OJO: la primera versión preguntaba `pathBlocked` a pelo: ~134k tramos
   // (dos planos) × TODOS los colliders del piso, y el arranque de la página
   // se fue a segundos enteros — en un teléfono, a muchos. Un tramo mide
   // media celda: preguntarle por el mueble de la otra punta del piso es
