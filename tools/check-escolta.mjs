@@ -115,10 +115,19 @@ const escolta = await p.evaluate(() => {
     // con el juego perfecto. Es la lección de siempre de las pruebas de IA.
     g.player.update(1 / 60, window.__game.world);
     if (b2.state === "CHASE") cazo = true;
-    dMax = Math.max(
-      dMax,
-      Math.hypot(b2.position.x - g.player.position.x, b2.position.z - g.player.position.z)
-    );
+    // LA SEPARACIÓN SOLO CUENTA MIENTRAS LA ESCOLTA VIVE. La ventana del
+    // bucle es fija (es un número de diseño), pero la escena puede acabar
+    // antes — con el mapa de aristas, la jugadora llega y se sienta en ~5 s
+    // — y lo que pasa DESPUÉS es Gabo volviendo a su ronda, donde alejarse
+    // es exactamente lo que debe hacer. Medido sin esta ventana, la prueba
+    // castigaba a la escena por terminar rápido y bien: dMax 23 con la
+    // jugadora ya sentada y cero persecuciones.
+    if (g._esperandoPuesto) {
+      dMax = Math.max(
+        dMax,
+        Math.hypot(b2.position.x - g.player.position.x, b2.position.z - g.player.position.z)
+      );
+    }
     dJMin = Math.min(dJMin, Math.hypot(b2.position.x - mesa.x, b2.position.z - mesa.z));
     if (sentoEn === null && g._esperandoPuesto === false) sentoEn = +(i / 60).toFixed(1);
   }
