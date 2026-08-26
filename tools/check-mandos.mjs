@@ -180,6 +180,18 @@ const sinMover = await p.evaluate(async () => {
   await new Promise((r) => setTimeout(r, 60));
   return { correcta: ficha.correcta, aciertos: g.trivia.snapshot()?.aciertos ?? null };
 });
+// Y ENTER SOLO CUANDO EL CURSOR YA SE POSÓ. El posado en la tarjeta nueva
+// no es instantáneo, y bajo carga el Enter llegaba antes que él: aceptar
+// sin cursor no acepta nada, y la prueba culpaba a la tecla. Ninguna
+// persona pulsa a menos de cien milisegundos de abrirse la tarjeta — el
+// check sí podía, así que espera el estado, como todo lo demás.
+for (let i = 0; i < 30; i++) {
+  const posado = await p.evaluate(
+    () => !!document.querySelector(".inc-chisme.on .inc-chisme-opt.nav-cursor")
+  );
+  if (posado) break;
+  await p.waitForTimeout(100);
+}
 await p.keyboard.press("Enter");
 check(
   "y también SIN mover el cursor, cuando la buena ya es la señalada",
