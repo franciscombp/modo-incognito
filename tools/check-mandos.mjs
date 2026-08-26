@@ -120,17 +120,21 @@ check("la TECLA del número que se lee en la tarjeta responde", await respondio(
  * misma lección que dejó escrita `check:chase`). Sondeando, el resultado deja
  * de depender de lo ocupado que esté el equipo.
  */
-async function respondio(pagina, ms = 3000) {
-  try {
-    await pagina.waitForFunction(
-      () => (window.__game.engine.game.trivia.snapshot()?.aciertos ?? "ganado") !== 0,
-      null,
-      { timeout: ms }
+async function respondio(pagina, ms = 4000) {
+  // Con EVALUATES sueltos, no con waitForFunction: su sondeo mentía bajo
+  // carga — devolvía falso segundos seguidos mientras un evaluate inmediato
+  // veía el acierto puesto (la misma moneda al aire que ya se cazó en
+  // check-baile-pulgar). El evaluate a secas es el único testigo que estos
+  // archivos se creen.
+  const hasta = Date.now() + ms;
+  while (Date.now() < hasta) {
+    const ok = await pagina.evaluate(
+      () => (window.__game.engine.game.trivia.snapshot()?.aciertos ?? "ganado") !== 0
     );
-    return true;
-  } catch {
-    return false;
+    if (ok) return true;
+    await pagina.waitForTimeout(120);
   }
+  return false;
 }
 
 // ── 3 · EL CURSOR: flechas hasta la opción buena y Enter ──
