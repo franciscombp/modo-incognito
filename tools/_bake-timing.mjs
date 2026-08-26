@@ -1,0 +1,13 @@
+import { chromium } from "playwright";
+const b = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium", args: ["--no-sandbox", "--enable-unsafe-swiftshader"] });
+const p = await b.newPage({ viewport: { width: 1280, height: 720 } });
+const t0 = Date.now();
+await p.goto("http://localhost:4173/", { waitUntil: "domcontentloaded" });
+await p.waitForFunction(() => !!window.__game, null, { timeout: 90000 });
+const tBoot = Date.now() - t0;
+const t1 = Date.now();
+await p.evaluate(() => window.__game.engine.startDay(0, { skipMinigame: true }));
+await p.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 60000 });
+const tDay = Date.now() - t1;
+console.log(`boot=${tBoot}ms startDay=${tDay}ms`);
+await b.close();

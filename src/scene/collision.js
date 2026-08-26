@@ -8,7 +8,7 @@ function ccw(ax, az, bx, bz, cx, cz) {
   return (cz - az) * (bx - ax) > (bz - az) * (cx - ax);
 }
 
-function segmentsIntersect(ax, az, bx, bz, cx, cz, dx, dz) {
+export function segmentsIntersect(ax, az, bx, bz, cx, cz, dx, dz) {
   return (
     ccw(ax, az, cx, cz, dx, dz) !== ccw(bx, bz, cx, cz, dx, dz) &&
     ccw(ax, az, bx, bz, cx, cz) !== ccw(ax, az, bx, bz, dx, dz)
@@ -19,7 +19,11 @@ function pointInBox(x, z, b) {
   return x >= b.minX && x <= b.maxX && z >= b.minZ && z <= b.maxZ;
 }
 
-function segmentIntersectsBox(a, b, box) {
+// Exportadas para el horneado de aristas del navmesh (ver navmesh.js): son
+// LA MISMA pregunta que hace `pathBlocked`, solo que contra una lista corta
+// de colliders cercanos en vez de contra todos — duplicar la geometría allí
+// habría sido dos matemáticas que se separan al primer cambio.
+export function segmentIntersectsBox(a, b, box) {
   if (pointInBox(a.x, a.z, box) || pointInBox(b.x, b.z, box)) return true;
   const c = [
     [box.minX, box.minZ],
@@ -55,7 +59,7 @@ function distToSegmentSq(px, pz, x1, z1, x2, z2) {
  * de las cuatro distancias punta-a-segmento: sin cruce, el punto más
  * cercano entre dos segmentos siempre cae en un extremo de alguno.
  */
-function segmentDistSq(a, b, s) {
+export function segmentDistSq(a, b, s) {
   return Math.min(
     distToSegmentSq(a.x, a.z, s.x1, s.z1, s.x2, s.z2),
     distToSegmentSq(b.x, b.z, s.x1, s.z1, s.x2, s.z2),

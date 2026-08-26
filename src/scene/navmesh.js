@@ -1,5 +1,6 @@
 import { footprint } from "./floorplan.js";
 import { WORLD_SCALE as S } from "./config.js";
+import { segmentIntersectsBox, segmentsIntersect, segmentDistSq } from "./collision.js";
 
 // Grid navmesh baked from the collision world after the office is built.
 //
@@ -85,29 +86,87 @@ export function buildNavmesh(world, { radius = 0.4 * S, excluir = [] } = {}) {
   // curando lo que el mapa causaba.
   //
   // Se precomputa UNA VEZ al hornear: para cada celda, una máscara de qué
-  // vecinas se alcanzan DE VERDAD con el ancho del cuerpo
-  // (`world.pathBlocked`, la misma pregunta que responde el tirón de
-  // cuerda). Son ~30k tramos una sola vez al montar el piso; en caliente el
-  // A* solo lee un bit.
+  // vecinas se alcanzan DE VERDAD con el ancho del cuerpo — la misma
+  // geometría que `world.pathBlocked`, solo que contra una LISTA CORTA.
+  //
+  // ⚠️ La primera versión preguntaba `pathBlocked` a pelo: ~134k tramos
+  // (dos planos) × TODOS los colliders del piso, y el arranque de la página
+  // se fue a segundos enteros — en un teléfono, a muchos. Un tramo mide
+  // media celda: preguntarle por el mueble de la otra punta del piso es
+  // trabajo tirado. Se indexa primero QUÉ colliders viven cerca de cada
+  // celda (una pasada por collider, barata) y cada arista consulta solo a
+  // sus vecinos: de millones de pruebas a unas pocas por arista.
   const pass = new Uint8Array(cols * rows);
   const NEIGHBOURS = [
     [1, 0], [-1, 0], [0, 1], [0, -1],
     [1, 1], [1, -1], [-1, 1], [-1, -1],
   ];
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const i = idx(c, r);
-      if (!walkable[i]) continue;
-      const a = toWorld(c, r);
-      let mask = 0;
-      for (let k = 0; k < NEIGHBOURS.length; k++) {
-        const nc = c + NEIGHBOURS[k][0];
-        const nr = r + NEIGHBOURS[k][1];
-        if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
-        if (!walkable[idx(nc, nr)]) continue;
-        if (!world.pathBlocked(a, toWorld(nc, nr), radius)) mask |= 1 << k;
+  {
+    // El margen de registro: una arista sale del centro de la celda y llega
+    // como mucho a CELL·√2; un collider puede estorbarla desde `radius` (más
+    // su grosor). Todo lo que quede más lejos no puede tocar esa arista.
+    const margen = CELL * Math.SQRT2 + radius;
+    const cerca = new Array(cols * rows);
+    const registra = (minX_, maxX_, minZ_, maxZ_, item) => {
+      const c0 = Math.max(0, Math.floor((minX_ - margen - minX) / CELL));
+      const c1 = Math.min(cols - 1, Math.ceil((maxX_ + margen - minX) / CELL));
+      const r0 = Math.max(0, Math.floor((minZ_ - margen - minZ) / CELL));
+      const r1 = Math.min(rows - 1, Math.ceil((maxZ_ + margen - minZ) / CELL));
+      for (let r = r0; r <= r1; r++) {
+        for (let c = c0; c <= c1; c++) {
+          (cerca[idx(c, r)] ??= []).push(item);
+        }
       }
-      pass[i] = mask;
+    };
+    for (const b of world.boxes) registra(b.minX, b.maxX, b.minZ, b.maxZ, { caja: b });
+    for (const s of world.segments) {
+      registra(
+        Math.min(s.x1, s.x2),
+        Math.max(s.x1, s.x2),
+        Math.min(s.z1, s.z2),
+        Math.max(s.z1, s.z2),
+        { seg: s }
+      );
+    }
+
+    // La misma pregunta que `pathBlocked`, contra los candidatos de la celda.
+    const inflada = { minX: 0, maxX: 0, minZ: 0, maxZ: 0 };
+    const tramoLibre = (a, b, candidatos) => {
+      if (!candidatos) return true;
+      for (const cand of candidatos) {
+        if (cand.caja) {
+          const caja = cand.caja;
+          inflada.minX = caja.minX - radius;
+          inflada.maxX = caja.maxX + radius;
+          inflada.minZ = caja.minZ - radius;
+          inflada.maxZ = caja.maxZ + radius;
+          if (segmentIntersectsBox(a, b, inflada)) return false;
+        } else {
+          const s = cand.seg;
+          if (segmentsIntersect(a.x, a.z, b.x, b.z, s.x1, s.z1, s.x2, s.z2)) return false;
+          const holgura = radius + (s.thickness ?? 0) / 2;
+          if (segmentDistSq(a, b, s) <= holgura * holgura) return false;
+        }
+      }
+      return true;
+    };
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const i = idx(c, r);
+        if (!walkable[i]) continue;
+        const a = toWorld(c, r);
+        const candidatos = cerca[i];
+        let mask = 0;
+        for (let k = 0; k < NEIGHBOURS.length; k++) {
+          const nc = c + NEIGHBOURS[k][0];
+          const nr = r + NEIGHBOURS[k][1];
+          if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
+          if (!walkable[idx(nc, nr)]) continue;
+          if (tramoLibre(a, toWorld(nc, nr), candidatos)) mask |= 1 << k;
+        }
+        pass[i] = mask;
+      }
     }
   }
 
@@ -174,13 +233,16 @@ export function buildNavmesh(world, { radius = 0.4 * S, excluir = [] } = {}) {
 
       const cc = current % cols;
       const cr = Math.floor(current / cols);
-      // DESDE LA CASILLA DE SALIDA se puede ir a cualquier vecina transitable
-      // aunque su arista esté marcada sucia: un cuerpo empujado puede haber
-      // acabado pegado a un objeto, y negarle la salida lo dejaría sin ruta
-      // ninguna — el mapa existe para no PLANEAR por encima de un objeto, no
-      // para encerrar a quien ya está al lado de uno. La colisión en vivo
-      // sigue mandando en ese primer paso, como siempre.
-      const canPass = current === startI ? 0xff : pass[current];
+      // LA TRAMPILLA DE ESCAPE, y solo para quien está EMBOLSADO de verdad:
+      // una casilla de salida sin NINGUNA arista limpia (un cuerpo empujado
+      // hasta quedar rodeado) puede salir por donde sea — negárselo lo
+      // dejaría sin ruta ninguna, y la colisión en vivo negocia ese primer
+      // paso como siempre. Pero SOLO entonces: la primera versión daba la
+      // trampilla a toda casilla de salida, y el A* la usaba para arrancar
+      // por una arista sucia TENIENDO limpias al lado — cuatro de cada cien
+      // rutas nacían pisando un objeto, que es justo lo que este mapa
+      // existe para impedir.
+      const canPass = current === startI && pass[current] === 0 ? 0xff : pass[current];
       for (let k = 0; k < NEIGHBOURS.length; k++) {
         // La máscara de aristas manda: si el tramo hasta esa vecina no lo
         // cruza un cuerpo (un objeto menor que la celda en medio), aquí no
