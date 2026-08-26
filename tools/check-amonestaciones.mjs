@@ -222,12 +222,21 @@ for (const n of [1, 2, 3]) {
   // de la suite (el telón, el baile): se sondea hasta que el mecanismo
   // responde, y lo estricto sigue intacto — el texto tiene que ser EL DE SU
   // escena, no cualquiera.
+  // Y HASTA TENER TEXTO SUFICIENTE, no solo alguno: la caja escribe a
+  // máquina, y parar en el primer carácter dejaba la comparación de orden
+  // (24 letras) midiendo una frase a medias — «¡AJÁ! Te vi. Y no e» contra
+  // «¡AJÁ! Te vi. Y no estabas». Se espera a que lleguen las letras que la
+  // aserción va a mirar, o a que el texto deje de crecer (frase corta).
   let visto = "";
-  for (let i = 0; i < 40 && !visto; i++) {
+  let previo = -1;
+  for (let i = 0; i < 50; i++) {
     await p.waitForTimeout(120);
     visto = await p.evaluate(
       () => document.querySelector(".vn-text, .inc-dialogue-text")?.textContent?.trim() ?? ""
     );
+    if (visto.length >= 26) break;
+    if (visto && visto.length === previo) break;
+    previo = visto.length;
   }
   vistas.push(visto);
 }
