@@ -30,7 +30,9 @@ entero) y `check:dia2` (el arco lunes → martes, con la evaluación en medio).
 
 | Regla | Doc | Guardia |
 |---|---|---|
+| **EL MAPA NO MIENTE**: el navmesh comprueba ARISTAS con el ancho del cuerpo — ninguna ruta trazada pisa un objeto (100+ rutas al azar, cero tramos sucios) | MOTOR §3.6bis | `check:atascos` |
 | **NADIE se queda trabado**: un solo caminar por navmesh, que bordea, rehace el plan si el blanco se mueve, y si no puede llegar lo DICE | MOTOR §3.6bis | `check:atascos` |
+| **La evaluación entra por el TELÓN**: los cambios de escena grandes no aparecen de golpe sobre el piso | HUD | captura |
 | **Se camina MIENTRAS se habla**: la caja pausa, el globo no | MOTOR §6.1 | `check:escolta` |
 | Nada juega al PULSO: toda actividad declara verbo interactivo (la siesta es la única excepción — dormir es quedarse quieta) | MOTOR §2 | `check:contenido` |
 | Sentada trabajando NADIE te toca (ni el jefe ni el «fantasma de la silla») | MOTOR §4 | `check:safespots` |

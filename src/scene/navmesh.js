@@ -73,26 +73,71 @@ export function buildNavmesh(world, { radius = 0.4 * S, excluir = [] } = {}) {
     }
   }
 
+  // ── LAS ARISTAS TAMBIÉN SE COMPRUEBAN, y este era EL agujero del mapa ──
+  //
+  // Una celda transitable dice que un cuerpo cabe EN SU CENTRO. Pero el A*
+  // conectaba centros vecinos sin preguntar por el TRAMO entre ellos, y un
+  // objeto más chico que la celda cabe entero en medio: la maceta mide
+  // 0,6·S, los centros están a 0,5·S — los dos centros quedan limpios y la
+  // maceta en el pasillo entre ambos. La ruta salía «legal», el personaje
+  // caminaba su plan perfecto… directo contra el objeto, y de ahí todo lo
+  // demás: el forcejeo, el paso lateral, el vaivén. El anti-atasco estaba
+  // curando lo que el mapa causaba.
+  //
+  // Se precomputa UNA VEZ al hornear: para cada celda, una máscara de qué
+  // vecinas se alcanzan DE VERDAD con el ancho del cuerpo
+  // (`world.pathBlocked`, la misma pregunta que responde el tirón de
+  // cuerda). Son ~30k tramos una sola vez al montar el piso; en caliente el
+  // A* solo lee un bit.
+  const pass = new Uint8Array(cols * rows);
   const NEIGHBOURS = [
     [1, 0], [-1, 0], [0, 1], [0, -1],
     [1, 1], [1, -1], [-1, 1], [-1, -1],
   ];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const i = idx(c, r);
+      if (!walkable[i]) continue;
+      const a = toWorld(c, r);
+      let mask = 0;
+      for (let k = 0; k < NEIGHBOURS.length; k++) {
+        const nc = c + NEIGHBOURS[k][0];
+        const nr = r + NEIGHBOURS[k][1];
+        if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
+        if (!walkable[idx(nc, nr)]) continue;
+        if (!world.pathBlocked(a, toWorld(nc, nr), radius)) mask |= 1 << k;
+      }
+      pass[i] = mask;
+    }
+  }
 
   function nearestWalkable(x, z) {
+    // Se prefiere una celda CONECTADA (alguna arista limpia): una transitable
+    // sin salidas es un bolsillo entre objetos, y arrimar ahí un destino es
+    // arrimarlo a una trampa. Solo si no hay ninguna conectada cerca se
+    // acepta la que sea — mejor un plan corto que ninguno.
     const { c, r } = toCell(x, z);
-    if (c >= 0 && c < cols && r >= 0 && r < rows && walkable[idx(c, r)]) return { c, r };
+    let sueltas = null;
+    const considera = (nc, nr) => {
+      if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) return null;
+      const i = idx(nc, nr);
+      if (!walkable[i]) return null;
+      if (pass[i]) return { c: nc, r: nr };
+      sueltas ??= { c: nc, r: nr };
+      return null;
+    };
+    const propia = considera(c, r);
+    if (propia) return propia;
     for (let ring = 1; ring < 14; ring++) {
       for (let dc = -ring; dc <= ring; dc++) {
         for (let dr = -ring; dr <= ring; dr++) {
           if (Math.max(Math.abs(dc), Math.abs(dr)) !== ring) continue;
-          const nc = c + dc;
-          const nr = r + dr;
-          if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;
-          if (walkable[idx(nc, nr)]) return { c: nc, r: nr };
+          const hit = considera(c + dc, r + dr);
+          if (hit) return hit;
         }
       }
     }
-    return null;
+    return sueltas;
   }
 
   /** A* over the grid. Returns world-space waypoints, or null if unreachable. */
@@ -129,7 +174,19 @@ export function buildNavmesh(world, { radius = 0.4 * S, excluir = [] } = {}) {
 
       const cc = current % cols;
       const cr = Math.floor(current / cols);
-      for (const [dc, dr] of NEIGHBOURS) {
+      // DESDE LA CASILLA DE SALIDA se puede ir a cualquier vecina transitable
+      // aunque su arista esté marcada sucia: un cuerpo empujado puede haber
+      // acabado pegado a un objeto, y negarle la salida lo dejaría sin ruta
+      // ninguna — el mapa existe para no PLANEAR por encima de un objeto, no
+      // para encerrar a quien ya está al lado de uno. La colisión en vivo
+      // sigue mandando en ese primer paso, como siempre.
+      const canPass = current === startI ? 0xff : pass[current];
+      for (let k = 0; k < NEIGHBOURS.length; k++) {
+        // La máscara de aristas manda: si el tramo hasta esa vecina no lo
+        // cruza un cuerpo (un objeto menor que la celda en medio), aquí no
+        // hay conexión aunque las dos celdas sean transitables.
+        if (!(canPass & (1 << k))) continue;
+        const [dc, dr] = NEIGHBOURS[k];
         const nc = cc + dc;
         const nr = cr + dr;
         if (nc < 0 || nr < 0 || nc >= cols || nr >= rows) continue;

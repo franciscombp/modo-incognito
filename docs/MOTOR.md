@@ -323,11 +323,36 @@ tramos rectos.
 
 ### 3.6bis NADIE SE QUEDA TRABADO ← **NUEVO**
 
-Había **tres formas de caminar** hacia un punto y cada una con su agujero: la
-caminata guiada de la jugadora iba en **línea recta** (una maceta la dejaba
-empujando el resto de la jornada, con el control bloqueado — que desde fuera
-se ve igual que un juego colgado), el paseo de los figurantes no resolvía
-colisiones ni medía si avanzaba, y el jefe salía de los atascos a manotazos.
+**Primero, EL MAPA NO MIENTE (navmesh de aristas).** El origen de casi todos
+los choques contra objetos no era el caminar: era el plano. Una celda del
+navmesh era transitable si un cuerpo cabía **en su centro**, pero el A*
+conectaba centros vecinos sin preguntar por el TRAMO entre ellos — y un
+objeto más chico que la celda cabe entero en medio: la maceta mide 0,6·S,
+los centros están a 0,5·S. La ruta salía «legal», el personaje caminaba su
+plan perfecto directo contra la maceta, y todo lo de abajo (forcejeo, paso
+lateral, vaivén) era el anti-atasco curando lo que el mapa causaba.
+
+Ahora `buildNavmesh` precomputa, una vez al hornear, una **máscara de
+aristas**: qué vecinas se alcanzan DE VERDAD con el ancho del cuerpo
+(`world.pathBlocked`, la misma pregunta del tirón de cuerda). El A* solo
+cruza aristas limpias. Dos matices que importan:
+
+- **Desde la casilla de salida se puede ir a cualquier vecina** aunque su
+  arista esté sucia: un cuerpo empujado puede haber acabado pegado a un
+  objeto, y negarle la salida lo encerraría. El mapa existe para no PLANEAR
+  por encima de un objeto, no para encarcelar a quien ya está al lado de uno.
+- **`snap`/`nearestWalkable` prefieren celdas CONECTADAS**: arrimar un
+  destino a una celda sin salidas es arrimarlo a una trampa.
+
+Lo vigila la aserción de rutas de `check:atascos`: cien rutas al azar y
+ningún tramo pisa un objeto.
+
+**Y segundo, EL CAMINAR.** Había **tres formas de caminar** hacia un punto y
+cada una con su agujero: la caminata guiada de la jugadora iba en **línea
+recta** (una maceta la dejaba empujando el resto de la jornada, con el
+control bloqueado — que desde fuera se ve igual que un juego colgado), el
+paseo de los figurantes no resolvía colisiones ni medía si avanzaba, y el
+jefe salía de los atascos a manotazos.
 
 Ahora las tres salen del mismo sitio: **`src/entities/walk.js`**, y la promesa
 es una escalada de tres peldaños.

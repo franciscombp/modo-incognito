@@ -1283,7 +1283,20 @@ export function createEngine({
     // Estaba como una línea dentro del cuerpo del panel: el chiste central
     // del juego —los dos ejes por separado, «cumples pero no eres de
     // equipo»— pasaba de largo en letra pequeña.
-    if (evalRes) await review.show(evalRes);
+    //
+    // Y ENTRA POR EL TELÓN: es un cambio de escena de verdad —del piso a la
+    // sala de RRHH— y aparecía de golpe encima del escenario, que es el tipo
+    // de corte seco que delata un prototipo. La pantalla se monta DENTRO del
+    // negro (mismo patrón que el traslado tras un regaño) y el telón la
+    // revela ya puesta. Si el telón está ocupado, `cortar` devuelve false y
+    // se abre a pelo como antes — nunca puede costar la evaluación.
+    if (evalRes) {
+      let pantalla = null;
+      await transition.cortar(() => {
+        pantalla = review.show(evalRes);
+      });
+      await (pantalla ?? review.show(evalRes));
+    }
 
     // LA JUBILACIÓN: el último ascenso de la escalera. Solo llega con la
     // libreta completa (la puerta vive en campaign.endDay), así que esta

@@ -396,12 +396,27 @@ export class NPC {
         break;
       }
       case "return": {
-        const r = this._andar(dt);
-        if (r === "atascado") {
-          this._rendirseVolviendo();
-          break;
-        }
-        if (r === "llego") {
+        // EL ÚLTIMO PALMO SE ANDA. `llego` salta a ARRIVE_EPS (0,3·S) del
+        // sitio, y el remate era escribir `home` a pelo: un brinco de hasta
+        // media silla en un cuadro, justo el tipo de salto que delata que
+        // esto es un prototipo — y justo cuando el ojo lo sigue, porque
+        // acaba de cruzar el piso andando. Ahora, llegado el caminante, se
+        // cubre lo que queda a paso normal y por las mismas colisiones.
+        if (this._remate) {
+          const dx = this.home.x - this.position.x;
+          const dz = this.home.z - this.position.z;
+          const d = Math.hypot(dx, dz);
+          const paso = STROLL_SPEED * dt;
+          if (d > paso) {
+            this.position.x += (dx / d) * paso;
+            this.position.z += (dz / d) * paso;
+            this.world?.resolveCircle(this.position, this.radius);
+            this.sprite.setHeading(dx / d, dz / d);
+            this.sprite.setMoving(true);
+            this.sprite.setPosition(this.position.x, this.position.z);
+            break;
+          }
+          this._remate = false;
           this._intentosVuelta = 0;
           this.position.x = this.home.x;
           this.position.z = this.home.z;
@@ -410,6 +425,15 @@ export class NPC {
           this.sprite.setHeading(this.homeDir.x, this.homeDir.z);
           this._state = "settle";
           this._timer = 15 + Math.random() * 30;
+          break;
+        }
+        const r = this._andar(dt);
+        if (r === "atascado") {
+          this._rendirseVolviendo();
+          break;
+        }
+        if (r === "llego") {
+          this._remate = true;
         }
         break;
       }

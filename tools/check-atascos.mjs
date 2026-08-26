@@ -269,6 +269,59 @@ check(
   JSON.stringify(figurantes)
 );
 
+// ── 2bis · EL MAPA NO MIENTE: ninguna ruta pisa un objeto ──
+// El agujero de origen de los choques: una celda era transitable si un
+// cuerpo cabía EN SU CENTRO, pero el A* conectaba centros vecinos sin
+// preguntar por el TRAMO — y una maceta (0,6·S) cabe entera entre dos
+// centros (0,5·S). La ruta salía «legal» y el personaje caminaba su plan
+// perfecto directo contra el objeto: todo el forcejeo nacía ahí, y el
+// anti-atasco curaba lo que el mapa causaba.
+//
+// Se muestrea a lo bruto: muchas rutas entre puntos pisables al azar, y
+// CADA TRAMO de cada una tiene que dejar pasar un cuerpo (`pathBlocked`,
+// la misma pregunta del juego). El último tramo se salta: apunta al
+// destino EXACTO (una estación puede estar pegada a su mueble) y ese
+// palmo final lo negocia la colisión en vivo, como siempre.
+const rutas = await p.evaluate(() => {
+  const S = window.__floorplan.WORLD_SCALE;
+  const world = window.__game.world;
+  const nav = window.__game.navmesh;
+  const fp = window.__floorplan.footprint;
+  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  for (const [x, z] of fp) {
+    minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+    minZ = Math.min(minZ, z); maxZ = Math.max(maxZ, z);
+  }
+  const azar = () => nav.snap(minX + Math.random() * (maxX - minX), minZ + Math.random() * (maxZ - minZ));
+  const R = 0.3 * S;
+  let probadas = 0;
+  let sucias = 0;
+  let peor = null;
+  for (let i = 0; i < 120; i++) {
+    const a = azar();
+    const b = azar();
+    if (!a || !b || Math.hypot(a.x - b.x, a.z - b.z) < 2 * S) continue;
+    const ruta = nav.path(a, b);
+    if (!ruta?.length) continue;
+    probadas++;
+    let prev = a;
+    for (let k = 0; k < ruta.length - 1; k++) {
+      if (world.pathBlocked(prev, ruta[k], R)) {
+        sucias++;
+        peor = { de: { x: +prev.x.toFixed(1), z: +prev.z.toFixed(1) }, a: { x: +ruta[k].x.toFixed(1), z: +ruta[k].z.toFixed(1) } };
+        break;
+      }
+      prev = ruta[k];
+    }
+  }
+  return { probadas, sucias, peor };
+});
+check(
+  "de 100+ rutas al azar, NINGÚN tramo pisa un objeto",
+  rutas.probadas > 60 && rutas.sucias === 0,
+  JSON.stringify(rutas)
+);
+
 // ── 3bis · UN BLANCO QUE SE MUEVE ──
 // La escolta reescribe su destino CADA CUADRO con la posición de Gabo, y un
 // destino que se desplaza poco a poco se actualizaba en el sitio sin volver a
