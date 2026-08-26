@@ -155,7 +155,17 @@ check(
 let padOk = false;
 let padDetalle = "";
 for (let intento = 0; intento < 4 && !padOk; intento++) {
-  await p.waitForTimeout(1000);
+  // EL COMPÁS SE AVANZA EN CUADROS, no durmiendo un segundo. El baile late
+  // dentro de game.update, que va por rAF — y bajo carga el rAF se congela
+  // ratos enteros mientras los toques caen al vacío: cuatro intentos
+  // seguidos leyendo el MISMO paso y sin un acierto, que es como se vio en
+  // la suite. Avanzar update(1/60) a mano es la lección de siempre de las
+  // pruebas de IA: se mide el mecanismo, no la respiración del navegador.
+  await p.evaluate(() => {
+    const g = window.__game.engine.game;
+    for (let i = 0; i < 70; i++) g.update(1 / 60);
+  });
+  await p.waitForTimeout(120);
   const paso2 = await p.evaluate(() => {
     const g = window.__game.engine.game;
     const s2 = g.baile.snapshot();
