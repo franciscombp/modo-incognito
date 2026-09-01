@@ -419,11 +419,23 @@ el jefe suelto. Eso es BALANCE, no datos — los JSON pueden estar impecables
 (`check:contenido` lo dice) y la jornada ser imposible igual, porque un día
 que no se puede terminar no falla en ningún sitio: se acaba y ya.
 
-Tres cosas de cómo está escrita, y las tres costaron:
-- **Se cede el hilo cada 20 cuadros.** Un bucle de `update()` síncrono no deja
-  correr NI UN temporizador, y el telón que remata la escolta (`onCorte`) es
-  uno: sin ceder, `_esperandoPuesto` no se apagaba nunca y la prueba medía su
-  propio montaje —la jugadora sin control los 240 s enteros—.
+⚠️ **`game.update()` NO MUEVE A LA JUGADORA, y eso decide cómo se escribe una
+prueba que ande.** El paso lo da `player.update(dt, world)`, y quien lo llama
+es el BUCLE DE DIBUJADO de `main.js` — no el motor. Consecuencias, las tres
+pagadas:
+- Una prueba que avance por cuadros a mano (el patrón de `check:chase`) deja
+  el mundo corriendo y el cuerpo CLAVADO. La primera versión de `check:jugable`
+  «caminaba» solo porque cedía el hilo cada cuadro y el rAF de verdad se colaba
+  entre medias; al espaciar las cesiones el paseo se paró en seco, y el fallo
+  no era del piso, era del montaje.
+- Llamar a `player.update` desde la propia prueba TAMPOCO vale: el rAF sigue
+  vivo, así que se actualizaría dos veces por cuadro y andaría al doble de
+  velocidad — justo el número que se viene a medir.
+- Por eso `check:jugable` se juega EN TIEMPO REAL (sus cuatro minutos), y por
+  eso `check:partida` COLOCA a la jugadora en vez de andar. No es que se
+  conformara: es que desde un bucle propio no se puede caminar.
+
+Y otras dos de cómo está escrita:
 - **Se camina POR EL NAVMESH**, no en línea recta. El piso tiene un muro con
   un solo hueco: en recta la prueba se clavaba contra él a diez unidades del
   Parce y lo cantaba como si el café fuera inalcanzable.

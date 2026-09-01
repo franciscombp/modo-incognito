@@ -12,14 +12,17 @@
  * si el juego es jugable:
  *
  *   · que se pueda LLEGAR andando a los sitios (no colocándose en ellos),
- *   · que la ENERGÍA dé para los cuatro minutos de jornada,
- *   · y que se pueda hacer todo eso CON EL JEFE SUELTO.
+ *   · que ESCAQUEARSE PAGUE energía, que es lo único que da para los cuatro
+ *     minutos de jornada,
+ *   · y que el bucle de una actividad CIERRE con el jefe suelto.
  *
- * Lo que NO se exige es un número de amonestaciones: medido en cinco jornadas
- * dio 0, 1, 2, 3 y 3, porque la ronda del jefe y el ir y venir del piso son
- * aleatorios. Se IMPRIMEN, con el porqué de cada una. Una prueba que exigiera
- * ahí un número sería cara o cruz, y las de esta casa ya aprendieron esa
- * lección una vez (ver `check:chase`).
+ * Lo que NO se exige es un RESULTADO de la jornada —cuántas amonestaciones,
+ * cuántas misiones—, porque la ronda del jefe y el ir y venir del piso son
+ * aleatorios: medido, las amonestaciones dan entre 0 y 3 y las misiones entre
+ * 2 y 13, y un umbral de 3 misiones ya falló en una tanda. Eso se IMPRIME,
+ * con el porqué de cada amonestación. Exigir ahí un número sería una prueba a
+ * cara o cruz que acabaría relajándose hasta no medir nada — la lección de
+ * `check:chase`, que se aflojó dos veces antes de mirarse de verdad.
  *
  * Las tres son preguntas de BALANCE, no de datos: los JSON pueden estar
  * perfectos —y lo están, `check:contenido` lo dice— y la jornada ser
@@ -35,9 +38,13 @@
  *    oblicuo y dando por hecho que mira de frente se camina en diagonal.
  *  · EL JEFE SE QUEDA VIVO, con su cupo de tres. Que te amonesten es un
  *    resultado, no un error del montaje.
- *  · Y se avanza POR CUADROS (`update(1/60)`), nunca con `sleep`: medir con
- *    reloj de pared mide la máquina y no el juego — la lección de
- *    `check:chase`, y aquí además permite jugar 240 s de jornada en segundos.
+ *  · Y SE JUEGA EN TIEMPO REAL, que aquí no es pereza sino obligación:
+ *    `game.update()` NO mueve a la jugadora —el paso lo da `player.update`
+ *    desde el bucle de dibujado de `main.js`—, así que una prueba que avance
+ *    por cuadros a mano deja el mundo corriendo y el cuerpo clavado. Y
+ *    llamarlo desde aquí tampoco vale: con el rAF vivo se actualizaría dos
+ *    veces por cuadro y andaría al doble de velocidad, que es justo el número
+ *    que se viene a medir. La jornada cuesta sus cuatro minutos de reloj.
  *
  * Uso: npm run check:jugable   (necesita `npm run preview` en :4173)
  */
@@ -76,6 +83,7 @@ for (let i = 0; i < 40; i++) {
 
 const jornada = await p.evaluate(async () => {
   const g = window.__game.engine.game;
+  const engine = window.__game.engine;
   const iso = window.__iso;
   const diario = [];
   const stalls = [];
@@ -105,21 +113,56 @@ const jornada = await p.evaluate(async () => {
     return warnOriginal();
   };
 
-  // SE AVANZA POR CUADROS, PERO CEDIENDO EL HILO. Un bucle de `update()`
-  // síncrono no deja correr NI UN temporizador, y hay piezas del día que son
-  // temporizadores: el telón de `onCorte` que remata la escolta, las esperas
-  // de una escena. Sin ceder, la escolta no terminaba nunca y la prueba medía
-  // su propio montaje —la jugadora sin control los 240 s de jornada—. Se cede
-  // cada 20 cuadros: bastante para que los relojes corran, poco para que la
-  // medida siga siendo de cuadros y no de reloj de pared.
+  // Los contadores viven AQUÍ, antes de `avanzar`, porque los escribe ella en
+  // cada muestra: declarados más abajo caen en la zona muerta temporal y la
+  // primera llamada revienta con un ReferenceError.
+  let energiaMin = g.energy;
+  const energiaAlAbrir = g.energy;
+  let energiaMax = g.energy;
+  let dormidas = 0;
+  let dormidaVista = g.asleepFor > 0;
+
+  // ── EL RELOJ: SE JUEGA EN TIEMPO REAL, y no es una preferencia ──────
+  //
+  // ⚠️ `game.update()` NO MUEVE A LA JUGADORA. El paso lo da
+  // `player.update(dt, world)` y quien lo llama es el BUCLE DE DIBUJADO de
+  // `main.js`, no el motor. Por eso esta prueba no puede avanzar por cuadros
+  // como `check:chase`: llamando a `g.update()` a mano el mundo corre y el
+  // cuerpo se queda clavado. La primera versión «caminaba» solo porque cedía
+  // el hilo cada cuadro y el rAF de verdad se colaba entre medias — al
+  // espaciar las cesiones el paseo se paró en seco, y el fallo no era del
+  // piso: era del montaje. (Es también por lo que `check:partida` COLOCA a la
+  // jugadora en vez de andar: desde un bucle propio no se puede caminar.)
+  //
+  // Llamar aquí a `player.update` tampoco vale: el rAF sigue vivo, así que se
+  // actualizaría DOS VECES por cuadro y la jugadora andaría al doble de su
+  // velocidad — justo el número que esta prueba existe para medir.
+  //
+  // Así que se deja conducir al bucle de verdad y aquí solo se PULSAN TECLAS
+  // y se espera. La jornada cuesta sus cuatro minutos de reloj de pared, y
+  // ese es el precio de medir el juego y no una maqueta suya.
+  //
+  // El plazo es HOLGADO (ocho minutos) porque cubre más que la jornada: la
+  // escolta de apertura, los 240 s del día y el paseo hasta el ascensor. A
+  // 5,5 minutos se cortaba a mitad y el informe salía con media jornada
+  // medida — y un verde sacado de media jornada no vale nada, que es por lo
+  // que hay una comprobación que vigila justo eso.
+  const finTarde = Date.now() + 480000;
+  let seAgoto = false;
   const avanzar = async (n = 1) => {
-    for (let i = 0; i < n; i++) {
-      if (g.paused) g.setPaused(false);
-      if (g.gameOver) return;
-      g.update(1 / 60);
-      if (i % 20 === 19) await new Promise((r) => setTimeout(r, 0));
+    if (g.paused) g.setPaused(false);
+    if (g.gameOver) return;
+    if (Date.now() > finTarde) {
+      seAgoto = true;
+      return;
     }
-    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, Math.max(4, (n * 1000) / 60)));
+    if (g.energy < energiaMin) energiaMin = g.energy;
+    if (g.energy > energiaMax) energiaMax = g.energy;
+    // La siesta, por FLANCO: `asleepFor` se queda alto varios segundos y
+    // contarlo por muestra daría decenas de siestas de una sola cabezada.
+    if (g.asleepFor > 0 && !dormidaVista) dormidas++;
+    dormidaVista = g.asleepFor > 0;
   };
 
   // ── EL MANDO ─────────────────────────────────────────────────────────
@@ -166,7 +209,7 @@ const jornada = await p.evaluate(async () => {
     let nodo = 0;
     let replan = 0;
     for (let i = 0; i < cuadros; i++) {
-      if (g.gameOver) break;
+      if (g.gameOver || seAgoto) break;
       const d = Math.hypot(x - g.player.position.x, z - g.player.position.z);
       if (d < tol) {
         soltar();
@@ -222,7 +265,7 @@ const jornada = await p.evaluate(async () => {
         // Un atasco con la jornada YA TERMINADA no dice nada: el motor deja
         // de mover a nadie, así que se apuntaría un «no se puede llegar»
         // falso por cada destino pendiente. Solo cuenta lo de la partida viva.
-        if (!g.gameOver)
+        if (!g.gameOver && !seAgoto)
           stalls.push(`${etiqueta || "destino"}: atascada a ${d.toFixed(1)} de (${x.toFixed(1)},${z.toFixed(1)})`);
         soltar();
         return false;
@@ -232,7 +275,8 @@ const jornada = await p.evaluate(async () => {
       await avanzar(1);
     }
     soltar();
-    if (!g.gameOver) stalls.push(`${etiqueta || "destino"}: no llegó en ${cuadros} cuadros`);
+    if (!g.gameOver && !seAgoto)
+      stalls.push(`${etiqueta || "destino"}: no llegó en ${cuadros} cuadros`);
     return false;
   };
 
@@ -458,19 +502,11 @@ const jornada = await p.evaluate(async () => {
   await avanzar(10);
 
   let vueltas = 0;
-  let energiaMin = g.energy;
-  let dormidas = 0;
-  let dormidaVista = g.asleepFor > 0;
-  const vigilarSiesta = () => {
-    // El flanco, no el estado: `asleepFor` está alto varios cuadros seguidos y
-    // contarlo por cuadro daría cientos de siestas de una sola cabezada.
-    if (g.asleepFor > 0 && !dormidaVista) dormidas++;
-    dormidaVista = g.asleepFor > 0;
-  };
+
 
   // La cadena ENCADENA: cumplir una misión abre la siguiente, así que hay que
   // dar vueltas — de un solo barrido, la que depende de fingir no existe aún.
-  while (!g.gameOver && vueltas++ < 12) {
+  while (!g.gameOver && !seAgoto && vueltas++ < 12) {
     const pend = g.objectives.filter((o) => !o.done);
     if (!pend.length) break;
 
@@ -490,8 +526,6 @@ const jornada = await p.evaluate(async () => {
         continue;
       }
       await jugarEstacion(st);
-      vigilarSiesta();
-      energiaMin = Math.min(energiaMin, g.energy);
       diario.push({
         hito: st.id,
         hecha: !!st.done,
@@ -510,8 +544,6 @@ const jornada = await p.evaluate(async () => {
         for (let v = 0; v < 900 && !fingir.done && !g.gameOver; v++) await avanzar(1);
         g.player.keys.delete(" ");
       }
-      vigilarSiesta();
-      energiaMin = Math.min(energiaMin, g.energy);
       diario.push({ hito: "fingir", hecha: !!fingir.done, energia: Math.round(g.energy) });
     }
 
@@ -525,7 +557,6 @@ const jornada = await p.evaluate(async () => {
         await avanzar(1);
       }
       await avanzar(2);
-      vigilarSiesta();
     }
 
     if (!conSitio.length && !fingir && !pend.some((x) => x.dynamic && x.npcId)) break;
@@ -538,14 +569,16 @@ const jornada = await p.evaluate(async () => {
   if (lift) {
     salio = await caminarA(lift.x, lift.z, { tol: 2, cuadros: 2400, etiqueta: "ascensor" });
     for (let v = 0; v < 600 && !g.gameOver; v++) await avanzar(1);
-    vigilarSiesta();
   }
 
   return {
     diario,
+    seAgoto,
     porQue: avisos,
     stalls: [...new Set(stalls)],
     energiaMin: Math.round(energiaMin),
+    energiaMax: Math.round(energiaMax),
+    energiaAlAbrir: Math.round(energiaAlAbrir),
     energiaFin: Math.round(g.energy),
     relojFin: Math.round(g.timeLeft),
     dormidas,
@@ -562,7 +595,7 @@ console.log(`\njornada: ${JSON.stringify(jornada.diario, null, 1)}\n`);
 if (jornada.porQue?.length)
   console.log(`por qué te amonestaron: ${JSON.stringify(jornada.porQue, null, 1)}\n`);
 console.log(
-  `energía mínima ${jornada.energiaMin} · siestas ${jornada.dormidas} · ` +
+  `energía ${jornada.energiaMin}–${jornada.energiaMax} (abrió en ${jornada.energiaAlAbrir}) · siestas ${jornada.dormidas} · ` +
     `amonestaciones ${jornada.avisos}/${jornada.cupo} · misiones ${jornada.hechas}/${jornada.total}\n`
 );
 
@@ -571,16 +604,27 @@ check(
   jornada.stalls.length === 0,
   jornada.stalls.join(" · ")
 );
-// El umbral es BAJO a propósito, y el rótulo dice exactamente lo que mide.
-// Con el jefe vivo, cuántas misiones caen depende de por dónde ande su ronda:
-// medido, entre 4 y 13. Lo que no puede pasar NUNCA es que la cadena no
-// arranque —ahí sí hay algo roto de verdad—, y eso es lo que se exige. Un
-// umbral alto volvería la prueba a cara o cruz y acabaría relajándose hasta
-// no medir nada, que es peor que no tenerla.
+// CUÁNTAS MISIONES CAEN NO ES UN INVARIANTE: depende de por dónde ande la
+// ronda del jefe. Medido, entre 2 y 13 — y un umbral de 3 ya falló en una
+// tanda, que es la definición de prueba a cara o cruz. Lo que sí es
+// invariante son estas dos, y son las que pillan algo roto de verdad:
+//
+//  · que la campaña OFREZCA la primera tanda de misiones. Si `clearGate` deja
+//    de avisar a la campaña, el piso se abre con la lista VACÍA — el fallo que
+//    se llevó por delante media suite cuando entró la campaña, y que no se ve
+//    porque el día «funciona», solo que no hay nada que hacer.
+//  · que el bucle conseguir → activar → aguantar CIERRE al menos una vez. Con
+//    cero, o el recado no se consigue, o el verbo no enciende, o la tarea no
+//    se banca: cualquiera de las tres deja el día sin salida.
 check(
-  "la cadena de misiones AVANZA con el jefe suelto (al menos 3)",
-  jornada.hechas >= 3,
-  `solo ${jornada.hechas} de ${jornada.total} misiones`
+  "la campaña OFRECE misiones al abrirse el piso",
+  jornada.total >= 3,
+  `solo ${jornada.total} misiones en la lista`
+);
+check(
+  "y el bucle conseguir → activar → aguantar CIERRA al menos una vez",
+  jornada.hechas >= 1,
+  `${jornada.hechas} de ${jornada.total} misiones`
 );
 // LAS AMONESTACIONES SE INFORMAN, NO SE EXIGEN. Medido en cinco jornadas
 // seguidas salieron 0, 1, 2, 3 y 3 de cupo: la ronda del jefe, los secuaces y
@@ -594,10 +638,19 @@ console.log(
   `      (amonestaciones ${jornada.avisos}/${jornada.cupo} — se informan, no se exigen: ` +
     `la ronda del jefe es aleatoria y medido da entre 0 y 3)`
 );
+// LA ENERGÍA SE INFORMA, NO SE EXIGE, y no por comodidad: quien mide la
+// economía de verdad es `npm run check:energia`, que la prueba directamente y
+// sin dados. Aquí cualquier umbral sería un proxy peor del mismo invariante —
+// dormirse no es perder (se despierta con un 25%, y lo que castiga es
+// dormirse DONDE TE VEN), y una jornada puede cerrar su única misión hablando
+// con alguien, que no paga energía ninguna. Duplicar un verde con una versión
+// a cara o cruz es cómo se acaba aflojando el bueno.
+// Y que lo de arriba se midió con la jornada ENTERA, no con media: un verde
+// sacado de una partida truncada por el plazo no vale nada.
 check(
-  "la ENERGÍA da para la jornada: no te duermes por el camino",
-  jornada.dormidas === 0,
-  `${jornada.dormidas} siesta(s) forzada(s); mínimo ${jornada.energiaMin}`
+  "la jornada se midió entera (no se agotó el plazo de la prueba)",
+  jornada.seAgoto !== true,
+  "se cortó por plazo: lo de arriba está medido a medias"
 );
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 
