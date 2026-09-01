@@ -34,6 +34,10 @@ import diamond from "@phosphor-icons/core/assets/regular/diamond.svg?raw";
 import clock from "@phosphor-icons/core/assets/regular/clock.svg?raw";
 import eye from "@phosphor-icons/core/assets/regular/eye.svg?raw";
 import alert from "@phosphor-icons/core/assets/regular/warning.svg?raw";
+// El tono neutro de un mensaje del carril lateral. Es el que se pide por
+// DEFECTO (`messages.js`), así que sin él no fallaba un icono suelto: fallaban
+// todos los avisos de ambiente, dejando el hueco vacío y un aviso por consola.
+import info from "@phosphor-icons/core/assets/regular/info.svg?raw";
 import coffee from "@phosphor-icons/core/assets/regular/coffee.svg?raw";
 import chat from "@phosphor-icons/core/assets/regular/chat-circle.svg?raw";
 import movie from "@phosphor-icons/core/assets/regular/film-strip.svg?raw";
@@ -99,6 +103,7 @@ const RAW = {
   clock,
   eye,
   alert,
+  info,
 
   // --- actividades del plano (scenes/*.json -> activities[].icon) ---
   coffee,
