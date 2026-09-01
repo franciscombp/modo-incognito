@@ -51,6 +51,13 @@
 import { chromium } from "playwright";
 
 const url = process.argv[2] ?? "http://localhost:4173/";
+// QUÉ DÍA SE JUEGA. Por defecto el lunes, que es el que está publicado desde
+// siempre; con `--dia N` se valida cualquier otro. Existe para lo que pide
+// PENDIENTES §2.2 al activar un día nuevo: «activar + validar». Un día recién
+// metido en el manifiesto puede tener sus JSON impecables y ser imposible de
+// terminar, y eso no falla en ningún sitio — se acaba y ya.
+const argDia = process.argv.indexOf("--dia");
+const DIA = argDia > 0 ? Number(process.argv[argDia + 1]) : 0;
 const b = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH ?? "/opt/pw-browsers/chromium",
   args: ["--no-sandbox", "--enable-unsafe-swiftshader"],
@@ -67,8 +74,11 @@ function check(nombre, ok, detalle = "") {
 
 await p.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 30000 });
+await p.evaluate((d) => {
+  window.__DIA = d;
+}, DIA);
 await p.evaluate(() => {
-  window.__game.engine.startDay(0, { skipMinigame: true });
+  window.__game.engine.startDay(window.__DIA, { skipMinigame: true });
 });
 await p.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 30000 });
 for (let i = 0; i < 40; i++) {

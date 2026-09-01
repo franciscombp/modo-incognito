@@ -11,8 +11,10 @@ la tabla del documento dueño en el mismo commit.
 
 ## 1. Lo que se juega HOY (publicado en `main`)
 
-**Días 1 y 2, de punta a punta.** Lo vigilan `check:partida` (el lunes
-entero) y `check:dia2` (el arco lunes → martes, con la evaluación en medio).
+**Días 1, 2 y 3, de punta a punta.** Lo vigilan `check:partida` (el lunes
+entero), `check:dia2` (el arco lunes → martes, con la evaluación en medio),
+`check:dia3` (el arco entero hasta el miércoles) y `check:jugable`, que juega
+una jornada ANDANDO y con el jefe suelto (`--dia N` para cualquier día).
 
 - **Lunes**: ascensor → Gabo te recibe en la puerta y TE LLEVA a tu puesto
   (cinemática **andando y hablando**: te va contando el piso en globos, se
@@ -22,9 +24,16 @@ entero) y `check:dia2` (el arco lunes → martes, con la evaluación en medio).
   chisme de Fran, la peli, la comida) → a las seis, el ascensor.
 - **Martes**: sin puerta — Gabo de ronda desde el primer minuto, el cruce de
   la avenida activo, la cadena continúa donde el lunes la dejó.
-- **Días 3–5**: los JSON existen (`levels/dia-3..5`) pero NO están en
+- **Miércoles**: sin puerta, el jefe más rápido (×1.1) y con más vista
+  (×1.12), y el cupo BAJA a 2 amonestaciones — la primera vez que la campaña
+  aprieta de verdad. Medido jugándolo: se termina entero (14/14 misiones con
+  0 de 2 en la mejor jornada), y se pierde si te confías.
+- **Días 4–5**: los JSON existen (`levels/dia-4..5`) pero NO están en
   `manifest.json → levels`. Activar uno es añadir su id a esa lista — y
-  pasarle `check:contenido` + un arco como el de `check-dia2`.
+  pasarle `check:contenido` + `check:jugable --dia N` + un arco como el de
+  `check-dia3`. **`check:contenido` ya AVISA de lo que traen roto sin
+  activarlos**: hoy dice que el día 4 pide dos actividades que no existen en
+  el piso (`scroll` y `print`). El día 5 está limpio.
 
 **Las reglas de oro vigentes** (cada una con su porqué en el doc dueño):
 
@@ -48,7 +57,10 @@ entero) y `check:dia2` (el arco lunes → martes, con la evaluación en medio).
 1. **Temporadas 2–5** — `campaign/temporada-2..5.json` no existen; hoy los
    ascensos reusan las misiones de la 1. Es EL pendiente grande de juego:
    sin ellas la carrera de 25 años es un bucle de una semana. (CAMPANA §5)
-2. **Días 3–5 en el manifiesto** — contenido ya escrito; activar + validar.
+2. **Días 4–5 en el manifiesto** — contenido ya escrito; activar + validar.
+   El 5 está listo; el **4 pide `scroll` y `print`, que no son actividades del
+   piso** (lo canta `check:contenido` como aviso): o se escriben esas dos
+   actividades en `piso7.json`, o se le cambian los objetivos.
 3. **Más fichas de chisme** (`chismes.json`) — ahora las lee también la
    reunión fantasma; el pozo se nota corto en una sesión larga.
 4. **Escenas de bienvenida para Chispita y Washo** — Crispo ya se presenta

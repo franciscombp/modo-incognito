@@ -32,21 +32,32 @@ JSON que más se tocan— está en
 > Cada uno abre con una tabla de qué está construido y qué no. Esa tabla es la
 > verdad; si implementas algo de ahí, actualízala en el mismo commit.
 
-## Estado: temporada 1, días 1 y 2
+## Estado: temporada 1, días 1 a 3
 
-La campaña publicada es **la temporada 1 sobre los días 1 y 2** (los dos en
-`manifest.json` → `levels`; `check:partida` juega el lunes entero y
-`check:dia2` el arco lunes → martes). El lunes: ascensor → Gabo te recibe en
+La campaña publicada es **la temporada 1 sobre los días 1, 2 y 3** (los tres
+en `manifest.json` → `levels`; `check:partida` juega el lunes entero,
+`check:dia2` el arco lunes → martes y `check:dia3` el arco entero hasta el
+miércoles). El lunes: ascensor → Gabo te recibe en
 la puerta y **TE LLEVA a tu puesto** (cinemática: le sigues sola, él se
 aparta al llegar, quedas sentada — `check:escolta`) → y de ahí la cadena de
 misiones (fingir, café, el chisme de Fran, la película, la comida) en el
 **ala sur**, con Gabo atado a la jugadora. El martes no tiene puerta —Gabo
 de ronda desde el primer minuto— y SÍ trae el cruce de la avenida; en el
 día 1 el cruce sigue desactivado a propósito (ver más abajo) para tener el
-foco en el piso. Los archivos `dia-3`..`dia-5` siguen en
+foco en el piso. Los archivos `dia-4` y `dia-5` siguen en
 `public/data/levels/` pero **no están en `manifest.json` → `levels`**, así
 que el juego no los ve. Reactivar un día es añadir su id a esa lista — y
-pasarle `check:contenido` y un arco como el de `check-dia2`.
+pasarle `check:contenido`, `check:jugable --dia N` y un arco como el de
+`check-dia3`.
+
+⚠️ **UN DÍA EN EL CAJÓN ENVEJECE EN SILENCIO, y activarlo lo destapa de
+golpe.** El miércoles llevaba guardado con la jornada de OTRA ÉPOCA —120 s, de
+cuando el día entero duraba eso— pero con cinco objetivos en vez de los tres
+del lunes: al activarlo, la jornada se acababa a mitad de la peli y no fallaba
+nada, porque un día que no da tiempo no falla en ningún sitio, se acaba y ya.
+Por eso `check:contenido` ahora revisa TAMBIÉN los días sin publicar y AVISA
+(sin bloquear) de lo que traen roto — hoy canta que el día 4 pide dos
+actividades que no existen en el piso, `scroll` y `print`.
 
 Si te piden algo del día 1, revisa que no rompas ninguna de sus **cuatro**
 piezas: `campaign/temporada-1.json` (qué se te pide y en qué orden),
@@ -1028,6 +1039,15 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   trabajo y fallar por no hablar con nadie, que es el chiste entero.
 - **El guardado es POR TAREAS, no por días.** Una misión `unica` se persiste
   EN EL ACTO. Las `diaria` son la rutina y vuelven cada día.
+- **EL CUPO DE AMONESTACIONES ES EL MÁS ESTRICTO DE LOS DOS**, el del día y
+  el del personaje (`mergedRules` en `engine.js`). Ganaba siempre el
+  personaje, y como los cuatro jugables declaran el suyo, **el del día no se
+  leía nunca**: la campaña escala el cupo a propósito —el día 3 pide 2, el 5
+  pide 1, que es su forma de apretar— y toda esa progresión era DATO MUERTO.
+  No se veía porque los días publicados pedían 3 y Fran también pide 3. Con el
+  mínimo, el DÍA pone el techo de tolerancia y el personaje solo puede ser más
+  frágil, nunca más resistente de lo que el día permite. Lo vigila
+  `check:dia3`, que compara lo que pide el JSON con lo que corre el motor.
 - **Tres amonestaciones ya no despiden: mandan a RRHH** (`src/ui/hrCourse.js`)
   a un curso de cumplimiento con un botón de saltar que se mueve — y que HUYE
   del cursor a partir de la segunda visita. Siempre se puede terminar: es un

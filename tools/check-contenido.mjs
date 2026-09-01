@@ -21,7 +21,7 @@
  *
  * Uso: npm run check:contenido   (no necesita servidor)
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { VERBOS, verbosDeclarados } from "../src/game/verbos.js";
 
 const DATA = new URL("../public/data/", import.meta.url);
@@ -83,6 +83,49 @@ for (const { id, d } of niveles) {
   }
 }
 check("cada día apunta a una escena real, y su puerta a un sitio que existe", fallos === antes2);
+
+// ── 2bis · LOS DÍAS QUE ESTÁN ESCRITOS PERO TODAVÍA NO SE PUBLICAN ──
+//
+// `manifest.json → levels` es lo que el juego ve; `levels/` tiene más días
+// escritos esperando turno, y activar uno es AÑADIR SU ID A ESA LISTA (lo dice
+// PENDIENTES §2.2). O sea que el día que alguien active uno, sus cabos sueltos
+// salen de golpe y en caliente — y hasta entonces nadie los ve, porque la
+// comprobación solo miraba la lista publicada.
+//
+// Se revisan igual, pero APARTE y sin sumar al veredicto de los publicados:
+// un día en el cajón puede estar a medio escribir a propósito y no debe
+// bloquear la suite. Lo que no puede es sorprender a quien lo saque del cajón.
+const enCajon = readdirSync(new URL("levels/", DATA))
+  .filter((f) => f.endsWith(".json"))
+  .map((f) => f.replace(/\.json$/, ""))
+  .filter((id) => !(manifest.levels ?? []).includes(id));
+const avisosCajon = [];
+for (const id of enCajon) {
+  const d = leer(`levels/${id}.json`);
+  const escena = escenas.get(d.scene);
+  if (!escena) {
+    avisosCajon.push(`${id}: su escena "${d.scene}" no está en el manifiesto`);
+    continue;
+  }
+  for (const oid of d.rules?.objectives ?? []) {
+    if (!(escena.activities ?? []).some((a) => a.id === oid))
+      avisosCajon.push(`${id} → rules.objectives: no hay actividad "${oid}" en ${d.scene}`);
+  }
+  // La jornada dura SIEMPRE lo mismo (ver CLAUDE.md → los dos medidores). Un
+  // día guardado con la duración de otra época se activa y sale imposible sin
+  // que falle nada: simplemente se acaba antes de que dé tiempo.
+  const dur = d.rules?.duration;
+  const durPublicada = niveles[0]?.d.rules?.duration;
+  if (dur != null && durPublicada != null && dur !== durPublicada)
+    avisosCajon.push(`${id} → rules.duration: ${dur}s, y los días publicados duran ${durPublicada}s`);
+}
+if (enCajon.length) {
+  console.log(
+    avisosCajon.length === 0
+      ? `      (y los ${enCajon.length} día(s) sin publicar — ${enCajon.join(", ")} — están listos para activarse)`
+      : `      (AVISO, no bloquea: los días sin publicar traen cabos sueltos)\n        ${avisosCajon.join("\n        ")}`
+  );
+}
 
 // ── 3 · La temporada: sus misiones apuntan a estaciones y a gente reales ──
 const antes3 = fallos;

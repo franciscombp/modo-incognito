@@ -359,7 +359,24 @@ export function createEngine({
   function mergedRules(day) {
     const modeRules = currentMode()?.rules ?? {};
     const rules = { ...day.rules };
-    if (modeRules.maxWarnings != null) rules.maxWarnings = modeRules.maxWarnings;
+    // EL CUPO DE AMONESTACIONES: MANDA EL MÁS ESTRICTO DE LOS DOS.
+    //
+    // Antes ganaba SIEMPRE el personaje, y como los cuatro jugables declaran
+    // el suyo, el del día no se leía nunca. El efecto no se veía porque los
+    // días publicados piden 3 y Fran también pide 3 — pero la campaña escala
+    // el cupo a propósito (el día 3 pide 2, el 5 pide 1: es su forma de
+    // apretar), y toda esa escalada era DATO MUERTO. Un campo que se escribe,
+    // se documenta y no se lee jamás es peor que no tenerlo, porque parece
+    // que el diseño está puesto.
+    //
+    // Con el mínimo, el DÍA pone el techo de tolerancia y el personaje solo
+    // puede ser más frágil, nunca más resistente que lo que el día permite —
+    // que es lo que hace que una temporada apriete. Y los días publicados no
+    // cambian: min(3, 3) con Fran es 3, y min(3, 2) con Giu es el 2 que ya
+    // tenía.
+    if (modeRules.maxWarnings != null) {
+      rules.maxWarnings = Math.min(rules.maxWarnings ?? modeRules.maxWarnings, modeRules.maxWarnings);
+    }
     if (modeRules.explore) rules.explore = true;
     if (modeRules.pretendAlways) rules.pretendAlways = true;
     rules.minionSuspicionMul = (day.rules?.minionSuspicionMul ?? 1) * (modeRules.minionSuspicionMul ?? 1);
