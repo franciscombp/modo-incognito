@@ -20,7 +20,13 @@ p.on("pageerror", (e) => consola.push(`[pageerror] ${String(e).slice(0, 140)}`))
 
 await p.goto("http://localhost:4173/", { waitUntil: "domcontentloaded" });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 60000 });
-await p.evaluate(() => window.__game.engine.startDay(0, { skipMinigame: true }));
+// OJO: cuerpo de BLOQUE, no de expresión. `startDay` es `async` y su promesa
+// no se resuelve hasta que alguien pasa el guion de apertura a espacio —cosa
+// que hace el bucle de más abajo—, así que devolverla aquí deja a Playwright
+// esperándola para siempre y la vigilancia no llega a empezar nunca.
+await p.evaluate(() => {
+  window.__game.engine.startDay(0, { skipMinigame: true });
+});
 await p.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 60000 });
 
 // El guion del vestíbulo, a espacio.
@@ -102,9 +108,12 @@ if (paseo) {
       const dx = x - g.player.position.x;
       const dz = z - g.player.position.z;
       if (Math.hypot(dx, dz) < 1) return null;
-      const yaw = 0; // cámara por defecto
-      const right = dx * Math.cos(yaw) - dz * Math.sin(yaw);
-      const up = -(dx * Math.sin(yaw) + dz * Math.cos(yaw));
+      // El rumbo se pasa a tecla con LA MATRIZ DE LA CÁMARA, no con una yaw
+      // escrita a mano: la cámara orbita a un ángulo que se puede retocar en
+      // vivo, así que dando por hecho yaw=0 se camina en diagonal respecto a
+      // lo que se ve y llegar al sitio es cuestión de suerte. `window.__iso`
+      // está expuesto justo para esto (ver main.js).
+      const { right, up } = window.__iso.groundToScreen(dx, dz);
       return Math.abs(right) > Math.abs(up) ? (right > 0 ? "d" : "a") : up > 0 ? "w" : "s";
     }, paseo);
     if (!dir) {
