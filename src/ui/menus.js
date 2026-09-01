@@ -788,7 +788,7 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     // así que quedarse esperando aquí solo retrasaría el retorno sin que
     // nadie se enterase.
     if (!wasHidden && hayViaje(desde, name)) {
-      // ⚠️ SI YA HABÍA UN VIAJE EN MARCHA, `viajar` DEVUELVE false SIN HACER
+      // OJO: SI YA HABÍA UN VIAJE EN MARCHA, `viajar` DEVUELVE false SIN HACER
       // EL CAMBIO — es su cerrojo, y está bien que lo tenga: dos transiciones
       // a la vez dejan la segunda a medias y la pantalla tapada para siempre.
       // Pero entonces hay que montar IGUAL, aquí. Sin esto, pulsar dos
