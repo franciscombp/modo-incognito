@@ -6,6 +6,8 @@ import { characterShot } from "./charshot.js";
 import { icon as svgIcon } from "./icons.js";
 import { buildControlsLegend } from "./controls.js";
 import { listSlots, SLOT_COUNT } from "../game/save.js";
+import { decoradoDe, hayViaje } from "./decorados.js";
+import { createDoors } from "./doors.js";
 
 // Every full-screen menu the game has: title, day select, settings (game +
 // camera), how-to-play and pause. They all live in one overlay that swaps
@@ -65,6 +67,9 @@ export function formatSpare(seconds) {
 export function createMenus(root, { levels, save, actions, modes = {}, looks = null, title = "Modo Incógnito", subtitle = "" }) {
   const layer = el("div", "inc-layer inc-layer--overlay inc-menu inc-hidden", root);
   const scrim = el("div", "inc-menu-scrim", layer);
+  // Las puertas cuelgan de la RAÍZ, no del menú: tapan la pantalla entera y
+  // tienen que seguir tapándola mientras el menú se reordena por dentro.
+  const doors = createDoors(root);
 
   // La barra de aplicación de la "plataforma": marca a la izquierda, estado
   // del sistema a la derecha. Es la cáscara que hace que el menú se lea como
@@ -742,6 +747,22 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   buildControlsLegend(pauseScreen, { touch: matchMedia("(pointer: coarse)").matches });
 
   // ---------------- Plumbing ----------------
+  /**
+   * Poner una pantalla en su sitio. Es la mitad de `show()` que NO decide
+   * nada: la que se ejecuta con las puertas cerradas cuando hay viaje, y sola
+   * cuando no lo hay. Separarla es lo que evita tener dos caminos que
+   * escriben el mismo estado y se separan a la primera.
+   */
+  function montar(name) {
+    Object.entries(screens).forEach(([key, node]) => node.classList.toggle("inc-hidden", key !== name));
+    layer.classList.remove("inc-hidden");
+    document.body.classList.add("menu-open");
+    layer.dataset.screen = name;
+    // EL DECORADO SALE DE LA TABLA, no de la pantalla (ver `decorados.js`).
+    layer.dataset.decorado = decoradoDe(name);
+    focusFirst();
+  }
+
   function show(name) {
     if (name === "settings" && !cameraPanel) {
       cameraPanel = createCameraPanel();
@@ -750,14 +771,36 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
     }
     const wasHidden = layer.classList.contains("inc-hidden");
     const changingScreen = currentScreen !== name;
+    const desde = currentScreen;
     if (currentScreen && changingScreen) previousScreen = currentScreen;
     currentScreen = name;
-    Object.entries(screens).forEach(([key, node]) => node.classList.toggle("inc-hidden", key !== name));
-    layer.classList.remove("inc-hidden");
-    document.body.classList.add("menu-open");
-    layer.dataset.screen = name;
-    focusFirst();
     if (wasHidden || changingScreen) sfxOpen();
+
+    // ── EL VIAJE ────────────────────────────────────────────────────────
+    // Solo si CAMBIA el sitio del edificio (`hayViaje`). Cambiar de pantalla
+    // dentro del mismo decorado es girar la cabeza sobre la misma mesa, y
+    // meter ahí un ascensor sería contar un viaje que no ocurre — además de
+    // poner segundo y medio de espera en mitad de un menú.
+    //
+    // `montar` va DENTRO del viaje: es lo que se cambia con las puertas
+    // cerradas, que es de lo que va la transición. Y no se espera a que
+    // terminen de abrirse — `show()` no devuelve promesa y nadie la aguarda,
+    // así que quedarse esperando aquí solo retrasaría el retorno sin que
+    // nadie se enterase.
+    if (!wasHidden && hayViaje(desde, name)) {
+      // ⚠️ SI YA HABÍA UN VIAJE EN MARCHA, `viajar` DEVUELVE false SIN HACER
+      // EL CAMBIO — es su cerrojo, y está bien que lo tenga: dos transiciones
+      // a la vez dejan la segunda a medias y la pantalla tapada para siempre.
+      // Pero entonces hay que montar IGUAL, aquí. Sin esto, pulsar dos
+      // opciones seguidas se come la segunda: el menú se queda en la pantalla
+      // anterior y desde fuera se ve como un botón que no hace nada, que es
+      // de los fallos más difíciles de creerse mirando el código del botón.
+      doors.viajar(() => montar(name)).then((hubo) => {
+        if (!hubo) montar(name);
+      });
+      return;
+    }
+    montar(name);
   }
 
   function close() {

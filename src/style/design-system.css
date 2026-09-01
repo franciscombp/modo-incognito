@@ -328,6 +328,27 @@
   --btn-line: hsl(var(--p-accent-bright) / 0.3);
   --rim: hsl(var(--p-rim) / var(--p-rim-alpha));
 
+  /* ── EL EDIFICIO COMO MENÚ (docs/PANTALLAS.md §1.8bis) ──
+     Los sitios que hacen de menú —el ascensor, el escritorio, el espejo— son
+     DECORADO, así que sí pintan: son el fondo, no un contenedor pegado
+     encima. Por eso tienen roles propios en vez de reusar `--surface`, que
+     es lo que el holograma dejó en nada a propósito.
+     Las HOJAS del ascensor son metal: más claras por el filo interior, más
+     oscuras hacia fuera. Se define aquí, en la capa 2, para que un tema las
+     re-tiña sin tocar el componente. */
+  --puerta: linear-gradient(100deg, hsl(var(--p-bg-600)) 0%, hsl(var(--p-bg-800)) 62%, hsl(var(--p-bg-900)) 100%);
+  --puerta-filo: hsl(var(--p-accent-bright) / 0.42);
+  /* LO QUE TARDA UNA HOJA, y es la ÚNICA definición: `doors.js` la LEE de
+     aquí en vez de traerse su propio número. Escritos en los dos sitios, se
+     separan al primer retoque — y separados no se ve un fallo, se ve algo
+     peor: el cambio de pantalla ocurre con las puertas a medio abrir. */
+  --dur-puerta: 0.38s;
+  /* El aire de cada sitio: una luz suave que dice dónde estás sin dibujar
+     nada. Cae sobre el velo del menú, no sobre los paneles. */
+  --aire-ascensor: radial-gradient(ellipse 70% 48% at 50% 6%, hsl(var(--p-accent-bright) / 0.16), transparent 70%);
+  --aire-escritorio: radial-gradient(ellipse 62% 54% at 50% 88%, hsl(var(--p-warn) / 0.14), transparent 72%);
+  --aire-espejo: radial-gradient(ellipse 78% 40% at 50% 20%, hsl(var(--p-ink-100) / 0.14), transparent 68%);
+
   /* ── EL HOLOGRAMA ─────────────────────────────────────────────────
      Los roles de la proyección. La lista de misiones ya se veía así —hilo
      fino, brillo, nada de caja— y era la única pieza que lo hacía: el resto
@@ -13510,3 +13531,106 @@ body.inc-minijuego .touch-utils {
     scale: 1;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL ESCENARIO **ES** EL MENÚ — puertas y decorados
+   (diseño: docs/PANTALLAS.md §1.8bis · armazón: src/ui/decorados.js)
+
+   Dos piezas, y las dos son DECORADO, no contenedores:
+
+     · LAS PUERTAS son la transición. Cuelgan de la raíz y no del menú, así
+       que tapan la pantalla entera y siguen tapándola mientras el menú se
+       reordena por dentro.
+     · EL AIRE de cada sitio cae sobre el VELO que ya existe
+       (`.inc-menu-scrim`), no sobre los paneles. Es lo que deja que el menú
+       siga sin una sola caja mientras el fondo cambia de sitio: lo que dice
+       dónde estás es la LUZ, no un marco nuevo.
+
+   Por eso esto no contradice al bloque «EL HOLOGRAMA» de más arriba: aquel
+   prohíbe la superficie PEGADA ENCIMA del juego; esto pinta el sitio que
+   hay detrás. La lista de opciones sigue siendo filas con hilo.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.inc-puertas {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  pointer-events: none;
+}
+
+/* Las hojas viven FUERA del hueco y solo entran al cerrar. Con `translate`
+   y no con `width`: mover una caja es composición y va en la GPU, mientras
+   que animar el ancho reflowea la pantalla entera cada cuadro — y esto corre
+   justo cuando además se está montando la pantalla siguiente. */
+.inc-puerta {
+  flex: 1 1 50%;
+  background: var(--puerta);
+  transition: translate var(--dur-puerta) var(--ease-pop);
+  will-change: translate;
+}
+
+.inc-puerta--izq {
+  translate: -101% 0;
+  /* El filo interior, que es lo único que las dibuja como puertas: la ranura
+     por la que se ve la luz del hueco. */
+  box-shadow: inset -1px 0 0 var(--puerta-filo);
+}
+
+.inc-puerta--der {
+  translate: 101% 0;
+  box-shadow: inset 1px 0 0 var(--puerta-filo);
+}
+
+/* Cerradas. El 101% de reposo y el 0 de aquí no dejan costura en medio ni a
+   escalas raras del lienzo. */
+.inc-puertas.on .inc-puerta {
+  translate: 0 0;
+}
+
+/* CON `prefers-reduced-motion` LAS PUERTAS CORTAN, no se deslizan. Lo pide
+   §1.8bis, y no es un adorno menos: dos hojas cruzando la pantalla es
+   exactamente el movimiento que provoca mareo vestibular. La transición se
+   apaga desde JS además de aquí (`inc-puertas--corta`) porque el JS también
+   pone las esperas a cero: animación y tiempo tienen que irse JUNTOS o se
+   queda un segundo y medio de pantalla tapada sin nada que mirar. */
+.inc-puertas--corta .inc-puerta {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inc-puerta {
+    transition: none;
+  }
+}
+
+/* ── EL AIRE DE CADA SITIO ──
+   Va en el velo, en su `::after`, para no tocarle el fondo: el velo decide
+   por su cuenta si es sólido (antes de que haya partida) o translúcido (en
+   pausa), y eso no se pisa desde aquí. */
+.inc-menu-scrim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-puerta) linear;
+}
+
+.inc-menu[data-decorado="ascensor"] .inc-menu-scrim::after {
+  background: var(--aire-ascensor);
+  opacity: 1;
+}
+
+.inc-menu[data-decorado="escritorio"] .inc-menu-scrim::after {
+  background: var(--aire-escritorio);
+  opacity: 1;
+}
+
+.inc-menu[data-decorado="espejo"] .inc-menu-scrim::after {
+  background: var(--aire-espejo);
+  opacity: 1;
+}
+
+/* `interfaz` (pausa y ajustes) no pinta aire a propósito: no te has movido de
+   sitio, y fingir que sí sería contar una mentira encima de la partida. */

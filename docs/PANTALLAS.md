@@ -17,7 +17,8 @@ dibuja todo, y las pantallas de menú.
 | §2 Selección de personaje como expediente | ◻︎ sin construir — sigue la pantalla de login anterior |
 | §3.2 Evaluación de desempeño | ✅ construido | `src/ui/review.js` |
 | §4 RRHH | ✅ construido | `src/ui/hrCourse.js`, bloque «CURSO DE RRHH» del DS |
-| §1.8bis El escenario ES el menú (ascensor, escritorio, espejo) | ◻︎ **en diseño** | Dirección nueva: sin cajas ni contenedores; la transición son las puertas del ascensor |
+| §1.8bis · armazón de decorados y puertas | ✅ construido | `src/ui/decorados.js`, `src/ui/doors.js`, bloque «EL ESCENARIO ES EL MENÚ» del DS, `check:puertas` |
+| §1.8bis · los tres sitios dibujados (botonera, CV sobre la mesa, espejo) | ◻︎ sin construir — hoy cada sitio es su LUZ, no su mobiliario |
 
 **Referencias en el repo** (`docs/referencias/pantallas/`):
 
@@ -229,6 +230,52 @@ necesita sin que parezca una espera.
 2. **La transición de puertas**, que es la pieza que las une.
 3. **La botonera del ascensor** (título), que es la entrada.
 4. El escritorio con los CV, y el espejo del baño.
+
+> ### Cómo quedaron los pasos 1 y 2
+>
+> **El decorado sale de UNA TABLA** (`src/ui/decorados.js`), no de cada
+> pantalla: `DECORADO_DE` dice qué sitio es cada una y el armazón lo escribe
+> en `data-decorado` del `.inc-menu`. Es el mismo reparto que el registro de
+> verbos — la lista de lo que hay vive en un sitio y quien la usa la lee de
+> ahí. Una pantalla que no esté en la tabla cae en `interfaz` y no rompe
+> nada: si añadir una pantalla costara un fallo, el atajo sería inventarse el
+> decorado en la propia pantalla, que es justo lo que la tabla evita.
+>
+> **Hoy un sitio es su LUZ, no su mobiliario.** Cada decorado pinta un aire
+> (`--aire-*`) sobre el VELO que ya existe, no sobre los paneles. Eso es lo
+> que deja que el menú siga sin una sola caja mientras el fondo cambia de
+> sitio, y es lo que hace que esto no contradiga al bloque «EL HOLOGRAMA»:
+> aquel prohíbe la superficie PEGADA ENCIMA del juego, y esto pinta el sitio
+> que hay detrás. La botonera, los CV sobre la mesa y el espejo (paso 3 y 4)
+> van encima de este armazón sin tener que tocarlo.
+>
+> **Las puertas** (`src/ui/doors.js`) son hermanas del CORTE
+> (`transition.js`): mismo contrato —`viajar(enElNegro)`, una promesa, un
+> cerrojo— porque quien llama no tiene por qué saber cuál le tocó. Cuelgan de
+> la raíz y no del menú: tapan la pantalla entera y siguen tapándola mientras
+> el menú se reordena por dentro.
+>
+> **Solo se viaja si CAMBIA el sitio** (`hayViaje`). De las hojas de vida a
+> elegir día no se viaja: es girar la cabeza sobre la misma mesa, y meter ahí
+> un ascensor contaría un viaje que no ocurre además de poner segundo y medio
+> de espera en mitad de un menú. Abrir ajustes o la pausa tampoco.
+>
+> Tres cosas que costaron:
+>
+> - **El cerrojo se come el clic si no se le mira.** `viajar` devuelve `false`
+>   sin hacer el cambio cuando ya hay un viaje en marcha —y hace bien, dos
+>   transiciones a la vez dejan la segunda a medias—, pero entonces hay que
+>   montar la pantalla IGUAL. Sin eso, pulsar dos opciones seguidas se come la
+>   segunda y se ve como un botón que no hace nada. Lo cazó `check:puertas`.
+> - **Con `prefers-reduced-motion` las puertas CORTAN**, y en las DOS mitades:
+>   sin animación y sin espera. Apagando solo la animación quedaba segundo y
+>   medio de pantalla tapada sin nada que mirar, que es peor que el
+>   movimiento.
+> - **Lo que tarda una hoja se define UNA vez** (`--dur-puerta`, capa 2) y
+>   `doors.js` lo LEE de ahí. Escrito en los dos sitios se separa al primer
+>   retoque, y separado no se ve un fallo: se ve que la pantalla cambia con
+>   las puertas a medio abrir, que es lo único que la transición existe para
+>   tapar.
 
 ---
 

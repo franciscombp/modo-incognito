@@ -1527,6 +1527,26 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   progreso», que llegó a salir de primera cuando no había nada que borrar— y
   se saltaba solo a elegir personaje si no había ninguno, o sea el título
   haciendo el trabajo de la pantalla siguiente.
+- **CADA PANTALLA DE MENÚ ES UN SITIO DEL EDIFICIO, y el sitio sale de UNA
+  TABLA** (`src/ui/decorados.js` → `DECORADO_DE`; diseño en
+  `docs/PANTALLAS.md` §1.8bis). El título es la botonera del ascensor, las
+  hojas de vida son un escritorio, elegir personaje es el espejo del baño; la
+  pausa y los ajustes NO son un sitio (`interfaz`) porque se abren encima de
+  una jornada en curso y mandarlas a otra planta contaría que te has movido.
+  La tabla existe porque el decorado decidido en cada pantalla es cómo se
+  acaba con cuatro menús distintos otra vez — es el mismo reparto que el
+  registro de verbos. Hoy un sitio es su LUZ (`--aire-*` sobre el velo), no su
+  mobiliario: por eso esto no contradice al HOLOGRAMA, que prohíbe la
+  superficie pegada ENCIMA del juego, no el sitio que hay detrás.
+  **Y la transición son LAS PUERTAS del ascensor** (`src/ui/doors.js`),
+  hermanas del CORTE y con su mismo contrato. Solo se viaja si CAMBIA el sitio
+  (`hayViaje`): de las hojas de vida a elegir día no, que es girar la cabeza
+  sobre la misma mesa. Tres cosas que se rompen solas si se tocan: si el
+  cerrojo rechaza un viaje hay que montar la pantalla IGUAL (si no, dos clics
+  seguidos se comen el segundo y parece un botón muerto); con
+  `prefers-reduced-motion` cortan en las DOS mitades (sin animación Y sin
+  espera); y lo que tarda una hoja se define una sola vez en `--dur-puerta`,
+  que `doors.js` lee del CSS. Lo vigila `npm run check:puertas`.
 - **El guardado son TRES RANURAS NUMERADAS, y el personaje va DENTRO**
   (`src/game/save.js`). Antes la ranura ERA el personaje: había tantas
   carreras como gente en el reparto, no se podían tener dos partidas con
