@@ -71,13 +71,29 @@ const ESPERADO = {
 
 const decorados = {};
 for (const pantalla of tabla.pantallas) {
-  // Se abre saltándose el viaje (llamando al menú por dentro) y se lee lo que
-  // quedó escrito en el `data-decorado`.
   await p.evaluate((n) => window.__game.engine.menus.show(n), pantalla);
-  await p.waitForTimeout(700);
+  // SE ESPERA AL ESTADO, NO A UN RELOJ. Cuando hay viaje, la pantalla se monta
+  // con las puertas cerradas —o sea unos 400 ms después— y bajo carga eso se
+  // estira. Con una espera fija de 700 ms esto pasaba solo, y en la tanda
+  // completa suspendía: la prueba medía la máquina, no el menú. Es la misma
+  // lección de `check:chase`, aquí en versión DOM.
+  await p
+    .waitForFunction(
+      (n) => document.querySelector(".inc-menu")?.dataset.screen === n,
+      pantalla,
+      { timeout: 5000 }
+    )
+    .catch(() => {});
   decorados[pantalla] = await p.evaluate(
     () => document.querySelector(".inc-menu")?.dataset.decorado ?? null
   );
+  // Y se deja que las puertas terminen de abrirse antes del siguiente, para
+  // que cada pantalla se mida en su propio viaje y no en la cola del anterior.
+  await p
+    .waitForFunction(() => !document.querySelector(".inc-puertas")?.classList.contains("on"), null, {
+      timeout: 5000,
+    })
+    .catch(() => {});
 }
 const sinDecorado = Object.entries(decorados).filter(([, v]) => !v).map(([k]) => k);
 check("ninguna pantalla se queda SIN decorado", sinDecorado.length === 0, sinDecorado.join(", "));
@@ -114,7 +130,18 @@ check("y en reposo están ABIERTAS: no tapan la pantalla", reposo.tapando === fa
 // Es la regla entera de `hayViaje`, y las dos mitades importan.
 async function viajaAl(desde, hasta) {
   await p.evaluate((n) => window.__game.engine.menus.show(n), desde);
-  await p.waitForTimeout(700);
+  await p
+    .waitForFunction(
+      (n) => document.querySelector(".inc-menu")?.dataset.screen === n,
+      desde,
+      { timeout: 5000 }
+    )
+    .catch(() => {});
+  await p
+    .waitForFunction(() => !document.querySelector(".inc-puertas")?.classList.contains("on"), null, {
+      timeout: 5000,
+    })
+    .catch(() => {});
   // Se mira si las puertas llegan a cerrarse en algún momento del cambio.
   return p.evaluate(async (destino) => {
     const caja = document.querySelector(".inc-puertas");
