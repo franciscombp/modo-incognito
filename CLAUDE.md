@@ -408,6 +408,34 @@ por el ascensor. Es la única que mira la COSTURA — los tres atascos de
 arriba tenían todas sus piezas en verde. Si tocas el bucle de una
 actividad, córrela: es la que dice si la partida se puede terminar.
 
+**Y `npm run check:jugable` la juega ANDANDO.** Son preguntas distintas y
+hacen falta las dos. Para poder mirar la costura, `check:partida` aparta el
+juego: COLOCA a la jugadora en cada estación, le deja al jefe la vista en
+blanco y le sube el cupo a 99 — correcto para lo que mide, porque con el jefe
+encima un fallo sería «me atraparon», que no dice nada de la costura. El
+precio era que nadie miraba lo otro: que se pueda LLEGAR a los sitios, que la
+ENERGÍA dé para los cuatro minutos, y que las dos cosas se puedan hacer con
+el jefe suelto. Eso es BALANCE, no datos — los JSON pueden estar impecables
+(`check:contenido` lo dice) y la jornada ser imposible igual, porque un día
+que no se puede terminar no falla en ningún sitio: se acaba y ya.
+
+Tres cosas de cómo está escrita, y las tres costaron:
+- **Se cede el hilo cada 20 cuadros.** Un bucle de `update()` síncrono no deja
+  correr NI UN temporizador, y el telón que remata la escolta (`onCorte`) es
+  uno: sin ceder, `_esperandoPuesto` no se apagaba nunca y la prueba medía su
+  propio montaje —la jugadora sin control los 240 s enteros—.
+- **Se camina POR EL NAVMESH**, no en línea recta. El piso tiene un muro con
+  un solo hueco: en recta la prueba se clavaba contra él a diez unidades del
+  Parce y lo cantaba como si el café fuera inalcanzable.
+- **Y se juega como quien sabe**: coartada antes del botín que delata (el
+  HDMI va a `sospecha: 1.9`, y el acta lo baja a 1.05), y a un lugar seguro
+  cuando te cazan — el refugio tiene que estar LIBRE, y si es un puesto hay
+  que FINGIR, que si no no cubre nada.
+
+**Las amonestaciones las IMPRIME, no las exige**: medido en cinco jornadas dan
+0, 1, 2, 3 y 3, porque la ronda del jefe es aleatoria. Exigir ahí un número
+sería una prueba a cara o cruz, que es la lección de `check:chase`.
+
 **Mientras dura un gesto no se camina** (`player.inputLocked`). No es una
 restricción caprichosa: es lo que deja libre el eje del mando para el gesto, y
 por eso no hay una tecla nueva que aprender ni nada que inventar en táctil —
