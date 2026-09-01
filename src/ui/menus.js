@@ -27,7 +27,7 @@ function el(tag, className, parent, text) {
   return node;
 }
 
-function button(parent, label, { primary = false, icon = "", onClick, back = false } = {}) {
+function button(parent, label, { primary = false, icon = "", onClick, back = false, planta = "" } = {}) {
   const btn = el("button", `inc-btn ${primary ? "inc-btn--primary" : "inc-btn--secondary"}`, parent);
   btn.type = "button";
   // Icono DIBUJADO, no un carácter: un emoji lo pinta la fuente del sistema y
@@ -35,6 +35,20 @@ function button(parent, label, { primary = false, icon = "", onClick, back = fal
   if (icon) {
     const slot = el("span", "inc-menu-btn-icon", btn);
     slot.innerHTML = svgIcon(icon);
+  }
+  // LA PLANTA, si la opción va a un sitio del edificio (la botonera del
+  // ascensor: `docs/PANTALLAS.md` §1.8bis, paso 3). Es una PIEL, no una
+  // geometría nueva: la fila sigue siendo la misma fila con su mismo hilo y
+  // sus mismos estados, y lo único que se añade es el número de la planta a
+  // la que te lleva. El diseño lo pide así de explícito — «la piel cambia, la
+  // geometría y los estados no».
+  //
+  // `aria-hidden` porque es decorado: quien va por lector de pantalla ya oye
+  // «Jugar», y oír «7 Jugar» no le añade nada — le mete ruido.
+  if (planta) {
+    btn.dataset.planta = planta;
+    const num = el("span", "inc-planta", btn, planta);
+    num.setAttribute("aria-hidden", "true");
   }
   el("span", null, btn, label);
   btn.addEventListener("click", () => {
@@ -115,17 +129,54 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   // Ahora la secuencia es la de una consola: jugar → qué partida → quién.
   // Elegir día y reiniciar viven DENTRO de la partida (pausa), que es donde
   // significan algo; el título solo tiene lo que se necesita para entrar.
+  //
+  // Y EL TÍTULO ES LA BOTONERA DEL ASCENSOR (§1.8bis, paso 3): cada opción
+  // lleva LA PLANTA a la que te manda. No es un adorno — es lo que convierte
+  // tres botones en una botonera sin cambiarles ni la forma ni el
+  // comportamiento. Las plantas salen del lore, no de un sorteo: el 7 es el
+  // piso donde trabajas (`scenes/piso7.json`), la recepción es donde a uno le
+  // explican las cosas, y los ajustes son el cuarto de máquinas.
   const titleMenu = el("div", "inc-menu-menu-list", titleScreen);
   const continueBtn = button(titleMenu, "Jugar", {
     primary: true,
     icon: "play",
+    planta: "7",
     onClick: () => {
       renderSlots();
       show("slots");
     },
   });
-  button(titleMenu, "Ajustes", { icon: "gear", onClick: () => show("settings") });
-  button(titleMenu, "Cómo se juega", { icon: "help", onClick: () => show("help") });
+  button(titleMenu, "Ajustes", { icon: "gear", planta: "B", onClick: () => show("settings") });
+  button(titleMenu, "Cómo se juega", { icon: "help", planta: "1", onClick: () => show("help") });
+  // EL INDICADOR DE PLANTA, y es lo que de verdad lo vuelve una botonera.
+  //
+  // Con solo los números en las filas, esto es una lista numerada. Lo que lo
+  // convierte en un ascensor es que ARRIBA haya un indicador que va marcando a
+  // dónde te llevaría lo que tienes señalado: es el gesto que uno reconoce sin
+  // que se lo expliquen, y cuesta una línea de estado en vez de un decorado.
+  //
+  // Se cuelga del propio `focusin` de la lista y no del cursor (`focusNav`):
+  // así funciona con el teclado, con el dedo, con el ratón y con la palanca
+  // sin registrar nada en ninguna parte, porque los cuatro acaban dando FOCO a
+  // un `<button>`. Registrarlo en el cursor habría sido una quinta puerta que
+  // mantener sincronizada.
+  const ascensor = el("div", "inc-ascensor", titleScreen);
+  ascensor.setAttribute("aria-hidden", "true");
+  const ascensorPlanta = el("span", "inc-ascensor-planta", ascensor, "7");
+  function marcarPlanta(destino) {
+    const planta = destino?.dataset?.planta;
+    if (!planta) return;
+    ascensorPlanta.textContent = planta;
+    // Un parpadeo corto al cambiar de planta, como el display de verdad. Se
+    // reinicia la animación quitando y volviendo a poner la clase; sin el
+    // reflow de en medio el navegador une los dos cambios y no se ve nada.
+    ascensor.classList.remove("cambia");
+    void ascensor.offsetWidth;
+    ascensor.classList.add("cambia");
+  }
+  titleMenu.addEventListener("focusin", (e) => marcarPlanta(e.target.closest("[data-planta]")));
+  titleMenu.addEventListener("pointerover", (e) => marcarPlanta(e.target.closest("[data-planta]")));
+
   const charBadge = el("div", "inc-menu-title-char", titleScreen);
   const titleFoot = el("div", "inc-menu-title-foot", titleScreen);
 

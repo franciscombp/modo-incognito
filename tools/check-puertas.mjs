@@ -170,6 +170,71 @@ check(
   (await viajaAl("title", "settings")) === false
 );
 
+// ── 4bis · LA BOTONERA: cada opción del título lleva su planta ──────────
+// El número es una PIEL sobre la fila de siempre, así que lo que hay que
+// vigilar no es que se vea bonito: es que siga siendo una fila (que no le haya
+// salido una caja al decorarla), que el indicador SIGA al cursor —si no, es
+// una lista numerada y no una botonera— y que el número no se lo lea en voz
+// alta un lector de pantalla, que oiría «7 Jugar» sin ganar nada.
+await p.evaluate(() => window.__game.engine.menus.show("title"));
+await p
+  .waitForFunction(() => document.querySelector(".inc-menu")?.dataset.screen === "title", null, {
+    timeout: 5000,
+  })
+  .catch(() => {});
+const botonera = await p.evaluate(() => {
+  const filas = [...document.querySelectorAll(".inc-menu-screen-title .inc-btn")];
+  const plantas = filas.map((f) => f.dataset.planta ?? null);
+  const num = document.querySelector(".inc-planta");
+  const s = num ? getComputedStyle(num) : null;
+  return {
+    filas: filas.length,
+    plantas,
+    todasConPlanta: filas.length > 0 && plantas.every(Boolean),
+    // Ni fondo ni borde ni esquina: sigue siendo tinta sobre la fila.
+    caja: s
+      ? s.backgroundColor !== "rgba(0, 0, 0, 0)" ||
+        parseFloat(s.borderTopWidth) > 0 ||
+        parseFloat(s.borderTopLeftRadius) > 4
+      : null,
+    oculta: num?.getAttribute("aria-hidden") === "true",
+    display: document.querySelector(".inc-ascensor-planta")?.textContent ?? null,
+  };
+});
+check(
+  "cada opción del título lleva SU planta",
+  botonera.todasConPlanta === true,
+  JSON.stringify(botonera)
+);
+check(
+  "y el número sigue siendo TINTA, no una plaquita",
+  botonera.caja === false,
+  JSON.stringify(botonera)
+);
+check(
+  "el lector de pantalla no lee el número (oiría «7 Jugar»)",
+  botonera.oculta === true,
+  JSON.stringify(botonera)
+);
+
+// El indicador SIGUE al cursor: se enfoca la última opción y tiene que
+// marcar SU planta, no la de la primera.
+const sigue = await p.evaluate(async () => {
+  const filas = [...document.querySelectorAll(".inc-menu-screen-title .inc-btn[data-planta]")];
+  const ultima = filas[filas.length - 1];
+  ultima.focus();
+  await new Promise((r) => setTimeout(r, 120));
+  return {
+    esperado: ultima.dataset.planta,
+    marcado: document.querySelector(".inc-ascensor-planta")?.textContent ?? null,
+  };
+});
+check(
+  "y el indicador de planta SIGUE al cursor (si no, es una lista numerada)",
+  sigue.marcado === sigue.esperado,
+  JSON.stringify(sigue)
+);
+
 // ── 5 · Con `prefers-reduced-motion`, las puertas CORTAN ─────────────────
 // Las dos mitades: sin animación Y sin espera. Una sola de las dos deja el
 // peor de los dos mundos.

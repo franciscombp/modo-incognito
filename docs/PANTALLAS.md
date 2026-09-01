@@ -18,7 +18,8 @@ dibuja todo, y las pantallas de menú.
 | §3.2 Evaluación de desempeño | ✅ construido | `src/ui/review.js` |
 | §4 RRHH | ✅ construido | `src/ui/hrCourse.js`, bloque «CURSO DE RRHH» del DS |
 | §1.8bis · armazón de decorados y puertas | ✅ construido | `src/ui/decorados.js`, `src/ui/doors.js`, bloque «EL ESCENARIO ES EL MENÚ» del DS, `check:puertas` |
-| §1.8bis · los tres sitios dibujados (botonera, CV sobre la mesa, espejo) | ◻︎ sin construir — hoy cada sitio es su LUZ, no su mobiliario |
+| §1.8bis · la botonera del ascensor (título) | ✅ construido | La planta en cada opción + indicador que sigue al cursor (`--holo-drop`, `check:puertas`) |
+| §1.8bis · el escritorio con los CV y el espejo del baño | ◻︎ sin construir | Esos dos siguen siendo su LUZ, no su mobiliario |
 
 **Referencias en el repo** (`docs/referencias/pantallas/`):
 
@@ -271,6 +272,29 @@ necesita sin que parezca una espera.
 >   sin animación y sin espera. Apagando solo la animación quedaba segundo y
 >   medio de pantalla tapada sin nada que mirar, que es peor que el
 >   movimiento.
+>
+> ### Y cómo quedó el paso 3, la botonera
+>
+> **Cada opción del título lleva LA PLANTA a la que te manda** (7 el piso donde
+> trabajas, 1 la recepción donde a uno le explican las cosas, B el cuarto de
+> máquinas), y arriba un indicador marca la de lo que tienes señalado. Eso
+> último es lo que de verdad lo vuelve una botonera: solo con los números en
+> las filas, esto es una lista numerada.
+>
+> **Es una PIEL, y es literal**: no se le toca a la fila ni la geometría, ni el
+> hilo, ni los estados, ni el lavado del cursor — lo único que se añade es un
+> número. Lo pide el propio §1.8bis, y es lo que evita que un botón diegético
+> deje de notarse pulsable, que es como se rompe un menú por querer decorarlo.
+> Por lo mismo el número es TINTA y no una plaquita de latón con relieve: eso
+> sería exactamente el contenedor que el HOLOGRAMA quitó, y `check:puertas`
+> lo comprueba.
+>
+> Dos detalles que valen para lo que venga: el indicador se cuelga del
+> `focusin` de la lista y no del cursor, así que funciona con teclado, dedo,
+> ratón y palanca sin registrar nada en ninguna parte —los cuatro acaban dando
+> foco a un `<button>`—; y el número va `aria-hidden`, porque quien va por
+> lector de pantalla ya oye «Jugar» y «7 Jugar» solo le mete ruido.
+>
 > - **Lo que tarda una hoja se define UNA vez** (`--dur-puerta`, capa 2) y
 >   `doors.js` lo LEE de ahí. Escrito en los dos sitios se separa al primer
 >   retoque, y separado no se ve un fallo: se ve que la pantalla cambia con

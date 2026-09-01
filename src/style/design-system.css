@@ -374,6 +374,11 @@
   --holo-glow: 0 0 14px hsl(var(--p-accent-bright) / 0.16);
   --holo-ink-glow: 0 0 10px hsl(var(--p-accent-bright) / 0.4);
   --holo-bracket: 12px;
+  /* LA SOMBRA DURA, que es la pieza que PERMITE que no haya caja: hace
+     legible la tinta sobre el escenario sin fondo detrás. Estaba escrita a
+     pelo en cinco sitios y sin nombre, así que no se podía ni retocar ni
+     re-tintar por tema — que es justo lo que la capa 2 existe para arreglar. */
+  --holo-drop: 0 2px 0 hsl(var(--p-shadow-hue) / 0.9);
 
   /* ── Acento ── */
   --accent: hsl(var(--p-accent));
@@ -13634,3 +13639,92 @@ body.inc-minijuego .touch-utils {
 
 /* `interfaz` (pausa y ajustes) no pinta aire a propósito: no te has movido de
    sitio, y fingir que sí sería contar una mentira encima de la partida. */
+
+/* ── LA BOTONERA DEL ASCENSOR (docs/PANTALLAS.md §1.8bis, paso 3) ──
+   El título es la botonera: cada opción lleva LA PLANTA a la que te manda, y
+   arriba un indicador marca la de lo que tienes señalado.
+
+   Es una PIEL, y eso es literal: no se le toca a la fila ni la geometría, ni
+   el hilo, ni los estados, ni el lavado del cursor. Lo único que se añade es
+   un número. Lo pide así el propio §1.8bis —«la piel cambia, la geometría y
+   los estados no»— y es lo que evita que un botón diegético deje de notarse
+   pulsable, que es como se rompe un menú por querer decorarlo.
+
+   Y no hay caja: el número es TINTA, con la misma sombra dura que hace
+   legible el resto sobre el escenario. Una plaquita de latón con su relieve
+   sería exactamente el contenedor que el HOLOGRAMA quitó. */
+
+.inc-planta {
+  /* Ancho fijo para que los números caigan en columna aunque uno sea «B»:
+     una botonera con los dígitos bailando no se lee como una botonera. */
+  min-width: 1.6em;
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 0.82em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-align: center;
+  /* Apagada hasta que la señalas: en un ascensor el número se ENCIENDE. */
+  color: var(--text-dim, var(--text));
+  opacity: 0.5;
+  transition: opacity var(--dur-fast) linear, color var(--dur-fast) linear;
+}
+
+/* Encendida. Va con `:where()` en los calificadores para que la regla valga
+   (0,1,0) y no entre en la carrera de especificidad con las familias de
+   botón — la misma cautela que el lavado del cursor, que perdió tres veces
+   por subir de clase en vez de bajar de peso a la rival. */
+:where(.inc-btn:hover, .inc-btn:focus-visible, .inc-btn.nav-cursor) .inc-planta {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* El indicador de planta: el numerito de arriba de las puertas. */
+.inc-ascensor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--mono);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--text-dim, var(--text));
+  opacity: 0.75;
+}
+
+.inc-ascensor::before {
+  /* La flecha de subida, dibujada con borde: no es un icono de `icons.js`
+     porque no es un icono de interfaz, es parte del rótulo. */
+  content: "";
+  width: 0;
+  height: 0;
+  border-inline: 5px solid transparent;
+  border-bottom: 7px solid var(--accent);
+  opacity: 0.85;
+}
+
+.inc-ascensor-planta {
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  text-shadow: var(--holo-drop);
+}
+
+/* El parpadeo al cambiar de planta. Corto y sin desplazar nada: es un
+   display, no un salto. */
+.inc-ascensor.cambia .inc-ascensor-planta {
+  animation: inc-planta-cambia var(--dur-base) var(--ease-out, ease-out);
+}
+
+@keyframes inc-planta-cambia {
+  0% { opacity: 0.25; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inc-ascensor.cambia .inc-ascensor-planta {
+    animation: none;
+  }
+}
