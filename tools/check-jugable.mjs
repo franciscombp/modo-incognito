@@ -212,7 +212,9 @@ const jornada = await p.evaluate(async () => {
   // 2400 cuadros = 40 s andando. El piso se cruza de punta a punta en bastante
   // menos; el tope solo existe para que un fallo no cuelgue la prueba. Quien
   // dice de verdad «no se puede llegar» es el detector de atascos de abajo.
-  const caminarA = async (x, z, { tol = 1.6, cuadros = 2400, etiqueta = "" } = {}) => {
+  // `yaVale` NO es una forma de llegar antes: es lo que se pregunta cuando el
+  // paseo se ATASCA, para saber si ese atasco importa. Ver `esconderse`.
+  const caminarA = async (x, z, { tol = 1.6, cuadros = 2400, etiqueta = "", yaVale = null } = {}) => {
     let mejor = Infinity;
     let sinMejorar = 0;
     let ruta = null;
@@ -269,7 +271,13 @@ const jornada = await p.evaluate(async () => {
       if (d < mejor - 0.05) {
         mejor = d;
         sinMejorar = 0;
-      } else if (++sinMejorar > 240) {
+      } else if (++sinMejorar > 240 && yaVale?.()) {
+        // ATASCADA PERO YA VALE. No todo atasco es un fallo: si lo que se
+        // venía a conseguir ya está conseguido, dejar de acercarse no dice
+        // nada malo del piso. Es el caso del refugio (ver `esconderse`).
+        soltar();
+        return true;
+      } else if (sinMejorar > 240) {
         // Cuatro segundos sin acercarse: o hay un mueble en medio que no se
         // bordea, o el destino no es alcanzable andando.
         // Un atasco con la jornada YA TERMINADA no dice nada: el motor deja
@@ -285,6 +293,7 @@ const jornada = await p.evaluate(async () => {
       await avanzar(1);
     }
     soltar();
+    if (yaVale?.()) return true;
     if (!g.gameOver && !seAgoto)
       stalls.push(`${etiqueta || "destino"}: no llegó en ${cuadros} cuadros`);
     return false;
@@ -398,9 +407,31 @@ const jornada = await p.evaluate(async () => {
     if (!elegido) return false;
     const cerca = elegido.s;
     g.player.keys.delete(" ");
+    // SE VA AL CENTRO, PERO EL FALLO ES NO ESTAR CUBIERTA.
+    //
+    // Esto pedía acercarse a `radius * 0.5` del punto del refugio y cantaba
+    // «no se puede llegar andando» si no lo lograba. Pero esa distancia es un
+    // SUCEDÁNEO de estar a salvo, y encima no siempre se puede cumplir: una
+    // sala de reuniones tiene MESA (`tableShape` en el plano), su centro no se
+    // pisa, y el punto de la Sala 1 cae justo en el canto de la suya. Según
+    // por qué lado entres te plantas a 2,3 y ya no te acercas más — con la
+    // jugadora DENTRO del radio y perfectamente cubierta. La prueba fallaba a
+    // cara o cruz por un fallo de juego que no existía.
+    //
+    // Lo que NO vale es rebajar el objetivo a «en cuanto cubra, para»: el
+    // borde del radio es el peor sitio del piso, porque el jefe es INAMOVIBLE
+    // (`_updateCrowdSeparation`) y un empujón suyo te saca de la cobertura.
+    // Medido: parando en el borde, la jornada acababa en 3/3 amonestaciones y
+    // 4 de 8 misiones, contra 13/13 yendo al fondo. Quien sabe jugar se mete
+    // DENTRO, así que la prueba sigue yendo al centro.
+    //
+    // Se queda, entonces, donde debe estar: en el ATASCO. Si no puede
+    // acercarse más pero el juego dice que está cubierta (`inSafeSpot`, que en
+    // una sala basta con entrar), eso no es un fallo del piso.
     await caminarA(cerca.x, cerca.z, {
       tol: Math.max(1.1, (cerca.radius ?? 2) * 0.5),
       etiqueta: `refugio ${cerca.id}`,
+      yaVale: () => !!g.inSafeSpot,
     });
     soltar();
     // En un puesto hay que FINGIR para estar cubierta; en una sala basta con
