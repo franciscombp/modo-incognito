@@ -152,34 +152,46 @@ check(
 // y tocar su casilla el paso puede haber CAMBIADO — y tocar la dirección
 // vieja es un fallo que además GASTA el paso nuevo. Una sola tirada era una
 // carrera contra el compás; cuatro con lectura fresca, no.
-let padOk = false;
-let padDetalle = "";
-for (let intento = 0; intento < 4 && !padOk; intento++) {
-  // EL COMPÁS SE AVANZA EN CUADROS, no durmiendo un segundo. El baile late
-  // dentro de game.update, que va por rAF — y bajo carga el rAF se congela
-  // ratos enteros mientras los toques caen al vacío: cuatro intentos
-  // seguidos leyendo el MISMO paso y sin un acierto, que es como se vio en
-  // la suite. Avanzar update(1/60) a mano es la lección de siempre de las
-  // pruebas de IA: se mide el mecanismo, no la respiración del navegador.
-  await p.evaluate(() => {
-    const g = window.__game.engine.game;
-    for (let i = 0; i < 70; i++) g.update(1 / 60);
-  });
-  await p.waitForTimeout(120);
-  const paso2 = await p.evaluate(() => {
-    const g = window.__game.engine.game;
-    const s2 = g.baile.snapshot();
-    return { dir: s2.pasos[s2.indice]?.dir, aciertos: s2.aciertos };
-  });
-  const pad = await p.locator(`.inc-baile-pad[data-dir="${paso2.dir}"]`).boundingBox().catch(() => null);
-  if (!pad) break;
-  await p.touchscreen.tap(pad.x + pad.width / 2, pad.y + pad.height / 2);
-  await p.waitForTimeout(200);
-  const trasPad = await p.evaluate(() => window.__game.engine.game.baile.snapshot().aciertos);
-  padOk = trasPad > paso2.aciertos;
-  padDetalle = `${paso2.aciertos} → ${trasPad} (dir ${paso2.dir}, intento ${intento + 1})`;
+// LO QUE SE PREGUNTA AQUÍ ES SI EL DEDO LLEGA AL JUEGO, no si acierta.
+//
+// Esto leía el paso actual, tocaba SU casilla y exigía que subiera el
+// acierto. Y perdía una carrera que no puede ganar: EL COMPÁS NO ESPERA —es
+// la regla del baile— y entre leer el paso y tocarlo hay un viaje por CDP.
+// Con la máquina cargada ese viaje se pasa del compás, el paso ya es otro, y
+// el toque cae en la dirección vieja. La tanda completa se caía por eso
+// mientras la comprobación pasaba suelta una y otra vez; el arreglo anterior
+// (reintentar cuatro veces) solo hacía la carrera más larga, no la ganaba.
+// Y al agotarse los intentos con la pantalla ya cerrada, reventaba entera con
+// un TypeError sobre `pasos` de null.
+//
+// Que acertar puntúa ya lo demuestra el empujón de palanca de arriba. Lo que
+// falta por saber es si la CASILLA está cableada al dedo, y eso se mide
+// envolviendo `pulsar`, la única puerta de entrada del verbo — la misma
+// técnica que check:verbos-mandos, y la única que no depende del compás. El
+// manejador resuelve `...game.baile.pulsar` en el momento del clic, así que
+// envolver la instancia lo intercepta.
+await p.evaluate(() => {
+  const b = window.__game.engine.game.baile;
+  window.__pulsos = [];
+  const original = b.pulsar.bind(b);
+  b.pulsar = (dir) => {
+    window.__pulsos.push(dir);
+    return original(dir);
+  };
+});
+const padDerecha = await p
+  .locator('.inc-baile-pad[data-dir="derecha"]')
+  .boundingBox()
+  .catch(() => null);
+if (padDerecha) {
+  await p.touchscreen.tap(padDerecha.x + padDerecha.width / 2, padDerecha.y + padDerecha.height / 2);
 }
-check("tocar la casilla del paso también cuenta", padOk, padDetalle);
+const pulsos = await p.evaluate(() => window.__pulsos ?? []);
+check(
+  "tocar la casilla del paso también cuenta",
+  pulsos.includes("derecha"),
+  padDerecha ? `el toque no cruzó pulsar(): ${JSON.stringify(pulsos)}` : "no se encontró la casilla"
+);
 
 // ── 4 · Y EL MANDO FÍSICO TAMBIÉN BAILA ──
 // La API de gamepads no se puede emular desde Playwright, así que se STUBEA
