@@ -1196,6 +1196,43 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   a 35° antes de empezar — su yaw por defecto es 0 y el de un muñeco recién
   montado también, así que «mira a cámara» se cumpliría solo y la
   comprobación del soliloquio pasaría en verde con el giro roto.
+- **UN DÍA QUE EMPIEZA, EMPIEZA ENTERO — Y LOS CUERPOS TAMBIÉN**
+  (`resetEntities` en engine.js). Un día nuevo NO monta un piso nuevo: la
+  jugadora, el jefe y los secuaces son los MISMOS objetos siempre (main.js los
+  crea una vez), así que todo lo que dejó puesto el intento anterior sigue
+  puesto hasta que alguien lo quite. Se quitaba la mitad, y las dos mitades
+  que faltaban daban el mismo síntoma: «en algunos reinicios el personaje no
+  vuelve a su sitio y rompe la cinemática».
+  - **LA MALLA NO VOLVÍA.** Se escribía `player.position` —el sitio LÓGICO— y
+    nada más. Quien mueve el cuerpo QUE SE VE es `player.update`, y ese update
+    está detrás de `!engine.isPaused`… mientras que **el guion de apertura pasa
+    con la partida EN PAUSA**. O sea que durante toda la cinemática la jugadora
+    estaba en pantalla donde la dejó ayer, la cámara encuadraba el ascensor
+    vacío, y el cuerpo aparecía de golpe al reanudar. `boss.waitAt` ya tenía
+    este arreglo, con el comentario al lado; la jugadora se había quedado sin
+    él, y los secuaces también.
+  - **Y UN CORTE DE AYER SE COBRABA HOY** (`Game._conTelon`). Los tres
+    traslados largos escriben `player.position` DESDE DENTRO DEL NEGRO, y el
+    negro tarda 260 ms en llegar. Reiniciar dentro de esa ventana dejaba la
+    partida nueva con el cuerpo en el ascensor y la POSICIÓN en el puesto de
+    ayer. El motor RETIRA el día viejo (`game.retirar()`) antes de montar el
+    nuevo y el corte pendiente ya no aplica su cambio — no se cancela, que
+    subir un telón a medias es peor.
+  - Sobrevivían además `walkTo`, `inputLocked` y la pose: un día cortado
+    mientras te sientan en tu puesto arrancaba el siguiente caminando sola
+    hacia el destino de ayer, o directamente sin mando.
+  - Y el jefe se quedaba con `esperando`/`seated`, que solo suelta `standUp()`
+    al superar la puerta del día: pasar al día 2 —que ya no lo planta en la
+    puerta— lo dejaba de estatua la jornada entera sin que nada fallara.
+  ⚠️ **Es «en ALGUNOS reinicios» por un motivo exacto, no por azar:** una
+  jornada que termina bien se termina SALIENDO POR EL ASCENSOR, así que la
+  malla ya estaba donde tenía que estar. Se rompe cuando el día anterior acabó
+  en otro sitio —el despido en tu puesto, el reintento a mitad de partida—,
+  que es justo cuando más se reinicia.
+  Lo vigila `npm run check:reinicio`, que mide **con la caja del guion
+  abierta**: es el único momento en que el fallo existe, porque el primer
+  `player.update` de la partida coloca la malla y a partir de ahí todo se ve
+  idéntico se hubiera reseteado o no.
 - **NADIE SE TELETRANSPORTA. NUNCA.** Un cuerpo que parpadea de sitio deja
   de ser un cuerpo, y es lo primero que delata que esto es un prototipo.
   Cuando el juego necesita llevar a alguien a un sitio se usa

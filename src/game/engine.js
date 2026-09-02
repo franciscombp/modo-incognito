@@ -596,6 +596,43 @@ export function createEngine({
   }
 
   // ---------------- Day lifecycle ----------------
+  /**
+   * DEJAR EL PISO COMO SI NADIE HUBIERA JUGADO TODAVÍA.
+   *
+   * Un día que empieza NO es un día nuevo: los cuerpos son los mismos objetos
+   * de siempre (main.js los crea una vez), así que todo lo que el intento
+   * anterior dejó puesto sigue puesto hasta que alguien lo quite. Y lo que se
+   * quitaba era la MITAD.
+   *
+   * ── LA MALLA NO VOLVÍA ──
+   *
+   * Aquí se escribía `player.position` —el sitio LÓGICO— y nada más. Quien
+   * mueve el cuerpo que se ve es `player.update`, y ese update está detrás de
+   * `!engine.isPaused` (main.js)… mientras que el guion de apertura pasa CON
+   * LA PARTIDA EN PAUSA. O sea que durante toda la cinemática de apertura la
+   * jugadora estaba, en pantalla, DONDE LA DEJÓ EL DÍA ANTERIOR: en su
+   * puesto, en el ala sur, en la sala donde se escondió. La cámara encuadraba
+   * el ascensor —que sí sabe dónde está de verdad— y allí no había nadie; el
+   * cuerpo aparecía de golpe al reanudar. Eso es el reporte: en algunos
+   * reinicios el personaje no vuelve a su sitio y rompe la escena.
+   *
+   * Y ES «EN ALGUNOS» POR UN MOTIVO EXACTO, no por azar: una jornada que
+   * termina bien se termina SALIENDO POR EL ASCENSOR, así que la malla ya
+   * estaba donde tenía que estar y no se notaba nada. Se rompe cuando el día
+   * anterior acabó en otro sitio — el despido en tu puesto, el reintento a
+   * mitad de partida—, que es justo cuando más se reinicia.
+   *
+   * `boss.waitAt` ya tenía este mismo arreglo y con el mismo comentario al
+   * lado; la jugadora se había quedado sin él.
+   *
+   * ── Y LO QUE VENÍA MANDANDO DESDE AYER ──
+   *
+   * `walkTo` (la caminata guiada), `inputLocked` y la pose sobrevivían al
+   * reinicio. Un día que se corta mientras te sientan en tu puesto —un regaño,
+   * la escolta— dejaba un paseo pendiente y el mando bloqueado: al reanudar,
+   * la jugadora echaba a andar sola hacia el destino de AYER en mitad de la
+   * apertura, o directamente no se podía mover en toda la jornada.
+   */
   function resetEntities() {
     player.position.x = spawn.x;
     player.position.z = spawn.z;
@@ -606,6 +643,19 @@ export function createEngine({
     player.isHiding = false;
     player.isPretending = false;
     player.isDoingActivity = false;
+    // Lo que el intento anterior dejó mandando. `walkTo = null` basta para
+    // soltar al caminante: `player.update` lo para solo al ver que ya no hay
+    // paseo (ver el `else if (this._walker.activo)`).
+    player.walkTo = null;
+    player.inputLocked = false;
+    player.pose = null;
+    player.isAsleep = false;
+    player.isEnjoying = false;
+    // Y EL CUERPO SE MUEVE YA, que es lo que no pasaba: la apertura va en
+    // pausa y `player.update` —el único que escribe la malla— no corre.
+    player.sprite.setMoving(false);
+    player.sprite.setPose(null);
+    player.sprite.setPosition(spawn.x, spawn.z);
 
     // Start him at the patrol waypoint furthest from the lifts, so the day
     // doesn't open with the boss standing on top of the player. Con correa
@@ -621,10 +671,21 @@ export function createEngine({
         pick = i;
       }
     });
+    // DE PIE Y DE RONDA, pase lo que pase. `waitAt`/`sitAt` dejan al jefe
+    // CONGELADO (`esperando`/`seated`) y solo los suelta `standUp()`, que lo
+    // llama la puerta del día al superarse. Un día que se corta antes de
+    // saludarle —o el paso al día 2, que ya no lo planta en la puerta— dejaba
+    // esas banderas puestas: Gabo se pasaba la jornada siguiente de estatua.
+    // Va ANTES de colocarlo porque `standUp` recoloca su punto de ronda.
+    boss.standUp();
     boss.position.x = patrolRoute[pick].x;
     boss.position.z = patrolRoute[pick].z;
     boss.routeIndex = pick;
     boss.resetToPatrol();
+    // Y su malla también viaja ya: si hoy le toca esperar en la puerta,
+    // `waitAt` la volverá a colocar (y lo hace igual, por lo mismo); si no,
+    // este es el único sitio que la mueve antes de que la partida arranque.
+    boss.sprite?.setPosition(boss.position.x, boss.position.z);
   }
 
   // Cuánto dura, como mínimo, la subida del ascensor una vez elegido cómo
@@ -808,6 +869,13 @@ export function createEngine({
    * puertas descubren tiene que ser ya el día que empieza.
    */
   function prepareFloor(day) {
+    // EL DÍA DE AYER DEJA DE MANDAR ANTES DE TOCAR NADA. No basta con soltar
+    // la referencia: un CORTE pedido por la jornada anterior (te sientan tras
+    // un regaño, la escolta que se atasca) tarda 260 ms en llegar a su cambio,
+    // y ese cambio escribe en `player`, que es el MISMO objeto todos los días.
+    // Reiniciar dentro de esa ventana colocaba a la jugadora nueva en el
+    // puesto de la vieja. Ver `Game._conTelon`.
+    game?.retirar();
     setInLevel(true);
     bossSpeedBonus = 1;
     applyTheme(day.theme, { renderer, scene, ...lights });
@@ -981,6 +1049,11 @@ export function createEngine({
       if (!watcher) return;
       const route = routes[def.route] ?? routes.jefe ?? patrolRoute;
       watcher.setRoute(route);
+      // Y LA MALLA VIAJA CON ÉL, por lo mismo que la de la jugadora y la del
+      // jefe (ver resetEntities): `setRoute` lo coloca en su ronda, pero el
+      // cuerpo que se ve lo mueve su update — y la apertura va en pausa. Sin
+      // esto, el secuaz pasaba la cinemática plantado donde lo dejó ayer.
+      watcher.sprite?.setPosition(watcher.position.x, watcher.position.z);
       watcher.setPointsOfInterest(spots);
       watcher.setActive(true);
       onDuty.push(watcher);

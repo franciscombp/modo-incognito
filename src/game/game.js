@@ -356,6 +356,9 @@ export class Game {
     this.win = false;
     this.paused = false;
     this._finished = false;
+    // ESTE DÍA SIGUE SIENDO EL DÍA. Lo baja `retirar()` cuando empieza otro:
+    // ver `_conTelon`, que es quien lo lee.
+    this._retirada = false;
     // Las seis: la salida abierta y la tarea de irse (ver _updateClosingTime).
     this.closingAnnounced = false;
     this.exitOpen = false;
@@ -2692,6 +2695,46 @@ export class Game {
    * sentada y fingiendo, y ÉL vuelve a su ronda. Con su anuncio, para que
    * el cambio de sitio se entienda como lo que es: te llevó él.
    */
+  /**
+   * ESTE DÍA SE ACABÓ: lo llama el motor al montar el siguiente.
+   *
+   * No destruye nada —el `Game` viejo se suelta solo— pero deja dicho que ya
+   * no manda, que es lo que `_conTelon` necesita saber.
+   */
+  retirar() {
+    this._retirada = true;
+  }
+
+  /**
+   * BAJAR EL TELÓN PARA COLOCAR A ALGUIEN — Y SOLO SI ESTE DÍA SIGUE SIENDO
+   * EL DÍA.
+   *
+   * Los tres traslados largos (te sientan tras un regaño, el paseo al puesto
+   * que se agota, la escolta que se atasca) terminan escribiendo
+   * `player.position` DESDE DENTRO DEL NEGRO. Y el negro tarda: el telón baja
+   * en 260 ms y el cambio va después (ui/transition.js).
+   *
+   * Ahí está la trampa. `player` es el MISMO objeto todos los días —main.js
+   * lo monta una vez—, así que un corte pedido por el día de ayer y resuelto
+   * hoy escribe en la jugadora de HOY. Reiniciar dentro de esa ventana dejaba
+   * la partida nueva con el cuerpo en el ascensor (donde lo pone
+   * `resetEntities`) y la POSICIÓN en el puesto de ayer: la cámara seguía a
+   * un sitio donde no había nadie, la escolta arrancaba desde el ala sur, y
+   * la apertura se veía rota sin que nada fallara. Es la otra mitad de «en
+   * algunos reinicios el personaje no vuelve a su sitio».
+   *
+   * Un corte de ayer no se cancela —el telón ya está bajando y subirlo a
+   * medias es peor—: simplemente no aplica su cambio.
+   */
+  _conTelon(cambio) {
+    const aplicar = () => {
+      if (this._retirada) return;
+      cambio();
+    };
+    if (this.onCorte) this.onCorte(aplicar);
+    else aplicar();
+  }
+
   seatAtDesk() {
     this.boss.resetToPatrol();
     const desk = safeSpots.find((s) => s.kind === "desk");
@@ -2725,7 +2768,7 @@ export class Game {
 
     if (d > SEAT_WALK_MAX && this.onCorte) {
       this.player.inputLocked = true;
-      this.onCorte(() => {
+      this._conTelon(() => {
         this.player.position.x = desk.x;
         this.player.position.z = desk.z;
         this.player.walkTo = null;
@@ -2814,8 +2857,7 @@ export class Game {
       this.player.walkTo = null;
       p.sentarse();
     };
-    if (this.onCorte) this.onCorte(acabar);
-    else acabar();
+    this._conTelon(acabar);
   }
 
   /**
@@ -3540,8 +3582,7 @@ export class Game {
           this.player.position.z = mesa.z;
           this.player.walkTo = null;
         };
-        if (this.onCorte) this.onCorte(acabar);
-        else acabar();
+        this._conTelon(acabar);
         this._escoltaPlazo = ESCOLTA_PLAZO; // no reencolar cortes cada cuadro
       }
       return;
