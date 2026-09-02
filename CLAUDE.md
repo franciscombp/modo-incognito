@@ -369,6 +369,18 @@ Lo vigilan `npm run check:pulse`, `npm run check:gesto` y
 quieto, `limite` corriendo, reloj parado) y la última, que el aguante se
 paga al bancar.
 
+**SIEMPRE SE PUEDE SALIR, Y CON LOS TRES MANDOS.** No es comodidad: la
+CUENTA ATRÁS de la tarea sigue corriendo dentro del minijuego, y al agotarse
+el jefe VIENE — así que sin salida, la única forma de terminar algo que va mal
+es que te atrapen. Faltaban dos de los tres: el botón medía 17 px REALES de
+alto (el lienzo va escalado, así que hay que dimensionarlo para la escala más
+pequeña, no para el lienzo), y con MANDO no había forma de llegar a él —
+`sondearBaile()` cortocircuita `sondearMando`, y la pantalla va
+`data-nav-juego`, así que el cursor tampoco la recorre. Ahora el botón
+VOLVER del mando (B/Y) despacha ESCAPE desde ahí. Lo vigila
+`check:baile-pulgar`, que mide el botón EN PÍXELES REALES y prueba las dos
+salidas por separado, reabriendo el baile entre una y otra.
+
 **SIEMPRE SE PUEDE SALIR, y hay un BOTÓN.** La pantalla lleva su «SALIR
 (ESC)» arriba a la derecha, y es lo único pulsable de esa barra. Hubo que
 ponerlo: el rótulo decía «suelta para dejarlo» y desde el pestillo eso pasó a

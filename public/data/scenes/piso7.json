@@ -900,7 +900,7 @@
       "reward": 25,
       "energy": 15,
       "baile": {
-        "verbo": "Sigue la rutina con las flechas",
+        "verbo": "Sigue la rutina: flechas, palanca o toca las casillas",
         "pasos": 6,
         "compas": 0.75,
         "ruido": 6

@@ -13145,7 +13145,22 @@ body.inc-minijuego .inc-announce {
   font: inherit;
   font-size: 12px;
   letter-spacing: 0.14em;
-  padding: 4px 10px;
+  /* TAMAÑO DE PULGAR, y aquí no es un lujo: es LA SALIDA. Medía 69×17 px
+     reales, o sea la mitad de alto de lo que un dedo acierta (el contrato del
+     lienzo pide 40), y encima arriba en una esquina. Con la cuenta atrás de
+     la tarea corriendo y sin poder abandonar, te quedas dentro hasta que
+     expira — y al expirar el jefe VIENE. O sea que un botón demasiado chico
+     aquí no es una molestia de puntería: es que te atrapan. */
+  /* 72 px DE LIENZO, no 44. El lienzo va ESCALADO: en el teléfono compacto
+     la escala ronda 0.57, así que 44 lógicos se quedan en 25 reales — que es
+     lo que medía y por lo que no se acertaba. Se dimensiona para la escala
+     más pequeña que soportamos, que es la única que importa aquí. */
+  min-height: 72px;
+  min-width: 120px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 14px;
   border: 1px solid var(--btn-line);
   border-radius: var(--radius-sm);
   text-shadow: 0 2px 0 hsl(var(--p-shadow-hue) / 0.7);

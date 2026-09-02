@@ -189,7 +189,12 @@ export function createDanceGame({ onNoise, onFeedback, random = Math.random } = 
         resultado,
         label: station.label ?? null,
         icon: station.icon ?? "stretch",
-        verbo: station.baile?.verbo ?? "Sigue la rutina con las flechas",
+        // EL RÓTULO NOMBRA LOS TRES MANDOS, no solo el teclado. Decía «con
+        // las flechas», que en un teléfono o con un mando en la mano no
+        // significa nada — y este verbo es justo el que más se juega con el
+        // pulgar. Se nombran los tres porque los tres funcionan: las flechas,
+        // la palanca (un empujón es un paso) y las casillas de la pantalla.
+        verbo: station.baile?.verbo ?? "Sigue la rutina: flechas, palanca o toca las casillas",
       };
     },
   };
