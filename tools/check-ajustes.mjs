@@ -37,7 +37,11 @@ await p.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 30000 });
 await p.waitForTimeout(1500);
 await p.locator(".inc-menu button", { hasText: "AJUSTES" }).first().click();
-await p.waitForTimeout(700);
+// SE ESPERA A QUE LA PANTALLA ESTÉ, no a un reloj: entre menú y menú se
+// cierran y se abren las puertas del ascensor (ui/doors.js), y con la máquina
+// cargada eso pasa de los 700 ms que había aquí clavados. Medir con plazo
+// fijo es medir la máquina — mismo fallo que se cazó en check:pulgar.
+await p.waitForSelector(".inc-menu-panes", { timeout: 15000 });
 
 const caja = await p.evaluate(() => {
   const stage = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--stage-h"));

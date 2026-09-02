@@ -171,7 +171,24 @@ const dondeAntes = await p.evaluate(
 );
 const bb = await p.locator(".touch-btn-interact").boundingBox();
 if (bb) await p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2);
-await p.waitForTimeout(700);
+// SE ESPERA AL CAMBIO, NO A UN RELOJ. Esto leía a los 700 ms clavados y
+// fallaba en la tanda completa —«7Jugar» → «7Jugar»— pasando siempre suelto:
+// entre pantalla y pantalla se cierran y se abren LAS PUERTAS DEL ASCENSOR
+// (ui/doors.js), que duran lo que dure `--dur-puerta` más el remontaje, y con
+// la máquina cargada eso se pasa de 700 ms sin que nada esté roto. Un plazo
+// fijo mide la MÁQUINA, que es la lección de check:chase.
+//
+// Si de verdad no avanza, esto tarda su espera y falla igual: lo único que se
+// pierde es el falso negativo.
+await p
+  .waitForFunction(
+    (previo) =>
+      (document.querySelector(".inc-menu:not(.inc-hidden) .nav-cursor")?.textContent?.trim() ??
+        "") !== previo,
+    dondeAntes,
+    { timeout: 8000 }
+  )
+  .catch(() => {});
 const dondeDespues = await p.evaluate(
   () => document.querySelector(".inc-menu:not(.inc-hidden) .nav-cursor")?.textContent?.trim() ?? ""
 );
