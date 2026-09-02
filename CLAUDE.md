@@ -1168,11 +1168,34 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   reanudar. Y `_yaw` no se normalizaba nunca: medido, una jugadora sentada lo
   tenía a 9,6 con el objetivo en -2,96 (cuatro pi de diferencia), lo que
   convierte en un sinsentido cualquier comparación entre los dos.
+
+  **UNA ESCENA COLOCA EL RUMBO; EL JUEGO LO TUENEA.** Es la regla que sale de
+  todo lo anterior, y es de las que se rompen solas: el giro normal avanza en
+  `update()`, y **una escena pasa CON LA PARTIDA EN PAUSA**, donde ese update
+  no corre. O sea que una cinemática que pida «gírate» con el giro normal no
+  gira a nadie mientras dura, y se cobra el giro entero AL REANUDAR — con la
+  escena ya terminada. Visto desde fuera, eso ES el reporte original: alguien
+  que se da la vuelta solo. Los TRES sitios que colocan van con `{snap: true}`:
+  `faceEachOther` (engine.js, hablar de a dos), `faceCamera`
+  (dialogueCamera.js, el soliloquio) y `waitAt`/`sitAt` (boss.js, el jefe que
+  te recibe en la puerta). Los dos últimos llevaban el tween: el soliloquio no
+  rompía la cuarta pared nunca, y Gabo esperaba en la puerta con el rumbo del
+  punto 0 de su ronda. Ojo con `waitAt`, que enseña el patrón entero — ya
+  colocaba la POSICIÓN al instante, con un comentario explicando esta misma
+  pausa, y al rumbo de al lado le habían dejado el tween.
+  Lo que NO lleva snap es todo lo que se escribe por cuadro con el juego vivo
+  (andar, la ronda del jefe, fingir de pie): ahí el tween ES el giro.
   ⚠️ La prueba mide el GIRO ACUMULADO por el camino, no el rumbo final: al
   llegar queda perfecto siempre, porque lo que falla es el trayecto. Y espera
   a que el giro de sentarse SE ASIENTE antes de exigir quietud — sentarse
   termina con una vuelta legítima que el motor tuenea, y midiendo a plazo fijo
   se la pilla a medias y se reporta como pirueta.
+  ⚠️ Y mide las tres escenas de la apertura **con la caja abierta**, que es el
+  único momento en que se distingue una escena que coloca de una que no: al
+  reanudar los dos casos acaban en el mismo sitio. Para eso ORBITA LA CÁMARA
+  a 35° antes de empezar — su yaw por defecto es 0 y el de un muñeco recién
+  montado también, así que «mira a cámara» se cumpliría solo y la
+  comprobación del soliloquio pasaría en verde con el giro roto.
 - **NADIE SE TELETRANSPORTA. NUNCA.** Un cuerpo que parpadea de sitio deja
   de ser un cuerpo, y es lo primero que delata que esto es un prototipo.
   Cuando el juego necesita llevar a alguien a un sitio se usa

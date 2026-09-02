@@ -51,15 +51,125 @@ function check(nombre, ok, detalle = "") {
 
 await p.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
 await p.waitForFunction(() => !!window.__game, null, { timeout: 30000 });
+
+// LA CÁMARA SE ORBITA A PROPÓSITO ANTES DE EMPEZAR. Su yaw por defecto es 0,
+// y el de un muñeco recién montado también: con los dos a cero, «la jugadora
+// mira a cámara» se cumple sola y la comprobación del soliloquio pasaría en
+// verde con el giro roto. Con la cámara a 35° el ángulo es uno concreto que
+// nadie acierta por casualidad. Se devuelve a su sitio antes de medir el
+// paseo. (`camera.settings` ES el objeto de cameraSettings.js, no una copia,
+// así que `getCameraSettings()` ve el cambio — que es lo que se quiere.)
+const YAW_PRUEBA = 35;
+await p.evaluate((deg) => {
+  window.__game.camera.settings.yawDeg = deg;
+}, YAW_PRUEBA);
+
 await p.evaluate(() => {
   window.__game.engine.startDay(0, { skipMinigame: true });
 });
 await p.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 60000 });
+
+// ── LAS CINEMÁTICAS SE VEN MIENTRAS DURAN ───────────────────────────────
+//
+// El guion de apertura pasa CON LA PARTIDA EN PAUSA, y ahí está la trampa de
+// toda esta familia: el giro normal de un cuerpo es un TWEEN que avanza en
+// `update()`, y en pausa ese update no corre. O sea que una escena que pida
+// «gírate» con el giro normal no gira a nadie mientras dura — y se cobra el
+// giro de golpe AL REANUDAR, con la escena ya terminada. Desde fuera eso es
+// exactamente el reporte original: alguien que se da la vuelta solo.
+//
+// Por eso las escenas COLOCAN (`setHeading(..., {snap:true})`) y el juego
+// tuenea. Se mide línea a línea, con la caja abierta, que las tres escenas de
+// la apertura cumplan lo que dicen.
+const AJUSTE = 0.02; // rad; snap escribe el ángulo exacto, no se aproxima
+// El guion abre unos cuadros DESPUÉS de que exista `game` (engine.js lo juega
+// al final de `startDay`). Sin esperarlo, el bucle de abajo no ve la caja
+// abierta, sale a la primera y las tres comprobaciones se quedan sin muestras
+// — o sea, pasando por no haber mirado.
+await p
+  .waitForFunction(() => window.__game.engine.dialogue.isOpen, null, { timeout: 30000 })
+  .catch(() => {});
+const escena = [];
 for (let i = 0; i < 40; i++) {
   if (!(await p.evaluate(() => window.__game.engine.dialogue.isOpen))) break;
+  escena.push(
+    await p.evaluate(() => {
+      const g = window.__game.engine.game;
+      const b = g.boss;
+      const yaw = (o) => o?.sprite?.object?.rotation?.y ?? null;
+      const entre = Math.atan2(b.position.x - g.player.position.x, b.position.z - g.player.position.z);
+      return {
+        quien: document.querySelector(".inc-dialogue-speaker-text")?.textContent?.trim() ?? "",
+        jugadora: yaw(g.player),
+        jefe: yaw(b),
+        camara: (window.__game.camera.settings.yawDeg * Math.PI) / 180,
+        jefeDeclarado: b.facingDir ? Math.atan2(b.facingDir.x, b.facingDir.z) : null,
+        entre,
+        // El motor encuadra a dos si están a menos de 8·S (engine.js). Aquí se
+        // usa un listón MÁS CORTO a propósito: no se trata de replicar su
+        // umbral —copiar una constante del motor en la prueba es tenerla dos
+        // veces— sino de quedarse con las líneas en las que los dos cuerpos
+        // están juntos sin discusión. En la apertura están a ~1,5.
+        dist: Math.hypot(b.position.x - g.player.position.x, b.position.z - g.player.position.z),
+      };
+    })
+  );
   await p.keyboard.press("Space");
   await p.waitForTimeout(120);
 }
+
+/** Diferencia de dos ángulos, envuelta a [0, π]. */
+function dif(a, b) {
+  if (a == null || b == null) return Infinity;
+  let d = a - b;
+  while (d > Math.PI) d -= Math.PI * 2;
+  while (d < -Math.PI) d += Math.PI * 2;
+  return Math.abs(d);
+}
+
+// 1. GABO MIRA AL ASCENSOR ANTES DE QUE NADIE REANUDE. `waitAt` lo PLANTA en
+//    la puerta (posición al instante, que eso ya estaba) pero el rumbo iba con
+//    el giro normal: aparecía mirando al punto 0 de su ronda y se destorcía al
+//    empezar a jugar. Se mide en la primera línea, con el guion en pantalla.
+const puerta = escena[0];
+check(
+  "el jefe que te recibe en la puerta MIRA hacia donde dice que mira",
+  puerta != null && dif(puerta.jefe, puerta.jefeDeclarado) < AJUSTE,
+  puerta ? `malla en ${puerta.jefe?.toFixed(2)} rad, rumbo declarado ${puerta.jefeDeclarado?.toFixed(2)}` : "no hubo guion"
+);
+
+// 2. EL SOLILOQUIO ROMPE LA CUARTA PARED **DURANTE** LA ESCENA. Las líneas de
+//    la jugadora («Tú») son soliloquio: `faceCamera` la gira a cámara. Iba sin
+//    snap, así que no giraba nada mientras hablaba y se giraba después.
+const soliloquios = escena.filter((s) => s.quien === "Tú");
+const soliloquiosOk = soliloquios.filter((s) => dif(s.jugadora, s.camara) < AJUSTE);
+check(
+  "en un soliloquio la jugadora está de cara a cámara MIENTRAS habla",
+  soliloquios.length > 0 && soliloquiosOk.length === soliloquios.length,
+  soliloquios.length === 0
+    ? "el guion de apertura no trajo ninguna línea de la jugadora"
+    : `${soliloquiosOk.length}/${soliloquios.length}; ej. cuerpo ${soliloquios[0].jugadora?.toFixed(2)} vs cámara ${soliloquios[0].camara.toFixed(2)}`
+);
+
+// 3. Y HABLANDO DE A DOS, SE MIRAN. Es lo mismo por la otra puerta
+//    (`faceEachOther`): sin snap, Gabo le hablaba a la nuca toda la escena.
+const duos = escena.filter((s) => s.quien && s.quien !== "Tú" && s.dist < 5);
+const duosOk = duos.filter(
+  (s) => dif(s.jugadora, s.entre) < AJUSTE && dif(s.jefe, s.entre + Math.PI) < AJUSTE
+);
+check(
+  "y hablando de a dos, los dos cuerpos se miran de frente",
+  duos.length > 0 && duosOk.length === duos.length,
+  duos.length === 0
+    ? "el guion de apertura no trajo ninguna línea del jefe"
+    : `${duosOk.length}/${duos.length}`
+);
+
+// La cámara vuelve a su sitio: lo que viene mide un PASEO, y no tiene por qué
+// heredar un encuadre girado a mano.
+await p.evaluate(() => {
+  window.__game.camera.settings.yawDeg = 0;
+});
 
 // Se espía `setHeading`, que es LA puerta por la que se le dice al muñeco
 // hacia dónde mirar. Medir la rotación del objeto en su lugar mezclaría el

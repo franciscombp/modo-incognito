@@ -511,7 +511,11 @@ export class Boss {
     this.lockedOn = false;
     this.facingDir = { x: Math.sin(facing), z: Math.cos(facing) };
     this.desiredFacing = { ...this.facingDir };
-    this.sprite?.setHeading(this.facingDir.x, this.facingDir.z);
+    // Y MIRA YA, por lo mismo que se coloca ya (abajo): el giro normal es un
+    // tween que avanza en update(), y con la partida en pausa no avanza. Sin
+    // `snap`, Gabo aparecía en la puerta CON EL RUMBO DEL PUNTO 0 DE SU RONDA
+    // —de espaldas al ascensor— y se destorcía de golpe al reanudar.
+    this.sprite?.setHeading(this.facingDir.x, this.facingDir.z, { snap: true });
     // EL CUERPO SE MUEVE YA, no en el próximo update(): la puerta del día se
     // coloca con la partida en PAUSA (el guion de apertura está en pantalla),
     // así que el primer update tarda en llegar — y hasta entonces la MALLA
@@ -529,9 +533,10 @@ export class Boss {
     this.lockedOn = false;
     this.facingDir = { x: Math.sin(facing), z: Math.cos(facing) };
     this.desiredFacing = { ...this.facingDir };
-    this.sprite?.setHeading(this.facingDir.x, this.facingDir.z);
-    // Mismo motivo que en waitAt: la malla se coloca YA, que la pausa del
-    // guion de apertura retrasa el primer update.
+    // Mismo motivo que en waitAt, para el rumbo Y para la malla: la pausa del
+    // guion de apertura retrasa el primer update, y ni el tween del giro ni la
+    // colocación pueden esperar a que alguien reanude.
+    this.sprite?.setHeading(this.facingDir.x, this.facingDir.z, { snap: true });
     this.sprite?.setPosition(x, z);
     this.sprite?.setPose?.("sitWork");
   }
