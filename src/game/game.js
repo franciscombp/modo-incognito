@@ -79,6 +79,9 @@ const SEAT_WALK_TIMEOUT = 6;
 // Lo que dura la escolta de apertura sin que el jefe te mire. Cubre el
 // trayecto entero: se acaba sola al llegar (`_updateBienvenida`).
 const ESCOLTA_GRACIA = 25;
+// Lo que se camina POR DETRÁS del que te acompaña. Un paso largo: menos y se
+// le pisa el talón (y se vuelve a rebasarlo), más y la escolta se estira.
+const ESTELA = 1.6;
 // Y su PLAZO: si no le sigues, la escena se cae sola. Sin esto, largarse por
 // tu cuenta el día 1 dejaba la sospecha congelada en cero toda la jornada.
 const ESCOLTA_PLAZO = 30;
@@ -3458,7 +3461,39 @@ export class Game {
       // apartaba la respuesta era no — así que el destino regresaba a ÉL y
       // la jugadora lo seguía hasta SU escritorio en vez de sentarse en el
       // suyo. Enseñada la mesa, la mesa queda enseñada.
-      const destino = (this._escoltaRelevo || bossLlego) && mesa ? mesa : this.boss.position;
+      // SE CAMINA DETRÁS DE ÉL, no encima de él.
+      //
+      // Apuntar al CENTRO de Gabo hacía que la jugadora lo rebasara: cruzaba
+      // el radio de seguimiento, el paseo se cancelaba, él seguía andando y el
+      // rumbo hacia él se DABA LA VUELTA. Medido en la escolta del día 1:
+      // cuatro inversiones de 180° clavadas, todas a 1,3-2,7 del jefe — o sea
+      // justo en ese radio. Eso es lo que se veía como «se sienta y empieza a
+      // dar vueltas»: no era al sentarse, era todo el trayecto pirueteando.
+      //
+      // El punto de seguimiento va DETRÁS de él, sobre la línea que él mismo
+      // recorre hacia la mesa. Así nunca hay nada que rebasar y el rumbo no
+      // tiene por qué invertirse jamás — y además se lee como lo que es:
+      // caminar detrás de quien te lleva.
+      let destino = (this._escoltaRelevo || bossLlego) && mesa ? mesa : this.boss.position;
+      if (destino === this.boss.position && mesa) {
+        const hx = mesa.x - this.boss.position.x;
+        const hz = mesa.z - this.boss.position.z;
+        const h = Math.hypot(hx, hz);
+        // Y CON ÉL YA JUNTO A LA MESA, EL DESTINO ES LA MESA. La estela se
+        // traza sobre el vector Gabo→mesa, y ese vector se vuelve diminuto —y
+        // su signo, ruido— justo cuando él llega: el punto de seguimiento se
+        // ponía a girar a su alrededor y la jugadora detrás. Medido: las dos
+        // inversiones de 180° que quedaban caían ahí. Pasado ese punto no hay
+        // nada que seguir, porque ya se ve a dónde se va.
+        if (h <= 2 * S) {
+          destino = mesa;
+        } else if (h > 0.001) {
+          destino = {
+            x: this.boss.position.x - (hx / h) * ESTELA,
+            z: this.boss.position.z - (hz / h) * ESTELA,
+          };
+        }
+      }
       // Y EN EL RELEVO, GABO SE APARTA. Llegaba a TU puesto y se quedaba
       // plantado delante — y quien está de servicio no cede, así que la
       // jugadora acababa clavada a medio paso de su espalda, a 3.2 del

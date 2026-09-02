@@ -122,6 +122,7 @@ export class Player {
     // puede llegar, LO DICE (`onGiveUp`) en vez de moler en silencio.
     this._walker.usarMundo(world);
     let guiada = null;
+    let rumbo = null;
     if (this.walkTo) {
       this._walker.ir(this.walkTo.x, this.walkTo.z);
       const r = this._walker.paso(dt, this.position, {
@@ -139,6 +140,11 @@ export class Player {
         this.walkTo = null;
         cb?.();
       } else if (r.dir) {
+        // El caminante devuelve POR DÓNDE andar y HACIA DÓNDE mirar, que no
+        // siempre coinciden: bordeando un mueble se anda de lado sin dejar de
+        // mirar al destino. Antes había un solo vector para las dos cosas y el
+        // cuerpo pirueteaba con cada esquiva.
+        rumbo = r.mirar ?? r.dir;
         // El rumbo se pasa a INTENCIÓN DE MANDO (la misma que devuelve el
         // joystick) y no a un desplazamiento directo: así el paso, el giro y
         // la animación salen del mismo camino de siempre. Normalizada, para
@@ -171,7 +177,10 @@ export class Player {
       // El muñeco 3D gira de verdad, así que se le pasa la dirección exacta en
       // vez de redondearla a una de las cuatro de siempre. `this.facing` se
       // sigue calculando porque el resto del juego lo lee.
-      this.sprite.setHeading(dx / len, dz / len);
+      // Mirando a donde se VA, no a donde se pisa (ver `mirar` en walk.js).
+      const m = rumbo ?? { x: dx / len, z: dz / len };
+      const ml = Math.hypot(m.x, m.z) || 1;
+      this.sprite.setHeading(m.x / ml, m.z / ml);
       moving = true;
     }
 

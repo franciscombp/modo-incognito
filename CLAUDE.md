@@ -1140,6 +1140,39 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
     decide: el figurante adopta el sitio donde está, la escolta baja el
     telón. Un caminante que no puede llegar y no lo dice ES el bug.
   Lo vigila `npm run check:atascos`.
+- **NADIE PIRUETEA: SE MIRA HACIA DONDE SE VA** (`npm run check:giros`).
+  Reportado como «cuando se sienta empieza a dar vueltas», y no era al
+  sentarse: era TODO el trayecto de la escolta. Medido, 3,6 VUELTAS sobre sí
+  misma en catorce segundos, con seis inversiones de rumbo de más de 90°.
+  Tres causas, y ninguna era el sentarse:
+  - **Seguir a un CUERPO apuntando a su centro.** La escolta llevaba a la
+    jugadora a la posición de Gabo; ella lo rebasaba, el paseo se cancelaba al
+    cruzar el radio de seguimiento, él seguía andando y el rumbo hacia él se
+    daba la vuelta. Las cuatro inversiones de 180° caían justo en ese radio.
+    Ahora se camina por su ESTELA (`ESTELA` en game.js), un paso por detrás
+    sobre la línea que él recorre: no hay nada que rebasar.
+  - **Un solo vector para andar y para mirar.** `walk.js` → `paso()` devuelve
+    `dir` (por dónde se anda, con el costado del bordeo mezclado) y `mirar`
+    (hacia dónde se mira, que sigue siendo el objetivo). Con uno solo, cada
+    vez que el bordeo alternaba de lado el cuerpo giraba 126° de golpe — la
+    mezcla pesa más el costado (0.9) que el rumbo (0.45). El movimiento estaba
+    bien; lo que estaba mal era ENSEÑARLO como si fuera el rumbo.
+  - **Los volantazos de un cuadro**, que son ruido y no intención: un giro de
+    verdad DURA, así que hay que insistir unos cuadros para que se le haga
+    caso (`VOLANTAZO`, `VETO_CUADROS`).
+  Y dos del giro en sí, que estropeaban las CINEMÁTICAS: `setHeading(...,
+  {snap})` escribía `object.rotation.y` pero no `_yaw`, así que `_updateTurn`
+  deshacía el snap al cuadro siguiente — no se notaba porque durante un
+  diálogo la partida está en pausa y ese update no corre, o sea que el
+  personaje aguantaba de frente toda la conversación y se destorcía al
+  reanudar. Y `_yaw` no se normalizaba nunca: medido, una jugadora sentada lo
+  tenía a 9,6 con el objetivo en -2,96 (cuatro pi de diferencia), lo que
+  convierte en un sinsentido cualquier comparación entre los dos.
+  ⚠️ La prueba mide el GIRO ACUMULADO por el camino, no el rumbo final: al
+  llegar queda perfecto siempre, porque lo que falla es el trayecto. Y espera
+  a que el giro de sentarse SE ASIENTE antes de exigir quietud — sentarse
+  termina con una vuelta legítima que el motor tuenea, y midiendo a plazo fijo
+  se la pilla a medias y se reporta como pirueta.
 - **NADIE SE TELETRANSPORTA. NUNCA.** Un cuerpo que parpadea de sitio deja
   de ser un cuerpo, y es lo primero que delata que esto es un prototipo.
   Cuando el juego necesita llevar a alguien a un sitio se usa

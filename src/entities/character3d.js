@@ -1213,7 +1213,16 @@ export class Character3D {
     // en update(), y durante un diálogo la partida está en PAUSA — así que
     // «ponerse de frente al otro» no llegaba a verse en toda la
     // conversación. Una escena coloca; el juego, tuenea.
-    if (snap && this.object) this.object.rotation.y = this._targetYaw;
+    // SNAP ESCRIBE LAS DOS COSAS. Poner solo `object.rotation.y` dejaba
+    // `_yaw` donde estaba, y `_updateTurn` lo vuelve a escribir en el cuadro
+    // siguiente: el snap se DESHACÍA solo. No se veía porque durante un
+    // diálogo la partida está en pausa y ese update no corre — así que el
+    // personaje aguantaba de frente toda la conversación y se destorcía justo
+    // al reanudar, que es cuando el ojo ya está mirando otra cosa.
+    if (snap) {
+      this._yaw = this._targetYaw;
+      if (this.object) this.object.rotation.y = this._yaw;
+    }
     // El nombre sale del mismo reparto de siempre (iso.js) y no de un cálculo
     // paralelo: hay código y un test que comparan `facing` con hacia dónde
     // apunta el cono del jefe.
@@ -1346,6 +1355,14 @@ export class Character3D {
     while (delta > Math.PI) delta -= Math.PI * 2;
     while (delta < -Math.PI) delta += Math.PI * 2;
     this._yaw += delta * Math.min(1, dt * 12);
+    // `_yaw` SE NORMALIZA. Solo se normalizaba el delta, así que el ángulo
+    // acumulado se iba: medido, una jugadora sentada tras la escolta tenía
+    // `_yaw` a 9,6 con el objetivo en -2,96 — cuatro pi de diferencia. Al
+    // dibujar da igual (es el mismo ángulo), pero convierte cualquier
+    // comparación entre los dos en un sinsentido, y es lo que hacía que un
+    // `snap` de cinemática pareciera aplicarse «casi».
+    if (this._yaw > Math.PI) this._yaw -= Math.PI * 2;
+    else if (this._yaw < -Math.PI) this._yaw += Math.PI * 2;
     this.object.rotation.y = this._yaw;
   }
 
