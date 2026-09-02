@@ -2725,14 +2725,50 @@ export class Game {
    *
    * Un corte de ayer no se cancela —el telón ya está bajando y subirlo a
    * medias es peor—: simplemente no aplica su cambio.
+   *
+   * ── Y UN TELÓN OCUPADO NO PUEDE DEJARTE SIN MANDO ──
+   *
+   * `transition.cortar` RECHAZABA un corte pedido con otro en marcha, y lo
+   * hacía por un buen motivo (dos telones a la vez dejan el segundo a medias
+   * y la pantalla negra para siempre). Pero los tres sitios que lo llamaban se
+   * comían esa respuesta — y `seatAtDesk` pone `inputLocked = true` en la
+   * línea ANTERIOR a pedirlo. O sea que dos cortes seguidos —la escolta que
+   * se atasca y un regaño encima— dejaban a la jugadora sin control **el
+   * resto de la jornada**, sin que nada fallara ni se viera un error.
+   *
+   * Eso se arregló donde tocaba: los cortes ahora HACEN COLA (transition.js),
+   * así que el segundo traslado pasa después del primero con su telón, en vez
+   * de no pasar. Lo de aquí abajo es la red que queda: si el telón dice que
+   * NO —cola desbordada, o el propio `onCorte` tira— el cambio se aplica
+   * igual. No es saltarse la regla de que nadie se teletransporta: es que la
+   * alternativa era un juego muerto, y un salto que casi nadie ve es mejor
+   * que una partida que no se puede seguir jugando. Es el mismo cambio que
+   * hace el plazo de `_paseoAlPuesto` cuando el paseo no llega.
    */
   _conTelon(cambio) {
     const aplicar = () => {
       if (this._retirada) return;
       cambio();
     };
-    if (this.onCorte) this.onCorte(aplicar);
-    else aplicar();
+    if (!this.onCorte) {
+      aplicar();
+      return;
+    }
+    let pedido;
+    try {
+      pedido = this.onCorte(aplicar);
+    } catch {
+      // Si el telón ni siquiera se pudo pedir, el cambio va igual: lo que no
+      // puede pasar es quedarse a medias con el mando bloqueado.
+      aplicar();
+      return;
+    }
+    Promise.resolve(pedido)
+      .then((hubo) => {
+        // `false` = el telón estaba ocupado y `aplicar` no llegó a correr.
+        if (hubo === false) aplicar();
+      })
+      .catch(() => aplicar());
   }
 
   seatAtDesk() {

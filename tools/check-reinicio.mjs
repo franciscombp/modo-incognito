@@ -38,6 +38,14 @@
  * reseteado o no. Una captura tomada un segundo después no ve nada — y la
  * cinemática ya se rompió.
  *
+ * ── Y lo que se le fue sumando ──
+ *
+ * Los dos fallos de arriba vivían en el mismo sitio (`Game._conTelon`), así
+ * que el archivo cubre lo que hay alrededor: que un telón OCUPADO no te deje
+ * sin mando para siempre, y que reintentar caiga DIRECTO al piso en vez de
+ * devolverte a cruzar la avenida. Todo es lo mismo por debajo — algo de un
+ * momento que se cobra en otro.
+ *
  * Uso: npm run check:reinicio   (necesita `npm run preview` en :4173)
  */
 import { chromium } from "playwright";
@@ -110,11 +118,18 @@ check(
 );
 
 // ── EL REINICIO ──────────────────────────────────────────────────────────
+//
+// SE MARCA EL DÍA VIEJO ANTES DE TIRARLO. Esperar a `engine.game` no dice
+// nada —ya es cierto del día anterior— y esperar a la caja del guion tampoco:
+// a estas alturas puede haber una abierta (Crispo se presenta al llegar a tu
+// puesto), así que la medida se tomaría ANTES de montar el día nuevo, sobre
+// el estado viejo, y diría lo que sea. Lo único que distingue un `Game` de
+// otro es que es OTRO OBJETO.
 await p.evaluate(() => {
+  window.__game.engine.game.__viejo = true;
   window.__game.engine.startDay(0, { skipMinigame: true });
 });
-// `game` ya es cierto del día anterior, así que esperarlo no dice nada: lo
-// que hay que esperar es la CAJA del guion nuevo, que es donde se mide.
+await p.waitForFunction(() => !window.__game.engine.game?.__viejo, null, { timeout: 60000 });
 // LA MEDIDA VA AQUÍ: con el guion en pantalla y la partida en pausa. Es el
 // único momento en que se distingue un reinicio completo de uno a medias.
 await p
@@ -177,8 +192,10 @@ check(
 // nada falla a la vista — sencillamente no viene nunca nadie a por ti.
 await pasarGuion();
 await p.evaluate(() => {
+  window.__game.engine.game.__viejo = true;
   window.__game.engine.startDay(1, { skipMinigame: true });
 });
+await p.waitForFunction(() => !window.__game.engine.game?.__viejo, null, { timeout: 60000 });
 await p
   .waitForFunction(() => window.__game.engine.dialogue.isOpen, null, { timeout: 30000 })
   .catch(() => {});
@@ -196,12 +213,114 @@ check(
   `esperando=${dia2.esperando} sentado=${dia2.sentado}`
 );
 
+// ── UN TELÓN OCUPADO NO PUEDE DEJARTE SIN MANDO ─────────────────────────
+//
+// `transition.cortar` devuelve FALSE si ya hay otro telón en marcha —dos a la
+// vez dejan el segundo a medias y la pantalla negra para siempre—, y los tres
+// sitios que lo llamaban se comían esa respuesta. `seatAtDesk` pone
+// `inputLocked = true` en la línea ANTERIOR a pedirlo: rechazado el telón, su
+// callback no corría nunca y la jugadora se quedaba SIN CONTROL el resto de
+// la jornada, sin un solo error por ninguna parte.
+//
+// Se reproduce por la costura de verdad (`game.onCorte`, que es el telón), no
+// simulando nada: se ocupa, se pide un traslado, y se mira si vuelve el mando.
+await pasarGuion();
+const sinMando = await p.evaluate(async () => {
+  const g = window.__game.engine.game;
+  g.setPaused(false);
+  // Se ocupa el telón con un corte cualquiera…
+  g.onCorte(() => {});
+  // …y se pide un traslado largo. Recién empezado el día la jugadora está en
+  // el ascensor, a ~18 unidades de su puesto: muy por encima de SEAT_WALK_MAX,
+  // así que este `seatAtDesk` va por el camino del telón y no por el paseo.
+  g.seatAtDesk();
+  const bloqueadoAlPedirlo = g.player.inputLocked === true;
+  await new Promise((r) => setTimeout(r, 1800));
+  return { bloqueadoAlPedirlo, bloqueadoDespues: g.player.inputLocked === true };
+});
+check(
+  "el traslado con el telón ocupado llega a bloquear el mando (si no, no se mide nada)",
+  sinMando.bloqueadoAlPedirlo === true,
+  JSON.stringify(sinMando)
+);
+check(
+  "y el mando VUELVE aunque el telón estuviera ocupado",
+  sinMando.bloqueadoDespues === false,
+  "la jugadora se quedó sin control indefinidamente"
+);
+
+// ── Y REINTENTAR NO TE DEVUELVE A LA CALLE ──────────────────────────────
+//
+// «Reintentar cae DIRECTO al piso» está escrito en el motor desde hace
+// tiempo… y eran DOS banderas de las que solo se pasaba una: `skipPrologue`
+// se salta el ascensor y nada más, así que el CRUCE DE LA AVENIDA se seguía
+// jugando. Reintentar te devolvía a la calle, y de ahí al piso sin pasar por
+// el ascensor — la mitad incoherente de las dos.
+//
+// Se mide en el DÍA 2, que es el primero publicado que trae cruce (el día 1
+// lo tiene desactivado, y por eso esto no se veía). Va AL FINAL a propósito:
+// terminar un día deja viva la evaluación y su bucle, y encadenar casos
+// detrás de eso es lo que cuelga a `check:cierre`.
+await p.evaluate(() => {
+  const g = window.__game.engine.game;
+  g.setPaused(false);
+  g.timeLeft = 0;
+  for (let i = 0; i < 8; i++) g.update(1 / 60);
+});
+// El cierre pasa por su outro y su evaluación antes de la tarjeta.
+const hayBoton = await p
+  .waitForFunction(
+    () =>
+      [...document.querySelectorAll(".inc-overlay-actions button")].some((x) =>
+        /reintentar|repetir|siguiente/i.test(x.textContent ?? "")
+      ),
+    null,
+    { timeout: 60000 }
+  )
+  .then(() => true)
+  .catch(() => false);
+
+if (!hayBoton) {
+  // Sin tarjeta no hay nada que pulsar; se dice, no se aprueba en silencio.
+  check("la jornada terminada ofrece un reinicio", false, "no salió la tarjeta de resultado");
+} else {
+  await p.evaluate(() => {
+    const btn = [...document.querySelectorAll(".inc-overlay-actions button")].find((x) =>
+      /reintentar|repetir|siguiente/i.test(x.textContent ?? "")
+    );
+    btn?.click();
+  });
+  // Si el cruce va a jugarse, se enciende en el primer segundo. Se vigila un
+  // rato porque lo que se afirma es que NO pasa, y eso no se puede leer en un
+  // solo instante.
+  let calle = false;
+  for (let i = 0; i < 30; i++) {
+    calle =
+      calle ||
+      (await p.evaluate(() => {
+        const lobby = document.querySelector(".inc-lobby-scene");
+        return (
+          !!window.__game.engine.crossingActive ||
+          (!!lobby && !lobby.classList.contains("inc-hidden"))
+        );
+      }));
+    if (calle) break;
+    await p.waitForTimeout(100);
+  }
+  check(
+    "reintentar cae DIRECTO al piso: ni avenida ni ascensor",
+    calle === false,
+    "el reinicio volvió a sacar a la jugadora del edificio"
+  );
+}
+
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 
-await b.close();
 console.log(
   fallos === 0
     ? "\nUn reinicio devuelve a todo el mundo a su sitio"
     : `\n${fallos} fallo(s): algo sobrevive al reinicio`
 );
+// Sin `b.close()`, por lo mismo que en check:cierre: cerrar una pestaña que
+// acaba de terminar el día no devuelve nunca.
 process.exit(fallos === 0 ? 0 : 1);

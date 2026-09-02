@@ -1286,6 +1286,35 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   (la escena se ve), lejos baja el telón y al subir ya estás. Detrás del
   telón no hay teletransporte que ver — la regla habla de lo que el ojo ve.
   El paseo corto lleva además un plazo, por si se atasca igual.
+  **Los tres traslados pasan por `Game._conTelon`**, y ahí están las dos
+  trampas de este mecanismo:
+  - **LOS CORTES HACEN COLA; NO SE TIRAN**, y un telón ocupado no puede
+    dejarte sin mando. `cortar` RECHAZABA el corte pedido con otro en marcha
+    —por un buen motivo: dos telones a la vez dejan el segundo a medias y la
+    pantalla negra para siempre— y los tres sitios se comían esa respuesta,
+    mientras `seatAtDesk` pone `inputLocked = true` en la línea ANTERIOR a
+    pedirlo. Dos cortes seguidos —la escolta que se atasca y un regaño
+    encima— dejaban a la jugadora **sin control el resto de la jornada**, sin
+    un solo error por ninguna parte. Encolar resuelve las dos cosas: los
+    telones siguen sin solaparse y ningún cambio se cae. Y queda una red en
+    `_conTelon`: si el telón dice que no —cola desbordada, o `onCorte` tira—
+    el cambio se aplica igual, porque un salto que casi nadie ve es mejor que
+    una partida que no se puede seguir jugando.
+  - Y **un corte de AYER no se cobra HOY**: ver el invariante del reinicio.
+- **«DIRECTO AL PISO» SON DOS BANDERAS** (`volverAlPiso` en engine.js).
+  Reintentar el día, repetirlo, salir del curso de RRHH y salir del plan de
+  nivelación son reinicios DESDE DENTRO del edificio, y los cuatro mandaban
+  solo `skipPrologue` — que se salta el ascensor y NADA MÁS. El cruce de la
+  avenida se seguía jugando: reintentar te devolvía a la CALLE, y de ahí al
+  piso sin pasar por el ascensor, que es la mitad incoherente de las dos.
+  Encima el cruce cobra peaje de jornada (`applyCommuteDelay`), así que el
+  curso de RRHH —que es un peaje, no otra derrota— se llevaba de propina un
+  segundo castigo. **No se veía porque el día 1 tiene el cruce DESACTIVADO** y
+  era el único publicado cuando se escribió: al publicar los días 2 y 3 el
+  fallo se destapó sin que nadie tocara ese archivo. Lo que NO pasa por ahí es
+  perder EN el cruce (reintentar es volver a cruzar, que es lo que fallaste) y
+  avanzar al día siguiente (trayecto nuevo, con su commute). Lo vigila
+  `npm run check:reinicio`.
 - **QUIEN SE SIENTA MIRA HACIA DONDE MIRA LA SILLA**, y el rumbo se escribe
   AL LLEGAR. Estaba puesto en el frame en que se reclama el asiento —o sea
   ANTES de andar hasta él— y el propio paseo lo pisa: `player.update` gira el

@@ -744,6 +744,35 @@ export function createEngine({
    * `waitForFunction` del `engine.game` sin que el fallo dijera por qué.
    * Quien quiera el prólogo con el minijuego saltado puede pedirlo aparte.
    */
+  /**
+   * VOLVER AL PISO SIN VOLVER A CASA.
+   *
+   * Es el reinicio DESDE DENTRO del edificio: reintentar el día, repetirlo,
+   * salir del curso de RRHH, salir del plan de nivelación. En los cuatro
+   * casos la jugadora ya está en el piso 10 — acaba de que la echen de su
+   * puesto o de sentarse dos horas en una sala de formación.
+   *
+   * Existe porque «directo al piso» eran DOS banderas y solo se pasaba una.
+   * Los cuatro sitios mandaban `skipPrologue`, que se salta el ascensor… y
+   * NADA MÁS: el cruce de la avenida seguía jugándose. O sea que reintentar
+   * te devolvía A LA CALLE, y de ahí al piso sin pasar por el ascensor, que
+   * es justo la mitad incoherente de las dos. Encima el cruce cobra peaje de
+   * jornada (`applyCommuteDelay`), así que el curso de RRHH —que es un peaje,
+   * no otra derrota— se llevaba de propina un segundo castigo.
+   *
+   * No se veía porque el día 1 tiene el cruce DESACTIVADO, y era el único
+   * publicado cuando se escribió esto. Al publicar los días 2 y 3, que sí lo
+   * traen, el fallo se destapó sin que nadie tocara este archivo — el mismo
+   * patrón que un día que envejece en el cajón.
+   *
+   * Lo que NO entra aquí: perder EN el cruce (ahí reintentar es volver a
+   * cruzar, que es lo que fallaste) y avanzar al día siguiente (que es un
+   * trayecto nuevo, con su commute).
+   */
+  function volverAlPiso() {
+    return startDay(dayIndex, { skipMinigame: true, skipPrologue: true });
+  }
+
   async function startDay(index, { skipMinigame = false, skipPrologue = skipMinigame } = {}) {
     dayIndex = Math.min(Math.max(index, 0), levels.length - 1);
     save.setDayIndex(dayIndex);
@@ -1330,7 +1359,7 @@ export function createEngine({
         ctx
       );
       await hrCourse.play({ strikes });
-      startDay(dayIndex, { skipPrologue: true });
+      volverAlPiso();
       return;
     }
 
@@ -1378,8 +1407,10 @@ export function createEngine({
     // sala de RRHH— y aparecía de golpe encima del escenario, que es el tipo
     // de corte seco que delata un prototipo. La pantalla se monta DENTRO del
     // negro (mismo patrón que el traslado tras un regaño) y el telón la
-    // revela ya puesta. Si el telón está ocupado, `cortar` devuelve false y
-    // se abre a pelo como antes — nunca puede costar la evaluación.
+    // revela ya puesta. Con otro corte en marcha este espera su turno (los
+    // telones hacen cola, ver transition.js); si aun así el telón dice que no
+    // —cola desbordada— se abre a pelo, porque esto nunca puede costar la
+    // evaluación.
     if (evalRes) {
       let pantalla = null;
       await transition.cortar(() => {
@@ -1419,7 +1450,7 @@ export function createEngine({
         temporada: evalRes.temporada,
       });
       campaign.afterLevelling();
-      startDay(dayIndex, { skipPrologue: true });
+      volverAlPiso();
       return;
     }
 
@@ -1441,7 +1472,7 @@ export function createEngine({
       actions.push({
         label: "Siguiente jornada →",
         primary: true,
-        onClick: () => startDay(dayIndex, { skipPrologue: true }),
+        onClick: () => volverAlPiso(),
       });
     }
     actions.push({
@@ -1451,7 +1482,9 @@ export function createEngine({
       // viviste hoy, y repetirlos en cada despido convertía el castigo en
       // trámite. La intro completa queda para quien empieza de cero
       // ("Reiniciar progreso" del menú) o entra al día por primera vez.
-      onClick: () => startDay(dayIndex, { skipPrologue: true }),
+      // «Directo al piso» son DOS banderas y aquí solo se pasaba una: ver
+      // `volverAlPiso`, que es donde está contado.
+      onClick: () => volverAlPiso(),
     });
     actions.push({ label: "Menú", onClick: () => openTitle() });
 
