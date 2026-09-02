@@ -166,10 +166,17 @@ export function createMenus(root, { levels, save, actions, modes = {}, looks = n
   function marcarPlanta(destino) {
     const planta = destino?.dataset?.planta;
     if (!planta) return;
+    // SOLO SI LA PLANTA CAMBIA DE VERDAD. Reiniciar la animación exige un
+    // reflow síncrono (`offsetWidth`), y esto se dispara en cada `focusin` y
+    // en cada `pointerover`: hacerlo también cuando el número es el mismo era
+    // pagar una maquetación forzada por cada movimiento del cursor, para no
+    // enseñar nada. Y de paso desfasaba el paseo del cursor lo justo para
+    // volver quisquillosa una comprobación que leía en un instante fijo.
+    if (ascensorPlanta.textContent === planta) return;
     ascensorPlanta.textContent = planta;
-    // Un parpadeo corto al cambiar de planta, como el display de verdad. Se
-    // reinicia la animación quitando y volviendo a poner la clase; sin el
-    // reflow de en medio el navegador une los dos cambios y no se ve nada.
+    // El parpadeo del display al cambiar de planta. Se reinicia la animación
+    // quitando y volviendo a poner la clase; sin el reflow de en medio el
+    // navegador une los dos cambios y no se ve nada.
     ascensor.classList.remove("cambia");
     void ascensor.offsetWidth;
     ascensor.classList.add("cambia");

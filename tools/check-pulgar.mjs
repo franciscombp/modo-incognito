@@ -124,11 +124,28 @@ if (zona) {
   );
   await p.waitForTimeout(500);
 }
-const movido = await p.evaluate(() => {
-  const marcado = document.querySelector(".inc-menu:not(.inc-hidden) .nav-cursor");
+// SE MUESTREA MIENTRAS DURA EL EMPUJÓN, no se lee en un instante fijo.
+// El cursor se REPITE mientras la palanca está apoyada, y el título tiene
+// tres opciones: leyendo justo a los 500 ms se le pilla habiendo dado la
+// vuelta entera, otra vez sobre la primera — y eso se informaba como «la
+// palanca no mueve el cursor» con la palanca funcionando perfectamente.
+// Lo que se quiere saber es si LLEGÓ A MOVERSE, así que se mira si en algún
+// momento estuvo en otra opción.
+const movido = await p.evaluate(async () => {
+  const donde = () =>
+    document.querySelector(".inc-menu:not(.inc-hidden) .nav-cursor")?.textContent?.trim()?.slice(0, 40) ?? null;
+  const inicio = donde();
+  const vistos = new Set();
+  for (let i = 0; i < 40; i++) {
+    const d = donde();
+    if (d) vistos.add(d);
+    await new Promise((r) => setTimeout(r, 25));
+  }
   return {
-    hayCursor: !!marcado,
-    donde: marcado?.textContent?.trim()?.slice(0, 40) ?? null,
+    hayCursor: !!donde(),
+    donde: donde(),
+    inicio,
+    visitados: [...vistos],
   };
 });
 // LO QUE IMPORTA ES QUE SE MOVIÓ, no solo que exista un cursor: al abrirse un
@@ -136,7 +153,7 @@ const movido = await p.evaluate(() => {
 // cierto sin haber tocado nada.
 check(
   "empujar la palanca MUEVE el cursor dentro del menú",
-  movido.hayCursor === true && movido.donde !== antes,
+  movido.hayCursor === true && movido.visitados.some((v) => v !== antes),
   JSON.stringify({ antes, ...movido })
 );
 
