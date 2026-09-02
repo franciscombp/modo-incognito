@@ -12044,6 +12044,21 @@ body.inc-anunciando #hint {
   border-color: var(--danger);
   animation: inc-vaso-no var(--dur-2) var(--ease-pop);
 }
+/* EL INSTANTE DE ATRAPAR EL PLATO. `dentro` (de arriba) es el ESTADO —el aro
+   se queda verde mientras aciertas—; esto es el FLANCO, el pellizco de que
+   acabas de cogerlo. Sin él, el único momento con acento en todo el
+   minijuego era quemarse: el microondas solo te hablaba cuando lo hacías mal,
+   y eso se siente roto aunque funcione. */
+.inc-micro-caja.centrado {
+  animation: inc-micro-pilla var(--dur-base) var(--ease-pop);
+}
+@keyframes inc-micro-pilla {
+  0% { box-shadow: 0 0 0 0 hsl(var(--p-ok) / 0.55); }
+  100% { box-shadow: 0 0 0 14px hsl(var(--p-ok) / 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inc-micro-caja.centrado { animation: none; }
+}
 /* LA ZONA BUENA, siempre a la vista: adivinar dónde está el centro mientras
    algo se te escapa no es difícil, es arbitrario. */
 .inc-micro-zona {

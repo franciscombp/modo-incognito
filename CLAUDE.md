@@ -1519,6 +1519,18 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   tarjeta con tres opciones se ve idéntica se pueda pulsar o no, así que
   hace un clic de ratón de verdad, pulsa teclas de verdad y pasea el cursor
   de verdad.
+- **UN VERBO TIENE QUE HABLAR CUANDO LO HACES BIEN, no solo cuando fallas.**
+  Dos beats estaban declarados y mudos, y los dos se leían igual desde fuera:
+  como un minijuego que no responde. El MICROONDAS documentaba `"centrado" |
+  "quemado"` y solo emitía `quemado` — era el único verbo que sonaba
+  únicamente al fallar, así que no sabías si ibas bien hasta que la barra se
+  movía sola. Y el BAILE emitía `"rutina"` al cerrar una tanda y no la
+  escuchaba nadie: las flechas volvían a empezar sin más, sin forma de saber
+  si la habías cerrado o si el juego se había reiniciado solo. Cuando añadas
+  un verbo, comprueba las DOS listas —lo que el módulo documenta, lo que
+  emite, y lo que `game.js` atiende—: las tres se separan en silencio.
+  El flanco de `centrado` es de ENTRAR, no el estado: `dentro` es cierto
+  sesenta veces por segundo y avisar por estado sería una ametralladora.
 - **LOS SEIS VERBOS SE JUEGAN CON LOS TRES MANDOS**, y eso se mide como
   MATRIZ (`npm run check:verbos-mandos`). Cada verbo tenía ya su prueba y cada
   una miraba UN mando —`check:verter` un clic, `check:microondas` un arrastre

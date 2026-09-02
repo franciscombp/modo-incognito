@@ -15,7 +15,7 @@ import { WORLD_SCALE as S } from "../scene/config.js";
 import { getCameraSettings } from "../scene/cameraSettings.js";
 import { BOSS_STATES } from "../entities/boss.js";
 import { buzz } from "./settings.js";
-import { sfxComplete, sfxWarn, sfxDistraction } from "./sfx.js";
+import { sfxComplete, sfxWarn, sfxDistraction, sfxAdvance } from "./sfx.js";
 import { runEffect } from "./effects.js";
 import { createActivityPulse } from "./activityGame.js";
 import { createActivityGesture } from "./gestures.js";
@@ -543,6 +543,16 @@ export class Game {
       onFeedback: (tipo) => {
         if (tipo === "acierto") sfxComplete();
         else if (tipo === "fallo") sfxWarn();
+        // TERMINAR UNA TANDA TENÍA SU EVENTO Y NO SONABA. `rutina` se emitía,
+        // nadie la escuchaba, y en pantalla las flechas simplemente volvían a
+        // empezar: no había forma de saber si habías cerrado la tanda o si el
+        // juego se había reiniciado solo. Estirarse «cinco minutos» son varias
+        // tandas, así que este beat se repite — por eso lleva el sonido de
+        // AVANZAR y no el de premio, que es el de terminar la tarea entera.
+        else if (tipo === "rutina") {
+          sfxAdvance();
+          buzz(14);
+        }
       },
     });
 
@@ -564,7 +574,16 @@ export class Game {
         this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
       },
       onFeedback: (tipo) => {
-        if (tipo === "quemado") sfxWarn();
+        // Los DOS lados. Atrapar el plato suena y vibra; quemarlo avisa. Antes
+        // solo estaba el castigo, y un verbo que solo te habla cuando fallas
+        // no se siente difícil: se siente roto.
+        if (tipo === "centrado") {
+          sfxComplete();
+          buzz(12);
+        } else if (tipo === "quemado") {
+          sfxWarn();
+          buzz(30);
+        }
       },
     });
 

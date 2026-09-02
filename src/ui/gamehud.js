@@ -497,6 +497,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     microPlato.style.top = `${(m.y + 1) * 50}%`;
     microCaja.classList.toggle("dentro", m.dentro);
     microCaja.classList.toggle("quemado", m.destello === "quemado");
+    microCaja.classList.toggle("centrado", m.destello === "centrado");
     // LO QUEMADO que va: es lo que hay que poder leer de un vistazo para
     // saber si da tiempo a corregir o hay que soltarlo todo y salir.
     microQuemaFill.style.width = `${Math.round(m.quema * 100)}%`;
