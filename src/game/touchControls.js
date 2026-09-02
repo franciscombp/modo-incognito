@@ -8,6 +8,7 @@
 // one-handed on a phone instead of forcing you to hunt for a fixed circle.
 import { buzz } from "./settings.js";
 import { icon as svgIcon, hasIcon } from "../ui/icons.js";
+import { capturarPuntero } from "../ui/pointerCapture.js";
 
 export function createTouchControls(
   player,
@@ -161,7 +162,7 @@ export function createTouchControls(
     // La captura es una mejora —sostener el dedo fuera de la zona—, no un
     // requisito para que la palanca funcione.
     try {
-      zone.setPointerCapture(e.pointerId);
+      capturarPuntero(zone, e.pointerId);
     } catch {
       /* sin captura: el stick sigue funcionando dentro de su zona */
     }

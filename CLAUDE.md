@@ -1519,6 +1519,31 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   tarjeta con tres opciones se ve idéntica se pueda pulsar o no, así que
   hace un clic de ratón de verdad, pulsa teclas de verdad y pasea el cursor
   de verdad.
+- **LOS SEIS VERBOS SE JUEGAN CON LOS TRES MANDOS**, y eso se mide como
+  MATRIZ (`npm run check:verbos-mandos`). Cada verbo tenía ya su prueba y cada
+  una miraba UN mando —`check:verter` un clic, `check:microondas` un arrastre
+  de ratón, `check:mandos` el teclado, `check:baile-pulgar` la palanca—, así
+  que nadie preguntaba si el chisme se juega CON EL DEDO o el microondas CON
+  LA PALANCA. Y no se responde mirando: un minijuego se ve idéntico se pueda
+  tocar o no. Se envuelve la ÚNICA puerta de entrada de cada verbo (`pulsar`,
+  `elegir`, `responder`, `poner`) y se cuenta si el toque la cruza, así que
+  mide el CABLEADO y no la lógica.
+  Dos cosas de cómo está escrita: los toques son de VERDAD (CDP
+  `Input.dispatchTouchEvent`), porque un `PointerEvent` a mano no tiene
+  puntero activo detrás y `setPointerCapture` revienta — estaría midiendo el
+  montaje; y los verbos se recorren EN EL ORDEN DE LA CADENA reservando los
+  que faltan, porque abrir uno exige desbloquearlo y rindiendo lo pendiente a
+  lo bruto se gasta la misión del siguiente (desbloquear el chisme se llevaba
+  la comida, y el microondas llegaba sin misión que abrir: el fallo se leía
+  como «el microondas no abre» y el microondas estaba perfecto).
+- **UNA CAPTURA DE PUNTERO NO PUEDE TUMBAR EL GESTO** (`ui/pointerCapture.js`).
+  `setPointerCapture` es lo que deja seguir arrastrando fuera del elemento —el
+  plato del microondas, la palanca, la cámara— así que se quiere; pero LANZA
+  si el puntero ya no está activo, y estaba pedida a pelo y en la PRIMERA
+  línea del `pointerdown`. Una excepción ahí se lleva por delante el resto del
+  manejador: el plato no se colocaba ni en el primer toque. Desde fuera no se
+  ve un error, se ve un minijuego que no responde. La captura es una MEJORA
+  del gesto, no un requisito: se intenta y, si no se puede, se sigue.
 - **NINGÚN icono es un emoji.** Un emoji lo dibuja la fuente del sistema: el
   mismo ☕ es una taza blanca en un iPhone, marrón en Android, plana en
   Windows, y en algunas plataformas sale un cuadro vacío. Desde el juego eso

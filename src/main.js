@@ -32,6 +32,7 @@ import { createFocusNav } from "./ui/focusNav.js";
 import { isMutedState, setMuted, getVolume, unmute } from "./game/audioControl.js";
 import { soundtrackState } from "./game/soundtrack.js";
 import { initTheme } from "./game/theme.js";
+import { capturarPuntero } from "./ui/pointerCapture.js";
 
 // Cuanto antes: pone `data-theme` en <html> antes del primer paint, para
 // que el arranque no empiece con el tema por defecto y salte al guardado
@@ -522,7 +523,7 @@ async function boot() {
     if (e.button !== 2 || engine.menus.isOpen) return;
     orbitPointer = e.pointerId;
     orbitLast = { x: e.clientX, y: e.clientY };
-    canvas.setPointerCapture(e.pointerId);
+    capturarPuntero(canvas, e.pointerId);
   });
   canvas.addEventListener("pointermove", (e) => {
     if (e.pointerId !== orbitPointer) return;

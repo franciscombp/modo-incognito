@@ -1,4 +1,5 @@
 import { iconEl } from "./icons.js";
+import { capturarPuntero } from "./pointerCapture.js";
 import { createMessageDirector, URGENCIA } from "./messages.js";
 import { VERBOS } from "../game/verbos.js";
 import { createPortrait3D } from "./portrait3d.js";
@@ -255,7 +256,12 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   let arrastrando = false;
   microCaja.addEventListener("pointerdown", (ev) => {
     arrastrando = true;
-    microCaja.setPointerCapture(ev.pointerId);
+    // La captura va DESPUÉS de dar por empezado el arrastre y no puede tumbar
+    // el gesto si falla: es una mejora (seguir arrastrando fuera de la caja),
+    // no un requisito. Pedida a pelo y en primera línea, un `NotFoundError`
+    // se llevaba por delante el `poner` de abajo y el plato no se movía al
+    // primer toque — que se ve como un minijuego que no responde.
+    capturarPuntero(microCaja, ev.pointerId);
     ponerDesdePuntero(ev);
   });
   microCaja.addEventListener("pointermove", (ev) => {
