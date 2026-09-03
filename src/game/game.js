@@ -3605,6 +3605,23 @@ export class Game {
             if (this._escoltaTropiezos >= 3) this._escoltaPlazo = 0;
           },
         };
+      } else {
+        // ── Y YA JUNTO A ÉL, SE PARA. SE PARA DE VERDAD ──────────────────
+        //
+        // Aquí no había nada, y esa es la pirueta que quedaba. Este `if` es la
+        // zona muerta de la escolta —«si ya estás pegada al punto, no andes»—
+        // pero no ANDAR no es lo mismo que no tener destino: `walkTo` se había
+        // puesto en un cuadro anterior y NADIE lo quitaba, así que ella seguía
+        // caminando hacia un punto viejo, lo rebasaba, y al cuadro siguiente
+        // el punto recalculado le quedaba DETRÁS. Eso es una inversión de 180°
+        // que dura, no un volantazo de un cuadro, así que el veto de walk.js
+        // no la tapa (ni debe): medido, una de 180° clavados en CADA escolta,
+        // en las seis tandas que se midieron.
+        //
+        // Seguir a alguien es pararse cuando le has alcanzado. Sin esto, la
+        // zona muerta solo servía para dejar de REFRESCAR el destino, que es
+        // justo lo que lo volvía viejo.
+        this.player.walkTo = null;
       }
       // ── EL PASO SE ACOMPASA, Y GABO HABLA ANDANDO ────────────────────
       this._acompasarEscolta(dt, mesa);

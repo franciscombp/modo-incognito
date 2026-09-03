@@ -57,11 +57,16 @@ await p.waitForFunction(() => !!window.__game, null, { timeout: 30000 });
 // mira a cámara» se cumple sola y la comprobación del soliloquio pasaría en
 // verde con el giro roto. Con la cámara a 35° el ángulo es uno concreto que
 // nadie acierta por casualidad. Se devuelve a su sitio antes de medir el
-// paseo. (`camera.settings` ES el objeto de cameraSettings.js, no una copia,
-// así que `getCameraSettings()` ve el cambio — que es lo que se quiere.)
+// paseo.
+//
+// OJO CON EL NOMBRE, que costó una tanda entera: `__game.camera` es la cámara
+// de THREE y no tiene ajustes; la que los lleva es `__game.view` (la
+// DioramaCamera). Y su `settings` ES el objeto de cameraSettings.js, no una
+// copia, así que tocarlo aquí lo ve `getCameraSettings()` — que es justo lo
+// que hace falta, porque es de ahí de donde `faceCamera` saca el rumbo.
 const YAW_PRUEBA = 35;
 await p.evaluate((deg) => {
-  window.__game.camera.settings.yawDeg = deg;
+  window.__game.view.settings.yawDeg = deg;
 }, YAW_PRUEBA);
 
 await p.evaluate(() => {
@@ -81,7 +86,21 @@ await p.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 6000
 // Por eso las escenas COLOCAN (`setHeading(..., {snap:true})`) y el juego
 // tuenea. Se mide línea a línea, con la caja abierta, que las tres escenas de
 // la apertura cumplan lo que dicen.
-const AJUSTE = 0.02; // rad; snap escribe el ángulo exacto, no se aproxima
+// Contra un ángulo que la propia escena FIJA y que no depende de nadie más
+// (el yaw de la cámara, el rumbo declarado del jefe en la puerta): ahí `snap`
+// escribe el valor exacto y no hay por qué admitir margen.
+const AJUSTE = 0.02;
+// ── PERO «SE MIRAN» NO SE MIDE ASÍ ──
+// El rumbo de encararse se fija UNA VEZ, al empezar la escena, y aquí se
+// compara contra las posiciones leídas DESPUÉS, línea a línea. Un cuadro de
+// más del jefe entre una cosa y otra basta para que no cuadre al milímetro:
+// medido, 0,096 rad — cinco grados y medio a metro y medio de distancia, que
+// no lo ve nadie. Con el listón de arriba eso salía como «4 de 8 líneas mal»
+// y no había nada mal.
+// El listón de aquí sigue cazando lo que se vino a cazar: un cuerpo al que la
+// escena no giró se queda con el rumbo que traía, que son decenas de grados,
+// no cinco.
+const AJUSTE_ENCARE = 0.2;
 // El guion abre unos cuadros DESPUÉS de que exista `game` (engine.js lo juega
 // al final de `startDay`). Sin esperarlo, el bucle de abajo no ve la caja
 // abierta, sale a la primera y las tres comprobaciones se quedan sin muestras
@@ -100,9 +119,19 @@ for (let i = 0; i < 40; i++) {
       const entre = Math.atan2(b.position.x - g.player.position.x, b.position.z - g.player.position.z);
       return {
         quien: document.querySelector(".inc-dialogue-speaker-text")?.textContent?.trim() ?? "",
+        // QUIÉN DECIDE SI ESTO ES UN SOLILOQUIO ES EL MOTOR, no el nombre del
+        // hablante. `engine.cinematic` va graduado: 1 = soliloquio (primer
+        // plano), 0.62 = los dos en cuadro, 0 = sin conversación. Deducirlo
+        // del nombre era mentira en dos casos que salieron en cuanto esto
+        // corrió de verdad: una línea de «Tú» DENTRO de una escena con
+        // reparto declarado es un diálogo de dos (la jugadora mira al otro, no
+        // a cámara), y una línea que no es de «Tú» puede ser de Crispo o de
+        // Steven — a los que no se encara al JEFE, que es contra quien esta
+        // prueba comparaba.
+        plano: window.__game.engine.cinematic,
         jugadora: yaw(g.player),
         jefe: yaw(b),
-        camara: (window.__game.camera.settings.yawDeg * Math.PI) / 180,
+        camara: (window.__game.view.settings.yawDeg * Math.PI) / 180,
         jefeDeclarado: b.facingDir ? Math.atan2(b.facingDir.x, b.facingDir.z) : null,
         entre,
         // El motor encuadra a dos si están a menos de 8·S (engine.js). Aquí se
@@ -141,7 +170,7 @@ check(
 // 2. EL SOLILOQUIO ROMPE LA CUARTA PARED **DURANTE** LA ESCENA. Las líneas de
 //    la jugadora («Tú») son soliloquio: `faceCamera` la gira a cámara. Iba sin
 //    snap, así que no giraba nada mientras hablaba y se giraba después.
-const soliloquios = escena.filter((s) => s.quien === "Tú");
+const soliloquios = escena.filter((s) => s.plano === 1);
 const soliloquiosOk = soliloquios.filter((s) => dif(s.jugadora, s.camara) < AJUSTE);
 check(
   "en un soliloquio la jugadora está de cara a cámara MIENTRAS habla",
@@ -153,9 +182,13 @@ check(
 
 // 3. Y HABLANDO DE A DOS, SE MIRAN. Es lo mismo por la otra puerta
 //    (`faceEachOther`): sin snap, Gabo le hablaba a la nuca toda la escena.
-const duos = escena.filter((s) => s.quien && s.quien !== "Tú" && s.dist < 5);
+// Los dos en cuadro Y con el JEFE, que es contra quien se mide: una charla a
+// dos con Crispo también da 0.62 y encararía a otro cuerpo.
+const duos = escena.filter(
+  (s) => s.plano > 0 && s.plano < 1 && s.dist < 5 && /gabo/i.test(s.quien)
+);
 const duosOk = duos.filter(
-  (s) => dif(s.jugadora, s.entre) < AJUSTE && dif(s.jefe, s.entre + Math.PI) < AJUSTE
+  (s) => dif(s.jugadora, s.entre) < AJUSTE_ENCARE && dif(s.jefe, s.entre + Math.PI) < AJUSTE_ENCARE
 );
 check(
   "y hablando de a dos, los dos cuerpos se miran de frente",
@@ -168,7 +201,7 @@ check(
 // La cámara vuelve a su sitio: lo que viene mide un PASEO, y no tiene por qué
 // heredar un encuadre girado a mano.
 await p.evaluate(() => {
-  window.__game.camera.settings.yawDeg = 0;
+  window.__game.view.settings.yawDeg = 0;
 });
 
 // Se espía `setHeading`, que es LA puerta por la que se le dice al muñeco
@@ -215,19 +248,33 @@ check(
   JSON.stringify(giros)
 );
 
-// EL UMBRAL ES GENEROSO A PROPÓSITO. La ronda del jefe tiene azar, así que
-// exigir un número fino sería una prueba a cara o cruz — la lección de
-// `check:chase`. Lo que se caza aquí es la PIRUETA: medido, el fallo daba 3,6
-// vueltas y seis inversiones; arreglado da entre 1,0 y 1,5 vueltas y dos o
-// tres. Un tope de 2,4 deja pasar la variación y suspende si vuelve aquello.
+// LOS UMBRALES SALEN DE MEDIR, y se han movido dos veces porque las dos
+// primeras se midió con el arreglo a medias. La serie completa:
+//
+//   · roto del todo ............ 3,6 vueltas · 6 inversiones (4 de 180°)
+//   · con la estela y el veto
+//     puesto solo en `dir` ..... 2,0-2,6 vueltas · 4-6 inversiones, y SIEMPRE
+//                                una de 180° clavados
+//   · con el veto también en
+//     `mirar` .................. 1,6-2,0 vueltas · 3-4 inversiones, y la de
+//                                180° seguía saliendo en todas
+//   · quitando el `walkTo`
+//     viejo en la zona muerta ... 0,56-0,77 vueltas · CERO inversiones
+//
+// Los topes de antes (2,4 vueltas y 4 inversiones) se fijaron sobre la
+// segunda fila creyéndola la buena, y dejaban pasar la pirueta que quedaba —
+// una vuelta entera sobre sí misma por escolta. Ahora se pide lo que de
+// verdad hace el juego, con margen para la variación de la ronda del jefe:
+// ninguna inversión de rumbo (se tolera UNA, no una racha) y menos de vuelta
+// y media acumulada, que es el doble de lo peor medido.
 check(
   "y no pirueta por el camino (giro acumulado bajo control)",
-  giros.vueltas <= 2.4,
+  giros.vueltas <= 1.5,
   `${giros.vueltas} vueltas acumuladas en 14 s`
 );
 check(
   "sin inversiones de rumbo en cadena",
-  giros.bruscos <= 4,
+  giros.bruscos <= 1,
   `${giros.bruscos} cambios de más de 90°`
 );
 

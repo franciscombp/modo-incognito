@@ -151,6 +151,9 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
   // El rumbo del cuadro anterior, para vetar los volantazos de UN cuadro.
   let dirPrev = null;
   let vetado = 0;
+  // El veto de lo que se MIRA va aparte del de por dónde se anda: ver `paso`.
+  let mirarPrev = null;
+  let vetadoMirar = 0;
   const anterior = { x: 0, z: 0 };
 
   function limpiar() {
@@ -162,6 +165,8 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
     bordeo = null;
     dirPrev = null;
     vetado = 0;
+    mirarPrev = null;
+    vetadoMirar = 0;
   }
 
   /**
@@ -401,6 +406,38 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
       // donde vas, no dar una pirueta por cada mueble.
       const mirar = { x: dx, z: dz };
 
+      // ── Y EL VETO DE VOLANTAZOS VALE TAMBIÉN PARA LO QUE SE MIRA ─────
+      //
+      // Esto faltaba, y era justo la mitad que se ve. El veto de más abajo
+      // conserva el `dir` anterior cuando el rumbo se da la vuelta de un
+      // cuadro… y devolvía el `mirar` NUEVO, o sea el invertido. Como el
+      // cuerpo gira con `mirar`, el resultado era el peor de los dos mundos:
+      // el paso no se invertía (bien) pero el muñeco SÍ daba la vuelta (mal).
+      // El veto existe exactamente para que eso no pase.
+      //
+      // Medido en la escolta del día 1 con el veto puesto solo en `dir`:
+      // seguía habiendo 5-6 inversiones de más de 90°, dos de ellas de 180°
+      // clavados, repartidas por todo el trayecto. Son las que se ven como
+      // «va andando de frente y de pronto se gira entera».
+      //
+      // Va con su PROPIO contador y no colgado del de `dir`: son dos
+      // preguntas distintas —el bordeo puede obligar a torcer el paso sin que
+      // el objetivo se haya movido, y el objetivo puede saltar detrás (un
+      // replaneo deja el primer nodo a la espalda) sin que el paso cambie—.
+      let mirarSuave = mirar;
+      if (mirarPrev) {
+        const giroM = mirarPrev.x * mirar.x + mirarPrev.z * mirar.z;
+        if (giroM < VOLANTAZO && vetadoMirar < VETO_CUADROS) {
+          vetadoMirar++;
+          mirarSuave = { x: mirarPrev.x, z: mirarPrev.z };
+        } else {
+          vetadoMirar = 0;
+          mirarPrev = { x: mirar.x, z: mirar.z };
+        }
+      } else {
+        mirarPrev = { x: mirar.x, z: mirar.z };
+      }
+
       // ── PASO LATERAL: BORDEAR LO QUE NO ESTÁ EN EL MAPA ──────────────
       // El navmesh es del EDIFICIO. Los cuerpos, las sillas que rodaron y
       // cualquier cosa colocada después no están en él, así que contra ellos
@@ -475,7 +512,7 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
         const giro = dirPrev.x * dx + dirPrev.z * dz; // coseno del ángulo
         if (giro < VOLANTAZO && vetado < VETO_CUADROS) {
           vetado++;
-          return { dir: { x: dirPrev.x, z: dirPrev.z }, mirar, llego: false, abandonado: false };
+          return { dir: { x: dirPrev.x, z: dirPrev.z }, mirar: mirarSuave, llego: false, abandonado: false };
         }
       }
       vetado = 0;
@@ -487,7 +524,7 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
       // golpe: la mezcla pesa más el costado (0.9) que el rumbo (0.45), así
       // que un cambio de signo es casi media vuelta. El movimiento estaba
       // bien; lo que estaba mal era ENSEÑARLO como si fuera el rumbo.
-      return { dir: { x: dx, z: dz }, mirar, llego: false, abandonado: false };
+      return { dir: { x: dx, z: dz }, mirar: mirarSuave, llego: false, abandonado: false };
     },
   };
 }
