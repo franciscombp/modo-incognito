@@ -102,22 +102,15 @@ await p.waitForTimeout(6000);
 // Y ADEMÁS SE DEJA UN PASEO GUIADO A MEDIAS, que es lo que hace un regaño:
 // `seatAtDesk` echa a andar a la jugadora y le bloquea el mando. Cortar el
 // día justo aquí es el caso peor, y es un caso real.
-await p.evaluate(() => {
-  window.__game.engine.game.seatAtDesk();
-});
-await p.waitForTimeout(300);
-
-const antes = await p.evaluate(() => {
-  const g = window.__game.engine.game;
-  return { conPaseo: !!g.player.walkTo || g.player.inputLocked === true };
-});
-check(
-  "el primer día deja el piso sucio (si no, no hay reinicio que medir)",
-  antes.conPaseo,
-  JSON.stringify(antes)
-);
-
 // ── EL REINICIO ──────────────────────────────────────────────────────────
+//
+// ENSUCIAR Y REINICIAR VAN EN LA MISMA VUELTA, y eso no es comodidad: es lo
+// único que lo hace determinista. Estaban separados por 300 ms y en ese hueco
+// el juego LIMPIA lo que se acababa de ensuciar — el corte del traslado cae a
+// los 260 ms y devuelve el mando, y la propia escolta suelta el `walkTo` cada
+// cuadro mientras dura. Resultado: se reiniciaba sobre un piso limpio y las
+// comprobaciones de abajo pasaban sin medir nada. (Lo cazó la guarda de esta
+// misma línea, que para eso está.)
 //
 // SE MARCA EL DÍA VIEJO ANTES DE TIRARLO. Esperar a `engine.game` no dice
 // nada —ya es cierto del día anterior— y esperar a la caja del guion tampoco:
@@ -125,10 +118,20 @@ check(
 // puesto), así que la medida se tomaría ANTES de montar el día nuevo, sobre
 // el estado viejo, y diría lo que sea. Lo único que distingue un `Game` de
 // otro es que es OTRO OBJETO.
-await p.evaluate(() => {
-  window.__game.engine.game.__viejo = true;
+const antes = await p.evaluate(() => {
+  const g = window.__game.engine.game;
+  // Un regaño: te echa a andar a tu puesto y te quita el mando.
+  g.seatAtDesk();
+  const sucio = { conPaseo: !!g.player.walkTo || g.player.inputLocked === true };
+  g.__viejo = true;
   window.__game.engine.startDay(0, { skipMinigame: true });
+  return sucio;
 });
+check(
+  "el primer día deja el piso sucio (si no, no hay reinicio que medir)",
+  antes.conPaseo,
+  JSON.stringify(antes)
+);
 await p.waitForFunction(() => !window.__game.engine.game?.__viejo, null, { timeout: 60000 });
 // LA MEDIDA VA AQUÍ: con el guion en pantalla y la partida en pausa. Es el
 // único momento en que se distingue un reinicio completo de uno a medias.
@@ -267,50 +270,106 @@ await p.evaluate(() => {
   g.timeLeft = 0;
   for (let i = 0; i < 8; i++) g.update(1 / 60);
 });
-// El cierre pasa por su outro y su evaluación antes de la tarjeta.
-const hayBoton = await p
-  .waitForFunction(
-    () =>
-      [...document.querySelectorAll(".inc-overlay-actions button")].some((x) =>
-        /reintentar|repetir|siguiente/i.test(x.textContent ?? "")
-      ),
-    null,
-    { timeout: 60000 }
-  )
-  .then(() => true)
-  .catch(() => false);
+// EL CIERRE PASA POR SU OUTRO, Y UN OUTRO ESPERA UN CLIC. Esto se quedaba
+// mirando la tarjeta durante sesenta segundos sin pasar una sola línea, así
+// que la tarjeta no llegaba nunca y el fallo se leía como «la jornada no
+// ofrece reinicio» — con el juego entero funcionando. Hay que ir pasando el
+// guion MIENTRAS se espera, igual que haría quien juega.
+const botonReinicio = () =>
+  p.evaluate(() =>
+    [...document.querySelectorAll(".inc-overlay-actions button")].some((x) =>
+      /reintentar|repetir|siguiente/i.test(x.textContent ?? "")
+    )
+  );
+// Y EL OUTRO NO ES LO ÚNICO QUE HAY EN MEDIO. Cerrar una jornada pasa por su
+// guion Y POR LA EVALUACIÓN, que es otra pantalla con su propio botón
+// («Firmar y continuar»). Pasando solo el diálogo, esto se quedaba plantado
+// delante del acta de evaluación durante todo el plazo y luego informaba de
+// que «no salió la tarjeta» — con el día cerrado perfectamente y el juego
+// esperando, con toda la razón, a que alguien firmara. Se avanza lo que haya:
+// caja con la tecla, pantalla con su botón.
+let hayBoton = false;
+for (let i = 0; i < 120 && !hayBoton; i++) {
+  hayBoton = await botonReinicio();
+  if (hayBoton) break;
+  if (await p.evaluate(() => window.__game.engine.dialogue.isOpen)) {
+    await p.keyboard.press("Space");
+  } else {
+    await p.evaluate(() => {
+      const b = [...document.querySelectorAll("button")].find(
+        (x) => x.offsetParent && /firmar|continuar|seguir|aceptar/i.test(x.textContent ?? "")
+      );
+      b?.click();
+    });
+  }
+  await p.waitForTimeout(250);
+}
 
 if (!hayBoton) {
-  // Sin tarjeta no hay nada que pulsar; se dice, no se aprueba en silencio.
-  check("la jornada terminada ofrece un reinicio", false, "no salió la tarjeta de resultado");
+  // Sin tarjeta no hay nada que pulsar; se dice, no se aprueba en silencio —
+  // y se dice QUÉ había en pantalla, que «no salió» a secas no se diagnostica.
+  const estado = await p.evaluate(() => {
+    const g = window.__game.engine.game;
+    const vis = (s) => {
+      const el = document.querySelector(s);
+      if (!el) return false;
+      const r = el.getBoundingClientRect();
+      return !el.classList.contains("inc-hidden") && r.width > 0 && r.height > 0;
+    };
+    return {
+      gameOver: !!g?.gameOver,
+      win: !!g?.win,
+      timeLeft: Math.round(g?.timeLeft ?? -1),
+      caja: !!window.__game.engine.dialogue.isOpen,
+      modal: vis(".inc-modal"),
+      review: vis(".inc-review"),
+      rrhh: vis(".inc-hr"),
+      nivelacion: vis(".inc-levelling"),
+      botones: [...document.querySelectorAll("button")]
+        .filter((b) => b.offsetParent)
+        .map((b) => b.textContent.trim().slice(0, 24))
+        .slice(0, 12),
+    };
+  });
+  check("la jornada terminada ofrece un reinicio", false, JSON.stringify(estado));
 } else {
+  // SE MARCA EL DÍA QUE SE VA, y se espera a PISAR EL PISO. La primera
+  // versión de esto solo vigilaba `crossingActive` durante tres segundos, y
+  // era un verde falso: con el fallo puesto, el cruce no se enciende enseguida
+  // porque ANTES juega su propia intro, que espera un clic — así que en esos
+  // tres segundos no hay avenida que ver y la prueba daba por bueno el fallo
+  // que venía a cazar. (Comprobado reintroduciéndolo: pasaba igual.)
+  //
+  // Lo que de verdad afirma «cae directo al piso» es que se LLEGA al piso: un
+  // `Game` nuevo, sin pasar por la calle. Con el fallo no llega ninguno,
+  // porque `prepareFloor` va después del minijuego.
   await p.evaluate(() => {
+    window.__game.engine.game.__viejo = true;
     const btn = [...document.querySelectorAll(".inc-overlay-actions button")].find((x) =>
       /reintentar|repetir|siguiente/i.test(x.textContent ?? "")
     );
     btn?.click();
   });
-  // Si el cruce va a jugarse, se enciende en el primer segundo. Se vigila un
-  // rato porque lo que se afirma es que NO pasa, y eso no se puede leer en un
-  // solo instante.
   let calle = false;
-  for (let i = 0; i < 30; i++) {
-    calle =
-      calle ||
-      (await p.evaluate(() => {
-        const lobby = document.querySelector(".inc-lobby-scene");
-        return (
+  let enPiso = false;
+  for (let i = 0; i < 60 && !enPiso; i++) {
+    const s = await p.evaluate(() => {
+      const lobby = document.querySelector(".inc-lobby-scene");
+      return {
+        calle:
           !!window.__game.engine.crossingActive ||
-          (!!lobby && !lobby.classList.contains("inc-hidden"))
-        );
-      }));
-    if (calle) break;
-    await p.waitForTimeout(100);
+          (!!lobby && !lobby.classList.contains("inc-hidden")),
+        nuevo: !!window.__game.engine.game && !window.__game.engine.game.__viejo,
+      };
+    });
+    calle = calle || s.calle;
+    enPiso = s.nuevo;
+    if (!enPiso) await p.waitForTimeout(250);
   }
   check(
     "reintentar cae DIRECTO al piso: ni avenida ni ascensor",
-    calle === false,
-    "el reinicio volvió a sacar a la jugadora del edificio"
+    enPiso && !calle,
+    enPiso ? "pasó por la calle o por el ascensor" : "no llegó a montar el piso (se quedó fuera del edificio)"
   );
 }
 
