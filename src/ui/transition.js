@@ -33,20 +33,20 @@ export function createTransition(root) {
   velo.className = "inc-corte";
   root.appendChild(velo);
 
-  let ocupado = false;
-
   /**
-   * Baja el telón, ejecuta `enElNegro`, y lo sube.
-   *
-   * @param {() => void} enElNegro Lo que se cambia sin que se vea.
-   * @returns {Promise<boolean>} si el corte llegó a hacerse. Devuelve false
-   *   si ya había uno en marcha: dos telones a la vez dejan el segundo a
-   *   medias y la pantalla en negro para siempre.
+   * CUÁNTOS CORTES PUEDEN ESPERAR SU TURNO. Con cola no hace falta más de uno
+   * o dos: es la red contra un llamador que pida cortes en bucle, no un
+   * mecanismo de reparto.
    */
-  async function cortar(enElNegro) {
-    if (ocupado) return false;
-    ocupado = true;
-    const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+  const COLA_MAX = 2;
+
+  let cola = Promise.resolve();
+  let esperando = 0;
+
+  const espera = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  /** Un corte, de principio a fin. Solo lo llama la cola. */
+  async function unCorte(enElNegro) {
     try {
       velo.classList.add("on");
       await espera(BAJA);
@@ -55,22 +55,57 @@ export function createTransition(root) {
       // debajo, que es el peor fallo posible de esta pieza.
       enElNegro?.();
       await espera(QUIETO);
-      return true;
     } finally {
       velo.classList.remove("on");
-      // Se suelta el cerrojo cuando el telón ha SUBIDO del todo, no al
-      // empezar a subir: encadenar dos cortes con el velo a medio camino se
+      // El turno no se suelta al EMPEZAR a subir sino cuando el telón ha
+      // subido del todo: encadenar dos cortes con el velo a medio camino se
       // ve como un parpadeo, no como una transición.
-      setTimeout(() => {
-        ocupado = false;
-      }, SUBE);
+      await espera(SUBE);
+    }
+  }
+
+  /**
+   * Baja el telón, ejecuta `enElNegro`, y lo sube.
+   *
+   * ── LOS CORTES HACEN COLA; NO SE TIRAN ──
+   *
+   * Antes, un corte pedido con otro en marcha se RECHAZABA devolviendo false,
+   * y el motivo era bueno: dos telones a la vez dejan el segundo a medias y
+   * la pantalla en negro para siempre. El problema es lo que se perdía por el
+   * camino — `enElNegro` es quien COLOCA a la jugadora, y quien lo pide ya le
+   * ha quitado el mando en la línea anterior (`seatAtDesk`). Rechazar el
+   * corte significaba, literalmente, una partida sin control el resto de la
+   * jornada, sin un solo error por ninguna parte.
+   *
+   * Encolar resuelve las dos cosas: los telones siguen sin solaparse y ningún
+   * cambio se cae. El segundo traslado pasa después del primero, con su telón
+   * como debe ser — en vez de no pasar, o de pasar a la vista.
+   *
+   * @param {() => void} enElNegro Lo que se cambia sin que se vea.
+   * @returns {Promise<boolean>} si el corte llegó a hacerse. Hoy solo devuelve
+   *   false si la cola está desbordada, que es la red contra un llamador en
+   *   bucle: quien lo pida tiene que aplicar su cambio igualmente (ver
+   *   `Game._conTelon`), porque un cambio que se cae es peor que uno que se ve.
+   */
+  async function cortar(enElNegro) {
+    if (esperando >= COLA_MAX) return false;
+    esperando++;
+    const mio = cola.then(() => unCorte(enElNegro));
+    // La cola nunca se rompe: si un corte tira, el siguiente sigue saliendo.
+    cola = mio.catch(() => {});
+    try {
+      await mio;
+      return true;
+    } finally {
+      esperando--;
     }
   }
 
   return {
     cortar,
+    /** Si hay algún corte en marcha o esperando turno. */
     get ocupado() {
-      return ocupado;
+      return esperando > 0;
     },
   };
 }

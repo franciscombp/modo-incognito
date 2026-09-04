@@ -152,34 +152,46 @@ check(
 // y tocar su casilla el paso puede haber CAMBIADO — y tocar la dirección
 // vieja es un fallo que además GASTA el paso nuevo. Una sola tirada era una
 // carrera contra el compás; cuatro con lectura fresca, no.
-let padOk = false;
-let padDetalle = "";
-for (let intento = 0; intento < 4 && !padOk; intento++) {
-  // EL COMPÁS SE AVANZA EN CUADROS, no durmiendo un segundo. El baile late
-  // dentro de game.update, que va por rAF — y bajo carga el rAF se congela
-  // ratos enteros mientras los toques caen al vacío: cuatro intentos
-  // seguidos leyendo el MISMO paso y sin un acierto, que es como se vio en
-  // la suite. Avanzar update(1/60) a mano es la lección de siempre de las
-  // pruebas de IA: se mide el mecanismo, no la respiración del navegador.
-  await p.evaluate(() => {
-    const g = window.__game.engine.game;
-    for (let i = 0; i < 70; i++) g.update(1 / 60);
-  });
-  await p.waitForTimeout(120);
-  const paso2 = await p.evaluate(() => {
-    const g = window.__game.engine.game;
-    const s2 = g.baile.snapshot();
-    return { dir: s2.pasos[s2.indice]?.dir, aciertos: s2.aciertos };
-  });
-  const pad = await p.locator(`.inc-baile-pad[data-dir="${paso2.dir}"]`).boundingBox().catch(() => null);
-  if (!pad) break;
-  await p.touchscreen.tap(pad.x + pad.width / 2, pad.y + pad.height / 2);
-  await p.waitForTimeout(200);
-  const trasPad = await p.evaluate(() => window.__game.engine.game.baile.snapshot().aciertos);
-  padOk = trasPad > paso2.aciertos;
-  padDetalle = `${paso2.aciertos} → ${trasPad} (dir ${paso2.dir}, intento ${intento + 1})`;
+// LO QUE SE PREGUNTA AQUÍ ES SI EL DEDO LLEGA AL JUEGO, no si acierta.
+//
+// Esto leía el paso actual, tocaba SU casilla y exigía que subiera el
+// acierto. Y perdía una carrera que no puede ganar: EL COMPÁS NO ESPERA —es
+// la regla del baile— y entre leer el paso y tocarlo hay un viaje por CDP.
+// Con la máquina cargada ese viaje se pasa del compás, el paso ya es otro, y
+// el toque cae en la dirección vieja. La tanda completa se caía por eso
+// mientras la comprobación pasaba suelta una y otra vez; el arreglo anterior
+// (reintentar cuatro veces) solo hacía la carrera más larga, no la ganaba.
+// Y al agotarse los intentos con la pantalla ya cerrada, reventaba entera con
+// un TypeError sobre `pasos` de null.
+//
+// Que acertar puntúa ya lo demuestra el empujón de palanca de arriba. Lo que
+// falta por saber es si la CASILLA está cableada al dedo, y eso se mide
+// envolviendo `pulsar`, la única puerta de entrada del verbo — la misma
+// técnica que check:verbos-mandos, y la única que no depende del compás. El
+// manejador resuelve `...game.baile.pulsar` en el momento del clic, así que
+// envolver la instancia lo intercepta.
+await p.evaluate(() => {
+  const b = window.__game.engine.game.baile;
+  window.__pulsos = [];
+  const original = b.pulsar.bind(b);
+  b.pulsar = (dir) => {
+    window.__pulsos.push(dir);
+    return original(dir);
+  };
+});
+const padDerecha = await p
+  .locator('.inc-baile-pad[data-dir="derecha"]')
+  .boundingBox()
+  .catch(() => null);
+if (padDerecha) {
+  await p.touchscreen.tap(padDerecha.x + padDerecha.width / 2, padDerecha.y + padDerecha.height / 2);
 }
-check("tocar la casilla del paso también cuenta", padOk, padDetalle);
+const pulsos = await p.evaluate(() => window.__pulsos ?? []);
+check(
+  "tocar la casilla del paso también cuenta",
+  pulsos.includes("derecha"),
+  padDerecha ? `el toque no cruzó pulsar(): ${JSON.stringify(pulsos)}` : "no se encontró la casilla"
+);
 
 // ── 4 · Y EL MANDO FÍSICO TAMBIÉN BAILA ──
 // La API de gamepads no se puede emular desde Playwright, así que se STUBEA
@@ -212,6 +224,103 @@ for (let intento = 0; intento < 4 && !mandoOk; intento++) {
   mandoDetalle = `${JSON.stringify(conMando)} (intento ${intento + 1})`;
 }
 check("un empujón del MANDO FÍSICO en la dirección buena es un acierto", mandoOk, mandoDetalle);
+
+// ── SE PUEDE ABANDONAR, Y CON EL PULGAR ──
+// Abandonar no es un extra de comodidad: la CUENTA ATRÁS de la tarea sigue
+// corriendo dentro del minijuego (`limite`), y al agotarse el jefe VIENE. Si
+// no se puede salir, la única forma de terminar un baile que va mal es que te
+// atrapen — que es exactamente el reporte que originó esto.
+{
+  const salida = await p.evaluate(() => {
+    const b2 = document.querySelector(".inc-mg-salir");
+    if (!b2) return { falta: true };
+    const r = b2.getBoundingClientRect();
+    const s2 = getComputedStyle(b2);
+    return {
+      // REAL, no de lienzo: el rectángulo ya viene con la escala aplicada,
+      // que es lo que el dedo toca de verdad.
+      w: Math.round(r.width),
+      h: Math.round(r.height),
+      pe: s2.pointerEvents,
+      visible: s2.visibility !== "hidden" && +s2.opacity > 0.05,
+    };
+  });
+  check(
+    "el botón de SALIR se ve y acepta el toque",
+    salida.visible === true && salida.pe === "auto",
+    JSON.stringify(salida)
+  );
+  // El contrato del lienzo pide 40 px REALES para lo que se toca con el
+  // pulgar, y esto es LA SALIDA: medía 17 px de alto, menos de la mitad.
+  check(
+    "y es de tamaño de dedo (>= 40 px reales de alto)",
+    salida.h >= 40,
+    JSON.stringify(salida)
+  );
+
+  // Y TOCARLO CIERRA EL BAILE. Que se vea y se pueda tocar no basta: lo que
+  // importa es que el minijuego se suelte.
+  const cerro = await p.evaluate(async () => {
+    const g = window.__game.engine.game;
+    if (!g.baile?.active) return { yaCerrado: true };
+    document.querySelector(".inc-mg-salir").click();
+    await new Promise((r) => setTimeout(r, 400));
+    return { activo: g.baile?.active === true };
+  });
+  check(
+    "y tocarlo SUELTA la tarea (se puede huir)",
+    cerro.yaCerrado === true || cerro.activo === false,
+    JSON.stringify(cerro)
+  );
+}
+
+// Reabrir el baile: las dos salidas se prueban por separado, y la anterior
+// lo dejó cerrado. Sin esto, la segunda medía un botón de 0×0 — no porque
+// estuviera mal, sino porque ya no había minijuego debajo.
+await p.evaluate(() => {
+  const g = window.__game.engine.game;
+  const st = g.objectives.find((o) => o.baile) ?? g._allStations?.find((a) => a.baile);
+  if (!st) return;
+  g.boss.resetToPatrol();
+  g.boss.position.x = st.x + 80;
+  g.suspicion = 0;
+  g.boss.suspicion = 0;
+  g.player.position.x = st.x;
+  g.player.position.z = st.z;
+  g.player.keys.add(" ");
+});
+for (let i = 0; i < 40; i++) {
+  if (await p.evaluate(() => window.__game.engine.game?.baile?.active === true)) break;
+  await p.waitForTimeout(250);
+}
+
+// ── Y CON EL MANDO TAMBIÉN SE PUEDE ABANDONAR ──
+// Es el caso SIN SALIDA, y era el peor: `sondearBaile()` cortocircuita
+// `sondearMando`, así que con el baile abierto ningún botón del mando hacía
+// nada más que pasos. Y la pantalla va `data-nav-juego`, o sea que el cursor
+// tampoco la recorre: no se podía llegar al botón de SALIR ni de casualidad.
+// Con la cuenta atrás corriendo por dentro, la única forma de terminar un
+// baile que va mal era que te atraparan.
+{
+  const conB = await p.evaluate(async () => {
+    const g = window.__game.engine.game;
+    if (!g.baile?.active) return { noAbierto: true };
+    // B (índice 1) es el «volver» de siempre — el mismo que ya usan los menús.
+    const boton = (pulsado) => [
+      { axes: [0, 0], buttons: [{ pressed: false }, { pressed: pulsado }], connected: true },
+    ];
+    navigator.getGamepads = () => boton(false);
+    await new Promise((r) => setTimeout(r, 140));
+    navigator.getGamepads = () => boton(true);
+    await new Promise((r) => setTimeout(r, 500));
+    return { activo: g.baile?.active === true };
+  });
+  check(
+    "el botón VOLVER del mando suelta el baile (si no, no hay salida con mando)",
+    conB.noAbierto === true || conB.activo === false,
+    JSON.stringify(conB)
+  );
+}
 
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 

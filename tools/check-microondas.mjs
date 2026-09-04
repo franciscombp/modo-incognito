@@ -225,6 +225,47 @@ if (arranque.error) {
   );
 }
 
+// ── LOS DOS LADOS SUENAN ──
+// `centrado` estaba DOCUMENTADO en el contrato del módulo y no lo emitía
+// nadie: el microondas era el único verbo que solo avisaba al FALLAR. Un
+// minijuego que solo te habla cuando lo haces mal se siente roto aunque
+// funcione, y esa mitad muerta no se ve en una captura — hay que escuchar la
+// puerta. Se cuentan los avisos DEL MÓDULO, no el sonido.
+{
+  const avisos = await p.evaluate(async () => {
+    const g = window.__game.engine.game;
+    const m = g.microondas;
+    if (!m?.active) return { sinAbrir: true };
+    const vistos = [];
+    // Se espía el sitio por el que salen: el propio módulo.
+    const snap = m.snapshot();
+    // Sacar el plato fuera y volver a meterlo dispara el flanco de entrar.
+    m.poner(0.95, 0.95);
+    await new Promise((r) => setTimeout(r, 320));
+    const fuera = m.snapshot()?.dentro === false;
+    m.poner(0, 0);
+    await new Promise((r) => setTimeout(r, 320));
+    const dentro = m.snapshot()?.dentro === true;
+    const destello = m.snapshot()?.destello ?? null;
+    return { fuera, dentro, destello, zona: snap?.zona ?? null, vistos };
+  });
+  check(
+    "sacar el plato lo deja FUERA de la zona",
+    avisos.fuera === true,
+    JSON.stringify(avisos)
+  );
+  check(
+    "y volver a centrarlo lo deja dentro",
+    avisos.dentro === true,
+    JSON.stringify(avisos)
+  );
+  check(
+    "atrapar el plato tiene su ACENTO (destello «centrado», no solo el castigo)",
+    avisos.destello === "centrado",
+    JSON.stringify(avisos)
+  );
+}
+
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 
 await b.close();

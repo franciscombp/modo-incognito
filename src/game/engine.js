@@ -359,7 +359,24 @@ export function createEngine({
   function mergedRules(day) {
     const modeRules = currentMode()?.rules ?? {};
     const rules = { ...day.rules };
-    if (modeRules.maxWarnings != null) rules.maxWarnings = modeRules.maxWarnings;
+    // EL CUPO DE AMONESTACIONES: MANDA EL MÁS ESTRICTO DE LOS DOS.
+    //
+    // Antes ganaba SIEMPRE el personaje, y como los cuatro jugables declaran
+    // el suyo, el del día no se leía nunca. El efecto no se veía porque los
+    // días publicados piden 3 y Fran también pide 3 — pero la campaña escala
+    // el cupo a propósito (el día 3 pide 2, el 5 pide 1: es su forma de
+    // apretar), y toda esa escalada era DATO MUERTO. Un campo que se escribe,
+    // se documenta y no se lee jamás es peor que no tenerlo, porque parece
+    // que el diseño está puesto.
+    //
+    // Con el mínimo, el DÍA pone el techo de tolerancia y el personaje solo
+    // puede ser más frágil, nunca más resistente que lo que el día permite —
+    // que es lo que hace que una temporada apriete. Y los días publicados no
+    // cambian: min(3, 3) con Fran es 3, y min(3, 2) con Giu es el 2 que ya
+    // tenía.
+    if (modeRules.maxWarnings != null) {
+      rules.maxWarnings = Math.min(rules.maxWarnings ?? modeRules.maxWarnings, modeRules.maxWarnings);
+    }
     if (modeRules.explore) rules.explore = true;
     if (modeRules.pretendAlways) rules.pretendAlways = true;
     rules.minionSuspicionMul = (day.rules?.minionSuspicionMul ?? 1) * (modeRules.minionSuspicionMul ?? 1);
@@ -579,6 +596,43 @@ export function createEngine({
   }
 
   // ---------------- Day lifecycle ----------------
+  /**
+   * DEJAR EL PISO COMO SI NADIE HUBIERA JUGADO TODAVÍA.
+   *
+   * Un día que empieza NO es un día nuevo: los cuerpos son los mismos objetos
+   * de siempre (main.js los crea una vez), así que todo lo que el intento
+   * anterior dejó puesto sigue puesto hasta que alguien lo quite. Y lo que se
+   * quitaba era la MITAD.
+   *
+   * ── LA MALLA NO VOLVÍA ──
+   *
+   * Aquí se escribía `player.position` —el sitio LÓGICO— y nada más. Quien
+   * mueve el cuerpo que se ve es `player.update`, y ese update está detrás de
+   * `!engine.isPaused` (main.js)… mientras que el guion de apertura pasa CON
+   * LA PARTIDA EN PAUSA. O sea que durante toda la cinemática de apertura la
+   * jugadora estaba, en pantalla, DONDE LA DEJÓ EL DÍA ANTERIOR: en su
+   * puesto, en el ala sur, en la sala donde se escondió. La cámara encuadraba
+   * el ascensor —que sí sabe dónde está de verdad— y allí no había nadie; el
+   * cuerpo aparecía de golpe al reanudar. Eso es el reporte: en algunos
+   * reinicios el personaje no vuelve a su sitio y rompe la escena.
+   *
+   * Y ES «EN ALGUNOS» POR UN MOTIVO EXACTO, no por azar: una jornada que
+   * termina bien se termina SALIENDO POR EL ASCENSOR, así que la malla ya
+   * estaba donde tenía que estar y no se notaba nada. Se rompe cuando el día
+   * anterior acabó en otro sitio — el despido en tu puesto, el reintento a
+   * mitad de partida—, que es justo cuando más se reinicia.
+   *
+   * `boss.waitAt` ya tenía este mismo arreglo y con el mismo comentario al
+   * lado; la jugadora se había quedado sin él.
+   *
+   * ── Y LO QUE VENÍA MANDANDO DESDE AYER ──
+   *
+   * `walkTo` (la caminata guiada), `inputLocked` y la pose sobrevivían al
+   * reinicio. Un día que se corta mientras te sientan en tu puesto —un regaño,
+   * la escolta— dejaba un paseo pendiente y el mando bloqueado: al reanudar,
+   * la jugadora echaba a andar sola hacia el destino de AYER en mitad de la
+   * apertura, o directamente no se podía mover en toda la jornada.
+   */
   function resetEntities() {
     player.position.x = spawn.x;
     player.position.z = spawn.z;
@@ -589,6 +643,19 @@ export function createEngine({
     player.isHiding = false;
     player.isPretending = false;
     player.isDoingActivity = false;
+    // Lo que el intento anterior dejó mandando. `walkTo = null` basta para
+    // soltar al caminante: `player.update` lo para solo al ver que ya no hay
+    // paseo (ver el `else if (this._walker.activo)`).
+    player.walkTo = null;
+    player.inputLocked = false;
+    player.pose = null;
+    player.isAsleep = false;
+    player.isEnjoying = false;
+    // Y EL CUERPO SE MUEVE YA, que es lo que no pasaba: la apertura va en
+    // pausa y `player.update` —el único que escribe la malla— no corre.
+    player.sprite.setMoving(false);
+    player.sprite.setPose(null);
+    player.sprite.setPosition(spawn.x, spawn.z);
 
     // Start him at the patrol waypoint furthest from the lifts, so the day
     // doesn't open with the boss standing on top of the player. Con correa
@@ -604,10 +671,21 @@ export function createEngine({
         pick = i;
       }
     });
+    // DE PIE Y DE RONDA, pase lo que pase. `waitAt`/`sitAt` dejan al jefe
+    // CONGELADO (`esperando`/`seated`) y solo los suelta `standUp()`, que lo
+    // llama la puerta del día al superarse. Un día que se corta antes de
+    // saludarle —o el paso al día 2, que ya no lo planta en la puerta— dejaba
+    // esas banderas puestas: Gabo se pasaba la jornada siguiente de estatua.
+    // Va ANTES de colocarlo porque `standUp` recoloca su punto de ronda.
+    boss.standUp();
     boss.position.x = patrolRoute[pick].x;
     boss.position.z = patrolRoute[pick].z;
     boss.routeIndex = pick;
     boss.resetToPatrol();
+    // Y su malla también viaja ya: si hoy le toca esperar en la puerta,
+    // `waitAt` la volverá a colocar (y lo hace igual, por lo mismo); si no,
+    // este es el único sitio que la mueve antes de que la partida arranque.
+    boss.sprite?.setPosition(boss.position.x, boss.position.z);
   }
 
   // Cuánto dura, como mínimo, la subida del ascensor una vez elegido cómo
@@ -666,6 +744,35 @@ export function createEngine({
    * `waitForFunction` del `engine.game` sin que el fallo dijera por qué.
    * Quien quiera el prólogo con el minijuego saltado puede pedirlo aparte.
    */
+  /**
+   * VOLVER AL PISO SIN VOLVER A CASA.
+   *
+   * Es el reinicio DESDE DENTRO del edificio: reintentar el día, repetirlo,
+   * salir del curso de RRHH, salir del plan de nivelación. En los cuatro
+   * casos la jugadora ya está en el piso 10 — acaba de que la echen de su
+   * puesto o de sentarse dos horas en una sala de formación.
+   *
+   * Existe porque «directo al piso» eran DOS banderas y solo se pasaba una.
+   * Los cuatro sitios mandaban `skipPrologue`, que se salta el ascensor… y
+   * NADA MÁS: el cruce de la avenida seguía jugándose. O sea que reintentar
+   * te devolvía A LA CALLE, y de ahí al piso sin pasar por el ascensor, que
+   * es justo la mitad incoherente de las dos. Encima el cruce cobra peaje de
+   * jornada (`applyCommuteDelay`), así que el curso de RRHH —que es un peaje,
+   * no otra derrota— se llevaba de propina un segundo castigo.
+   *
+   * No se veía porque el día 1 tiene el cruce DESACTIVADO, y era el único
+   * publicado cuando se escribió esto. Al publicar los días 2 y 3, que sí lo
+   * traen, el fallo se destapó sin que nadie tocara este archivo — el mismo
+   * patrón que un día que envejece en el cajón.
+   *
+   * Lo que NO entra aquí: perder EN el cruce (ahí reintentar es volver a
+   * cruzar, que es lo que fallaste) y avanzar al día siguiente (que es un
+   * trayecto nuevo, con su commute).
+   */
+  function volverAlPiso() {
+    return startDay(dayIndex, { skipMinigame: true, skipPrologue: true });
+  }
+
   async function startDay(index, { skipMinigame = false, skipPrologue = skipMinigame } = {}) {
     dayIndex = Math.min(Math.max(index, 0), levels.length - 1);
     save.setDayIndex(dayIndex);
@@ -791,6 +898,13 @@ export function createEngine({
    * puertas descubren tiene que ser ya el día que empieza.
    */
   function prepareFloor(day) {
+    // EL DÍA DE AYER DEJA DE MANDAR ANTES DE TOCAR NADA. No basta con soltar
+    // la referencia: un CORTE pedido por la jornada anterior (te sientan tras
+    // un regaño, la escolta que se atasca) tarda 260 ms en llegar a su cambio,
+    // y ese cambio escribe en `player`, que es el MISMO objeto todos los días.
+    // Reiniciar dentro de esa ventana colocaba a la jugadora nueva en el
+    // puesto de la vieja. Ver `Game._conTelon`.
+    game?.retirar();
     setInLevel(true);
     bossSpeedBonus = 1;
     applyTheme(day.theme, { renderer, scene, ...lights });
@@ -964,6 +1078,11 @@ export function createEngine({
       if (!watcher) return;
       const route = routes[def.route] ?? routes.jefe ?? patrolRoute;
       watcher.setRoute(route);
+      // Y LA MALLA VIAJA CON ÉL, por lo mismo que la de la jugadora y la del
+      // jefe (ver resetEntities): `setRoute` lo coloca en su ronda, pero el
+      // cuerpo que se ve lo mueve su update — y la apertura va en pausa. Sin
+      // esto, el secuaz pasaba la cinemática plantado donde lo dejó ayer.
+      watcher.sprite?.setPosition(watcher.position.x, watcher.position.z);
       watcher.setPointsOfInterest(spots);
       watcher.setActive(true);
       onDuty.push(watcher);
@@ -1240,7 +1359,7 @@ export function createEngine({
         ctx
       );
       await hrCourse.play({ strikes });
-      startDay(dayIndex, { skipPrologue: true });
+      volverAlPiso();
       return;
     }
 
@@ -1288,8 +1407,10 @@ export function createEngine({
     // sala de RRHH— y aparecía de golpe encima del escenario, que es el tipo
     // de corte seco que delata un prototipo. La pantalla se monta DENTRO del
     // negro (mismo patrón que el traslado tras un regaño) y el telón la
-    // revela ya puesta. Si el telón está ocupado, `cortar` devuelve false y
-    // se abre a pelo como antes — nunca puede costar la evaluación.
+    // revela ya puesta. Con otro corte en marcha este espera su turno (los
+    // telones hacen cola, ver transition.js); si aun así el telón dice que no
+    // —cola desbordada— se abre a pelo, porque esto nunca puede costar la
+    // evaluación.
     if (evalRes) {
       let pantalla = null;
       await transition.cortar(() => {
@@ -1329,7 +1450,7 @@ export function createEngine({
         temporada: evalRes.temporada,
       });
       campaign.afterLevelling();
-      startDay(dayIndex, { skipPrologue: true });
+      volverAlPiso();
       return;
     }
 
@@ -1351,7 +1472,7 @@ export function createEngine({
       actions.push({
         label: "Siguiente jornada →",
         primary: true,
-        onClick: () => startDay(dayIndex, { skipPrologue: true }),
+        onClick: () => volverAlPiso(),
       });
     }
     actions.push({
@@ -1361,7 +1482,9 @@ export function createEngine({
       // viviste hoy, y repetirlos en cada despido convertía el castigo en
       // trámite. La intro completa queda para quien empieza de cero
       // ("Reiniciar progreso" del menú) o entra al día por primera vez.
-      onClick: () => startDay(dayIndex, { skipPrologue: true }),
+      // «Directo al piso» son DOS banderas y aquí solo se pasaba una: ver
+      // `volverAlPiso`, que es donde está contado.
+      onClick: () => volverAlPiso(),
     });
     actions.push({ label: "Menú", onClick: () => openTitle() });
 

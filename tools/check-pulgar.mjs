@@ -124,11 +124,28 @@ if (zona) {
   );
   await p.waitForTimeout(500);
 }
-const movido = await p.evaluate(() => {
-  const marcado = document.querySelector(".inc-menu:not(.inc-hidden) .nav-cursor");
+// SE MUESTREA MIENTRAS DURA EL EMPUJÓN, no se lee en un instante fijo.
+// El cursor se REPITE mientras la palanca está apoyada, y el título tiene
+// tres opciones: leyendo justo a los 500 ms se le pilla habiendo dado la
+// vuelta entera, otra vez sobre la primera — y eso se informaba como «la
+// palanca no mueve el cursor» con la palanca funcionando perfectamente.
+// Lo que se quiere saber es si LLEGÓ A MOVERSE, así que se mira si en algún
+// momento estuvo en otra opción.
+const movido = await p.evaluate(async () => {
+  const donde = () =>
+    document.querySelector(".inc-menu:not(.inc-hidden) .nav-cursor")?.textContent?.trim()?.slice(0, 40) ?? null;
+  const inicio = donde();
+  const vistos = new Set();
+  for (let i = 0; i < 40; i++) {
+    const d = donde();
+    if (d) vistos.add(d);
+    await new Promise((r) => setTimeout(r, 25));
+  }
   return {
-    hayCursor: !!marcado,
-    donde: marcado?.textContent?.trim()?.slice(0, 40) ?? null,
+    hayCursor: !!donde(),
+    donde: donde(),
+    inicio,
+    visitados: [...vistos],
   };
 });
 // LO QUE IMPORTA ES QUE SE MOVIÓ, no solo que exista un cursor: al abrirse un
@@ -136,7 +153,7 @@ const movido = await p.evaluate(() => {
 // cierto sin haber tocado nada.
 check(
   "empujar la palanca MUEVE el cursor dentro del menú",
-  movido.hayCursor === true && movido.donde !== antes,
+  movido.hayCursor === true && movido.visitados.some((v) => v !== antes),
   JSON.stringify({ antes, ...movido })
 );
 
@@ -154,7 +171,24 @@ const dondeAntes = await p.evaluate(
 );
 const bb = await p.locator(".touch-btn-interact").boundingBox();
 if (bb) await p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2);
-await p.waitForTimeout(700);
+// SE ESPERA AL CAMBIO, NO A UN RELOJ. Esto leía a los 700 ms clavados y
+// fallaba en la tanda completa —«7Jugar» → «7Jugar»— pasando siempre suelto:
+// entre pantalla y pantalla se cierran y se abren LAS PUERTAS DEL ASCENSOR
+// (ui/doors.js), que duran lo que dure `--dur-puerta` más el remontaje, y con
+// la máquina cargada eso se pasa de 700 ms sin que nada esté roto. Un plazo
+// fijo mide la MÁQUINA, que es la lección de check:chase.
+//
+// Si de verdad no avanza, esto tarda su espera y falla igual: lo único que se
+// pierde es el falso negativo.
+await p
+  .waitForFunction(
+    (previo) =>
+      (document.querySelector(".inc-menu:not(.inc-hidden) .nav-cursor")?.textContent?.trim() ??
+        "") !== previo,
+    dondeAntes,
+    { timeout: 8000 }
+  )
+  .catch(() => {});
 const dondeDespues = await p.evaluate(
   () => document.querySelector(".inc-menu:not(.inc-hidden) .nav-cursor")?.textContent?.trim() ?? ""
 );

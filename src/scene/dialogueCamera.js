@@ -141,13 +141,21 @@ export function createDialogueCamera(camera, { onDrama = null } = {}) {
      * El rumbo sale del yaw de la cámara, el mismo que usa el juego para
      * poner a la jugadora de cara cuando hace una actividad — así «de frente»
      * significa lo mismo en los dos sitios.
+     *
+     * VA CON `snap`, por lo mismo que `faceEachOther` (engine.js): el giro
+     * normal es un tween que avanza en `update()`, y durante un diálogo la
+     * partida está EN PAUSA. Sin snap, el soliloquio no giraba a nadie —el
+     * tween no corría— y el giro se cobraba de golpe al REANUDAR, o sea con
+     * la escena ya terminada: un personaje que se da la vuelta solo justo
+     * cuando el ojo ya está en otra cosa. La cuarta pared se rompe DURANTE la
+     * escena o no se rompe.
      */
     faceCamera(personaje) {
       if (!personaje?.sprite?.setHeading) return;
       const yaw = (getCameraSettings().yawDeg * Math.PI) / 180;
       const dx = Math.sin(yaw);
       const dz = Math.cos(yaw);
-      personaje.sprite.setHeading(dx, dz);
+      personaje.sprite.setHeading(dx, dz, { snap: true });
       // El jefe y los secuaces reimponen su propio rumbo en el siguiente
       // cuadro a partir de `facingDir`: sin esto, el giro dura un frame.
       if (personaje.facingDir) personaje.facingDir = { x: dx, z: dz };

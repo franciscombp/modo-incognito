@@ -101,6 +101,14 @@ const ACERCARSE_MIN = 0.25;
 /** Cuánto se sostiene un costado antes de probar el otro. */
 const BORDEO_MIN = 0.5;
 
+/** Coseno por debajo del cual un cambio de rumbo es un VOLANTAZO (>100°). */
+const VOLANTAZO = -0.17;
+/** Cuántos cuadros tiene que INSISTIR un volantazo para que se le haga caso.
+ *  Uno solo es ruido —el blanco que se mueve, el costado que alterna—; los de
+ *  verdad (hay que volver por donde viniste) duran. Cuesta ~5 centésimas de
+ *  retraso en un giro legítimo y ahorra la pirueta en los falsos. */
+const VETO_CUADROS = 3;
+
 /** Cada cuánto se puede volver a pedir ruta (el A* no es gratis). */
 const REPLAN_COOLDOWN = 0.4;
 
@@ -140,6 +148,12 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
   let mejorDistancia = Infinity;
   let replanEn = 0;
   let bordeo = null; // { signo: -1|1, restante: number }
+  // El rumbo del cuadro anterior, para vetar los volantazos de UN cuadro.
+  let dirPrev = null;
+  let vetado = 0;
+  // El veto de lo que se MIRA va aparte del de por dónde se anda: ver `paso`.
+  let mirarPrev = null;
+  let vetadoMirar = 0;
   const anterior = { x: 0, z: 0 };
 
   function limpiar() {
@@ -149,6 +163,10 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
     sinAcercarse = 0;
     mejorDistancia = Infinity;
     bordeo = null;
+    dirPrev = null;
+    vetado = 0;
+    mirarPrev = null;
+    vetadoMirar = 0;
   }
 
   /**
@@ -383,6 +401,43 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
       dx /= d;
       dz /= d;
 
+      // HACIA DÓNDE VA DE VERDAD, antes de que el bordeo le mezcle costado.
+      // Es lo que se MIRA: esquivar es andar de lado sin dejar de mirar a
+      // donde vas, no dar una pirueta por cada mueble.
+      const mirar = { x: dx, z: dz };
+
+      // ── Y EL VETO DE VOLANTAZOS VALE TAMBIÉN PARA LO QUE SE MIRA ─────
+      //
+      // Esto faltaba, y era justo la mitad que se ve. El veto de más abajo
+      // conserva el `dir` anterior cuando el rumbo se da la vuelta de un
+      // cuadro… y devolvía el `mirar` NUEVO, o sea el invertido. Como el
+      // cuerpo gira con `mirar`, el resultado era el peor de los dos mundos:
+      // el paso no se invertía (bien) pero el muñeco SÍ daba la vuelta (mal).
+      // El veto existe exactamente para que eso no pase.
+      //
+      // Medido en la escolta del día 1 con el veto puesto solo en `dir`:
+      // seguía habiendo 5-6 inversiones de más de 90°, dos de ellas de 180°
+      // clavados, repartidas por todo el trayecto. Son las que se ven como
+      // «va andando de frente y de pronto se gira entera».
+      //
+      // Va con su PROPIO contador y no colgado del de `dir`: son dos
+      // preguntas distintas —el bordeo puede obligar a torcer el paso sin que
+      // el objetivo se haya movido, y el objetivo puede saltar detrás (un
+      // replaneo deja el primer nodo a la espalda) sin que el paso cambie—.
+      let mirarSuave = mirar;
+      if (mirarPrev) {
+        const giroM = mirarPrev.x * mirar.x + mirarPrev.z * mirar.z;
+        if (giroM < VOLANTAZO && vetadoMirar < VETO_CUADROS) {
+          vetadoMirar++;
+          mirarSuave = { x: mirarPrev.x, z: mirarPrev.z };
+        } else {
+          vetadoMirar = 0;
+          mirarPrev = { x: mirar.x, z: mirar.z };
+        }
+      } else {
+        mirarPrev = { x: mirar.x, z: mirar.z };
+      }
+
       // ── PASO LATERAL: BORDEAR LO QUE NO ESTÁ EN EL MAPA ──────────────
       // El navmesh es del EDIFICIO. Los cuerpos, las sillas que rodaron y
       // cualquier cosa colocada después no están en él, así que contra ellos
@@ -434,7 +489,42 @@ export function createWalker({ navmesh = null, world = null, radius = 0.3 * S } 
         return { dir: null, llego: false, abandonado: true };
       }
 
-      return { dir: { x: dx, z: dz }, llego: false, abandonado: false };
+      // ── UN VOLANTAZO DE UN SOLO CUADRO ES RUIDO, NO UNA INTENCIÓN ────
+      //
+      // Medido en la escolta del día 1: 6 inversiones de más de 90° en 55
+      // muestras, y 3,6 VUELTAS de giro acumulado en catorce segundos — la
+      // jugadora dando vueltas sobre sí misma mientras la llevan al puesto.
+      // El cuerpo gira hacia donde el caminante apunta, así que cada rebote
+      // se ve.
+      //
+      // De dónde salen: seguir a un CUERPO que se mueve pegado a ti (la
+      // escolta reescribe el destino con la posición de Gabo cada cuadro, y a
+      // medio metro el rumbo hacia él es casi todo ruido), y el paso lateral
+      // de bordear, que al alternar de costado invierte el rumbo de golpe.
+      //
+      // Un giro de verdad —doblar una esquina, rodear una mesa— DURA. Uno de
+      // un cuadro no existe como movimiento: solo alcanza a torcer el muñeco.
+      // Así que la primera vez que el rumbo se da la vuelta se conserva el
+      // anterior, y si al cuadro siguiente sigue queriendo ir para allá, se
+      // le hace caso. Cuesta un cuadro de retraso en un giro brusco de
+      // verdad, y ahorra la vuelta entera en los falsos.
+      if (dirPrev) {
+        const giro = dirPrev.x * dx + dirPrev.z * dz; // coseno del ángulo
+        if (giro < VOLANTAZO && vetado < VETO_CUADROS) {
+          vetado++;
+          return { dir: { x: dirPrev.x, z: dirPrev.z }, mirar: mirarSuave, llego: false, abandonado: false };
+        }
+      }
+      vetado = 0;
+      dirPrev = { x: dx, z: dz };
+      // DOS VECTORES, y por eso son dos: `dir` es POR DÓNDE SE ANDA —con el
+      // costado del bordeo mezclado, que es lo que rodea el obstáculo— y
+      // `mirar` es HACIA DÓNDE SE MIRA, que sigue siendo el objetivo. Con uno
+      // solo, cada vez que el bordeo alterna de lado el cuerpo giraba 126° de
+      // golpe: la mezcla pesa más el costado (0.9) que el rumbo (0.45), así
+      // que un cambio de signo es casi media vuelta. El movimiento estaba
+      // bien; lo que estaba mal era ENSEÑARLO como si fuera el rumbo.
+      return { dir: { x: dx, z: dz }, mirar: mirarSuave, llego: false, abandonado: false };
     },
   };
 }

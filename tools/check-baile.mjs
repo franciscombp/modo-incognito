@@ -232,6 +232,38 @@ const mundo = await p.evaluate(() => {
 // que explotar. El anti-escudo se comprueba ahora en `check:pausa`.
 check("y el MUNDO SE PARA mientras bailas (ver check:pausa)", mundo.andó === false, JSON.stringify(mundo));
 
+// ── TERMINAR UNA TANDA TIENE SU BEAT ──
+// `rutina` se emitía y nadie la escuchaba: en pantalla las flechas volvían a
+// empezar sin más, así que no había forma de saber si habías cerrado la tanda
+// o si el minijuego se había reiniciado solo.
+//
+// Se mide que la tanda SE RENUEVA, y por la LISTA DE PASOS, no por el índice:
+// al cerrarse, `nuevaRutina()` pone el índice a 0, así que «el índice fue
+// hacia atrás» no distingue una tanda nueva de un paso cualquiera — la
+// primera versión de esto no detectaba nada por eso.
+{
+  const tanda = await p.evaluate(async () => {
+    const g = window.__game.engine.game;
+    if (!g.baile?.active) return { sinAbrir: true };
+    const firma = () => (g.baile.snapshot()?.pasos ?? []).map((x) => x.dir).join("");
+    const primera = firma();
+    for (let i = 0; i < 300; i++) {
+      const s = g.baile.snapshot();
+      if (!s) return { cerroTarea: true, primera };
+      if (firma() !== primera) return { renovada: true, primera, ahora: firma() };
+      const paso = s.pasos?.[s.indice];
+      if (paso) g.baile.pulsar(paso.dir);
+      await new Promise((r) => setTimeout(r, 30));
+    }
+    return { renovada: false, primera, ahora: firma() };
+  });
+  check(
+    "la tanda se cierra y arranca otra (o la tarea se completa antes)",
+    tanda.renovada === true || tanda.cerroTarea === true,
+    JSON.stringify(tanda)
+  );
+}
+
 check("sin errores de página", errores.length === 0, errores.join(" | "));
 
 await b.close();

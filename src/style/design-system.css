@@ -328,6 +328,27 @@
   --btn-line: hsl(var(--p-accent-bright) / 0.3);
   --rim: hsl(var(--p-rim) / var(--p-rim-alpha));
 
+  /* ── EL EDIFICIO COMO MENÚ (docs/PANTALLAS.md §1.8bis) ──
+     Los sitios que hacen de menú —el ascensor, el escritorio, el espejo— son
+     DECORADO, así que sí pintan: son el fondo, no un contenedor pegado
+     encima. Por eso tienen roles propios en vez de reusar `--surface`, que
+     es lo que el holograma dejó en nada a propósito.
+     Las HOJAS del ascensor son metal: más claras por el filo interior, más
+     oscuras hacia fuera. Se define aquí, en la capa 2, para que un tema las
+     re-tiña sin tocar el componente. */
+  --puerta: linear-gradient(100deg, hsl(var(--p-bg-600)) 0%, hsl(var(--p-bg-800)) 62%, hsl(var(--p-bg-900)) 100%);
+  --puerta-filo: hsl(var(--p-accent-bright) / 0.42);
+  /* LO QUE TARDA UNA HOJA, y es la ÚNICA definición: `doors.js` la LEE de
+     aquí en vez de traerse su propio número. Escritos en los dos sitios, se
+     separan al primer retoque — y separados no se ve un fallo, se ve algo
+     peor: el cambio de pantalla ocurre con las puertas a medio abrir. */
+  --dur-puerta: 0.38s;
+  /* El aire de cada sitio: una luz suave que dice dónde estás sin dibujar
+     nada. Cae sobre el velo del menú, no sobre los paneles. */
+  --aire-ascensor: radial-gradient(ellipse 70% 48% at 50% 6%, hsl(var(--p-accent-bright) / 0.16), transparent 70%);
+  --aire-escritorio: radial-gradient(ellipse 62% 54% at 50% 88%, hsl(var(--p-warn) / 0.14), transparent 72%);
+  --aire-espejo: radial-gradient(ellipse 78% 40% at 50% 20%, hsl(var(--p-ink-100) / 0.14), transparent 68%);
+
   /* ── EL HOLOGRAMA ─────────────────────────────────────────────────
      Los roles de la proyección. La lista de misiones ya se veía así —hilo
      fino, brillo, nada de caja— y era la única pieza que lo hacía: el resto
@@ -353,6 +374,11 @@
   --holo-glow: 0 0 14px hsl(var(--p-accent-bright) / 0.16);
   --holo-ink-glow: 0 0 10px hsl(var(--p-accent-bright) / 0.4);
   --holo-bracket: 12px;
+  /* LA SOMBRA DURA, que es la pieza que PERMITE que no haya caja: hace
+     legible la tinta sobre el escenario sin fondo detrás. Estaba escrita a
+     pelo en cinco sitios y sin nombre, así que no se podía ni retocar ni
+     re-tintar por tema — que es justo lo que la capa 2 existe para arreglar. */
+  --holo-drop: 0 2px 0 hsl(var(--p-shadow-hue) / 0.9);
 
   /* ── Acento ── */
   --accent: hsl(var(--p-accent));
@@ -12018,6 +12044,21 @@ body.inc-anunciando #hint {
   border-color: var(--danger);
   animation: inc-vaso-no var(--dur-2) var(--ease-pop);
 }
+/* EL INSTANTE DE ATRAPAR EL PLATO. `dentro` (de arriba) es el ESTADO —el aro
+   se queda verde mientras aciertas—; esto es el FLANCO, el pellizco de que
+   acabas de cogerlo. Sin él, el único momento con acento en todo el
+   minijuego era quemarse: el microondas solo te hablaba cuando lo hacías mal,
+   y eso se siente roto aunque funcione. */
+.inc-micro-caja.centrado {
+  animation: inc-micro-pilla var(--dur-base) var(--ease-pop);
+}
+@keyframes inc-micro-pilla {
+  0% { box-shadow: 0 0 0 0 hsl(var(--p-ok) / 0.55); }
+  100% { box-shadow: 0 0 0 14px hsl(var(--p-ok) / 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .inc-micro-caja.centrado { animation: none; }
+}
 /* LA ZONA BUENA, siempre a la vista: adivinar dónde está el centro mientras
    algo se te escapa no es difícil, es arbitrario. */
 .inc-micro-zona {
@@ -13104,7 +13145,22 @@ body.inc-minijuego .inc-announce {
   font: inherit;
   font-size: 12px;
   letter-spacing: 0.14em;
-  padding: 4px 10px;
+  /* TAMAÑO DE PULGAR, y aquí no es un lujo: es LA SALIDA. Medía 69×17 px
+     reales, o sea la mitad de alto de lo que un dedo acierta (el contrato del
+     lienzo pide 40), y encima arriba en una esquina. Con la cuenta atrás de
+     la tarea corriendo y sin poder abandonar, te quedas dentro hasta que
+     expira — y al expirar el jefe VIENE. O sea que un botón demasiado chico
+     aquí no es una molestia de puntería: es que te atrapan. */
+  /* 72 px DE LIENZO, no 44. El lienzo va ESCALADO: en el teléfono compacto
+     la escala ronda 0.57, así que 44 lógicos se quedan en 25 reales — que es
+     lo que medía y por lo que no se acertaba. Se dimensiona para la escala
+     más pequeña que soportamos, que es la única que importa aquí. */
+  min-height: 72px;
+  min-width: 120px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 14px;
   border: 1px solid var(--btn-line);
   border-radius: var(--radius-sm);
   text-shadow: 0 2px 0 hsl(var(--p-shadow-hue) / 0.7);
@@ -13508,5 +13564,197 @@ body.inc-minijuego .touch-utils {
   .inc-globo {
     transition: opacity var(--dur-2, 0.18s) linear;
     scale: 1;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   EL ESCENARIO **ES** EL MENÚ — puertas y decorados
+   (diseño: docs/PANTALLAS.md §1.8bis · armazón: src/ui/decorados.js)
+
+   Dos piezas, y las dos son DECORADO, no contenedores:
+
+     · LAS PUERTAS son la transición. Cuelgan de la raíz y no del menú, así
+       que tapan la pantalla entera y siguen tapándola mientras el menú se
+       reordena por dentro.
+     · EL AIRE de cada sitio cae sobre el VELO que ya existe
+       (`.inc-menu-scrim`), no sobre los paneles. Es lo que deja que el menú
+       siga sin una sola caja mientras el fondo cambia de sitio: lo que dice
+       dónde estás es la LUZ, no un marco nuevo.
+
+   Por eso esto no contradice al bloque «EL HOLOGRAMA» de más arriba: aquel
+   prohíbe la superficie PEGADA ENCIMA del juego; esto pinta el sitio que
+   hay detrás. La lista de opciones sigue siendo filas con hilo.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.inc-puertas {
+  position: absolute;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  pointer-events: none;
+}
+
+/* Las hojas viven FUERA del hueco y solo entran al cerrar. Con `translate`
+   y no con `width`: mover una caja es composición y va en la GPU, mientras
+   que animar el ancho reflowea la pantalla entera cada cuadro — y esto corre
+   justo cuando además se está montando la pantalla siguiente. */
+.inc-puerta {
+  flex: 1 1 50%;
+  background: var(--puerta);
+  transition: translate var(--dur-puerta) var(--ease-pop);
+  will-change: translate;
+}
+
+.inc-puerta--izq {
+  translate: -101% 0;
+  /* El filo interior, que es lo único que las dibuja como puertas: la ranura
+     por la que se ve la luz del hueco. */
+  box-shadow: inset -1px 0 0 var(--puerta-filo);
+}
+
+.inc-puerta--der {
+  translate: 101% 0;
+  box-shadow: inset 1px 0 0 var(--puerta-filo);
+}
+
+/* Cerradas. El 101% de reposo y el 0 de aquí no dejan costura en medio ni a
+   escalas raras del lienzo. */
+.inc-puertas.on .inc-puerta {
+  translate: 0 0;
+}
+
+/* CON `prefers-reduced-motion` LAS PUERTAS CORTAN, no se deslizan. Lo pide
+   §1.8bis, y no es un adorno menos: dos hojas cruzando la pantalla es
+   exactamente el movimiento que provoca mareo vestibular. La transición se
+   apaga desde JS además de aquí (`inc-puertas--corta`) porque el JS también
+   pone las esperas a cero: animación y tiempo tienen que irse JUNTOS o se
+   queda un segundo y medio de pantalla tapada sin nada que mirar. */
+.inc-puertas--corta .inc-puerta {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inc-puerta {
+    transition: none;
+  }
+}
+
+/* ── EL AIRE DE CADA SITIO ──
+   Va en el velo, en su `::after`, para no tocarle el fondo: el velo decide
+   por su cuenta si es sólido (antes de que haya partida) o translúcido (en
+   pausa), y eso no se pisa desde aquí. */
+.inc-menu-scrim::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--dur-puerta) linear;
+}
+
+.inc-menu[data-decorado="ascensor"] .inc-menu-scrim::after {
+  background: var(--aire-ascensor);
+  opacity: 1;
+}
+
+.inc-menu[data-decorado="escritorio"] .inc-menu-scrim::after {
+  background: var(--aire-escritorio);
+  opacity: 1;
+}
+
+.inc-menu[data-decorado="espejo"] .inc-menu-scrim::after {
+  background: var(--aire-espejo);
+  opacity: 1;
+}
+
+/* `interfaz` (pausa y ajustes) no pinta aire a propósito: no te has movido de
+   sitio, y fingir que sí sería contar una mentira encima de la partida. */
+
+/* ── LA BOTONERA DEL ASCENSOR (docs/PANTALLAS.md §1.8bis, paso 3) ──
+   El título es la botonera: cada opción lleva LA PLANTA a la que te manda, y
+   arriba un indicador marca la de lo que tienes señalado.
+
+   Es una PIEL, y eso es literal: no se le toca a la fila ni la geometría, ni
+   el hilo, ni los estados, ni el lavado del cursor. Lo único que se añade es
+   un número. Lo pide así el propio §1.8bis —«la piel cambia, la geometría y
+   los estados no»— y es lo que evita que un botón diegético deje de notarse
+   pulsable, que es como se rompe un menú por querer decorarlo.
+
+   Y no hay caja: el número es TINTA, con la misma sombra dura que hace
+   legible el resto sobre el escenario. Una plaquita de latón con su relieve
+   sería exactamente el contenedor que el HOLOGRAMA quitó. */
+
+.inc-planta {
+  /* Ancho fijo para que los números caigan en columna aunque uno sea «B»:
+     una botonera con los dígitos bailando no se lee como una botonera. */
+  min-width: 1.6em;
+  flex: 0 0 auto;
+  font-family: var(--mono);
+  font-size: 0.82em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+  text-align: center;
+  /* Apagada hasta que la señalas: en un ascensor el número se ENCIENDE. */
+  color: var(--text-dim, var(--text));
+  opacity: 0.5;
+  transition: opacity var(--dur-fast) linear, color var(--dur-fast) linear;
+}
+
+/* Encendida. Va con `:where()` en los calificadores para que la regla valga
+   (0,1,0) y no entre en la carrera de especificidad con las familias de
+   botón — la misma cautela que el lavado del cursor, que perdió tres veces
+   por subir de clase en vez de bajar de peso a la rival. */
+:where(.inc-btn:hover, .inc-btn:focus-visible, .inc-btn.nav-cursor) .inc-planta {
+  opacity: 1;
+  color: var(--accent);
+}
+
+/* El indicador de planta: el numerito de arriba de las puertas. */
+.inc-ascensor {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--mono);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-size: 11px;
+  color: var(--text-dim, var(--text));
+  opacity: 0.75;
+}
+
+.inc-ascensor::before {
+  /* La flecha de subida, dibujada con borde: no es un icono de `icons.js`
+     porque no es un icono de interfaz, es parte del rótulo. */
+  content: "";
+  width: 0;
+  height: 0;
+  border-inline: 5px solid transparent;
+  border-bottom: 7px solid var(--accent);
+  opacity: 0.85;
+}
+
+.inc-ascensor-planta {
+  font-size: 20px;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+  text-shadow: var(--holo-drop);
+}
+
+/* El parpadeo al cambiar de planta. Corto y sin desplazar nada: es un
+   display, no un salto. */
+.inc-ascensor.cambia .inc-ascensor-planta {
+  animation: inc-planta-cambia var(--dur-base) var(--ease-out, ease-out);
+}
+
+@keyframes inc-planta-cambia {
+  0% { opacity: 0.25; }
+  100% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .inc-ascensor.cambia .inc-ascensor-planta {
+    animation: none;
   }
 }

@@ -237,13 +237,21 @@ for (const n of [1, 2, 3]) {
   // aserción va a mirar, o a que el texto deje de crecer (frase corta).
   let visto = "";
   let previo = -1;
-  for (let i = 0; i < 50; i++) {
+  let quieto = 0;
+  for (let i = 0; i < 60; i++) {
     await p.waitForTimeout(120);
     visto = await p.evaluate(
       () => document.querySelector(".vn-text, .inc-dialogue-text")?.textContent?.trim() ?? ""
     );
     if (visto.length >= 26) break;
-    if (visto && visto.length === previo) break;
+    // «Dejó de crecer» exige TRES muestras iguales, no una. La caja escribe a
+    // máquina y un respiro de 120 ms entre letras es de lo más normal: con una
+    // sola coincidencia se daba por terminada una frase a medias («…Y no
+    // esta») y la comparación de orden fallaba con el orden perfecto. Es el
+    // mismo error que ya documenta el comentario de arriba, solo que una
+    // muestra más adentro.
+    quieto = visto && visto.length === previo ? quieto + 1 : 0;
+    if (quieto >= 3) break;
     previo = visto.length;
   }
   vistas.push(visto);

@@ -32,21 +32,32 @@ JSON que más se tocan— está en
 > Cada uno abre con una tabla de qué está construido y qué no. Esa tabla es la
 > verdad; si implementas algo de ahí, actualízala en el mismo commit.
 
-## Estado: temporada 1, días 1 y 2
+## Estado: temporada 1, días 1 a 3
 
-La campaña publicada es **la temporada 1 sobre los días 1 y 2** (los dos en
-`manifest.json` → `levels`; `check:partida` juega el lunes entero y
-`check:dia2` el arco lunes → martes). El lunes: ascensor → Gabo te recibe en
+La campaña publicada es **la temporada 1 sobre los días 1, 2 y 3** (los tres
+en `manifest.json` → `levels`; `check:partida` juega el lunes entero,
+`check:dia2` el arco lunes → martes y `check:dia3` el arco entero hasta el
+miércoles). El lunes: ascensor → Gabo te recibe en
 la puerta y **TE LLEVA a tu puesto** (cinemática: le sigues sola, él se
 aparta al llegar, quedas sentada — `check:escolta`) → y de ahí la cadena de
 misiones (fingir, café, el chisme de Fran, la película, la comida) en el
 **ala sur**, con Gabo atado a la jugadora. El martes no tiene puerta —Gabo
 de ronda desde el primer minuto— y SÍ trae el cruce de la avenida; en el
 día 1 el cruce sigue desactivado a propósito (ver más abajo) para tener el
-foco en el piso. Los archivos `dia-3`..`dia-5` siguen en
+foco en el piso. Los archivos `dia-4` y `dia-5` siguen en
 `public/data/levels/` pero **no están en `manifest.json` → `levels`**, así
 que el juego no los ve. Reactivar un día es añadir su id a esa lista — y
-pasarle `check:contenido` y un arco como el de `check-dia2`.
+pasarle `check:contenido`, `check:jugable --dia N` y un arco como el de
+`check-dia3`.
+
+⚠️ **UN DÍA EN EL CAJÓN ENVEJECE EN SILENCIO, y activarlo lo destapa de
+golpe.** El miércoles llevaba guardado con la jornada de OTRA ÉPOCA —120 s, de
+cuando el día entero duraba eso— pero con cinco objetivos en vez de los tres
+del lunes: al activarlo, la jornada se acababa a mitad de la peli y no fallaba
+nada, porque un día que no da tiempo no falla en ningún sitio, se acaba y ya.
+Por eso `check:contenido` ahora revisa TAMBIÉN los días sin publicar y AVISA
+(sin bloquear) de lo que traen roto — hoy canta que el día 4 pide dos
+actividades que no existen en el piso, `scroll` y `print`.
 
 Si te piden algo del día 1, revisa que no rompas ninguna de sus **cuatro**
 piezas: `campaign/temporada-1.json` (qué se te pide y en qué orden),
@@ -358,6 +369,18 @@ Lo vigilan `npm run check:pulse`, `npm run check:gesto` y
 quieto, `limite` corriendo, reloj parado) y la última, que el aguante se
 paga al bancar.
 
+**SIEMPRE SE PUEDE SALIR, Y CON LOS TRES MANDOS.** No es comodidad: la
+CUENTA ATRÁS de la tarea sigue corriendo dentro del minijuego, y al agotarse
+el jefe VIENE — así que sin salida, la única forma de terminar algo que va mal
+es que te atrapen. Faltaban dos de los tres: el botón medía 17 px REALES de
+alto (el lienzo va escalado, así que hay que dimensionarlo para la escala más
+pequeña, no para el lienzo), y con MANDO no había forma de llegar a él —
+`sondearBaile()` cortocircuita `sondearMando`, y la pantalla va
+`data-nav-juego`, así que el cursor tampoco la recorre. Ahora el botón
+VOLVER del mando (B/Y) despacha ESCAPE desde ahí. Lo vigila
+`check:baile-pulgar`, que mide el botón EN PÍXELES REALES y prueba las dos
+salidas por separado, reabriendo el baile entre una y otra.
+
 **SIEMPRE SE PUEDE SALIR, y hay un BOTÓN.** La pantalla lleva su «SALIR
 (ESC)» arriba a la derecha, y es lo único pulsable de esa barra. Hubo que
 ponerlo: el rótulo decía «suelta para dejarlo» y desde el pestillo eso pasó a
@@ -407,6 +430,46 @@ retos, las estaciones con su verbo, las dinámicas encadenadas y la salida
 por el ascensor. Es la única que mira la COSTURA — los tres atascos de
 arriba tenían todas sus piezas en verde. Si tocas el bucle de una
 actividad, córrela: es la que dice si la partida se puede terminar.
+
+**Y `npm run check:jugable` la juega ANDANDO.** Son preguntas distintas y
+hacen falta las dos. Para poder mirar la costura, `check:partida` aparta el
+juego: COLOCA a la jugadora en cada estación, le deja al jefe la vista en
+blanco y le sube el cupo a 99 — correcto para lo que mide, porque con el jefe
+encima un fallo sería «me atraparon», que no dice nada de la costura. El
+precio era que nadie miraba lo otro: que se pueda LLEGAR a los sitios, que la
+ENERGÍA dé para los cuatro minutos, y que las dos cosas se puedan hacer con
+el jefe suelto. Eso es BALANCE, no datos — los JSON pueden estar impecables
+(`check:contenido` lo dice) y la jornada ser imposible igual, porque un día
+que no se puede terminar no falla en ningún sitio: se acaba y ya.
+
+⚠️ **`game.update()` NO MUEVE A LA JUGADORA, y eso decide cómo se escribe una
+prueba que ande.** El paso lo da `player.update(dt, world)`, y quien lo llama
+es el BUCLE DE DIBUJADO de `main.js` — no el motor. Consecuencias, las tres
+pagadas:
+- Una prueba que avance por cuadros a mano (el patrón de `check:chase`) deja
+  el mundo corriendo y el cuerpo CLAVADO. La primera versión de `check:jugable`
+  «caminaba» solo porque cedía el hilo cada cuadro y el rAF de verdad se colaba
+  entre medias; al espaciar las cesiones el paseo se paró en seco, y el fallo
+  no era del piso, era del montaje.
+- Llamar a `player.update` desde la propia prueba TAMPOCO vale: el rAF sigue
+  vivo, así que se actualizaría dos veces por cuadro y andaría al doble de
+  velocidad — justo el número que se viene a medir.
+- Por eso `check:jugable` se juega EN TIEMPO REAL (sus cuatro minutos), y por
+  eso `check:partida` COLOCA a la jugadora en vez de andar. No es que se
+  conformara: es que desde un bucle propio no se puede caminar.
+
+Y otras dos de cómo está escrita:
+- **Se camina POR EL NAVMESH**, no en línea recta. El piso tiene un muro con
+  un solo hueco: en recta la prueba se clavaba contra él a diez unidades del
+  Parce y lo cantaba como si el café fuera inalcanzable.
+- **Y se juega como quien sabe**: coartada antes del botín que delata (el
+  HDMI va a `sospecha: 1.9`, y el acta lo baja a 1.05), y a un lugar seguro
+  cuando te cazan — el refugio tiene que estar LIBRE, y si es un puesto hay
+  que FINGIR, que si no no cubre nada.
+
+**Las amonestaciones las IMPRIME, no las exige**: medido en cinco jornadas dan
+0, 1, 2, 3 y 3, porque la ronda del jefe es aleatoria. Exigir ahí un número
+sería una prueba a cara o cruz, que es la lección de `check:chase`.
 
 **Mientras dura un gesto no se camina** (`player.inputLocked`). No es una
 restricción caprichosa: es lo que deja libre el eje del mando para el gesto, y
@@ -988,6 +1051,15 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   trabajo y fallar por no hablar con nadie, que es el chiste entero.
 - **El guardado es POR TAREAS, no por días.** Una misión `unica` se persiste
   EN EL ACTO. Las `diaria` son la rutina y vuelven cada día.
+- **EL CUPO DE AMONESTACIONES ES EL MÁS ESTRICTO DE LOS DOS**, el del día y
+  el del personaje (`mergedRules` en `engine.js`). Ganaba siempre el
+  personaje, y como los cuatro jugables declaran el suyo, **el del día no se
+  leía nunca**: la campaña escala el cupo a propósito —el día 3 pide 2, el 5
+  pide 1, que es su forma de apretar— y toda esa progresión era DATO MUERTO.
+  No se veía porque los días publicados pedían 3 y Fran también pide 3. Con el
+  mínimo, el DÍA pone el techo de tolerancia y el personaje solo puede ser más
+  frágil, nunca más resistente de lo que el día permite. Lo vigila
+  `check:dia3`, que compara lo que pide el JSON con lo que corre el motor.
 - **Tres amonestaciones ya no despiden: mandan a RRHH** (`src/ui/hrCourse.js`)
   a un curso de cumplimiento con un botón de saltar que se mueve — y que HUYE
   del cursor a partir de la segunda visita. Siempre se puede terminar: es un
@@ -1068,6 +1140,99 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
     decide: el figurante adopta el sitio donde está, la escolta baja el
     telón. Un caminante que no puede llegar y no lo dice ES el bug.
   Lo vigila `npm run check:atascos`.
+- **NADIE PIRUETEA: SE MIRA HACIA DONDE SE VA** (`npm run check:giros`).
+  Reportado como «cuando se sienta empieza a dar vueltas», y no era al
+  sentarse: era TODO el trayecto de la escolta. Medido, 3,6 VUELTAS sobre sí
+  misma en catorce segundos, con seis inversiones de rumbo de más de 90°.
+  Tres causas, y ninguna era el sentarse:
+  - **Seguir a un CUERPO apuntando a su centro.** La escolta llevaba a la
+    jugadora a la posición de Gabo; ella lo rebasaba, el paseo se cancelaba al
+    cruzar el radio de seguimiento, él seguía andando y el rumbo hacia él se
+    daba la vuelta. Las cuatro inversiones de 180° caían justo en ese radio.
+    Ahora se camina por su ESTELA (`ESTELA` en game.js), un paso por detrás
+    sobre la línea que él recorre: no hay nada que rebasar.
+  - **Un solo vector para andar y para mirar.** `walk.js` → `paso()` devuelve
+    `dir` (por dónde se anda, con el costado del bordeo mezclado) y `mirar`
+    (hacia dónde se mira, que sigue siendo el objetivo). Con uno solo, cada
+    vez que el bordeo alternaba de lado el cuerpo giraba 126° de golpe — la
+    mezcla pesa más el costado (0.9) que el rumbo (0.45). El movimiento estaba
+    bien; lo que estaba mal era ENSEÑARLO como si fuera el rumbo.
+  - **Los volantazos de un cuadro**, que son ruido y no intención: un giro de
+    verdad DURA, así que hay que insistir unos cuadros para que se le haga
+    caso (`VOLANTAZO`, `VETO_CUADROS`).
+  Y dos del giro en sí, que estropeaban las CINEMÁTICAS: `setHeading(...,
+  {snap})` escribía `object.rotation.y` pero no `_yaw`, así que `_updateTurn`
+  deshacía el snap al cuadro siguiente — no se notaba porque durante un
+  diálogo la partida está en pausa y ese update no corre, o sea que el
+  personaje aguantaba de frente toda la conversación y se destorcía al
+  reanudar. Y `_yaw` no se normalizaba nunca: medido, una jugadora sentada lo
+  tenía a 9,6 con el objetivo en -2,96 (cuatro pi de diferencia), lo que
+  convierte en un sinsentido cualquier comparación entre los dos.
+
+  **UNA ESCENA COLOCA EL RUMBO; EL JUEGO LO TUENEA.** Es la regla que sale de
+  todo lo anterior, y es de las que se rompen solas: el giro normal avanza en
+  `update()`, y **una escena pasa CON LA PARTIDA EN PAUSA**, donde ese update
+  no corre. O sea que una cinemática que pida «gírate» con el giro normal no
+  gira a nadie mientras dura, y se cobra el giro entero AL REANUDAR — con la
+  escena ya terminada. Visto desde fuera, eso ES el reporte original: alguien
+  que se da la vuelta solo. Los TRES sitios que colocan van con `{snap: true}`:
+  `faceEachOther` (engine.js, hablar de a dos), `faceCamera`
+  (dialogueCamera.js, el soliloquio) y `waitAt`/`sitAt` (boss.js, el jefe que
+  te recibe en la puerta). Los dos últimos llevaban el tween: el soliloquio no
+  rompía la cuarta pared nunca, y Gabo esperaba en la puerta con el rumbo del
+  punto 0 de su ronda. Ojo con `waitAt`, que enseña el patrón entero — ya
+  colocaba la POSICIÓN al instante, con un comentario explicando esta misma
+  pausa, y al rumbo de al lado le habían dejado el tween.
+  Lo que NO lleva snap es todo lo que se escribe por cuadro con el juego vivo
+  (andar, la ronda del jefe, fingir de pie): ahí el tween ES el giro.
+  ⚠️ La prueba mide el GIRO ACUMULADO por el camino, no el rumbo final: al
+  llegar queda perfecto siempre, porque lo que falla es el trayecto. Y espera
+  a que el giro de sentarse SE ASIENTE antes de exigir quietud — sentarse
+  termina con una vuelta legítima que el motor tuenea, y midiendo a plazo fijo
+  se la pilla a medias y se reporta como pirueta.
+  ⚠️ Y mide las tres escenas de la apertura **con la caja abierta**, que es el
+  único momento en que se distingue una escena que coloca de una que no: al
+  reanudar los dos casos acaban en el mismo sitio. Para eso ORBITA LA CÁMARA
+  a 35° antes de empezar — su yaw por defecto es 0 y el de un muñeco recién
+  montado también, así que «mira a cámara» se cumpliría solo y la
+  comprobación del soliloquio pasaría en verde con el giro roto.
+- **UN DÍA QUE EMPIEZA, EMPIEZA ENTERO — Y LOS CUERPOS TAMBIÉN**
+  (`resetEntities` en engine.js). Un día nuevo NO monta un piso nuevo: la
+  jugadora, el jefe y los secuaces son los MISMOS objetos siempre (main.js los
+  crea una vez), así que todo lo que dejó puesto el intento anterior sigue
+  puesto hasta que alguien lo quite. Se quitaba la mitad, y las dos mitades
+  que faltaban daban el mismo síntoma: «en algunos reinicios el personaje no
+  vuelve a su sitio y rompe la cinemática».
+  - **LA MALLA NO VOLVÍA.** Se escribía `player.position` —el sitio LÓGICO— y
+    nada más. Quien mueve el cuerpo QUE SE VE es `player.update`, y ese update
+    está detrás de `!engine.isPaused`… mientras que **el guion de apertura pasa
+    con la partida EN PAUSA**. O sea que durante toda la cinemática la jugadora
+    estaba en pantalla donde la dejó ayer, la cámara encuadraba el ascensor
+    vacío, y el cuerpo aparecía de golpe al reanudar. `boss.waitAt` ya tenía
+    este arreglo, con el comentario al lado; la jugadora se había quedado sin
+    él, y los secuaces también.
+  - **Y UN CORTE DE AYER SE COBRABA HOY** (`Game._conTelon`). Los tres
+    traslados largos escriben `player.position` DESDE DENTRO DEL NEGRO, y el
+    negro tarda 260 ms en llegar. Reiniciar dentro de esa ventana dejaba la
+    partida nueva con el cuerpo en el ascensor y la POSICIÓN en el puesto de
+    ayer. El motor RETIRA el día viejo (`game.retirar()`) antes de montar el
+    nuevo y el corte pendiente ya no aplica su cambio — no se cancela, que
+    subir un telón a medias es peor.
+  - Sobrevivían además `walkTo`, `inputLocked` y la pose: un día cortado
+    mientras te sientan en tu puesto arrancaba el siguiente caminando sola
+    hacia el destino de ayer, o directamente sin mando.
+  - Y el jefe se quedaba con `esperando`/`seated`, que solo suelta `standUp()`
+    al superar la puerta del día: pasar al día 2 —que ya no lo planta en la
+    puerta— lo dejaba de estatua la jornada entera sin que nada fallara.
+  ⚠️ **Es «en ALGUNOS reinicios» por un motivo exacto, no por azar:** una
+  jornada que termina bien se termina SALIENDO POR EL ASCENSOR, así que la
+  malla ya estaba donde tenía que estar. Se rompe cuando el día anterior acabó
+  en otro sitio —el despido en tu puesto, el reintento a mitad de partida—,
+  que es justo cuando más se reinicia.
+  Lo vigila `npm run check:reinicio`, que mide **con la caja del guion
+  abierta**: es el único momento en que el fallo existe, porque el primer
+  `player.update` de la partida coloca la malla y a partir de ahí todo se ve
+  idéntico se hubiera reseteado o no.
 - **NADIE SE TELETRANSPORTA. NUNCA.** Un cuerpo que parpadea de sitio deja
   de ser un cuerpo, y es lo primero que delata que esto es un prototipo.
   Cuando el juego necesita llevar a alguien a un sitio se usa
@@ -1121,6 +1286,35 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   (la escena se ve), lejos baja el telón y al subir ya estás. Detrás del
   telón no hay teletransporte que ver — la regla habla de lo que el ojo ve.
   El paseo corto lleva además un plazo, por si se atasca igual.
+  **Los tres traslados pasan por `Game._conTelon`**, y ahí están las dos
+  trampas de este mecanismo:
+  - **LOS CORTES HACEN COLA; NO SE TIRAN**, y un telón ocupado no puede
+    dejarte sin mando. `cortar` RECHAZABA el corte pedido con otro en marcha
+    —por un buen motivo: dos telones a la vez dejan el segundo a medias y la
+    pantalla negra para siempre— y los tres sitios se comían esa respuesta,
+    mientras `seatAtDesk` pone `inputLocked = true` en la línea ANTERIOR a
+    pedirlo. Dos cortes seguidos —la escolta que se atasca y un regaño
+    encima— dejaban a la jugadora **sin control el resto de la jornada**, sin
+    un solo error por ninguna parte. Encolar resuelve las dos cosas: los
+    telones siguen sin solaparse y ningún cambio se cae. Y queda una red en
+    `_conTelon`: si el telón dice que no —cola desbordada, o `onCorte` tira—
+    el cambio se aplica igual, porque un salto que casi nadie ve es mejor que
+    una partida que no se puede seguir jugando.
+  - Y **un corte de AYER no se cobra HOY**: ver el invariante del reinicio.
+- **«DIRECTO AL PISO» SON DOS BANDERAS** (`volverAlPiso` en engine.js).
+  Reintentar el día, repetirlo, salir del curso de RRHH y salir del plan de
+  nivelación son reinicios DESDE DENTRO del edificio, y los cuatro mandaban
+  solo `skipPrologue` — que se salta el ascensor y NADA MÁS. El cruce de la
+  avenida se seguía jugando: reintentar te devolvía a la CALLE, y de ahí al
+  piso sin pasar por el ascensor, que es la mitad incoherente de las dos.
+  Encima el cruce cobra peaje de jornada (`applyCommuteDelay`), así que el
+  curso de RRHH —que es un peaje, no otra derrota— se llevaba de propina un
+  segundo castigo. **No se veía porque el día 1 tiene el cruce DESACTIVADO** y
+  era el único publicado cuando se escribió: al publicar los días 2 y 3 el
+  fallo se destapó sin que nadie tocara ese archivo. Lo que NO pasa por ahí es
+  perder EN el cruce (reintentar es volver a cruzar, que es lo que fallaste) y
+  avanzar al día siguiente (trayecto nuevo, con su commute). Lo vigila
+  `npm run check:reinicio`.
 - **QUIEN SE SIENTA MIRA HACIA DONDE MIRA LA SILLA**, y el rumbo se escribe
   AL LLEGAR. Estaba puesto en el frame en que se reclama el asiento —o sea
   ANTES de andar hasta él— y el propio paseo lo pisa: `player.update` gira el
@@ -1459,6 +1653,43 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   tarjeta con tres opciones se ve idéntica se pueda pulsar o no, así que
   hace un clic de ratón de verdad, pulsa teclas de verdad y pasea el cursor
   de verdad.
+- **UN VERBO TIENE QUE HABLAR CUANDO LO HACES BIEN, no solo cuando fallas.**
+  Dos beats estaban declarados y mudos, y los dos se leían igual desde fuera:
+  como un minijuego que no responde. El MICROONDAS documentaba `"centrado" |
+  "quemado"` y solo emitía `quemado` — era el único verbo que sonaba
+  únicamente al fallar, así que no sabías si ibas bien hasta que la barra se
+  movía sola. Y el BAILE emitía `"rutina"` al cerrar una tanda y no la
+  escuchaba nadie: las flechas volvían a empezar sin más, sin forma de saber
+  si la habías cerrado o si el juego se había reiniciado solo. Cuando añadas
+  un verbo, comprueba las DOS listas —lo que el módulo documenta, lo que
+  emite, y lo que `game.js` atiende—: las tres se separan en silencio.
+  El flanco de `centrado` es de ENTRAR, no el estado: `dentro` es cierto
+  sesenta veces por segundo y avisar por estado sería una ametralladora.
+- **LOS SEIS VERBOS SE JUEGAN CON LOS TRES MANDOS**, y eso se mide como
+  MATRIZ (`npm run check:verbos-mandos`). Cada verbo tenía ya su prueba y cada
+  una miraba UN mando —`check:verter` un clic, `check:microondas` un arrastre
+  de ratón, `check:mandos` el teclado, `check:baile-pulgar` la palanca—, así
+  que nadie preguntaba si el chisme se juega CON EL DEDO o el microondas CON
+  LA PALANCA. Y no se responde mirando: un minijuego se ve idéntico se pueda
+  tocar o no. Se envuelve la ÚNICA puerta de entrada de cada verbo (`pulsar`,
+  `elegir`, `responder`, `poner`) y se cuenta si el toque la cruza, así que
+  mide el CABLEADO y no la lógica.
+  Dos cosas de cómo está escrita: los toques son de VERDAD (CDP
+  `Input.dispatchTouchEvent`), porque un `PointerEvent` a mano no tiene
+  puntero activo detrás y `setPointerCapture` revienta — estaría midiendo el
+  montaje; y los verbos se recorren EN EL ORDEN DE LA CADENA reservando los
+  que faltan, porque abrir uno exige desbloquearlo y rindiendo lo pendiente a
+  lo bruto se gasta la misión del siguiente (desbloquear el chisme se llevaba
+  la comida, y el microondas llegaba sin misión que abrir: el fallo se leía
+  como «el microondas no abre» y el microondas estaba perfecto).
+- **UNA CAPTURA DE PUNTERO NO PUEDE TUMBAR EL GESTO** (`ui/pointerCapture.js`).
+  `setPointerCapture` es lo que deja seguir arrastrando fuera del elemento —el
+  plato del microondas, la palanca, la cámara— así que se quiere; pero LANZA
+  si el puntero ya no está activo, y estaba pedida a pelo y en la PRIMERA
+  línea del `pointerdown`. Una excepción ahí se lleva por delante el resto del
+  manejador: el plato no se colocaba ni en el primer toque. Desde fuera no se
+  ve un error, se ve un minijuego que no responde. La captura es una MEJORA
+  del gesto, no un requisito: se intenta y, si no se puede, se sigue.
 - **NINGÚN icono es un emoji.** Un emoji lo dibuja la fuente del sistema: el
   mismo ☕ es una taza blanca en un iPhone, marrón en Android, plana en
   Windows, y en algunas plataformas sale un cuadro vacío. Desde el juego eso
@@ -1487,6 +1718,26 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   progreso», que llegó a salir de primera cuando no había nada que borrar— y
   se saltaba solo a elegir personaje si no había ninguno, o sea el título
   haciendo el trabajo de la pantalla siguiente.
+- **CADA PANTALLA DE MENÚ ES UN SITIO DEL EDIFICIO, y el sitio sale de UNA
+  TABLA** (`src/ui/decorados.js` → `DECORADO_DE`; diseño en
+  `docs/PANTALLAS.md` §1.8bis). El título es la botonera del ascensor, las
+  hojas de vida son un escritorio, elegir personaje es el espejo del baño; la
+  pausa y los ajustes NO son un sitio (`interfaz`) porque se abren encima de
+  una jornada en curso y mandarlas a otra planta contaría que te has movido.
+  La tabla existe porque el decorado decidido en cada pantalla es cómo se
+  acaba con cuatro menús distintos otra vez — es el mismo reparto que el
+  registro de verbos. Hoy un sitio es su LUZ (`--aire-*` sobre el velo), no su
+  mobiliario: por eso esto no contradice al HOLOGRAMA, que prohíbe la
+  superficie pegada ENCIMA del juego, no el sitio que hay detrás.
+  **Y la transición son LAS PUERTAS del ascensor** (`src/ui/doors.js`),
+  hermanas del CORTE y con su mismo contrato. Solo se viaja si CAMBIA el sitio
+  (`hayViaje`): de las hojas de vida a elegir día no, que es girar la cabeza
+  sobre la misma mesa. Tres cosas que se rompen solas si se tocan: si el
+  cerrojo rechaza un viaje hay que montar la pantalla IGUAL (si no, dos clics
+  seguidos se comen el segundo y parece un botón muerto); con
+  `prefers-reduced-motion` cortan en las DOS mitades (sin animación Y sin
+  espera); y lo que tarda una hoja se define una sola vez en `--dur-puerta`,
+  que `doors.js` lee del CSS. Lo vigila `npm run check:puertas`.
 - **El guardado son TRES RANURAS NUMERADAS, y el personaje va DENTRO**
   (`src/game/save.js`). Antes la ranura ERA el personaje: había tantas
   carreras como gente en el reparto, no se podían tener dos partidas con

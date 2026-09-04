@@ -15,7 +15,7 @@ import { WORLD_SCALE as S } from "../scene/config.js";
 import { getCameraSettings } from "../scene/cameraSettings.js";
 import { BOSS_STATES } from "../entities/boss.js";
 import { buzz } from "./settings.js";
-import { sfxComplete, sfxWarn, sfxDistraction } from "./sfx.js";
+import { sfxComplete, sfxWarn, sfxDistraction, sfxAdvance } from "./sfx.js";
 import { runEffect } from "./effects.js";
 import { createActivityPulse } from "./activityGame.js";
 import { createActivityGesture } from "./gestures.js";
@@ -79,6 +79,9 @@ const SEAT_WALK_TIMEOUT = 6;
 // Lo que dura la escolta de apertura sin que el jefe te mire. Cubre el
 // trayecto entero: se acaba sola al llegar (`_updateBienvenida`).
 const ESCOLTA_GRACIA = 25;
+// Lo que se camina POR DETRÁS del que te acompaña. Un paso largo: menos y se
+// le pisa el talón (y se vuelve a rebasarlo), más y la escolta se estira.
+const ESTELA = 1.6;
 // Y su PLAZO: si no le sigues, la escena se cae sola. Sin esto, largarse por
 // tu cuenta el día 1 dejaba la sospecha congelada en cero toda la jornada.
 const ESCOLTA_PLAZO = 30;
@@ -353,6 +356,9 @@ export class Game {
     this.win = false;
     this.paused = false;
     this._finished = false;
+    // ESTE DÍA SIGUE SIENDO EL DÍA. Lo baja `retirar()` cuando empieza otro:
+    // ver `_conTelon`, que es quien lo lee.
+    this._retirada = false;
     // Las seis: la salida abierta y la tarea de irse (ver _updateClosingTime).
     this.closingAnnounced = false;
     this.exitOpen = false;
@@ -543,6 +549,16 @@ export class Game {
       onFeedback: (tipo) => {
         if (tipo === "acierto") sfxComplete();
         else if (tipo === "fallo") sfxWarn();
+        // TERMINAR UNA TANDA TENÍA SU EVENTO Y NO SONABA. `rutina` se emitía,
+        // nadie la escuchaba, y en pantalla las flechas simplemente volvían a
+        // empezar: no había forma de saber si habías cerrado la tanda o si el
+        // juego se había reiniciado solo. Estirarse «cinco minutos» son varias
+        // tandas, así que este beat se repite — por eso lleva el sonido de
+        // AVANZAR y no el de premio, que es el de terminar la tarea entera.
+        else if (tipo === "rutina") {
+          sfxAdvance();
+          buzz(14);
+        }
       },
     });
 
@@ -564,7 +580,16 @@ export class Game {
         this.suspicion = Math.min(this.suspicionConfig.max, this.suspicion + n);
       },
       onFeedback: (tipo) => {
-        if (tipo === "quemado") sfxWarn();
+        // Los DOS lados. Atrapar el plato suena y vibra; quemarlo avisa. Antes
+        // solo estaba el castigo, y un verbo que solo te habla cuando fallas
+        // no se siente difícil: se siente roto.
+        if (tipo === "centrado") {
+          sfxComplete();
+          buzz(12);
+        } else if (tipo === "quemado") {
+          sfxWarn();
+          buzz(30);
+        }
       },
     });
 
@@ -2670,6 +2695,82 @@ export class Game {
    * sentada y fingiendo, y ÉL vuelve a su ronda. Con su anuncio, para que
    * el cambio de sitio se entienda como lo que es: te llevó él.
    */
+  /**
+   * ESTE DÍA SE ACABÓ: lo llama el motor al montar el siguiente.
+   *
+   * No destruye nada —el `Game` viejo se suelta solo— pero deja dicho que ya
+   * no manda, que es lo que `_conTelon` necesita saber.
+   */
+  retirar() {
+    this._retirada = true;
+  }
+
+  /**
+   * BAJAR EL TELÓN PARA COLOCAR A ALGUIEN — Y SOLO SI ESTE DÍA SIGUE SIENDO
+   * EL DÍA.
+   *
+   * Los tres traslados largos (te sientan tras un regaño, el paseo al puesto
+   * que se agota, la escolta que se atasca) terminan escribiendo
+   * `player.position` DESDE DENTRO DEL NEGRO. Y el negro tarda: el telón baja
+   * en 260 ms y el cambio va después (ui/transition.js).
+   *
+   * Ahí está la trampa. `player` es el MISMO objeto todos los días —main.js
+   * lo monta una vez—, así que un corte pedido por el día de ayer y resuelto
+   * hoy escribe en la jugadora de HOY. Reiniciar dentro de esa ventana dejaba
+   * la partida nueva con el cuerpo en el ascensor (donde lo pone
+   * `resetEntities`) y la POSICIÓN en el puesto de ayer: la cámara seguía a
+   * un sitio donde no había nadie, la escolta arrancaba desde el ala sur, y
+   * la apertura se veía rota sin que nada fallara. Es la otra mitad de «en
+   * algunos reinicios el personaje no vuelve a su sitio».
+   *
+   * Un corte de ayer no se cancela —el telón ya está bajando y subirlo a
+   * medias es peor—: simplemente no aplica su cambio.
+   *
+   * ── Y UN TELÓN OCUPADO NO PUEDE DEJARTE SIN MANDO ──
+   *
+   * `transition.cortar` RECHAZABA un corte pedido con otro en marcha, y lo
+   * hacía por un buen motivo (dos telones a la vez dejan el segundo a medias
+   * y la pantalla negra para siempre). Pero los tres sitios que lo llamaban se
+   * comían esa respuesta — y `seatAtDesk` pone `inputLocked = true` en la
+   * línea ANTERIOR a pedirlo. O sea que dos cortes seguidos —la escolta que
+   * se atasca y un regaño encima— dejaban a la jugadora sin control **el
+   * resto de la jornada**, sin que nada fallara ni se viera un error.
+   *
+   * Eso se arregló donde tocaba: los cortes ahora HACEN COLA (transition.js),
+   * así que el segundo traslado pasa después del primero con su telón, en vez
+   * de no pasar. Lo de aquí abajo es la red que queda: si el telón dice que
+   * NO —cola desbordada, o el propio `onCorte` tira— el cambio se aplica
+   * igual. No es saltarse la regla de que nadie se teletransporta: es que la
+   * alternativa era un juego muerto, y un salto que casi nadie ve es mejor
+   * que una partida que no se puede seguir jugando. Es el mismo cambio que
+   * hace el plazo de `_paseoAlPuesto` cuando el paseo no llega.
+   */
+  _conTelon(cambio) {
+    const aplicar = () => {
+      if (this._retirada) return;
+      cambio();
+    };
+    if (!this.onCorte) {
+      aplicar();
+      return;
+    }
+    let pedido;
+    try {
+      pedido = this.onCorte(aplicar);
+    } catch {
+      // Si el telón ni siquiera se pudo pedir, el cambio va igual: lo que no
+      // puede pasar es quedarse a medias con el mando bloqueado.
+      aplicar();
+      return;
+    }
+    Promise.resolve(pedido)
+      .then((hubo) => {
+        // `false` = el telón estaba ocupado y `aplicar` no llegó a correr.
+        if (hubo === false) aplicar();
+      })
+      .catch(() => aplicar());
+  }
+
   seatAtDesk() {
     this.boss.resetToPatrol();
     const desk = safeSpots.find((s) => s.kind === "desk");
@@ -2703,7 +2804,7 @@ export class Game {
 
     if (d > SEAT_WALK_MAX && this.onCorte) {
       this.player.inputLocked = true;
-      this.onCorte(() => {
+      this._conTelon(() => {
         this.player.position.x = desk.x;
         this.player.position.z = desk.z;
         this.player.walkTo = null;
@@ -2792,8 +2893,7 @@ export class Game {
       this.player.walkTo = null;
       p.sentarse();
     };
-    if (this.onCorte) this.onCorte(acabar);
-    else acabar();
+    this._conTelon(acabar);
   }
 
   /**
@@ -3439,7 +3539,39 @@ export class Game {
       // apartaba la respuesta era no — así que el destino regresaba a ÉL y
       // la jugadora lo seguía hasta SU escritorio en vez de sentarse en el
       // suyo. Enseñada la mesa, la mesa queda enseñada.
-      const destino = (this._escoltaRelevo || bossLlego) && mesa ? mesa : this.boss.position;
+      // SE CAMINA DETRÁS DE ÉL, no encima de él.
+      //
+      // Apuntar al CENTRO de Gabo hacía que la jugadora lo rebasara: cruzaba
+      // el radio de seguimiento, el paseo se cancelaba, él seguía andando y el
+      // rumbo hacia él se DABA LA VUELTA. Medido en la escolta del día 1:
+      // cuatro inversiones de 180° clavadas, todas a 1,3-2,7 del jefe — o sea
+      // justo en ese radio. Eso es lo que se veía como «se sienta y empieza a
+      // dar vueltas»: no era al sentarse, era todo el trayecto pirueteando.
+      //
+      // El punto de seguimiento va DETRÁS de él, sobre la línea que él mismo
+      // recorre hacia la mesa. Así nunca hay nada que rebasar y el rumbo no
+      // tiene por qué invertirse jamás — y además se lee como lo que es:
+      // caminar detrás de quien te lleva.
+      let destino = (this._escoltaRelevo || bossLlego) && mesa ? mesa : this.boss.position;
+      if (destino === this.boss.position && mesa) {
+        const hx = mesa.x - this.boss.position.x;
+        const hz = mesa.z - this.boss.position.z;
+        const h = Math.hypot(hx, hz);
+        // Y CON ÉL YA JUNTO A LA MESA, EL DESTINO ES LA MESA. La estela se
+        // traza sobre el vector Gabo→mesa, y ese vector se vuelve diminuto —y
+        // su signo, ruido— justo cuando él llega: el punto de seguimiento se
+        // ponía a girar a su alrededor y la jugadora detrás. Medido: las dos
+        // inversiones de 180° que quedaban caían ahí. Pasado ese punto no hay
+        // nada que seguir, porque ya se ve a dónde se va.
+        if (h <= 2 * S) {
+          destino = mesa;
+        } else if (h > 0.001) {
+          destino = {
+            x: this.boss.position.x - (hx / h) * ESTELA,
+            z: this.boss.position.z - (hz / h) * ESTELA,
+          };
+        }
+      }
       // Y EN EL RELEVO, GABO SE APARTA. Llegaba a TU puesto y se quedaba
       // plantado delante — y quien está de servicio no cede, así que la
       // jugadora acababa clavada a medio paso de su espalda, a 3.2 del
@@ -3473,6 +3605,23 @@ export class Game {
             if (this._escoltaTropiezos >= 3) this._escoltaPlazo = 0;
           },
         };
+      } else {
+        // ── Y YA JUNTO A ÉL, SE PARA. SE PARA DE VERDAD ──────────────────
+        //
+        // Aquí no había nada, y esa es la pirueta que quedaba. Este `if` es la
+        // zona muerta de la escolta —«si ya estás pegada al punto, no andes»—
+        // pero no ANDAR no es lo mismo que no tener destino: `walkTo` se había
+        // puesto en un cuadro anterior y NADIE lo quitaba, así que ella seguía
+        // caminando hacia un punto viejo, lo rebasaba, y al cuadro siguiente
+        // el punto recalculado le quedaba DETRÁS. Eso es una inversión de 180°
+        // que dura, no un volantazo de un cuadro, así que el veto de walk.js
+        // no la tapa (ni debe): medido, una de 180° clavados en CADA escolta,
+        // en las seis tandas que se midieron.
+        //
+        // Seguir a alguien es pararse cuando le has alcanzado. Sin esto, la
+        // zona muerta solo servía para dejar de REFRESCAR el destino, que es
+        // justo lo que lo volvía viejo.
+        this.player.walkTo = null;
       }
       // ── EL PASO SE ACOMPASA, Y GABO HABLA ANDANDO ────────────────────
       this._acompasarEscolta(dt, mesa);
@@ -3486,8 +3635,7 @@ export class Game {
           this.player.position.z = mesa.z;
           this.player.walkTo = null;
         };
-        if (this.onCorte) this.onCorte(acabar);
-        else acabar();
+        this._conTelon(acabar);
         this._escoltaPlazo = ESCOLTA_PLAZO; // no reencolar cortes cada cuadro
       }
       return;

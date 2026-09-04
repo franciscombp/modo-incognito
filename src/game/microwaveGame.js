@@ -116,7 +116,22 @@ export function createMicrowaveGame({ onNoise, onFeedback, random = Math.random 
         y /= r;
       }
 
+      // EL FLANCO DE ENTRAR, no el estado. `dentro` es cierto sesenta veces
+      // por segundo mientras aciertas: avisar por estado sería una
+      // ametralladora de sonido. Lo que se celebra es el INSTANTE en que
+      // atrapas el plato, que es el único momento en que hay algo que decir.
+      const estaba = dentro;
       dentro = radio() <= cfg.zona;
+      if (dentro && !estaba) {
+        // «centrado» estaba DOCUMENTADO en el contrato de arriba y no lo
+        // emitía nadie: el microondas era el único verbo que solo hacía ruido
+        // al FALLAR. Un minijuego que solo te habla cuando lo haces mal se
+        // siente roto aunque funcione — no sabes si vas bien hasta que la
+        // barra se mueve sola.
+        destello = "centrado";
+        destelloT = 0.35;
+        onFeedback?.("centrado");
+      }
       if (dentro) {
         // CENTRADO: la comida se calienta bien y el quemado se enfría.
         quema = Math.max(0, quema - dt * 1.4);

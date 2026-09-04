@@ -271,6 +271,7 @@ export function createFocusNav({ root = document } = {}) {
   // exactamente un juego de cruceta. Mismo tacto que la palanca táctil:
   // flanco, y se rearma pasando por el centro.
   let baileArmado = true;
+  let volverAntes = false;
   function sondearBaile() {
     const b2 = window.__game?.engine?.game?.baile;
     if (!b2?.active || !navigator.getGamepads) return false;
@@ -278,11 +279,13 @@ export function createFocusNav({ root = document } = {}) {
     if (!pads.length) return true; // sin mando conectado, pero el baile manda
     let dx = 0;
     let dy = 0;
+    let volviendo = false;
     for (const pad of pads) {
       dx += pad.axes?.[0] ?? 0;
       dy += pad.axes?.[1] ?? 0;
       pad.buttons?.forEach?.((btn, i) => {
         if (!btn.pressed) return;
+        if (BOTON_VOLVER.includes(i)) volviendo = true;
         const cruz = CRUCETA[i];
         if (cruz) {
           dx += cruz[0];
@@ -290,6 +293,23 @@ export function createFocusNav({ root = document } = {}) {
         }
       });
     }
+    // ── LA SALIDA CON MANDO ──
+    // Esta función CORTOCIRCUITA `sondearMando`, así que mientras se baila
+    // ningún botón del mando hacía nada más que pasos: no había forma de
+    // abandonar. Y abandonar no es un extra — la cuenta atrás de la tarea
+    // sigue corriendo dentro del minijuego, y al agotarse el jefe VIENE. Sin
+    // salida, la única manera de terminar un baile que va mal es que te
+    // atrapen.
+    //
+    // Se despacha ESCAPE y no se llama a `salirMinijuego` a pelo, por lo que
+    // ya dice `volver()`: Escape es de cada pantalla, y quien sepa qué
+    // significa ahí lo recoge. (No se reusa `volver()` porque empieza
+    // pidiendo un grupo navegable, y esta pantalla va `data-nav-juego`: no
+    // tiene ninguno, así que se rendiría antes de despachar nada.)
+    if (volviendo && !volverAntes) {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    }
+    volverAntes = volviendo;
     const fuerza = Math.hypot(dx, dy);
     if (fuerza < 0.35) {
       baileArmado = true;
