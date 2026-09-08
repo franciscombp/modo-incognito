@@ -1687,10 +1687,15 @@ export class Game {
     // `redAlert` cierra el hueco sin tocar el respiro: sigue sin CORRER a
     // por ti con la sospecha baja, pero si te tiene delante y te está
     // viendo en falta, te amonesta. Que es lo que haría un jefe.
+    //
+    // Y si la sospecha sube al suelo de persecución pero aún no persigue
+    // (va camino de volver a tu puesto después de verte en falta), Gabo
+    // sigue sin capturarte apenas te toca — eso es el hueco de verdad. La
+    // tercera rama cierra lo que `redAlert` dejó sin cubrir.
     const caught =
       !this.rules.explore &&
       this._caughtCooldown <= 0 &&
-      (this.boss.isHunting || this.boss.redAlert) &&
+      (this.boss.isHunting || this.boss.redAlert || this.suspicion >= this.boss.chaseSuspicionFloor) &&
       !this.inSafeSpot &&
       !pretendAlwaysImmune &&
       this.boss.catches(pos, this.player.radius);
