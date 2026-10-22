@@ -1899,6 +1899,30 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   por qué. Si separas otra vez esas dos banderas, comprueba que la suite
   entera sigue entrando al piso.
 
+### Rendimiento: dónde se iba el cuadro
+
+`npm run perf` mide el coste por cuadro de una jornada en marcha (lógica y
+cuadro entero). No tiene umbral —depende de la máquina—: sirve para
+comparar un antes y un después en el MISMO equipo. Lo que ya se arregló, y
+que no hay que deshacer:
+
+- **La lista abierta del A* es un MONTÍCULO** (`navmesh.js`). Era un barrido
+  lineal con `splice` («en mapas pequeños gana»): con 152×55 casillas una
+  ruta de punta a punta costaba segundos. Desempata por orden de llegada,
+  así que las rutas salen idénticas a las de antes, casilla por casilla.
+- **`pathBlocked`/`lineBlocked` descartan por caja envolvente y no reservan
+  memoria** (`collision.js`): ~18× más rápido con las mismas respuestas. Es
+  la pregunta más repetida del juego.
+- **El HUD escribe en el DOM solo lo que CAMBIA** (`setText` en
+  `gamehud.js`, el caché del rastreador en `tracker.js`). El reloj se
+  reescribía con `innerHTML` cada cuadro —y el «tic» de la hora se ponía en
+  un nodo que el cuadro siguiente tiraba— y el rastreador escribía y luego
+  MEDÍA el DOM: layout forzado dos veces por cuadro.
+- **Detalle invisible = triángulos tirados.** Las cinco rueditas de cada
+  silla eran 400 de sus 484 triángulos, por ~190 sillas y dos pasadas.
+- **Three.js y Tone.js van en su propio trozo** (`vite.config.js`): no
+  cambian entre publicaciones, así que se quedan en caché.
+
 ## Los builders (`creador/`)
 
 Herramientas visuales para editar el juego sin tocar código. Son **entradas

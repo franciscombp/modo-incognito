@@ -24,19 +24,29 @@ function pointInBox(x, z, b) {
 // de colliders cercanos en vez de contra todos — duplicar la geometría allí
 // habría sido dos matemáticas que se separan al primer cambio.
 export function segmentIntersectsBox(a, b, box) {
-  if (pointInBox(a.x, a.z, box) || pointInBox(b.x, b.z, box)) return true;
-  const c = [
-    [box.minX, box.minZ],
-    [box.maxX, box.minZ],
-    [box.maxX, box.maxZ],
-    [box.minX, box.maxZ],
-  ];
-  for (let i = 0; i < 4; i++) {
-    const [x1, z1] = c[i];
-    const [x2, z2] = c[(i + 1) % 4];
-    if (segmentsIntersect(a.x, a.z, b.x, b.z, x1, z1, x2, z2)) return true;
-  }
-  return false;
+  return segmentHitsRect(a.x, a.z, b.x, b.z, box.minX, box.maxX, box.minZ, box.maxZ);
+}
+
+/**
+ * El núcleo de `segmentIntersectsBox`, con números sueltos y SIN reservar
+ * memoria. Es la pregunta más repetida del juego —la hacen la vista y el
+ * paso de veinte personajes, contra cada mueble del piso, varias veces por
+ * cuadro— y antes creaba cinco arrays por llamada y comprobaba las cuatro
+ * aristas de cajas que estaban en la otra punta del plano. El descarte por
+ * caja envolvente da la MISMA respuesta: si los rectángulos que envuelven al
+ * segmento y a la caja no se tocan, no puede haber cruce ni punta dentro.
+ */
+function segmentHitsRect(ax, az, bx, bz, minX, maxX, minZ, maxZ) {
+  if (Math.max(ax, bx) < minX || Math.min(ax, bx) > maxX) return false;
+  if (Math.max(az, bz) < minZ || Math.min(az, bz) > maxZ) return false;
+  if (ax >= minX && ax <= maxX && az >= minZ && az <= maxZ) return true;
+  if (bx >= minX && bx <= maxX && bz >= minZ && bz <= maxZ) return true;
+  return (
+    segmentsIntersect(ax, az, bx, bz, minX, minZ, maxX, minZ) ||
+    segmentsIntersect(ax, az, bx, bz, maxX, minZ, maxX, maxZ) ||
+    segmentsIntersect(ax, az, bx, bz, maxX, maxZ, minX, maxZ) ||
+    segmentsIntersect(ax, az, bx, bz, minX, maxZ, minX, minZ)
+  );
 }
 
 function distToSegmentSq(px, pz, x1, z1, x2, z2) {
@@ -166,19 +176,24 @@ export function createCollisionWorld() {
    */
   function pathBlocked(a, b, r = 0) {
     for (const box of boxes) {
-      const inflada = {
-        minX: box.minX - r,
-        maxX: box.maxX + r,
-        minZ: box.minZ - r,
-        maxZ: box.maxZ + r,
-      };
-      if (segmentIntersectsBox(a, b, inflada)) return true;
+      // Inflada en el sitio, sin crear un objeto por caja y por llamada.
+      if (segmentHitsRect(a.x, a.z, b.x, b.z, box.minX - r, box.maxX + r, box.minZ - r, box.maxZ + r)) {
+        return true;
+      }
     }
+    const loX = Math.min(a.x, b.x);
+    const hiX = Math.max(a.x, b.x);
+    const loZ = Math.min(a.z, b.z);
+    const hiZ = Math.max(a.z, b.z);
     for (const s of segments) {
+      const holgura = r + (s.thickness ?? 0) / 2;
+      // Descarte barato: si las cajas envolventes de los dos segmentos están
+      // separadas más que la holgura en algún eje, su distancia también.
+      if (Math.min(s.x1, s.x2) - hiX > holgura || loX - Math.max(s.x1, s.x2) > holgura) continue;
+      if (Math.min(s.z1, s.z2) - hiZ > holgura || loZ - Math.max(s.z1, s.z2) > holgura) continue;
       // Dos segmentos con grosor chocan si sus ejes se acercan menos que la
       // suma de sus radios; el caso de cruce lo cubre segmentsIntersect.
       if (segmentsIntersect(a.x, a.z, b.x, b.z, s.x1, s.z1, s.x2, s.z2)) return true;
-      const holgura = r + (s.thickness ?? 0) / 2;
       if (segmentDistSq(a, b, s) <= holgura * holgura) return true;
     }
     return false;

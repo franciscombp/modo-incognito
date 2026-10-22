@@ -32,8 +32,9 @@
  * (o B está vacío). Se pasan TODAS las capas seguidas de ese color, no una:
  * de una en una convierte un puzle de cabeza en trabajo de dedo.
  *
- * NO HAY ESTADO PERDIDO. Nunca se genera un reparto sin solución, y no hay
- * movimiento que te deje encallada: siempre puedes devolver lo que vertiste.
+ * NO HAY ESTADO PERDIDO. Nunca se genera un reparto sin solución (cada uno
+ * se COMPRUEBA con `tieneSalida` antes de enseñarlo), y con dos vasos vacíos
+ * y tres colores no existe un estado sin trasvase posible.
  * Un puzle sin salida con el jefe acercándose no es difícil, es injusto.
  *
  * ── La regla, que CAMBIÓ ──
@@ -64,6 +65,61 @@ function barajar(arr, rnd = Math.random) {
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;
+}
+
+/**
+ * ¿Tiene salida este reparto? Búsqueda en anchura con las MISMAS reglas que
+ * `elegir` (se vierte toda la racha del color de arriba). Con tres colores y
+ * cinco vasos el espacio son unos cientos de estados: se paga una vez al
+ * empezar la tarea, nunca por cuadro.
+ */
+function tieneSalida(vasos, capacidad, meta, limite = 20000) {
+  const clave = (v) => v.map((x) => x.join(",")).sort().join("|");
+  const resuelto = (v) =>
+    v.filter((x) => x.length === capacidad && x.every((c) => c === x[0])).length >= meta;
+  const vistos = new Set([clave(vasos)]);
+  const cola = [vasos];
+  while (cola.length && vistos.size < limite) {
+    const v = cola.shift();
+    if (resuelto(v)) return true;
+    for (let a = 0; a < v.length; a++) {
+      if (!v[a].length) continue;
+      const color = v[a][v[a].length - 1];
+      for (let b = 0; b < v.length; b++) {
+        if (a === b || v[b].length >= capacidad) continue;
+        if (v[b].length && v[b][v[b].length - 1] !== color) continue;
+        const n = v.map((x) => [...x]);
+        while (n[a].length && n[a][n[a].length - 1] === color && n[b].length < capacidad) {
+          n[b].push(n[a].pop());
+        }
+        const k = clave(n);
+        if (!vistos.has(k)) {
+          vistos.add(k);
+          cola.push(n);
+        }
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Reparte y COMPRUEBA: que tenga salida y que no nazca ya resuelto. Nacer
+ * resuelto era la trampa silenciosa — el progreso solo sube cuando se
+ * resuelve un vaso MÁS, así que con todo hecho de salida no había nada que
+ * tocar y la tarea no se podía terminar (medido: ~3 de cada mil repartos).
+ */
+function repartirJugable(cfg, rnd) {
+  const meta = cfg.colores.length;
+  let vasos = null;
+  for (let intento = 0; intento < 40; intento++) {
+    vasos = repartir({ ...cfg, mezclas: cfg.mezclas + Math.floor(intento / 4) }, rnd);
+    const hechos = vasos.filter(
+      (x) => x.length === cfg.capacidad && x.every((c) => c === x[0])
+    ).length;
+    if (hechos < meta && tieneSalida(vasos, cfg.capacidad, meta)) return vasos;
+  }
+  return vasos;
 }
 
 /**
@@ -131,7 +187,7 @@ export function createPourGame({ onNoise, onFeedback, random = Math.random } = {
       station = st;
       const cfg = st?.verter ?? {};
       capacidad = cfg.capacidad ?? 4;
-      vasos = repartir(
+      vasos = repartirJugable(
         {
           colores: cfg.colores ?? ["cafe", "leche", "azucar"],
           capacidad,
