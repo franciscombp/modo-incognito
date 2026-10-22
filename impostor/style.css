@@ -1,0 +1,147 @@
+/*
+ * EL SOPLÓN · piel propia, y a propósito NO carga design-system.css.
+ * Es un spin-off: compartir hoja con el juego grande haría que un id genérico
+ * de aquí se coma una regla de allí (ya pasó con los builders, ver CLAUDE.md).
+ * Los colores viven solo en este bloque; lo demás lee los tokens.
+ */
+:root {
+  --fondo: #071119;
+  --suelo: #12232f;
+  --zona: #1a3242;
+  --macizo: #050a0f;
+  --tinta: #e7f1f5;
+  --tinta-suave: #8aa4b1;
+  --linea: rgba(231, 241, 245, 0.14);
+  --acento: #2dd4bf;
+  --tarea: #f5b041;
+  --peligro: #ef4444;
+  --velo: rgba(4, 10, 15, 0.86);
+  --sombra: 0 2px 0 rgba(0, 0, 0, 0.75);
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--fondo);
+  color: var(--tinta);
+  font-family: var(--sans);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+canvas#mundo { position: fixed; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; }
+
+button {
+  font: 600 15px var(--sans);
+  color: var(--tinta);
+  background: transparent;
+  border: 1px solid var(--linea);
+  border-radius: 4px;
+  padding: 10px 16px;
+  cursor: pointer;
+  text-shadow: var(--sombra);
+}
+button:hover:not(:disabled), button:focus-visible { background: linear-gradient(90deg, rgba(45, 212, 191, 0.22), transparent); outline: none; }
+button.primario { color: var(--acento); border-color: var(--acento); }
+button:disabled { opacity: 0.35; cursor: default; }
+input, textarea {
+  font: 14px var(--mono);
+  color: var(--tinta);
+  background: rgba(255, 255, 255, 0.04);
+  border: 0;
+  border-bottom: 1px solid var(--linea);
+  padding: 8px 6px;
+  width: 100%;
+}
+textarea { resize: none; height: 64px; word-break: break-all; }
+input:focus, textarea:focus { outline: none; border-bottom-color: var(--acento); }
+
+/* ---------------- pantallas de menú ---------------- */
+#pantalla {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--velo);
+  overflow: auto;
+  padding: 24px 16px;
+}
+#pantalla[hidden] { display: none; }
+.menu { width: min(560px, 100%); display: grid; gap: 14px; }
+.menu h1 { font: 800 clamp(32px, 7vw, 56px)/1 var(--sans); margin: 0; letter-spacing: -0.02em; text-shadow: var(--sombra); }
+.menu h1 small { display: block; font: 500 13px var(--mono); color: var(--acento); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
+.menu h2 { font: 700 13px var(--mono); color: var(--tinta-suave); text-transform: uppercase; letter-spacing: 0.14em; margin: 14px 0 0; padding-bottom: 6px; border-bottom: 1px solid var(--linea); }
+.menu p { margin: 0; color: var(--tinta-suave); line-height: 1.45; font-size: 14px; }
+.menu .fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.menu .fila > * { flex: 1 1 auto; }
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista li { display: flex; gap: 10px; align-items: center; padding: 8px 2px; border-bottom: 1px solid var(--linea); font-size: 15px; }
+.lista li .etq { margin-left: auto; font: 12px var(--mono); color: var(--tinta-suave); }
+.punto { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); }
+.invitacion { display: grid; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--linea); }
+.estado { font: 12px var(--mono); color: var(--tarea); }
+.estado.ok { color: var(--acento); }
+.error { color: var(--peligro); font: 13px var(--mono); }
+
+/* ---------------- HUD ---------------- */
+#hud[hidden] { display: none; }
+#hud { position: fixed; inset: 0; pointer-events: none; text-shadow: var(--sombra); }
+#hud-tareas { position: absolute; top: 12px; left: 14px; width: min(300px, 44vw); }
+#hud-rol { font: 800 13px var(--mono); letter-spacing: 0.16em; text-transform: uppercase; color: var(--acento); }
+#hud-rol.soplon { color: var(--peligro); }
+#hud-lista { list-style: none; margin: 6px 0 0; padding: 0; }
+#hud-lista li { font-size: 13px; padding: 4px 0; border-bottom: 1px solid var(--linea); color: var(--tarea); }
+#hud-lista li.hecha { color: var(--tinta-suave); text-decoration: line-through; }
+#hud-progreso { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: min(340px, 40vw); text-align: center; font: 11px var(--mono); color: var(--tinta-suave); letter-spacing: 0.1em; text-transform: uppercase; }
+#hud-progreso .barra { height: 8px; margin-top: 4px; background: rgba(255, 255, 255, 0.08); }
+#hud-progreso .barra i { display: block; height: 100%; width: 0; background: var(--acento); transition: width 0.3s; }
+#hud-acciones { position: absolute; right: 16px; bottom: 16px; display: flex; gap: 10px; pointer-events: auto; }
+#hud-acciones button {
+  width: 76px; height: 76px; border-radius: 50%;
+  font: 800 11px var(--mono); letter-spacing: 0.06em; text-transform: uppercase;
+  padding: 0; background: rgba(0, 0, 0, 0.35); touch-action: none;
+}
+#hud-acciones button[hidden] { display: none; }
+#btn-matar { color: var(--peligro); border-color: var(--peligro); }
+#btn-usar, #btn-reportar, #btn-campana { color: var(--tarea); border-color: var(--tarea); }
+#btn-matar small { display: block; font-size: 10px; opacity: 0.8; }
+@media (pointer: coarse) { #hud-teclas { display: none; } }
+#hud-teclas { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font: 11px var(--mono); color: var(--tinta-suave); }
+#avisos { position: absolute; top: 64px; left: 50%; transform: translateX(-50%); display: grid; gap: 4px; justify-items: center; }
+#avisos div { font: 600 14px var(--sans); padding: 4px 10px; border-bottom: 1px solid var(--linea); animation: aviso 4s forwards; }
+@keyframes aviso { 0% { opacity: 0; transform: translateY(-6px); } 8%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+
+#stick { position: absolute; left: 0; bottom: 0; width: 45%; height: 55%; pointer-events: auto; touch-action: none; }
+#stick .base, #stick .pomo { position: absolute; border-radius: 50%; display: none; }
+#stick .base { width: 120px; height: 120px; margin: -60px 0 0 -60px; border: 1px solid var(--linea); }
+#stick .pomo { width: 50px; height: 50px; margin: -25px 0 0 -25px; background: rgba(231, 241, 245, 0.25); }
+#stick.activo .base, #stick.activo .pomo { display: block; }
+
+/* ---------------- capas grandes: rol, junta, expulsión, fin ---------------- */
+.capa { position: fixed; inset: 0; display: grid; place-items: center; background: var(--velo); padding: 20px 16px; overflow: auto; }
+.capa[hidden] { display: none; }
+.cartel { text-align: center; display: grid; gap: 10px; max-width: 640px; }
+.cartel .grande { font: 900 clamp(34px, 8vw, 72px)/1 var(--sans); text-shadow: var(--sombra); }
+.cartel .grande.soplon { color: var(--peligro); }
+.cartel .grande.celula { color: var(--acento); }
+.cartel p { color: var(--tinta-suave); margin: 0; }
+
+#junta .marco { width: min(980px, 100%); display: grid; grid-template-columns: 1.3fr 1fr; gap: 20px; }
+@media (max-width: 720px) { #junta .marco { grid-template-columns: 1fr; } }
+#junta h2 { margin: 0 0 4px; font: 900 26px var(--sans); color: var(--tarea); text-shadow: var(--sombra); }
+#junta .sub { color: var(--tinta-suave); font-size: 13px; margin-bottom: 10px; }
+#junta-reloj { font: 700 13px var(--mono); color: var(--tinta); }
+#junta-votos { list-style: none; padding: 0; margin: 0; }
+#junta-votos li { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--linea); }
+#junta-votos li.fuera { opacity: 0.4; text-decoration: line-through; }
+#junta-votos li .voto { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+#junta-votos li .ya { font: 11px var(--mono); color: var(--acento); }
+#junta-chat { height: min(46vh, 380px); overflow: auto; display: grid; align-content: start; gap: 2px; font-size: 14px; }
+#junta-chat div { padding: 4px 0; border-bottom: 1px solid var(--linea); line-height: 1.35; }
+#junta-chat b { font-weight: 700; }
+#junta-chat .sistema { color: var(--tarea); font-style: italic; }
+#junta form { display: flex; gap: 8px; margin-top: 8px; }
+#junta form input { flex: 1; }

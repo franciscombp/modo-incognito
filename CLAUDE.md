@@ -1899,6 +1899,23 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   por qué. Si separas otra vez esas dos banderas, comprueba que la suite
   entera sigue entrando al piso.
 
+## El spin-off: EL SOPLÓN (`impostor/`)
+
+Among Us en el Piso 10, prueba de concepto. Es OTRA entrada de Vite
+(`impostor/index.html`) y **no importa nada del motor**: solo lee el mismo
+`scenes/piso7.json`, así que mover una zona en el builder la mueve también
+aquí. Detalle en [`impostor/README.md`](impostor/README.md). Tres cosas:
+
+- **El anfitrión ES el servidor.** `sim.js` es pura y autoritativa (sin DOM
+  ni reloj): los invitados mandan entradas y reciben `vistaPara(id)`. Por eso
+  `npm run check:impostor` juega partidas enteras de bots en node, sin
+  navegador. No metas DOM ni `performance.now()` en `sim.js` o `bots.js`.
+- **Sin servidor de red**: WebRTC con la oferta en el `#` del enlace y la
+  respuesta copiada a mano, o BroadcastChannel entre pestañas.
+  `check:impostor-red` prueba los dos con clics de verdad.
+- **Piel propia** (`impostor/style.css`), a propósito sin
+  `design-system.css`: es la trampa del `id="hint"` de los builders.
+
 ## Los builders (`creador/`)
 
 Herramientas visuales para editar el juego sin tocar código. Son **entradas

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+    <title>El Soplón · Piso 10</title>
+    <meta name="description" content="Spin-off de Modo Incógnito: ¿quién es el soplón de Gabo? Multijugador local sin servidor, con bots." />
+    <link rel="stylesheet" href="./style.css" />
+  </head>
+  <body>
+    <canvas id="mundo"></canvas>
+
+    <div id="hud" hidden>
+      <div id="hud-tareas">
+        <div id="hud-rol"></div>
+        <ul id="hud-lista"></ul>
+      </div>
+      <div id="hud-progreso">Escaqueo de la Célula<div class="barra"><i></i></div></div>
+      <div id="avisos"></div>
+      <div id="stick"><div class="base"></div><div class="pomo"></div></div>
+      <div id="hud-acciones">
+        <button id="btn-campana" hidden>Campana</button>
+        <button id="btn-reportar" hidden>Reportar</button>
+        <button id="btn-usar">Usar</button>
+        <button id="btn-matar" hidden>RRHH<small></small></button>
+      </div>
+      <div id="hud-teclas">WASD/flechas mover · E usar/reportar · Q mandar a RRHH</div>
+    </div>
+
+    <section id="junta" class="capa" hidden>
+      <div class="marco">
+        <div>
+          <h2>Junta de emergencia</h2>
+          <div class="sub" id="junta-motivo"></div>
+          <div id="junta-reloj"></div>
+          <ul id="junta-votos"></ul>
+          <div class="fila" style="margin-top: 10px"><button id="btn-saltar">Saltar voto</button></div>
+        </div>
+        <div>
+          <div id="junta-chat"></div>
+          <form id="junta-form"><input id="junta-texto" maxlength="160" placeholder="Di algo (nombrar a alguien cuenta como acusarle)" autocomplete="off" /><button>Decir</button></form>
+        </div>
+      </div>
+    </section>
+
+    <section id="cartel" class="capa" hidden><div class="cartel"></div></section>
+    <section id="pantalla"></section>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

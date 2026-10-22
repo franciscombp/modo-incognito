@@ -68,6 +68,7 @@ así que se salta de una a otra sin volver aquí.
 | 🎵 **Builder de música** | <https://franciscombp.github.io/modo-incognito/creador/musica/> | Ánimo, tempo, mezcla y playhead de la pista principal |
 | 🖼️ **Builder de pantallas** | <https://franciscombp.github.io/modo-incognito/creador/pantallas/> | Storybook de la interfaz y CSS en vivo |
 | 🧪 **Pruebas** | <https://franciscombp.github.io/modo-incognito/creador/pruebas/> | Correr las comprobaciones sobre el juego real |
+| 🕵️ **El Soplón** (spin-off) | <https://franciscombp.github.io/modo-incognito/impostor/> | Among Us en el piso: multijugador local sin servidor (WebRTC/pestañas) con bots. Ver [`impostor/README.md`](impostor/README.md) |
 
 > Los builders importan el código **real** del motor, así que nunca se
 > desincronizan de lo que sale al jugar. En local salen del mismo servidor:

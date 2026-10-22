@@ -34,6 +34,9 @@ export default defineConfig({
         "creador/pantallas": resolve(import.meta.dirname, "creador/pantallas/index.html"),
         "creador/animaciones": resolve(import.meta.dirname, "creador/animaciones/index.html"),
         "creador/pruebas": resolve(import.meta.dirname, "creador/pruebas/index.html"),
+        // El spin-off multijugador (Among Us en el piso). Página aparte, no
+        // importa nada del motor 3D: solo lee el mismo piso7.json.
+        impostor: resolve(import.meta.dirname, "impostor/index.html"),
       },
     },
   },
