@@ -14,9 +14,9 @@ import { crearMapa } from "./mapa.js";
 import { crearPartida, rngDe } from "./sim.js";
 import { crearBot } from "./bots.js";
 import * as red from "./net.js";
+import { CARAS, nombreDeCara, esCara } from "./reparto.js";
 
 const VERSION = typeof __BUILD_ID__ !== "undefined" ? __BUILD_ID__ : "dev";
-const REPARTO = ["Crispo", "Washo", "Chispita", "Steven", "Parce", "Manu", "Fran", "Giuli", "Becario", "Analista", "César"];
 const HZ = 20;
 
 const $ = (sel) => document.querySelector(sel);
@@ -37,6 +37,7 @@ const app = {
   mapa: null,
   papel: null,          // "anfitrion" | "invitado"
   nombre: guardado("nombre") || "",
+  cara: esCara(guardado("cara")) ? guardado("cara") : "giuli",
   miId: null,
   vista: null,
   partida: 0,
@@ -59,12 +60,18 @@ const host = {
 };
 
 function listaSala() {
-  const humanos = [{ id: "h", nombre: app.nombre }, ...[...host.invitados].map(([id, i]) => ({ id, nombre: i.nombre }))];
-  const usados = new Set(humanos.map((h) => h.nombre.toLowerCase()));
+  const humanos = [
+    { id: "h", nombre: app.nombre, cara: app.cara },
+    ...[...host.invitados].map(([id, i]) => ({ id, nombre: i.nombre, cara: i.cara })),
+  ];
+  // los bots se llevan el reparto que nadie eligió, con su nombre
+  const usadas = new Set(humanos.map((h) => h.cara));
+  const nombres = new Set(humanos.map((h) => h.nombre.toLowerCase()));
   const bots = [];
-  for (const n of REPARTO) {
+  for (const [cara, nombre] of CARAS) {
     if (bots.length >= host.nBots) break;
-    if (!usados.has(n.toLowerCase())) bots.push({ id: `bot${bots.length}`, nombre: n, bot: true });
+    if (usadas.has(cara) || nombres.has(nombre.toLowerCase())) continue;
+    bots.push({ id: `bot${bots.length}`, nombre, cara, bot: true });
   }
   return [...humanos, ...bots];
 }
@@ -81,12 +88,13 @@ function difundirSala() {
 
 function recibirInvitado(con) {
   const id = `p${host.siguienteId++}`;
-  host.invitados.set(id, { con, nombre: "…" });
+  host.invitados.set(id, { con, nombre: "…", cara: "generic" });
   con.alMensaje((m) => {
     const inv = host.invitados.get(id);
     if (!inv) return;
     if (m.t === "hola") {
       inv.nombre = String(m.nombre || "Invitado").slice(0, 16);
+      inv.cara = esCara(m.cara) ? m.cara : "generic";
       con.enviar({ t: "bienvenida", id });
       difundirSala();
     } else if (host.sim && m.t === "in") host.sim.entrada(id, m);
@@ -172,7 +180,7 @@ function conectarComoInvitado(con) {
       el("button", { className: "primario", onclick: () => location.replace(location.pathname) }, "Volver al inicio"),
     ));
   });
-  con.enviar({ t: "hola", nombre: app.nombre });
+  con.enviar({ t: "hola", nombre: app.nombre, cara: app.cara });
   clearInterval(cliente.reloj);
   cliente.reloj = setInterval(() => {
     if (app.vista?.fase === "juego") con.enviar({ t: "in", ...entradaLocal() });
@@ -215,13 +223,15 @@ function contextual() {
   else if (yo.puedeCampana && !yo.puedeUsar) accion({ tipo: "campana" });
 }
 
+/** Entrada en ejes de PANTALLA, pasada al suelo del piso (que va girado). */
 function entradaLocal() {
-  let mx = stick.x, mz = stick.z;
-  if (teclas.has("KeyA") || teclas.has("ArrowLeft")) mx -= 1;
-  if (teclas.has("KeyD") || teclas.has("ArrowRight")) mx += 1;
-  if (teclas.has("KeyW") || teclas.has("ArrowUp")) mz -= 1;
-  if (teclas.has("KeyS") || teclas.has("ArrowDown")) mz += 1;
+  let derecha = stick.x, arriba = -stick.z;
+  if (teclas.has("KeyA") || teclas.has("ArrowLeft")) derecha -= 1;
+  if (teclas.has("KeyD") || teclas.has("ArrowRight")) derecha += 1;
+  if (teclas.has("KeyW") || teclas.has("ArrowUp")) arriba += 1;
+  if (teclas.has("KeyS") || teclas.has("ArrowDown")) arriba -= 1;
   const usar = usarPulsado || teclas.has("KeyE") || teclas.has("Space");
+  const { mx, mz } = esc ? esc.aSuelo(derecha, arriba) : { mx: derecha, mz: -arriba };
   return { mx, mz, usar };
 }
 
@@ -285,10 +295,14 @@ function campoNombre() {
   i.addEventListener("input", () => { app.nombre = i.value.trim(); guardado("nombre", app.nombre); });
   return i;
 }
-const conNombre = (fn) => () => {
-  if (!app.nombre) app.nombre = REPARTO[Math.floor(Math.random() * REPARTO.length)] + " (tú)";
-  fn();
-};
+function campoCara() {
+  const sel = el("select", { className: "cara" });
+  for (const [id, nombre] of CARAS) sel.append(el("option", { value: id, selected: id === app.cara }, nombre));
+  sel.addEventListener("change", () => { app.cara = sel.value; guardado("cara", app.cara); });
+  return sel;
+}
+const nombrePorDefecto = () => { if (!app.nombre) app.nombre = nombreDeCara(app.cara); };
+const conNombre = (fn) => () => { nombrePorDefecto(); fn(); };
 
 function pintarInicio() {
   const codigo = location.hash.match(/^#unir=(.+)$/)?.[1];
@@ -297,7 +311,7 @@ function pintarInicio() {
     el("h1", {}, el("small", {}, "Modo Incógnito · spin-off"), "El Soplón"),
     el("p", {}, "Alguien de la Célula le pasa todo a Gabo. Haz tus escaqueos, encuentra los gafetes tirados y descubre al soplón en la junta antes de que mande a toda la Célula a RRHH."),
     el("h2", {}, "Quién eres"),
-    campoNombre(),
+    el("div", { className: "fila" }, campoCara(), campoNombre()),
     el("h2", {}, "Jugar"),
     el("div", { className: "fila" },
       el("button", { className: "primario", onclick: conNombre(() => { abrirComoAnfitrion(); empezarPartida(); }) }, "Solo, contra bots"),
@@ -324,7 +338,7 @@ function pintarSalaAnfitrion() {
     lista.append(el("li", {},
       el("span", { className: "punto", style: `background:${j.bot ? "var(--tinta-suave)" : "var(--acento)"}` }),
       j.nombre,
-      el("span", { className: "etq" }, j.id === "h" ? "anfitrión" : j.bot ? "bot" : "invitado"),
+      el("span", { className: "etq" }, `${nombreDeCara(j.cara)} · ${j.id === "h" ? "anfitrión" : j.bot ? "bot" : "invitado"}`),
     ));
   }
   const nBots = el("span", {}, `${host.nBots} bots`);
@@ -382,7 +396,7 @@ async function pintarUnirse(codigo) {
   const enlace = el("textarea", { placeholder: "Pega el enlace o el código del anfitrión", value: codigo ? location.href : "" });
   const salida = el("div", {});
   const generar = el("button", { className: "primario", onclick: async () => {
-    if (!app.nombre) app.nombre = REPARTO[Math.floor(Math.random() * REPARTO.length)] + " (tú)";
+    nombrePorDefecto();
     generar.disabled = true;
     salida.replaceChildren(el("span", { className: "estado" }, "Generando tu respuesta…"));
     try {
@@ -404,7 +418,7 @@ async function pintarUnirse(codigo) {
   } }, "Unirme");
   pantalla(el("div", { className: "menu" },
     el("h1", {}, el("small", {}, "Unirse a una sala"), "Te invitan"),
-    el("h2", {}, "Quién eres"), nombre,
+    el("h2", {}, "Quién eres"), el("div", { className: "fila" }, campoCara(), nombre),
     el("h2", {}, "Invitación"), enlace,
     el("div", { className: "fila" }, generar, el("button", { onclick: () => { history.replaceState(null, "", location.pathname); pintarInicio(); } }, "Atrás")),
     salida,
@@ -424,7 +438,7 @@ function pintarSalaInvitado(enJuego) {
   for (const j of cliente.sala) {
     lista.append(el("li", {},
       el("span", { className: "punto", style: `background:${j.bot ? "var(--tinta-suave)" : "var(--acento)"}` }),
-      j.nombre, el("span", { className: "etq" }, j.id === app.miId ? "tú" : j.bot ? "bot" : ""),
+      j.nombre, el("span", { className: "etq" }, `${nombreDeCara(j.cara)}${j.id === app.miId ? " · tú" : j.bot ? " · bot" : ""}`),
     ));
   }
   pantalla(el("div", { className: "menu" },
@@ -441,7 +455,7 @@ function entrarEnJuego() {
   app.ultimoEvento = 0;
   $("#pantalla").hidden = true;
   $("#hud").hidden = false;
-  mostrarRol = 3.2;
+  mostrarRol = performance.now() + 3500;
 }
 function salirDelJuego() {
   app.enJuego = false;
@@ -518,8 +532,9 @@ function pintarHud(v, dt) {
       clase: x.nombre ? (x.eraSoplon ? "celula" : "soplon") : "",
       texto: x.nombre ? (x.eraSoplon ? "Era el soplón." : "No era el soplón.") : "Ni modo. A seguir fingiendo.",
     };
-  } else if (mostrarRol > 0) {
-    mostrarRol -= dt;
+  } else if (performance.now() < mostrarRol) {
+    // reloj de pared y no `dt`: con pocos cuadros por segundo, `dt` se
+    // recorta y el cartel se quedaba tapando el piso el doble de tiempo.
     cartel = {
       clave: `rol${app.partida}`,
       grande: yo.rol === "soplon" ? "Eres el soplón" : "Eres de la Célula",
@@ -585,223 +600,72 @@ function pintarJunta(v) {
   }
 }
 
-/* ---------------- el lienzo ---------------- */
+/* ---------------- el piso 3D ---------------- */
 
-const lienzo = $("#mundo");
-const ctx = lienzo.getContext("2d");
-const suaves = new Map(); // id → {x, z} interpolado
-let camara = { x: 0, z: 0 };
-let niebla = null;
+let esc = null; // escena3d.js, cuando ha cargado
+const flechas = [];
 
-function ajustar() {
-  const dpr = Math.min(2, devicePixelRatio || 1);
-  lienzo.width = Math.round(innerWidth * dpr);
-  lienzo.height = Math.round(innerHeight * dpr);
-  niebla = null;
+/** Flechas al borde hacia tus tareas pendientes que no salen en pantalla. */
+function pintarFlechas(v, aPantalla) {
+  const capa = $("#flechas");
+  const pend = v.yo?.rol === "celula" && v.fase === "juego" ? v.yo.tareas.filter((t) => !t.hecha) : [];
+  const W = innerWidth, H = innerHeight, m = 26;
+  let n = 0;
+  for (const t of pend) {
+    const p = app.mapa.tareas.find((x) => x.id === t.id);
+    const s = aPantalla(p.x, p.z);
+    if (s.delante && s.x > m && s.x < W - m && s.y > m && s.y < H - m) continue;
+    const ang = Math.atan2(s.y - H / 2, s.x - W / 2) + (s.delante ? 0 : Math.PI);
+    const f = flechas[n] ?? capa.appendChild(Object.assign(document.createElement("i"), { className: "flecha" }));
+    flechas[n++] = f;
+    const ex = Math.max(m, Math.min(W - m, W / 2 + Math.cos(ang) * W));
+    const ey = Math.max(m, Math.min(H - m, H / 2 + Math.sin(ang) * H));
+    f.hidden = false;
+    f.style.transform = `translate(${ex}px, ${ey}px) rotate(${ang}rad)`;
+  }
+  for (let i = n; i < flechas.length; i++) flechas[i].hidden = true;
 }
-addEventListener("resize", ajustar);
-ajustar();
 
-function dibujar(v, dt) {
-  const W = lienzo.width, H = lienzo.height;
-  const escala = Math.min(W, H) / (Math.min(innerWidth, innerHeight) < 500 ? 11 : 13); // ~13 unidades en el lado corto (11 en un teléfono)
-  const dpr = W / innerWidth;
-  const letra = (f, peso = 600) => `${peso} ${Math.round(Math.max(11 * dpr, escala * f))}px system-ui, sans-serif`;
-  ctx.fillStyle = "#071119";
-  ctx.fillRect(0, 0, W, H);
-  const mapa = app.mapa;
-
-  // suavizado de posiciones: la red llega a 20 Hz y se pinta a 60
-  const k = 1 - Math.exp(-dt * 14);
-  for (const j of v.jugadores) {
-    const p = suaves.get(j.id);
-    if (!p || Math.hypot(p.x - j.x, p.z - j.z) > 4) suaves.set(j.id, { x: j.x, z: j.z });
-    else { p.x += (j.x - p.x) * k; p.z += (j.z - p.z) * k; }
-  }
-  const yo = v.jugadores.find((j) => j.id === v.yo?.id);
-  const foco = yo ? suaves.get(yo.id) : mapa.salida;
-  camara.x += (foco.x - camara.x) * Math.min(1, k * 1.5);
-  camara.z += (foco.z - camara.z) * Math.min(1, k * 1.5);
-  const aPantalla = (x, z) => [W / 2 + (x - camara.x) * escala, H / 2 + (z - camara.z) * escala];
-
-  // suelo
-  ctx.beginPath();
-  mapa.poly.forEach(([x, z], i) => { const [sx, sy] = aPantalla(x, z); i ? ctx.lineTo(sx, sy) : ctx.moveTo(sx, sy); });
-  ctx.closePath();
-  ctx.fillStyle = "#12232f";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(231,241,245,0.25)";
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // zonas
-  ctx.font = letra(0.32, 400);
-  ctx.textAlign = "center";
-  for (const a of mapa.areas) {
-    const [sx, sy] = aPantalla(a.x - a.w / 2, a.z - a.d / 2);
-    const w = a.w * escala, h = a.d * escala;
-    if (a.kind === "core" || a.kind === "elevator") {
-      ctx.fillStyle = "#050a0f";
-      ctx.fillRect(sx, sy, w, h);
-      continue;
-    }
-    ctx.fillStyle = a.kind === "meeting" ? "rgba(62,155,255,0.10)" : "rgba(231,241,245,0.04)";
-    ctx.fillRect(sx, sy, w, h);
-    ctx.strokeStyle = "rgba(231,241,245,0.10)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(sx, sy, w, h);
-    if (a.name) {
-      ctx.fillStyle = "rgba(231,241,245,0.32)";
-      ctx.fillText(a.name, sx + w / 2, sy + Math.min(h - 6, escala * 0.45));
-    }
-  }
-
-  // estaciones
-  const mias = new Map((v.yo?.tareas ?? []).map((t) => [t.id, t]));
-  for (const t of mapa.tareas) {
-    const [sx, sy] = aPantalla(t.x, t.z);
-    const mia = mias.get(t.id);
-    const r = escala * 0.28;
-    ctx.beginPath();
-    ctx.arc(sx, sy, r, 0, Math.PI * 2);
-    ctx.fillStyle = mia && !mia.hecha ? "#f5b041" : mia?.hecha ? "#2dd4bf" : "rgba(231,241,245,0.2)";
-    ctx.fill();
-    if (mia && !mia.hecha && mia.prog > 0) {
-      ctx.beginPath();
-      ctx.arc(sx, sy, r + 5, -Math.PI / 2, -Math.PI / 2 + mia.prog * Math.PI * 2);
-      ctx.strokeStyle = "#2dd4bf";
-      ctx.lineWidth = 4;
-      ctx.stroke();
-    }
-    if (mia && !mia.hecha) {
-      ctx.fillStyle = "#f5b041";
-      ctx.font = letra(0.28);
-      ctx.fillText(t.label, sx, sy - r - 8);
-    }
-  }
-  // la campana
-  {
-    const [sx, sy] = aPantalla(mapa.campana.x, mapa.campana.z);
-    ctx.beginPath();
-    ctx.arc(sx, sy, escala * 0.38, 0, Math.PI * 2);
-    ctx.fillStyle = "#ef4444";
-    ctx.fill();
-    ctx.fillStyle = "#fff";
-    ctx.font = `900 ${Math.round(escala * 0.42)}px system-ui, sans-serif`;
-    ctx.fillText("!", sx, sy + escala * 0.15);
-  }
-
-  // gafetes tirados
-  for (const c of v.cuerpos) {
-    const [sx, sy] = aPantalla(c.x, c.z);
-    ctx.save();
-    ctx.translate(sx, sy);
-    ctx.rotate(-0.4);
-    ctx.fillStyle = c.color;
-    ctx.fillRect(-escala * 0.3, -escala * 0.2, escala * 0.6, escala * 0.4);
-    ctx.fillStyle = "#e7f1f5";
-    ctx.fillRect(-escala * 0.22, -escala * 0.1, escala * 0.28, escala * 0.2);
-    ctx.restore();
-  }
-
-  // gente
-  const yoRol = v.yo?.rol;
-  const orden = v.jugadores.slice().sort((a, b) => a.z - b.z);
-  for (const j of orden) {
-    const p = suaves.get(j.id);
-    const [sx, sy] = aPantalla(p.x, p.z);
-    const r = escala * 0.32;
-    ctx.globalAlpha = j.vivo ? 1 : 0.45;
-    // la judía de Among Us: cuerpo, mochila y visor
-    ctx.fillStyle = j.color;
-    ctx.fillRect(sx - r * 1.15 * j.mira, sy - r * 0.6, r * 0.45 * j.mira, r * 1.0);
-    ctx.beginPath();
-    ctx.roundRect(sx - r * 0.8, sy - r * 1.3, r * 1.6, r * 2.1, [r * 0.8, r * 0.8, r * 0.3, r * 0.3]);
-    ctx.fill();
-    ctx.fillStyle = "#bfe6f5";
-    ctx.beginPath();
-    ctx.roundRect(sx - r * 0.2 + r * 0.25 * j.mira, sy - r * 0.95, r * 0.85, r * 0.5, r * 0.25);
-    ctx.fill();
-    if (j.usando) {
-      ctx.fillStyle = "#2dd4bf";
-      ctx.fillRect(sx - r, sy - r * 1.9, r * 2, 3);
-    }
-    ctx.globalAlpha = 1;
-    ctx.font = letra(0.26);
-    ctx.fillStyle = yoRol === "soplon" && j.rol === "soplon" ? "#ef4444" : "#e7f1f5";
-    ctx.fillText(j.nombre, sx, sy - r * 1.55);
-  }
-
-  // niebla: lo que no ves es lo que da miedo
-  if (v.yo?.vivo && v.fase === "juego" && yo) {
-    if (!niebla) niebla = Object.assign(document.createElement("canvas"), { width: W, height: H });
-    const n = niebla.getContext("2d");
-    n.globalCompositeOperation = "source-over";
-    n.clearRect(0, 0, W, H);
-    n.fillStyle = "rgba(2,6,10,0.88)";
-    n.fillRect(0, 0, W, H);
-    n.globalCompositeOperation = "destination-out";
-    const [sx, sy] = aPantalla(suaves.get(yo.id).x, suaves.get(yo.id).z);
-    const rv = v.yo.vision * escala;
-    const g = n.createRadialGradient(sx, sy, rv * 0.65, sx, sy, rv);
-    g.addColorStop(0, "rgba(0,0,0,1)");
-    g.addColorStop(1, "rgba(0,0,0,0)");
-    n.fillStyle = g;
-    n.beginPath();
-    n.arc(sx, sy, rv, 0, Math.PI * 2);
-    n.fill();
-    ctx.drawImage(niebla, 0, 0);
-  }
-
-  // flechas al borde hacia tus tareas pendientes
-  if (v.yo?.rol === "celula" && v.fase === "juego") {
-    for (const t of v.yo.tareas) {
-      if (t.hecha) continue;
-      const p = mapa.tareas.find((x) => x.id === t.id);
-      const [sx, sy] = aPantalla(p.x, p.z);
-      const m = 28;
-      if (sx > m && sx < W - m && sy > m && sy < H - m) continue;
-      const ang = Math.atan2(sy - H / 2, sx - W / 2);
-      const ex = Math.max(m, Math.min(W - m, W / 2 + Math.cos(ang) * W));
-      const ey = Math.max(m, Math.min(H - m, H / 2 + Math.sin(ang) * H));
-      ctx.save();
-      ctx.translate(ex, ey);
-      ctx.rotate(ang);
-      ctx.fillStyle = "#f5b041";
-      ctx.beginPath();
-      ctx.moveTo(12, 0); ctx.lineTo(-8, -8); ctx.lineTo(-8, 8);
-      ctx.fill();
-      ctx.restore();
-    }
-  }
+function pintarNiebla(n) {
+  const capa = $("#niebla");
+  capa.hidden = !n;
+  if (!n) return;
+  // lo que no ves es lo que da miedo
+  capa.style.background = `radial-gradient(circle at ${n.x}px ${n.y}px, transparent ${n.r * 0.7}px, var(--niebla) ${n.r}px)`;
 }
 
 let antes = performance.now();
 function bucle(ahora) {
   const dt = Math.min(0.1, (ahora - antes) / 1000);
   antes = ahora;
-  if (app.enJuego && app.vista) {
-    dibujar(app.vista, dt);
-    pintarHud(app.vista, dt);
-  } else if (app.mapa) {
-    // de fondo en los menús: el piso vacío, encuadrado en la cafetería
-    dibujar({ jugadores: [], cuerpos: [], fase: "menu", yo: null }, dt);
+  const v = app.enJuego ? app.vista : null;
+  if (esc) {
+    const { niebla, aPantalla } = esc.pintar(v, app.mapa, dt);
+    pintarNiebla(niebla);
+    if (v) pintarFlechas(v, aPantalla);
   }
+  if (v) pintarHud(v, dt);
   requestAnimationFrame(bucle);
 }
 
 /* ================================ arranque ================================ */
 
 async function arrancar() {
+  pantalla(el("div", { className: "menu" }, el("h1", {}, el("small", {}, "Modo Incógnito · spin-off"), "El Soplón"), el("p", {}, "Montando el Piso 10…")));
   try {
-    const escena = await fetch(`../data/scenes/piso7.json?v=${VERSION}`).then((r) => {
+    const crudo = await fetch(`../data/scenes/piso7.json?v=${VERSION}`).then((r) => {
       if (!r.ok) throw new Error(`piso7.json: ${r.status}`);
       return r.json();
     });
-    app.mapa = crearMapa(escena);
-    camara = { ...app.mapa.salida };
+    // El 3D se carga aparte (import dinámico): las pruebas de la partida no
+    // lo necesitan y el menú puede salir antes de que esté.
+    const { crearEscena3D } = await import("./escena3d.js");
+    esc = await crearEscena3D($("#mundo"), $("#etiquetas"));
+    // La partida choca con los muebles del 3D: ver `fisica` en escena3d.js.
+    app.mapa = crearMapa(crudo, esc.fisica);
   } catch (e) {
-    pantalla(el("div", { className: "menu" }, el("h1", {}, "No carga el plano"), el("p", { className: "error" }, String(e.message || e))));
+    console.error(e);
+    pantalla(el("div", { className: "menu" }, el("h1", {}, "No carga el piso"), el("p", { className: "error" }, String(e.message || e))));
     return;
   }
   pintarInicio();
@@ -809,5 +673,5 @@ async function arrancar() {
 }
 
 // para las pruebas (y para curiosear desde la consola)
-window.__soplon = { app, host, cliente };
+window.__soplon = { app, host, cliente, modulos: { crearPartida, crearBot, rngDe } };
 arrancar();

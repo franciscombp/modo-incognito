@@ -32,20 +32,21 @@ redes distintas).
 
 | Archivo | Qué hace |
 |---|---|
-| `mapa.js` | Lee `public/data/scenes/piso7.json` (el MISMO plano del juego): suelo, bloques macizos, tareas (las estaciones + «fingir en» cada zona de puestos) y un A* sobre rejilla |
+| `escena3d.js` | **El piso 3D y el reparto del juego, sin copias**: importa `buildOffice`, `Character3D`, `DioramaCamera`, la luz y las medallas del motor. Cada jugador lleva un muñeco de `characters3d.json` (con su `.glb` si lo tiene); a quien mandan a RRHH se queda tirado boca abajo junto a su gafete; los fantasmas, a media opacidad. También le presta a la partida la FÍSICA del piso (navmesh y colisiones) |
+| `reparto.js` | Quién se puede llevar (todo el reparto menos Gabo) |
+| `mapa.js` | Lee `public/data/scenes/piso7.json` (el MISMO plano del juego): suelo, bloques, tareas (las estaciones + «fingir en» cada zona de puestos) y rutas. En el navegador usa el navmesh del juego; en node, una rejilla propia |
 | `sim.js` | La partida, pura y autoritativa: roles, tareas, matar, reportar, juntas, votos, fin. Sin DOM — se prueba desde node |
 | `bots.js` | Los bots. Solo saben lo que ven; el soplón mata cuando nadie mira; la Célula reporta, acusa con lo que vio, defiende y vota |
 | `net.js` | WebRTC con señalización a mano (oferta en el `#` de la URL, respuesta comprimida) y BroadcastChannel para pestañas |
-| `main.js` | Interfaz, lienzo 2D, niebla de visión, HUD, junta, sala |
+| `main.js` | Interfaz, niebla de visión, HUD, junta, sala |
 
 ## Pruebas
 
 - `npm run check:impostor` — juega N partidas solo entre bots en node (sin navegador): tareas alcanzables, nadie fuera del suelo, las partidas terminan y ganan los dos bandos.
-- `npm run check:impostor-red` — tres navegadores, dos transportes: sala, pestaña, WebRTC con enlace + código, andar, campana, chat y voto de la junta. Necesita el preview en `:4173`.
+- `npm run check:impostor-red` — tres navegadores, dos transportes: sala, pestaña, WebRTC con enlace + código, andar, campana, chat y voto de la junta. Y diez partidas de bots **con los muebles del 3D**, que es donde se atascaban. Necesita el preview en `:4173`.
 
 ## Lo siguiente, si la prueba gusta
 
 - QR en vez de copiar/pegar el enlace y el código (la señalización ya cabe en ~600 caracteres).
-- Muñecos 3D del juego grande (`character3d.js`) en vez de las judías 2D.
 - Minijuegos de verdad en las tareas (los verbos de `src/game/` ya existen).
 - Bots que hablan con un LLM en la junta (hoy son reglas: no necesitan clave ni red).

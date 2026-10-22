@@ -29,6 +29,8 @@ try {
   const ctxA = await b.newContext();
   const ana = await ctxA.newPage(); ojo(ana, "Ana");
   await ana.goto(url);
+  // el 3D (piso + reparto) tarda en montarse, más con GL por software
+  await ana.waitForSelector("text=Crear sala", { timeout: 60000 });
   await nombre(ana, "Ana");
   await ana.click("text=Crear sala");
   const sala = await ana.evaluate(() => window.__soplon.host.sala);
@@ -36,6 +38,7 @@ try {
   // --- Beto: pestaña del mismo navegador ---
   const beto = await ctxA.newPage(); ojo(beto, "Beto");
   await beto.goto(url);
+  await beto.waitForSelector("text=Crear sala", { timeout: 60000 });
   await nombre(beto, "Beto");
   beto.once("dialog", (d) => d.accept(sala));
   await beto.click("text=Unirme desde otra pestaña");
@@ -50,6 +53,7 @@ try {
   const ctxC = await b.newContext();
   const cris = await ctxC.newPage(); ojo(cris, "Cris");
   await cris.goto(enlace);
+  await cris.waitForSelector("button:has-text('Unirme')", { timeout: 60000 });
   await nombre(cris, "Cris");
   await cris.click("button:has-text('Unirme')");
   await cris.waitForSelector("textarea[readonly]", { timeout: 10000 });
@@ -58,7 +62,7 @@ try {
   await ana.fill('.invitacion textarea[placeholder^="Pega"]', respuesta);
   await ana.click(".invitacion button:has-text('Conectar')");
   await ana.waitForFunction(() => window.__soplon.host.invitados.size === 2, null, { timeout: 15000 });
-  await cris.waitForFunction(() => document.body.textContent.includes("En la sala"), null, { timeout: 5000 });
+  await cris.waitForFunction(() => document.body.textContent.includes("En la sala"), null, { timeout: 30000 });
 
   const sala0 = await ana.evaluate(() => [...window.__soplon.host.invitados.values()].map((i) => i.nombre).sort());
   if (sala0.join() !== "Beto,Cris") fallos.push(`la sala de Ana tiene ${sala0}`);
@@ -66,7 +70,7 @@ try {
   // --- a jugar ---
   await ana.click("button:has-text('Empezar')");
   for (const [p, n] of [[beto, "Beto"], [cris, "Cris"]]) {
-    await p.waitForFunction(() => window.__soplon.app.vista?.fase === "juego", null, { timeout: 5000 })
+    await p.waitForFunction(() => window.__soplon.app.vista?.fase === "juego", null, { timeout: 30000 })
       .catch(() => fallos.push(`${n} no recibe la partida`));
   }
   const idBeto = await beto.evaluate(() => window.__soplon.app.miId);
@@ -98,6 +102,35 @@ try {
   await ana.waitForFunction(() => window.__soplon.host.sim.estado.junta?.votos?.[[...window.__soplon.host.invitados].find(([, i]) => i.nombre === "Cris")[0]] === "nadie", null, { timeout: 5000 })
     .catch(() => fallos.push("el voto de Cris no llega"));
   await ana.screenshot({ path: "test-results/impostor-junta.png" }).catch(() => {});
+
+  // --- los bots, CON LOS MUEBLES ---
+  // En node la partida corre sobre el suelo pelado; aquí el mapa trae la
+  // física del 3D (navmesh + colisiones de buildOffice). Se juegan partidas
+  // enteras a toda velocidad con ese mapa: si un bot se encaja contra una
+  // mesa, la partida no acaba y canta.
+  const r = await ana.evaluate(() => {
+    const { app, modulos: { crearPartida, crearBot, rngDe } } = window.__soplon;
+    const out = [];
+    for (let p = 0; p < 10; p++) {
+      const sim = crearPartida({
+        mapa: app.mapa,
+        semilla: 500 + p,
+        jugadores: ["giuli", "fran", "manu", "crispo", "washo", "parce", "kiara"].slice(0, 5 + (p % 3))
+          .map((c, i) => ({ id: `b${i}`, nombre: c, cara: c, bot: true })),
+      });
+      const rng = rngDe(9 + p);
+      const bots = sim.estado.jugadores.map((j) => crearBot(sim, j.id, rng));
+      let i = 0;
+      for (; i < 15 * 60 * 20 && sim.estado.fase !== "fin"; i++) {
+        for (const b of bots) b.pensar(0.05);
+        sim.paso(0.05);
+      }
+      out.push({ fin: sim.estado.fin?.gana ?? null, s: Math.round(sim.estado.t), progreso: sim.progresoGlobal() });
+    }
+    return out;
+  });
+  console.log("partidas de bots con muebles:", JSON.stringify(r));
+  for (const [i, x] of r.entries()) if (!x.fin) fallos.push(`con muebles, la partida ${i} no acaba (progreso ${(x.progreso * 100) | 0}%): algún bot se encaja`);
 } catch (e) {
   fallos.push(`se cortó: ${e.message}`);
 } finally {

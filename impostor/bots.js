@@ -78,7 +78,8 @@ export function crearBot(sim, id, rng) {
   const irA = (x, z, tipo, extra = {}) => {
     const j = yo();
     ruta = mapa.ruta(j.x, j.z, x, z) ?? [{ x, z }];
-    destino = { x, z, tipo, ...extra };
+    destino = { ...extra, x, z, tipo };
+    mejorDist = Infinity;
   };
 
   const siguienteTarea = () => {
@@ -96,6 +97,38 @@ export function crearBot(sim, id, rng) {
     // el soplón (y quien ya acabó) FINGE: va de estación en estación
     const t = elegir(rng, mapa.tareas);
     irA(t.x, t.z, "fingir", { tarea: t.id });
+  };
+
+  // EL ATASCO. Con los muebles del 3D, la rejilla deja pasar por huecos en
+  // los que el cuerpo no cabe y el bot se queda empujando una mesa para
+  // siempre. Se mide PROGRESO hacia el destino, no movimiento (contra un
+  // canto se desliza y parece que anda): sin acercarse en un segundo,
+  // replanifica; en tres, se rinde y elige otro sitio.
+  let atasco = 0, mejorDist = Infinity;
+  const vigilarAtasco = (dt) => {
+    const j = yo();
+    if (!destino) { atasco = 0; mejorDist = Infinity; return false; }
+    const d = dist(destino, j);
+    if (d < mejorDist - 0.1) { mejorDist = d; atasco = 0; return false; }
+    atasco += dt;
+    if (atasco > 1 && destino.tipo === "tarea" && d <= R.rangoUsar * 0.95) {
+      // llegó todo lo cerca que deja la mesa, y desde ahí ya se usa
+      ruta = [];
+      return false;
+    }
+    if (atasco > 3) {
+      destino = null; ruta = null; atasco = 0; mejorDist = Infinity;
+      const p = mapa.pegar(j.x + (rng() - 0.5) * 4, j.z + (rng() - 0.5) * 4);
+      irA(p.x, p.z, "rodeo");
+      return true;
+    }
+    if (atasco > 1 && atasco - dt <= 1) {
+      // replanificar no cuenta como progreso: el reloj del atasco sigue
+      const m = mejorDist;
+      irA(destino.x, destino.z, destino.tipo, destino);
+      mejorDist = m;
+    }
+    return false;
   };
 
   const andar = () => {
@@ -154,8 +187,11 @@ export function crearBot(sim, id, rng) {
               return;
             }
           }
-          ruta = [{ x: p.x, z: p.z }];
-          destino = { x: p.x, z: p.z, tipo: "acecho" };
+          // por el navmesh, y replanificando: la presa se mueve, y en
+          // línea recta el soplón se quedaba empujando la mesa de en medio
+          if (destino?.tipo !== "acecho" || destino.presa !== p.id || sim.estado.t - destino.plan > 0.5) {
+            irA(p.x, p.z, "acecho", { presa: p.id, plan: sim.estado.t });
+          }
           break;
         }
       }
@@ -169,6 +205,7 @@ export function crearBot(sim, id, rng) {
     }
 
     if (!destino) siguienteTarea();
+    vigilarAtasco(dt);
     const llegado = dist(destino, j) <= R.rangoUsar * 0.7 || !ruta?.length;
     if (llegado) {
       if (destino.tipo === "tarea") {

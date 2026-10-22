@@ -12,5 +12,7 @@
 // `location.pathname` da la ruta correcta sin que importe si el sitio
 // cuelga de un dominio propio o de `usuario.github.io/repo/`.
 export function siteRoot() {
+  // El spin-off (`impostor/index.html`) vive UNA carpeta por debajo.
+  if (location.pathname.includes("/impostor/")) return "../";
   return location.pathname.includes("/creador/") ? "../../" : "./";
 }

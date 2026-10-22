@@ -78,6 +78,7 @@ export function crearPartida({ mapa, jugadores, semilla = Date.now(), soplones, 
       id: j.id,
       nombre: j.nombre,
       bot: !!j.bot,
+      cara: j.cara ?? null, // qué muñeco 3D lleva (id de characters3d.json)
       color: COLORES[i % COLORES.length],
       x: 0, z: 0, mira: 1,
       vivo: true,
@@ -214,7 +215,7 @@ export function crearPartida({ mapa, jugadores, semilla = Date.now(), soplones, 
       if (!v) return false;
       v.vivo = false;
       v.usando = null;
-      s.cuerpos.push({ id: v.id, x: v.x, z: v.z, color: v.color });
+      s.cuerpos.push({ id: v.id, x: v.x, z: v.z, color: v.color, cara: v.cara, mira: v.mira });
       s.muertes.push({ victima: v.id, asesino: j.id, x: v.x, z: v.z, t: s.t });
       j.matarEn = R.enfriamiento;
       evento({ tipo: "muerte", para: j.id, texto: `Mandaste a ${v.nombre} a RRHH.` });
@@ -309,6 +310,13 @@ export function crearPartida({ mapa, jugadores, semilla = Date.now(), soplones, 
         // los fantasmas atraviesan todo, pero no se salen del edificio
         j.x = Math.min(mapa.maxX, Math.max(mapa.minX, nx));
         j.z = Math.min(mapa.maxZ, Math.max(mapa.minZ, nz));
+      } else if (mapa.empujar) {
+        // con muebles: se avanza y el mundo de colisiones del 3D te saca de
+        // lo que pises — así te deslizas por el canto de una mesa en vez de
+        // clavarte en la rejilla.
+        const p = { x: nx, z: nz };
+        mapa.empujar(p, 0.28);
+        if (mapa.dentro(p.x, p.z)) { j.x = p.x; j.z = p.z; }
       } else {
         if (mapa.pisable(nx, j.z)) j.x = nx;
         if (mapa.pisable(j.x, nz)) j.z = nz;
@@ -348,7 +356,7 @@ export function crearPartida({ mapa, jugadores, semilla = Date.now(), soplones, 
       jugadores: s.jugadores
         .filter((o) => o.id === id || s.fase !== "juego" || !otros || otros.has(o.id))
         .map((o) => ({
-          id: o.id, nombre: o.nombre, color: o.color, bot: o.bot,
+          id: o.id, nombre: o.nombre, color: o.color, bot: o.bot, cara: o.cara,
           x: o.x, z: o.z, mira: o.mira, vivo: o.vivo, usando: !!o.usando,
           rol: veoRol(o) ? o.rol : undefined,
         })),

@@ -1902,9 +1902,10 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
 ## El spin-off: EL SOPLÓN (`impostor/`)
 
 Among Us en el Piso 10, prueba de concepto. Es OTRA entrada de Vite
-(`impostor/index.html`) y **no importa nada del motor**: solo lee el mismo
-`scenes/piso7.json`, así que mover una zona en el builder la mueve también
-aquí. Detalle en [`impostor/README.md`](impostor/README.md). Tres cosas:
+(`impostor/index.html`) que **pinta con el motor de verdad** —`buildOffice`,
+`Character3D`, `DioramaCamera`, las medallas— desde `impostor/escena3d.js`,
+igual que los builders: mover una zona o cambiar una receta llega sola.
+Detalle en [`impostor/README.md`](impostor/README.md). Cuatro cosas:
 
 - **El anfitrión ES el servidor.** `sim.js` es pura y autoritativa (sin DOM
   ni reloj): los invitados mandan entradas y reciben `vistaPara(id)`. Por eso
@@ -1915,6 +1916,14 @@ aquí. Detalle en [`impostor/README.md`](impostor/README.md). Tres cosas:
   `check:impostor-red` prueba los dos con clics de verdad.
 - **Piel propia** (`impostor/style.css`), a propósito sin
   `design-system.css`: es la trampa del `id="hint"` de los builders.
+- **La física es la del 3D, PRESTADA por parámetro** (`escena3d.js` →
+  `fisica`, que entra en `crearMapa`): navmesh para las rutas y
+  `resolveCircle` para andar. Con una rejilla propia los bots acababan
+  empujando una mesa en una de cada tres partidas, y eso solo se ve con los
+  muebles montados — por eso `check:impostor-red` juega partidas de bots
+  DENTRO del navegador además de las de node.
+- `siteRoot()` sabe que `impostor/` cuelga UNA carpeta por debajo; si mueves
+  el spin-off, cámbialo ahí o no cargará ni un JSON.
 
 ## Los builders (`creador/`)
 

@@ -12,6 +12,19 @@
  *
  * Todo esto es puro (sin DOM): lo usa el navegador y lo usa
  * `tools/check-impostor.mjs` desde node.
+ *
+ * LOS MUEBLES entran por `opciones`, no por import: en el navegador el
+ * anfitrión monta el piso 3D real (`buildOffice`) y le pasa a la partida su
+ * navmesh y su mundo de colisiones (`escena3d.js` → `fisica`), así que se
+ * choca con las mismas mesas que se ven. En node no hay 3D que montar y la
+ * partida corre sobre el suelo pelado, que basta para probar las reglas.
+ *   - `bloqueado(x, z)`: además del polígono, ¿esta celda está ocupada?
+ *   - `empujar(pos, radio)`: saca a un cuerpo de lo que esté pisando.
+ *   - `ruta(a, b)`, `pegar(x, z)`, `recta(a, b)`: el NAVMESH del juego.
+ *     Hacen falta: una rejilla propia no sabe de los tabiques finos ni de las
+ *     sillas, y medido, los bots acababan empujando una mesa para siempre en
+ *     una de cada tres partidas. El navmesh es el que ya resolvió eso para
+ *     los NPC del juego grande (ver CLAUDE.md → «NADIE SE QUEDA TRABADO»).
  */
 export const CELDA = 0.5;
 const RADIO = 0.3; // margen del cuerpo contra los bordes
@@ -26,7 +39,7 @@ function dentroPoligono(x, z, poly) {
   return dentro;
 }
 
-export function crearMapa(escena) {
+export function crearMapa(escena, { bloqueado = null, empujar = null, ruta: rutaFuera = null, pegar: pegarFuera = null, recta: rectaFuera = null } = {}) {
   const poly = escena.footprint;
   const bloques = escena.areas.filter((a) => a.kind === "core" || a.kind === "elevator");
   const xs = poly.map((p) => p[0]);
@@ -37,6 +50,7 @@ export function crearMapa(escena) {
   const filas = Math.ceil((maxZ - minZ) / CELDA) + 1;
 
   const libre = (x, z) => {
+    if (bloqueado?.(x, z)) return false;
     for (const [dx, dz] of [[0, 0], [RADIO, 0], [-RADIO, 0], [0, RADIO], [0, -RADIO]]) {
       if (!dentroPoligono(x + dx, z + dz, poly)) return false;
     }
@@ -60,6 +74,7 @@ export function crearMapa(escena) {
 
   /** El punto pisable más cercano (una estación pegada a una pared, p. ej.). */
   const pegar = (x, z) => {
+    if (pegarFuera) return pegarFuera(x, z);
     if (pisable(x, z)) return { x, z };
     for (let r = 1; r < 20; r++) {
       let mejor = null;
@@ -78,6 +93,10 @@ export function crearMapa(escena) {
 
   /** A* sobre la rejilla, 8 vecinos. Devuelve puntos de mundo, o null. */
   const ruta = (ax, az, bx, bz) => {
+    if (rutaFuera) {
+      const pts = rutaFuera({ x: ax, z: az }, { x: bx, z: bz });
+      return pts ? suavizar([{ x: ax, z: az }, ...pts]) : null;
+    }
     const a = pegar(ax, az), b = pegar(bx, bz);
     const [c0, f0] = celda(a.x, a.z);
     const [c1, f1] = celda(b.x, b.z);
@@ -131,6 +150,7 @@ export function crearMapa(escena) {
 
   // Tirar de la cuerda: el A* de rejilla va en escalera.
   const recta = (a, b) => {
+    if (rectaFuera) return rectaFuera(a, b);
     const n = Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / (CELDA / 2));
     for (let i = 1; i < n; i++) {
       if (!pisable(a.x + ((b.x - a.x) * i) / n, a.z + ((b.z - a.z) * i) / n)) return false;
@@ -161,10 +181,37 @@ export function crearMapa(escena) {
     tareas.push({ id: `fingir_${a.id}_${tareas.length}`, label: `Fingir en ${a.name}`, icon: "work", ...pegar(a.x, a.z) });
   }
   const cafeteria = escena.areas.find((a) => a.id === "cafeteria") ?? { x: 0, z: 0 };
-  const salida = pegar(cafeteria.x, cafeteria.z);
-  // LA CAMPANA de la junta de emergencia: el centro de la cafetería, que
-  // es donde de verdad se juntan todos a quejarse.
+  // EL CORRO de salida (y de vuelta de cada junta) necesita un CLARO: con
+  // los muebles del 3D, el centro de la cafetería es un bosque de mesas y la
+  // mitad del corro nacía pegada a una. Se busca el sitio más cercano con
+  // 2.5 unidades libres alrededor.
+  const claro = (x, z, r) => {
+    for (let dx = -r; dx <= r; dx += CELDA) {
+      for (let dz = -r; dz <= r; dz += CELDA) {
+        if (dx * dx + dz * dz <= r * r && !pisable(x + dx, z + dz)) return false;
+      }
+    }
+    return true;
+  };
+  let salida = null;
+  for (let r = 0; r < 14 && !salida; r += CELDA) {
+    for (let a = 0; a < 24 && !salida; a++) {
+      const x = cafeteria.x + Math.cos((a / 24) * Math.PI * 2) * r;
+      const z = cafeteria.z + Math.sin((a / 24) * Math.PI * 2) * r;
+      if (claro(x, z, 2.5)) salida = { x, z };
+    }
+  }
+  salida ??= pegar(cafeteria.x, cafeteria.z);
+  // LA CAMPANA de la junta de emergencia: en ese claro junto a la
+  // cafetería, que es donde de verdad se juntan todos a quejarse.
   const campana = salida;
+
+  // Una tarea a la que no se llega desde el corro es una partida que no
+  // puede acabar por tareas. Con los muebles del 3D hay rincones que la
+  // rejilla deja aislados (pasa con dos zonas de puestos): esas se quitan.
+  const alcanzables = tareas.filter((t) => ruta(salida.x, salida.z, t.x, t.z));
+  tareas.length = 0;
+  tareas.push(...alcanzables);
 
   const zonaDe = (x, z) => {
     for (const a of escena.areas) {
@@ -174,8 +221,14 @@ export function crearMapa(escena) {
     return "el pasillo";
   };
 
+  /** El polígono del suelo y los bloques, sin muebles: el último filtro de un paso. */
+  const dentro = (x, z) => {
+    if (!dentroPoligono(x, z, poly)) return false;
+    return !bloques.some((b) => Math.abs(x - b.x) < b.w / 2 && Math.abs(z - b.z) < b.d / 2);
+  };
+
   return {
-    poly, bloques, areas: escena.areas, minX, maxX, minZ, maxZ,
+    poly, bloques, dentro, empujar, areas: escena.areas, minX, maxX, minZ, maxZ,
     pisable, pegar, ruta, tareas, salida, campana, zonaDe, recta,
   };
 }
