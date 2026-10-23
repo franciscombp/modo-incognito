@@ -24,6 +24,11 @@
 }
 
 * { box-sizing: border-box; }
+/* Sin zoom por doble toque: tocar rápido el mismo botón ampliaba la página.
+ * `manipulation` quita solo ese gesto y deja el pellizco (accesibilidad).
+ * :where(*) pesa cero, así que el lienzo, el stick y el velo de abajo
+ * (touch-action: none) le ganan sin tocarlos. */
+:where(*) { touch-action: manipulation; }
 html, body {
   margin: 0;
   height: 100%;

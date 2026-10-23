@@ -21,6 +21,19 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* SIN ZOOM POR DOBLE TOQUE. Tocar rápido el mismo botón (un verbo, una
+   opción de menú) lo leía el teléfono como doble toque y ampliaba la página
+   entera, sin forma clara de volver. `manipulation` quita SOLO ese gesto: el
+   pellizco sigue vivo para quien lo necesite (accesibilidad). Va en TODOS los
+   elementos y no solo en html/body: así no depende de cómo cruce cada
+   navegador los contenedores con scroll.
+   :where(*) pesa CERO: cualquier regla que ya pida `touch-action: none`
+   (el lienzo, los mandos, la caja del microondas) o `pan-y` le gana sin
+   tocarla. Llega al juego y a todos los builders (cargan esta hoja). */
+:where(*) {
+  touch-action: manipulation;
+}
+
 /* Utilidad global de visibilidad. Casi todos los componentes de abajo
    alternan su propia regla ".xxx.hidden" (más específica), pero esta de
    respaldo cubre cualquier elemento nuevo que solo use "hidden" a secas —
