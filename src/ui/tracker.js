@@ -89,6 +89,17 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
   // este tracker, pero el orden exacto no está garantizado.
   let topbarEl = null;
   let utilsEl = null;
+  // Lo último que se escribió en el DOM. Este update corre CADA CUADRO y
+  // más abajo MIDE el DOM (getBoundingClientRect): escribir antes de medir,
+  // aunque sea el mismo texto, obliga al navegador a recalcular el layout
+  // entero dos veces por cuadro (hay dos rastreadores). Así solo se escribe
+  // lo que cambia, y el icono —un SVG parseado con innerHTML— casi nunca.
+  const escrito = {};
+  const pon = (clave, nodo, valor) => {
+    if (escrito[clave] === valor) return;
+    escrito[clave] = valor;
+    nodo.textContent = valor;
+  };
 
   /**
    * @param {object|null} target  { x, z, icon, top, label, meta, urgency, level }
@@ -100,13 +111,21 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
     }
     layer.classList.add("inc-tracker-visible");
 
-    topEl.textContent = target.top ?? "";
-    iconEl.innerHTML = svgIcon(hasIcon(target.icon) ? target.icon : "diamond", { size: 16 });
-    labelEl.textContent = target.label ?? "";
-    metaEl.textContent = target.meta ?? "";
+    pon("top", topEl, target.top ?? "");
+    const icono = hasIcon(target.icon) ? target.icon : "diamond";
+    if (escrito.icon !== icono) {
+      escrito.icon = icono;
+      iconEl.innerHTML = svgIcon(icono, { size: 16 });
+    }
+    pon("label", labelEl, target.label ?? "");
+    pon("meta", metaEl, target.meta ?? "");
 
     const urgency = THREE.MathUtils.clamp(target.urgency ?? 0, 0, 1);
-    barFill.style.width = `${Math.round(urgency * 100)}%`;
+    const ancho = `${Math.round(urgency * 100)}%`;
+    if (escrito.bar !== ancho) {
+      escrito.bar = ancho;
+      barFill.style.width = ancho;
+    }
     card.classList.toggle("inc-tracker-card-hot", urgency > 0.62);
     card.classList.toggle("inc-tracker-card-warm", urgency > 0.32 && urgency <= 0.62);
 
@@ -208,7 +227,7 @@ export function createTracker(root, camera, { id, side = "right", accent = "cyan
     marker.classList.toggle("inc-tracker-marker-edge", !onScreen);
     marker.style.transform = `translate(-50%, -50%) translate(${sx}px, ${sy}px)`;
     arrow.style.transform = `rotate(${angle}deg)`;
-    distEl.textContent = onScreen ? "" : target.short ?? "";
+    pon("dist", distEl, onScreen ? "" : target.short ?? "");
   }
 
   return { update, root: layer };

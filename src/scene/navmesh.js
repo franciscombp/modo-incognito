@@ -36,6 +36,74 @@ export function enRect(x, z, r) {
   );
 }
 
+/**
+ * La lista abierta del A*, como MONTÍCULO BINARIO. Era un array con un
+ * barrido lineal + `splice` por nodo («en mapas pequeños gana el barrido»):
+ * cierto para una sala, falso para el piso entero — 152×55 casillas, y una
+ * ruta de punta a punta llegó a costar SEGUNDOS (es lo que congelaba el
+ * juego al dar las seis, cuando diez compañeros pedían ruta a la vez).
+ *
+ * El desempate es por ORDEN DE LLEGADA (`seq`), que es exactamente lo que
+ * hacía el barrido (se quedaba con el primero de los mínimos): así las rutas
+ * salen IDÉNTICAS a las de antes, casilla por casilla, solo que deprisa.
+ */
+function createOpenHeap() {
+  const idxs = [];
+  const fs = [];
+  const seqs = [];
+  let seq = 0;
+  const menor = (a, b) => fs[a] < fs[b] || (fs[a] === fs[b] && seqs[a] < seqs[b]);
+  const swap = (a, b) => {
+    [idxs[a], idxs[b]] = [idxs[b], idxs[a]];
+    [fs[a], fs[b]] = [fs[b], fs[a]];
+    [seqs[a], seqs[b]] = [seqs[b], seqs[a]];
+  };
+  return {
+    get size() {
+      return idxs.length;
+    },
+    clear() {
+      idxs.length = 0;
+      fs.length = 0;
+      seqs.length = 0;
+      seq = 0;
+    },
+    push(i, f) {
+      let n = idxs.length;
+      idxs.push(i);
+      fs.push(f);
+      seqs.push(seq++);
+      while (n > 0) {
+        const p = (n - 1) >> 1;
+        if (!menor(n, p)) break;
+        swap(n, p);
+        n = p;
+      }
+    },
+    pop() {
+      const top = idxs[0];
+      const last = idxs.length - 1;
+      if (last > 0) swap(0, last);
+      idxs.pop();
+      fs.pop();
+      seqs.pop();
+      let n = 0;
+      const len = idxs.length;
+      for (;;) {
+        const l = 2 * n + 1;
+        const r = l + 1;
+        let m = n;
+        if (l < len && menor(l, m)) m = l;
+        if (r < len && menor(r, m)) m = r;
+        if (m === n) break;
+        swap(n, m);
+        n = m;
+      }
+      return top;
+    },
+  };
+}
+
 export function buildNavmesh(world, { radius = 0.4 * S, excluir = [] } = {}) {
   let minX = Infinity;
   let maxX = -Infinity;
@@ -207,6 +275,7 @@ export function buildNavmesh(world, { radius = 0.4 * S, excluir = [] } = {}) {
   // es prácticamente gratis en comparación.
   const g = new Float32Array(cols * rows);
   const cameFrom = new Int32Array(cols * rows);
+  const heap = createOpenHeap();
 
   function path(from, to) {
     const start = nearestWalkable(from.x, from.z);
@@ -219,16 +288,14 @@ export function buildNavmesh(world, { radius = 0.4 * S, excluir = [] } = {}) {
 
     g.fill(Infinity);
     cameFrom.fill(-1);
-    const open = [{ i: startI, f: 0 }];
+    heap.clear();
+    heap.push(startI, 0);
     g[startI] = 0;
     const h = (i) =>
       Math.hypot((i % cols) - goal.c, Math.floor(i / cols) - goal.r) * CELL;
 
-    while (open.length) {
-      // Small maps: a linear scan beats the bookkeeping of a real heap.
-      let bestAt = 0;
-      for (let k = 1; k < open.length; k++) if (open[k].f < open[bestAt].f) bestAt = k;
-      const { i: current } = open.splice(bestAt, 1)[0];
+    while (heap.size) {
+      const current = heap.pop();
       if (current === goalI) break;
 
       const cc = current % cols;
@@ -261,7 +328,7 @@ export function buildNavmesh(world, { radius = 0.4 * S, excluir = [] } = {}) {
         if (tentative >= g[ni]) continue;
         g[ni] = tentative;
         cameFrom[ni] = current;
-        open.push({ i: ni, f: tentative + h(ni) });
+        heap.push(ni, tentative + h(ni));
       }
     }
 

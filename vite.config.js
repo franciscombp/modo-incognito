@@ -38,6 +38,18 @@ export default defineConfig({
         // importa nada del motor 3D: solo lee el mismo piso7.json.
         impostor: resolve(import.meta.dirname, "impostor/index.html"),
       },
+      // Las librerías van en su propio trozo. Three.js y Tone.js no cambian
+      // entre publicaciones y el juego sí cambia en cada push: pegados en el
+      // mismo archivo, cada commit obligaba a volver a bajar ~900 kB que el
+      // navegador ya tenía. Separados, su hash no se mueve y se quedan en caché.
+      output: {
+        codeSplitting: {
+          groups: [
+            { name: "vendor-three", test: /node_modules[\\/]three[\\/]/ },
+            { name: "vendor-tone", test: /node_modules[\\/](tone|standardized-audio-context)[\\/]/ },
+          ],
+        },
+      },
     },
   },
 });
