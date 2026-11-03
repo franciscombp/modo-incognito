@@ -82,7 +82,12 @@ function chairStandGeometry() {
     arm.rotateY(-a);
     arm.translate(Math.cos(a) * CHAIR_R * 0.48, 0.045 * S, Math.sin(a) * CHAIR_R * 0.48);
     parts.push(arm);
-    const wheel = new THREE.SphereGeometry(0.032 * S, 8, 6);
+    // 6×4 segmentos y no 8×6: una ruedita de 3 cm no se distingue de una
+    // esfera perfecta desde la cámara del juego, y con 8×6 las cinco
+    // ruedas eran 400 de los 484 triángulos de la silla — y hay ~190 sillas,
+    // dibujadas dos veces (sombra + color): ~75 000 triángulos por cuadro
+    // en rueditas.
+    const wheel = new THREE.SphereGeometry(0.032 * S, 6, 4);
     wheel.translate(Math.cos(a) * CHAIR_R * 0.9, 0.032 * S, Math.sin(a) * CHAIR_R * 0.9);
     parts.push(wheel);
   }

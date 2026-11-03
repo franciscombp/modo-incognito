@@ -53,6 +53,17 @@ function el(tag, className, parent, text) {
   return n;
 }
 
+/**
+ * Escribe un texto SOLO si cambió. Asignar `textContent` reemplaza el nodo de
+ * texto aunque el valor sea idéntico, y el HUD se pinta sesenta veces por
+ * segundo: eran decenas de mutaciones de DOM (y de recálculos de estilo) por
+ * cuadro para enseñar exactamente lo mismo.
+ */
+function setText(node, text) {
+  const s = text == null ? "" : String(text);
+  if (node.textContent !== s) node.textContent = s;
+}
+
 /** Pone una clase de animación y la quita al acabar, para poder repetirla. */
 function pulse(node, cls, ms) {
   if (!node) return;
@@ -126,7 +137,17 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
   const center = el("div", "inc-bar-center", layer);
   const clockBtn = el("div", "inc-bar-btn", center);
   const clockLabel = el("span", "inc-bar-btn-label", clockBtn);
+  // Los nodos del reloj se crean UNA vez. Se reescribían con `innerHTML`
+  // cada cuadro: sesenta parseos de HTML por segundo para pintar lo mismo,
+  // y encima el «tic» de la hora (mi-tick) se ponía en un nodo que el cuadro
+  // siguiente tiraba a la basura, así que la animación no se veía nunca.
+  const clockTime = el("span", "inc-clockwidget-time", clockLabel);
+  const clockTimeText = document.createTextNode("—");
+  clockTime.appendChild(clockTimeText);
+  const clockSuffix = el("i", "inc-clockwidget-suffix", clockTime);
+  const clockCountdown = el("span", "inc-bar-countdown", clockLabel);
   let lastDayTime = null;
+  let lastClockText = null;
 
   // ── SISTEMA: pausa, mínima y en su esquina ────────────────────────────
   const sys = el("div", "inc-sysbtns", layer);
@@ -306,7 +327,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       baileFirma = "";
       return;
     }
-    baileVerbo.textContent = b.verbo;
+    setText(baileVerbo, b.verbo);
     // Se reconstruye solo al cambiar de RUTINA, no por cuadro: son ocho
     // nodos y rehacerlos sesenta veces por segundo para pintar lo mismo es
     // tirar DOM a la basura.
@@ -488,7 +509,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     const m = state.microondas;
     micro.classList.toggle("on", !!m);
     if (!m) return;
-    microVerbo.textContent = m.verbo;
+    setText(microVerbo, m.verbo);
     // Zona y plato en PORCENTAJE sobre la caja: la misma cuenta sirve para
     // el lienzo grande y para el pequeño.
     microZona.style.width = `${m.zona * 100}%`;
@@ -511,7 +532,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       cablesFirma = null;
       return;
     }
-    cablesTitulo.textContent = `${c.titulo} · ${c.unidos}/${c.total}`;
+    setText(cablesTitulo, `${c.titulo} · ${c.unidos}/${c.total}`);
     // Se rehace solo si cambian los colores o quién está unido.
     const firma = [c.izq, c.der].map((l) => l.map((p) => `${p.color}${p.unido ? "!" : ""}`).join(",")).join("|");
     if (firma !== cablesFirma) {
@@ -551,7 +572,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       vasosFirma = null;
       return;
     }
-    vasosVerbo.textContent = v.verbo;
+    setText(vasosVerbo, v.verbo);
     // La estructura se rehace solo si cambia el CONTENIDO de los vasos. Las
     // capas son nodos y rehacerlas por cuadro es tirar DOM a la basura
     // sesenta veces por segundo para pintar lo mismo.
@@ -661,7 +682,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
 
     if (p.aciertos !== pulseHits) {
       pulseHits = p.aciertos;
-      pulseCount.textContent = `${p.aciertos}/${p.necesarios}`;
+      setText(pulseCount, `${p.aciertos}/${p.necesarios}`);
       pulsePips.replaceChildren();
       for (let i = 0; i < p.necesarios; i++) {
         el("i", `inc-pulse-pip${i < p.aciertos ? " on" : ""}`, pulsePips);
@@ -738,15 +759,15 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       actionIconName = icon;
       actionIcon.replaceChildren(iconEl(icon));
     }
-    actionVerb.textContent = g?.verbo ?? (a ? "AGUANTA: cada segundo paga más reloj" : "Termina antes de que te vean");
-    actionLabel.textContent = g?.label ?? d?.label ?? a?.label ?? "";
+    setText(actionVerb, g?.verbo ?? (a ? "AGUANTA: cada segundo paga más reloj" : "Termina antes de que te vean"));
+    setText(actionLabel, g?.label ?? d?.label ?? a?.label ?? "");
 
     if (a) {
       // El aguante reutiliza la barra de cuenta atrás, pero LLENÁNDOSE: es
       // un premio que crece, no un plazo que se agota.
       actionClock.classList.add("on");
       actionClockFill.style.width = `${Math.min(100, (a.aguante / a.max) * 100)}%`;
-      actionCount.textContent = `${Math.round(a.aguante)}s`;
+      setText(actionCount, `${Math.round(a.aguante)}s`);
       action.classList.remove("urge", "loud");
       actionTrack.classList.remove("on");
       actionReel.classList.remove("on", "in");
@@ -792,11 +813,11 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     if (d) {
       actionClock.classList.add("on");
       actionClockFill.style.width = `${Math.max(0, (d.left / d.total) * 100)}%`;
-      actionCount.textContent = `${Math.ceil(d.left)}s`;
+      setText(actionCount, `${Math.ceil(d.left)}s`);
       action.classList.toggle("urge", d.left <= 3);
     } else {
       actionClock.classList.remove("on");
-      actionCount.textContent = "";
+      setText(actionCount, "");
       action.classList.remove("urge");
     }
   }
@@ -891,8 +912,8 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     energyFill.style.width = `${ePct}%`;
     energyMeter.classList.toggle("warn", ePct <= 35 && ePct > 15);
     energyMeter.classList.toggle("danger", ePct <= 15);
-    energyLabelPct.textContent = `${ePct}%`;
-    energyLabelText.textContent = state.asleep ? "DORMIDA" : ePct <= 20 ? "SIN FUERZAS" : "ENERGÍA";
+    setText(energyLabelPct, `${ePct}%`);
+    setText(energyLabelText, state.asleep ? "DORMIDA" : ePct <= 20 ? "SIN FUERZAS" : "ENERGÍA");
     energyMeter.classList.toggle("mi-critical", ePct <= 15 && !state.gameOver);
 
     // LO QUE LLEVAS: icono + qué te hace. Se redibuja solo cuando CAMBIA la
@@ -961,8 +982,8 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
         row = { node, key, title, guide, bar, fill, dist, aguja };
         questRows.set(o.id, row);
       }
-      row.key.textContent = String(i + 1);
-      row.title.textContent = o.label;
+      setText(row.key, String(i + 1));
+      setText(row.title, o.label);
       // "cómo" (con gente) contra "qué" (a solas): el color de la fila lo
       // dice sin etiqueta, igual que la referencia distingue main de sub.
       row.node.classList.toggle("q-como", o.kind === "como");
@@ -971,7 +992,7 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
       const d = Number.isFinite(o.x)
         ? Math.hypot(o.x - state.playerPos.x, o.z - state.playerPos.z) / state.worldScale
         : state.bossDistance / state.worldScale;
-      row.dist.textContent = `${Math.round(d)} m`;
+      setText(row.dist, `${Math.round(d)} m`);
 
       // EL RUMBO, en coordenadas de PANTALLA. La misma proyección que usan
       // los mandos (`groundToScreen`), así que la flecha apunta a donde de
@@ -1038,15 +1059,18 @@ export function createGameHud(root, { onOpenPause = null, playerLook = null } = 
     const mins = Math.floor(leftS / 60);
     const secs = String(leftS % 60).padStart(2, "0");
     const [dayTime = "—", ...suffix] = String(state.currentTime ?? "—").split(" ");
-    clockLabel.innerHTML =
-      `<span class="inc-clockwidget-time">${dayTime}` +
-      `<i class="inc-clockwidget-suffix">${suffix.join(" ")}</i></span>` +
-      `<span class="inc-bar-countdown">${mins}:${secs} de jornada</span>`;
+    const clockText = `${dayTime}|${suffix.join(" ")}|${mins}:${secs}`;
+    if (clockText !== lastClockText) {
+      lastClockText = clockText;
+      clockTimeText.data = dayTime;
+      clockSuffix.textContent = suffix.join(" ");
+      clockCountdown.textContent = `${mins}:${secs} de jornada`;
+    }
     clockBtn.classList.toggle("warn", leftS <= 45 && leftS > 20);
     clockBtn.classList.toggle("danger", leftS <= 20);
     clockBtn.classList.toggle("mi-critical", leftS <= 20 && !state.gameOver);
     if (dayTime !== lastDayTime) {
-      pulse(clockLabel.querySelector(".inc-clockwidget-time"), "mi-tick", 240);
+      pulse(clockTime, "mi-tick", 240);
       lastDayTime = dayTime;
     }
   }
