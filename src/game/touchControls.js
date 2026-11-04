@@ -214,7 +214,18 @@ export function createTouchControls(
     return btn;
   }
 
-  makeHoldButton("touch-btn-interact", svgIcon("hand", { size: 26 }), "USAR / FINGIR", " ");
+  // EL BOTÓN DICE LO QUE VA A HACER. «USAR / FINGIR» fijo obligaba a mapear
+  // el dedo con el cartel que flota sobre el objeto; ahora la etiqueta la
+  // escribe `setAccion` cada cuadro desde el snapshot (ver etiquetaAccion).
+  const btnUsar = makeHoldButton("touch-btn-interact", svgIcon("hand", { size: 26 }), ACCION_DEFECTO, " ");
+  const btnUsarTexto = btnUsar.querySelector("span:last-child");
+  let accionActual = ACCION_DEFECTO;
+  function setAccion(texto) {
+    const t = texto || ACCION_DEFECTO;
+    if (t === accionActual) return;
+    accionActual = t;
+    btnUsarTexto.textContent = t;
+  }
 
   // ---- Camera / map utilities, top-right so they never fight the thumbs ----
   const utils = document.createElement("div");
@@ -249,5 +260,27 @@ export function createTouchControls(
   if (onInspect) makeTapButton(svgIcon("map", { size: 22 }), "Inspeccionar plano", onInspect);
   if (onPause) makeTapButton(svgIcon("pause", { size: 22 }), "Pausa", onPause);
 
-  return { isTouch };
+  return { isTouch, setAccion };
+}
+
+const ACCION_DEFECTO = "USAR / FINGIR";
+
+/**
+ * Qué hace el botón de acción AHORA, en una palabra, a partir del snapshot
+ * del HUD. Misma prioridad que el cartel del mundo (ui/worldPrompt.js):
+ * lo que tienes entre manos gana a lo que solo está cerca.
+ */
+export function etiquetaAccion(snap) {
+  if (!snap || snap.gameOver) return ACCION_DEFECTO;
+  const st = snap.nearStation;
+  if (st?.objeto && !(snap.inventario ?? []).includes(st.objeto.id)) return "FALTA ALGO";
+  if (snap.player?.isDoingActivity || snap.currentAction?.done === false) {
+    return (snap.currentAction?.label ?? "AGUANTA").toUpperCase();
+  }
+  if (st) return (st.label ?? "USAR").toUpperCase();
+  if (snap.nearNpc) return "HABLAR";
+  if (snap.nearDistraction) return "USAR";
+  if (snap.isPretending) return "FINGIENDO";
+  if (snap.safeSpotHere?.kind === "desk") return "FINGIR";
+  return ACCION_DEFECTO;
 }

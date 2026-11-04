@@ -4865,7 +4865,11 @@ body.vn-open .radar,
 body.vn-open .wprompt,
 body.vn-open .compass-layer,
 body.vn-open .touch-controls,
-body.vn-open #hint {
+body.vn-open #hint,
+/* La caja de diálogo nueva (game/dialogue.js) marca `inc-dialogue-open`, no
+   `vn-open`: sin esta línea la píldora de mandos se transparentaba detrás
+   de la primera línea del día. */
+body.inc-dialogue-open #hint {
   display: none !important;
 }
 
@@ -6929,6 +6933,10 @@ body.inc-game-active .inc-menu-scrim {
 
 .inc-world-prompt-card[data-kind="talk"] .inc-world-prompt-hint { color: var(--magenta); }
 .inc-world-prompt-card[data-kind="distract"] .inc-world-prompt-hint { color: var(--amber); }
+/* «Falta: el café» se pinta de aviso, y la pista (dónde conseguirlo) con la
+   tinta de los Qués; FINGIR va con la tinta normal: es la acción de siempre. */
+.inc-world-prompt-card[data-kind="falta"] .inc-world-prompt-label { color: var(--amber); }
+.inc-world-prompt-card[data-kind="falta"] .inc-world-prompt-hint { color: var(--text-soft, var(--text)); }
 
 .inc-world-prompt-fill {
   position: absolute;

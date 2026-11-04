@@ -72,12 +72,12 @@
         {
           "label": "«Anotado.»",
           "reply": "Anotado. Laptop como escudo.",
-          "flag": "escudo"
+          "effect": "laptop-escudo"
         },
         {
           "label": "«Prefiero improvisar.»",
           "reply": "Prefiero improvisar.",
-          "flag": "improvisa"
+          "effect": "improvisar"
         }
       ]
     }

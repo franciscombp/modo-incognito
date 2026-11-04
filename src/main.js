@@ -23,7 +23,7 @@ import * as baseModel from "./entities/baseModel.js";
 import * as face from "./entities/face.js";
 import { createEngine } from "./game/engine.js";
 import { createSave } from "./game/save.js";
-import { createTouchControls } from "./game/touchControls.js";
+import { createTouchControls, etiquetaAccion } from "./game/touchControls.js";
 import { getSettings, subscribeSettings, resolveQuality, setSettings } from "./game/settings.js";
 import { createPopups } from "./ui/popups.js";
 import { createStage, applyStageScale, stageScale, STAGE_W, STAGE_H } from "./ui/stage.js";
@@ -871,6 +871,9 @@ async function boot() {
       // andar (ver game.js), así que la pose se ve de frente igual.
       const acting = !!(engine.game?.player.isDoingActivity || engine.game?.player.isPretending);
       view.setActionZoom(acting);
+      // El botón táctil de acción dice lo que va a hacer (HABLAR, FINGIR,
+      // TOMAR CAFÉ…), leído del mismo snapshot que pinta el HUD.
+      touch.setAccion(etiquetaAccion(engine.game?.lastSnapshot));
       // El plano de CONVERSACIÓN es otro mando: cierra mucho más y sube la
       // mirada al pecho. Reutilizar el de acción daba «primer plano» con
       // medio personaje detrás de la caja y un techo enorme encima. Se

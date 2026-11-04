@@ -141,6 +141,24 @@ const npcsEnPiso = new Set((escenaPrincipal?.npcs ?? []).map((n) => n.cast ?? n.
 for (const { n, d } of temporadas) {
   const ids = new Set(d.misiones.map((m) => m.id));
   for (const m of d.misiones) {
+    if (m.desde !== undefined) {
+      exige(
+        Number.isInteger(m.desde) && m.desde >= 1 && m.desde <= 5,
+        `temporada-${n}.json → ${m.id}.desde`,
+        `tiene que ser un día de 1 a 5, no ${JSON.stringify(m.desde)}`
+      );
+      // Una misión no puede salir ANTES que lo que requiere: el `desde` de
+      // sus requisitos tiene que ser menor o igual, o nunca se desbloquea
+      // el día que promete.
+      for (const req of m.requiere ?? []) {
+        const r = d.misiones.find((o) => o.id === req);
+        exige(
+          !r || (r.desde ?? 1) <= m.desde,
+          `temporada-${n}.json → ${m.id}.desde`,
+          `requiere "${req}", que sale el día ${r?.desde ?? 1}, después que ella`
+        );
+      }
+    }
     for (const req of m.requiere ?? []) {
       exige(ids.has(req), `temporada-${n}.json → ${m.id}.requiere`, `no existe la misión "${req}"`);
     }

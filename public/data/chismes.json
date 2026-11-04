@@ -32,10 +32,7 @@
       "pregunta": "¿Por qué Crispo trae termo?",
       "correcta": 1,
       "opciones": [
-        {
-          "texto": "Porque es más barato",
-          "remate": "No. Crispo no ha hecho una cuenta en su vida."
-        },
+        {"texto":"Porque es más barato","remate":"No. Crispo no ha hecho una cuenta en su vida."},
         {
           "texto": "Porque el café de la oficina le parece agua",
           "remate": "Exacto. Y lo dijo delante de quien compró la máquina."
@@ -53,14 +50,8 @@
       "pregunta": "Según Chispita, ¿cuándo se movió la silla?",
       "correcta": 2,
       "opciones": [
-        {
-          "texto": "El lunes por la mañana",
-          "remate": "El lunes ya estaba puesta. Eso no es el misterio."
-        },
-        {
-          "texto": "Durante la reunión",
-          "remate": "Durante la reunión había gente. Ese es el punto."
-        },
+        {"texto":"El lunes por la mañana","remate":"El lunes ya estaba puesta. Eso no es el misterio."},
+        {"texto":"Durante la reunión","remate":"Durante la reunión había gente. Ese es el punto."},
         {
           "texto": "El viernes, sobre las siete",
           "remate": "«Como a las siete», dijo. Y bajó la voz para decirlo."
@@ -82,10 +73,7 @@
           "texto": "Preparar la evaluación del equipo",
           "remate": "Ojalá. Nadie se ríe solo preparando eso."
         },
-        {
-          "texto": "Reunirse con el Piso 12",
-          "remate": "El Piso 12 no existe. Lo comprobó Chispita."
-        }
+        {"texto":"Reunirse con el Piso 12","remate":"El Piso 12 no existe. Lo comprobó Chispita."}
       ]
     },
     {
@@ -95,10 +83,7 @@
       "pregunta": "¿Qué es lo ÚNICO que se sabe con certeza?",
       "correcta": 1,
       "opciones": [
-        {
-          "texto": "Que es a la una y diez",
-          "remate": "Eso también, pero no es lo que señala a nadie."
-        },
+        {"texto":"Que es a la una y diez","remate":"Eso también, pero no es lo que señala a nadie."},
         {
           "texto": "Que no pasó el martes que faltó Chispita",
           "remate": "Correcto. Nadie lo ha dicho en voz alta todavía."
@@ -116,14 +101,8 @@
       "pregunta": "Según el Parce, ¿qué hace ahora la impresora?",
       "correcta": 2,
       "opciones": [
-        {
-          "texto": "Nada, sigue atascada",
-          "remate": "Eso era antes. El Parce insiste en que evolucionó."
-        },
-        {
-          "texto": "Imprime en blanco",
-          "remate": "Sería más barato y menos inquietante."
-        },
+        {"texto":"Nada, sigue atascada","remate":"Eso era antes. El Parce insiste en que evolucionó."},
+        {"texto":"Imprime en blanco","remate":"Sería más barato y menos inquietante."},
         {
           "texto": "Imprime todo lo pendiente desde marzo",
           "remate": "En orden. Ese es el detalle que da miedo."
@@ -137,14 +116,8 @@
       "pregunta": "¿Cuántos puntos tiene la agenda?",
       "correcta": 0,
       "opciones": [
-        {
-          "texto": "Uno, y es «varios»",
-          "remate": "Uno. Que por dentro son once, pero eso no se escribe."
-        },
-        {
-          "texto": "Ninguno, se improvisa",
-          "remate": "Hay agenda. Ese es justo el chiste."
-        },
+        {"texto":"Uno, y es «varios»","remate":"Uno. Que por dentro son once, pero eso no se escribe."},
+        {"texto":"Ninguno, se improvisa","remate":"Hay agenda. Ese es justo el chiste."},
         {
           "texto": "Cinco, uno por área",
           "remate": "Con cinco puntos duraría menos. Contraintuitivo pero cierto."
@@ -185,14 +158,8 @@
           "texto": "Te avisa y te da unos segundos",
           "remate": "Eso. Y esos segundos son todo lo que tienes."
         },
-        {
-          "texto": "Te amonesta de una",
-          "remate": "No con la cosa tranquila. Eso es más arriba."
-        },
-        {
-          "texto": "No pasa nada",
-          "remate": "Antes no pasaba nada. Ya no."
-        }
+        {"texto":"Te amonesta de una","remate":"No con la cosa tranquila. Eso es más arriba."},
+        {"texto":"No pasa nada","remate":"Antes no pasaba nada. Ya no."}
       ]
     },
     {
@@ -203,10 +170,7 @@
       "pregunta": "¿Qué corta una persecución ya empezada?",
       "correcta": 1,
       "opciones": [
-        {
-          "texto": "Correr más rápido que él",
-          "remate": "Corre más que tú. Siempre."
-        },
+        {"texto":"Correr más rápido que él","remate":"Corre más que tú. Siempre."},
         {
           "texto": "Llegar a un lugar seguro",
           "remate": "Un lugar seguro. Los baños cuentan, y no se ocupan nunca."
@@ -214,6 +178,161 @@
         {
           "texto": "Fingir que trabajas donde sea",
           "remate": "Fingir solo cuela DENTRO de un lugar seguro."
+        }
+      ]
+    },
+    {
+      "id": "familia",
+      "titular": "TODO EL PISO · tradición",
+      "texto": "En la última reunión general Gabo dijo que «aquí somos una familia». Lo dijo justo después de anunciar que este año no hay subida y justo antes de pedir que las vacaciones se avisen con tres meses. Enriquetta aplaudió. Fue la única.",
+      "pregunta": "¿Qué anunció Gabo justo antes de lo de la familia?",
+      "correcta": 0,
+      "opciones": [
+        {
+          "texto": "Que no hay subida este año",
+          "remate": "Exacto. Las familias de verdad tampoco pagan, si lo piensas."
+        },
+        {
+          "texto": "Una fiesta de fin de año",
+          "remate": "No. La fiesta se canceló «por presupuesto». Misma reunión."
+        },
+        {"texto":"Un ascenso para Crispo","remate":"Crispo no asciende: Crispo permanece."}
+      ]
+    },
+    {
+      "id": "onboarding",
+      "titular": "RRHH · documento vivo",
+      "texto": "El manual de bienvenida tiene 84 páginas y una sola persona lo ha leído entero: Manu, que lo leyó para encontrar la frase exacta que prohíbe comer en el puesto. No existe. Desde entonces come en el puesto con el manual abierto al lado, por si alguien pregunta.",
+      "pregunta": "¿Para qué leyó Manu el manual entero?",
+      "correcta": 2,
+      "opciones": [
+        {
+          "texto": "Para su evaluación de desempeño",
+          "remate": "Manu no prepara evaluaciones. Las sobrevive."
+        },
+        {
+          "texto": "Porque se lo pidió Gabo",
+          "remate": "Gabo tampoco lo ha leído. Lo firmó, que es distinto."
+        },
+        {
+          "texto": "Para encontrar la frase que prohíbe comer en el puesto",
+          "remate": "Exacto. Y como no está, ahora come con el manual de testigo."
+        }
+      ]
+    },
+    {
+      "id": "standup",
+      "titular": "ALA SUR · diario",
+      "texto": "La reunión de pie de las nueve y cuarto se hace sentados desde febrero. Nadie lo decidió: un día Washo trajo su silla «por la espalda», al día siguiente César trajo la suya «por solidaridad», y al tercero ya no quedaba nadie de pie salvo Gabo, que la dirige desde arriba como si fuera un podio.",
+      "pregunta": "¿Quién fue el primero en sentarse?",
+      "correcta": 1,
+      "opciones": [
+        {
+          "texto": "César, por solidaridad",
+          "remate": "César fue el segundo. La solidaridad siempre llega segunda."
+        },
+        {
+          "texto": "Washo, por la espalda",
+          "remate": "Exacto. La espalda de Washo es el origen de todo en este piso."
+        },
+        {
+          "texto": "Gabo, para dar ejemplo",
+          "remate": "Gabo sigue de pie. Es el único momento del día en que es el más alto."
+        }
+      ]
+    },
+    {
+      "id": "chat-verde",
+      "titular": "TEAMS · estado del arte",
+      "texto": "Fran descubrió que un vídeo de un gato en bucle en la segunda pantalla mantiene la lucecita del chat en verde toda la tarde. Lo contó en la cocina. Al día siguiente había cuatro gatos en bucle en el ala sur y Chispita preguntando en voz alta «qué raro que todos estén tan activos».",
+      "pregunta": "¿Qué mantiene la lucecita en verde?",
+      "correcta": 0,
+      "opciones": [
+        {
+          "texto": "Un vídeo de un gato en bucle",
+          "remate": "Exacto. El gato es el empleado del mes y nadie lo sabe."
+        },
+        {
+          "texto": "Un programa que mueve el ratón",
+          "remate": "Eso está prohibido por el manual. El gato no sale en el manual."
+        },
+        {
+          "texto": "Escribir correos sin mandarlos",
+          "remate": "Eso es para la bandeja de salida, no para la lucecita."
+        }
+      ]
+    },
+    {
+      "id": "foto-equipo",
+      "titular": "PASILLO · evidencia gráfica",
+      "texto": "La foto de equipo del pasillo se hizo un viernes a las seis menos cuarto. Faltan tres personas porque ya se habían ido, y Gabo sale el doble de grande porque se puso un paso por delante «para que entre todo el mundo». Giuli lleva un año proponiendo repetirla y un año recibiendo «lo vemos».",
+      "pregunta": "¿Por qué sale Gabo el doble de grande?",
+      "correcta": 2,
+      "opciones": [
+        {
+          "texto": "Porque la editó Steven",
+          "remate": "Steven no edita fotos de la oficina. Tiene dignidad."
+        },
+        {"texto":"Porque es el más alto","remate":"No es el más alto. Es el que se pone delante."},
+        {
+          "texto": "Porque se puso un paso por delante",
+          "remate": "Exacto. «Para que entre todo el mundo», dijo. Entró él."
+        }
+      ]
+    },
+    {
+      "id": "sala-fantasma",
+      "titular": "SALA 6 · reserva recurrente",
+      "texto": "La Sala 6 lleva reservada todos los jueves de tres a cinco a nombre de «Kickoff — no cancelar». Nadie ha visto ese kickoff. Enriquetta jura que una vez abrió la puerta y había una persona sola con las luces apagadas mirando el techo. No dijo quién. Dijo que «se le entendía».",
+      "pregunta": "¿Qué vio Enriquetta al abrir la puerta?",
+      "correcta": 1,
+      "opciones": [
+        {"texto":"Un kickoff de verdad","remate":"No. Nadie ha visto nunca ese kickoff."},
+        {
+          "texto": "Una persona sola a oscuras mirando el techo",
+          "remate": "Exacto. Y Enriquetta la entendió. Todos la entendemos."
+        },
+        {"texto":"A Gabo durmiendo la siesta","remate":"Gabo no duerme la siesta. Gabo «procesa»."}
+      ]
+    },
+    {
+      "id": "parce-4",
+      "pool": "parce",
+      "titular": "EL PARCE · examen, pregunta 4",
+      "texto": "«Otra, por si acaso. Vas con el café en la mano, calentito, delatando a diez metros. ¿Dónde lo sueltas?» El Parce no vende a quien se deja pillar con la mercancía: es mala publicidad.",
+      "pregunta": "¿Qué pasa mientras llevas el café encima?",
+      "correcta": 0,
+      "opciones": [
+        {
+          "texto": "Te fichan más rápido hasta que lo tomas",
+          "remate": "Eso. La mercancía delata, por eso se consume rápido."
+        },
+        {
+          "texto": "Nada, un café es normal en una oficina",
+          "remate": "Un café normal viene de la máquina. Este viene de mí."
+        },
+        {
+          "texto": "El jefe se calma al verte con café",
+          "remate": "El jefe no se calma nunca. Se distrae, que no es lo mismo."
+        }
+      ]
+    },
+    {
+      "id": "parce-5",
+      "pool": "parce",
+      "titular": "EL PARCE · examen, pregunta 5",
+      "texto": "«Y la de regalo. Son las seis menos diez y te queda media peli. ¿Qué haces?» El Parce dice que a las seis se sale por el ascensor y que quedarse dentro es la única manera de perder sin que nadie te vea.",
+      "pregunta": "¿Qué pasa si sigues dentro cuando dan las seis?",
+      "correcta": 2,
+      "opciones": [
+        {
+          "texto": "Ganas el día igual, con nota",
+          "remate": "No. A las seis el que manda es el guardia, no tu lista."
+        },
+        {"texto":"La peli cuenta doble","remate":"Nada cuenta doble después de las seis. Ni el chisme."},
+        {
+          "texto": "Amonestación: el guardia te saca",
+          "remate": "Eso. Y si era la que te faltaba, mañana lo cuentas en RRHH."
         }
       ]
     }

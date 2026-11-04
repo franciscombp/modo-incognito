@@ -28,6 +28,16 @@ una jornada ANDANDO y con el jefe suelto (`--dia N` para cualquier día).
   (×1.12), y el cupo BAJA a 2 amonestaciones — la primera vez que la campaña
   aprieta de verdad. Medido jugándolo: se termina entero (14/14 misiones con
   0 de 2 en la mejor jornada), y se pierde si te confías.
+- **La semana se reparte por `desde`** (noviembre 2026): las únicas del arco
+  César → Manu → Giuli salen el martes y el kickoff fantasma + la ventana el
+  miércoles. Medido antes del cambio, la temporada entera cabía en un lunes
+  (13/13 con 111 s de sobra) y la nota AAA saltaba al martes y al miércoles
+  sin jugarlos. La nota es ahora relativa al primer día en que se puede
+  cerrar (CAMPANA §5.2).
+- **La energía muerde**: el combo ya no multiplica la recarga (×4 dejaba el
+  tanque al tope toda la jornada) y el drenaje sube a 0.78/s. Medido con
+  `check:jugable`: la energía de la jornada pasó de 60–100 a 22–100, y el
+  lunes se cierra con sus 7 misiones (antes, 13 con casi dos minutos de sobra).
 - **Días 4–5**: los JSON existen (`levels/dia-4..5`) pero NO están en
   `manifest.json → levels`. Activar uno es añadir su id a esa lista — y
   pasarle `check:contenido` + `check:jugable --dia N` + un arco como el de
@@ -61,10 +71,12 @@ una jornada ANDANDO y con el jefe suelto (`--dia N` para cualquier día).
    El 5 está listo; el **4 pide `scroll` y `print`, que no son actividades del
    piso** (lo canta `check:contenido` como aviso): o se escriben esas dos
    actividades en `piso7.json`, o se le cambian los objetivos.
-3. **Más fichas de chisme** (`chismes.json`) — ahora las lee también la
-   reunión fantasma; el pozo se nota corto en una sesión larga.
-4. **Escenas de bienvenida para Chispita y Washo** — Crispo ya se presenta
-   en persona; los otros dos se conocen «de choque». (`encounters.*.escenas`)
+3. ~~Más fichas de chisme~~ — 17 (12 generales + 5 del Parce). Sigue
+   valiendo la pena escribir más: una sesión larga las agota.
+4. ~~Escenas de bienvenida para Chispita y Washo~~ — escritas, y el motor
+   las pide solo: el primer día sin puerta en que un secuaz ronda y aún no lo
+   conoces, viene a presentarse (`engine.js` → `programarPresentacion`, flag
+   `bienvenida:<id>`).
 5. **Steven el Daddy como arco** — hoy es narrador de Teams; CAMPANA lo
    quiere con encargos propios.
 
@@ -79,14 +91,16 @@ una jornada ANDANDO y con el jefe suelto (`--dia N` para cualquier día).
    por construir: título sobre el ascensor real, transiciones con puertas.
 4. **El bisel común** (`--cut`, HUD §4.6) y **paneles con CSS 3D**
    (PANTALLAS §1.8) — cosmética estructural, baja prioridad.
-5. **Prompt de acción contextual** (HUD §4.4) — hoy solo el botón táctil.
+5. ~~Prompt de acción contextual~~ (HUD §4.4) — el cartel sobre el objeto
+   ya cubre FINGIR en tu puesto y «falta: el café» con su pista, y el botón
+   táctil dice lo que va a hacer (HABLAR, FINGIR, TOMAR CAFÉ…).
 
 ## 4. Pendiente de MOTOR
 
-1. **El globo de habla solo lo usa la escolta** — el canal existe
-   (`ui/speechBubble.js`) y `dialogues.barks` lleva desde siempre siendo dato
-   MUERTO. Colgarle los barks de pasillo es contenido casi gratis: el
-   figurante que comenta al pasar, el secuaz que refunfuña.
+1. ~~El globo de habla solo lo usa la escolta~~ — `dialogues.barks` ya se
+   dice: al cruzarse contigo de ronda («pasillo») y al delatarte («delata»),
+   `game.js` → `_updateBarks` / `_bark`. Falta lo mismo para los figurantes
+   de fondo (`npc.js`), que siguen mudos.
 2. **Los NPC no se esquivan entre ellos AL PLANIFICAR** (MOTOR §3.6bis 📌) —
    se apartan por separación de cuerpos y ahora se BORDEAN al caminar, pero
    dos que van al mismo sitio siguen negociándolo a empujones en vez de

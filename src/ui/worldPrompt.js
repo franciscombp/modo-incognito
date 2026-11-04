@@ -48,14 +48,30 @@ export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
 
     // Priority: what you are actually holding beats what is merely nearby.
     let target = null;
-    if (state.nearStation) {
+    const st = state.nearStation;
+    const faltaObjeto = st?.objeto && !(state.inventario ?? []).includes(st.objeto.id);
+    if (st && faltaObjeto) {
+      // LA ESTACIÓN PIDE ALGO QUE NO LLEVAS. Antes el cartel decía «MANTÉN
+      // ESPACIO» igual, lo mantenías y no pasaba nada: el aviso de qué falta
+      // llegaba como un toast que ya se había ido. Aquí se dice en el sitio
+      // y se dice DÓNDE se consigue (la `pista` del objeto).
       target = {
-        x: state.nearStation.x,
-        z: state.nearStation.z,
-        icon: state.nearStation.icon ?? "•",
-        label: state.nearStation.label,
+        x: st.x,
+        z: st.z,
+        icon: st.icon ?? "•",
+        label: `Falta: ${st.objeto.nombre ?? st.objeto.id}`,
+        hint: (st.objeto.pista ?? "consíguelo primero").toUpperCase(),
+        progress: 0,
+        kind: "falta",
+      };
+    } else if (st) {
+      target = {
+        x: st.x,
+        z: st.z,
+        icon: st.icon ?? "•",
+        label: st.label,
         hint: isTouch ? "MANTÉN USAR" : "MANTÉN ESPACIO",
-        progress: state.nearStation.progress / state.nearStation.time,
+        progress: st.progress / st.time,
         kind: "task",
       };
     } else if (state.nearNpc) {
@@ -77,6 +93,21 @@ export function createWorldPrompt(root, camera, { isTouch = false } = {}) {
         hint: `PULSA ${keyName}`,
         progress: 0,
         kind: "distract",
+      };
+    }
+
+    // EN TU PUESTO, sin nada más a mano: lo que se puede hacer ahí es FINGIR,
+    // y era la única acción del juego sin cartel. Es el tutorial de la
+    // mecánica central dicho en el sitio, no en una píldora que se apaga.
+    if (!target && state.safeSpotHere?.kind === "desk" && !state.isPretending) {
+      target = {
+        x: state.safeSpotHere.x,
+        z: state.safeSpotHere.z,
+        icon: "keyboard",
+        label: "Fingir que trabajas",
+        hint: isTouch ? "MANTÉN USAR" : "MANTÉN ESPACIO",
+        progress: 0,
+        kind: "pretend",
       };
     }
 

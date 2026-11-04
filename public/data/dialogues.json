@@ -23,7 +23,8 @@
     "Tokens de género: una línea puede escribir {masculino|femenino} — p.ej.",
     "\"hazte {el ocupado|la ocupada}\" — y el motor elige la mitad según el",
     "género del PERSONAJE ELEGIDO (characters3d.json → gender). Sin género,",
-    "gana la primera mitad. Ver genderize() en src/game/dialogue.js."
+    "gana la primera mitad. Ver genderize() en src/game/dialogue.js.",
+    "barks[<id del secuaz>]: frases sueltas en GLOBO (sin pausa). O una lista (vale para todo) o {pasillo: [...], delata: [...]}: 'pasillo' al cruzarse contigo de ronda; 'delata' al cruzar su umbral y subirle el medidor al jefe. Las engancha engine.js → barkDe."
   ],
   "cast": {
     "manu": {
@@ -47,12 +48,7 @@
       "blurb": "Amiga tuya. Chapter del amor: vive por y para el chisme romántico de la tribu.",
       "friend": true
     },
-    "jefe": {
-      "name": "Gabo",
-      "alias": "Barbie Malibú",
-      "color": "#e6483f",
-      "sheet": "gabo-camina"
-    },
+    "jefe": {"name":"Gabo","alias":"Barbie Malibú","color":"#e6483f","sheet":"gabo-camina"},
     "chispita": {
       "name": "Chispita",
       "color": "#f2c744",
@@ -106,24 +102,15 @@
       "$comment": "Primer encuentro y conversaciones normales. Las amonestaciones usan handleWarn() con talk:jefe_warn. `escolta` / `escoltaLlegada` / `escoltaEspera` NO son escenas de la caja: son frases sueltas que Gabo dice en GLOBOS mientras te lleva a tu puesto el día 1 (ui/speechBubble.js). La caja pausa el juego; una escolta que pausa el juego no es una escolta, son dos cosas pegadas. Frases CORTAS: se leen caminando y con el reloj corriendo.",
       "scenes": [
         [
-          {
-            "speaker": "Gabo",
-            "text": "¡Llegaste! Puntual y todo. Anota eso, que no se repite."
-          },
-          {
-            "speaker": "Tú",
-            "text": "Buenos días…"
-          },
+          {"speaker":"Gabo","text":"¡Llegaste! Puntual y todo. Anota eso, que no se repite."},
+          {"speaker":"Tú","text":"Buenos días…"},
           {
             "speaker": "Gabo",
             "text": "Camina conmigo, que te enseño dónde te vamos a tener vigilada. Digo, sentada."
           }
         ],
         [
-          {
-            "speaker": "Gabo",
-            "text": "Te ves concentrada. Eso está bien. Sigue así."
-          }
+          {"speaker":"Gabo","text":"Te ves concentrada. Eso está bien. Sigue así."}
         ],
         [
           {
@@ -140,11 +127,7 @@
       ],
       "softWarnings": [
         [
-          {
-            "speaker": "Gabo",
-            "mood": "tense",
-            "text": "Y la de trabajar, ¿te la sabes?"
-          }
+          {"speaker":"Gabo","mood":"tense","text":"Y la de trabajar, ¿te la sabes?"}
         ],
         [
           {
@@ -218,34 +201,18 @@
         ]
       ],
       "escolta": [
-        {
-          "text": "Vamo a calmarno, es tu primer día. Sígueme el paso."
-        },
-        {
-          "text": "Piso 7: diseño. O sea, gente mirando pantallas con cara de estar resolviendo algo."
-        },
-        {
-          "text": "El trato es simple: si estás donde deberías, haciendo lo que deberías, yo no existo."
-        },
-        {
-          "text": "Y si no… bueno. También existo. Pregúntale a Crispo."
-        }
+        {"text":"Vamo a calmarno, es tu primer día. Sígueme el paso."},
+        {"text":"Piso 7: diseño. O sea, gente mirando pantallas con cara de estar resolviendo algo."},
+        {"text":"El trato es simple: si estás donde deberías, haciendo lo que deberías, yo no existo."},
+        {"text":"Y si no… bueno. También existo. Pregúntale a Crispo."}
       ],
       "escoltaLlegada": [
-        {
-          "text": "Aquí. Enchufe, silla, y visibilidad total desde mi mesa. Cortesía de la casa."
-        },
-        {
-          "text": "Ponte cómoda. Es un decir. Que comience el día."
-        }
+        {"text":"Aquí. Enchufe, silla, y visibilidad total desde mi mesa. Cortesía de la casa."},
+        {"text":"Ponte cómoda. Es un decir. Que comience el día."}
       ],
       "escoltaEspera": [
-        {
-          "text": "¿Te perdiste? Es en línea recta, mija."
-        },
-        {
-          "text": "Te espero. Tengo todo el día. Tú no."
-        }
+        {"text":"¿Te perdiste? Es en línea recta, mija."},
+        {"text":"Te espero. Tengo todo el día. Tú no."}
       ]
     },
     "manu": {
@@ -256,18 +223,12 @@
             "speaker": "Manu de la suerte",
             "text": "¿César te habló de LA idea? Para que conste en acta: yo la pensé primero. Él le puso el drama, que también es un aporte, no digo que no."
           },
-          {
-            "speaker": "Tú",
-            "text": "¿Y qué es exactamente? Nadie me dice nada concreto."
-          },
+          {"speaker":"Tú","text":"¿Y qué es exactamente? Nadie me dice nada concreto."},
           {
             "speaker": "Manu de la suerte",
             "text": "Concreto no hay NADA, por diseño. Si no hay nada concreto, no hay nada que reportar. Vamo a calmarno, y si alguien pregunta, esta conversación fue sobre KPIs."
           },
-          {
-            "speaker": "Tú",
-            "text": "La mejor reunión que he tenido en esta empresa."
-          }
+          {"speaker":"Tú","text":"La mejor reunión que he tenido en esta empresa."}
         ],
         [
           {
@@ -345,18 +306,12 @@
             "mood": "tense",
             "text": "Shhh. ¿Fran ya te contó? Da igual, ella cuenta todo. Solo te digo una cosa: tengo una idea que va a arreglar TODO esto. La silla, el aire a veintiuno, el jefe. Todo."
           },
-          {
-            "speaker": "Tú",
-            "text": "¿Una idea? ¿Aquí? ¿En horario laboral?"
-          },
+          {"speaker":"Tú","text":"¿Una idea? ¿Aquí? ¿En horario laboral?"},
           {
             "speaker": "César",
             "text": "En horario laboral es cuando mejor pienso: técnicamente me pagan por quejarme. Habla con Manu — él va a decir que la idea fue suya. Déjalo. Los genios no discutimos con la suerte."
           },
-          {
-            "speaker": "Tú",
-            "text": "No sé nada, no vi nada. Pero cuéntamelo TODO."
-          }
+          {"speaker":"Tú","text":"No sé nada, no vi nada. Pero cuéntamelo TODO."}
         ],
         [
           {
@@ -372,14 +327,8 @@
                 "reply": "Qué injusticia, César. Deberías escalarlo.",
                 "effect": "score+",
                 "then": [
-                  {
-                    "speaker": "César",
-                    "text": "¡EXACTO! Voy a escribir un correo. Con copia a todos. AHORA."
-                  },
-                  {
-                    "speaker": "Tú",
-                    "text": "Perfecto. Eso lo tiene ocupado media hora y a mí me deja libre."
-                  }
+                  {"speaker":"César","text":"¡EXACTO! Voy a escribir un correo. Con copia a todos. AHORA."},
+                  {"speaker":"Tú","text":"Perfecto. Eso lo tiene ocupado media hora y a mí me deja libre."}
                 ]
               },
               {
@@ -387,11 +336,7 @@
                 "reply": "César… es solo una silla.",
                 "effect": "suspicion+",
                 "then": [
-                  {
-                    "speaker": "César",
-                    "mood": "angry",
-                    "text": "¿SOLO UNA SILLA? ¡JEFE! ¡JEFE, VEN A ESCUCHAR ESTO!"
-                  }
+                  {"speaker":"César","mood":"angry","text":"¿SOLO UNA SILLA? ¡JEFE! ¡JEFE, VEN A ESCUCHAR ESTO!"}
                 ]
               }
             ]
@@ -502,9 +447,7 @@
           {
             "text": "¿Supiste lo del refrigerador del piso 9? Alguien lleva TRES meses guardando un tupper que ya tiene ecosistema propio."
           },
-          {
-            "text": "Recursos Humanos mandó un correo. El tupper respondió. Nadie quiere abrir ese hilo."
-          }
+          {"text":"Recursos Humanos mandó un correo. El tupper respondió. Nadie quiere abrir ese hilo."}
         ],
         [
           {
@@ -530,10 +473,7 @@
                 "reply": "Voy de camino, justo iba.",
                 "effect": "suspicion-",
                 "then": [
-                  {
-                    "speaker": "Chispita",
-                    "text": "Bueno. Te acompaño. Es que voy para allá igual. Casualidad."
-                  }
+                  {"speaker":"Chispita","text":"Bueno. Te acompaño. Es que voy para allá igual. Casualidad."}
                 ]
               },
               {
@@ -577,10 +517,7 @@
             "mood": "tense",
             "text": "¡TE VI! Y no corras, que el cardio de los dos ya lo hice yo."
           },
-          {
-            "speaker": "Chispita",
-            "text": "Lo tengo que reportar. Bueno, ya lo reporté. Escribo rapidísimo."
-          }
+          {"speaker":"Chispita","text":"Lo tengo que reportar. Bueno, ya lo reporté. Escribo rapidísimo."}
         ],
         [
           {
@@ -588,21 +525,62 @@
             "mood": "tense",
             "text": "¡Ey ey ey! Catorce mil pasos hoy y los últimos doscientos fueron persiguiéndote a TI."
           },
+          {"speaker":"Chispita","text":"Esto va al canal de Gabo con tres signos de exclamación. Mínimo."}
+        ]
+      ],
+      "escenas": {
+        "$comment": "Escena GUIONIZADA (opts.escena='bienvenida'): la pide engine.js el primer día sin puerta en que Chispita ronda y aún no la conoces.",
+        "bienvenida": [
           {
             "speaker": "Chispita",
-            "text": "Esto va al canal de Gabo con tres signos de exclamación. Mínimo."
+            "mood": "happy",
+            "text": "¡Hola, hola, HOLA! Tú eres {el nuevo|la nueva}, ¿no? Yo soy Chispita. Lo sé todo. No es presumir, es describir."
+          },
+          {
+            "speaker": "Chispita",
+            "text": "Gabo me pidió que «acompañe tu incorporación». Traducido: que te siga. Pero con cariño, ¿eh? Con muchísimo cariño."
+          },
+          {
+            "prompt": "Saca el teléfono sin disimular.",
+            "options": [
+              {
+                "label": "«¿Me estás grabando?»",
+                "reply": "¿Me estás grabando?",
+                "effect": "suspicion+",
+                "then": [
+                  {
+                    "speaker": "Chispita",
+                    "mood": "angry",
+                    "text": "¡Qué va! Es para el grupo. El grupo donde no estás. Vamo a calmarno, ¿sí?"
+                  }
+                ]
+              },
+              {
+                "label": "«Encantada, Chispita.»",
+                "reply": "Encantada. Si ves algo, me avisas, ¿va?",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "Chispita",
+                    "mood": "happy",
+                    "text": "¡Ay, qué mona! Te aviso a ti, se lo aviso a Gabo, se lo aviso a todo el mundo. Soy muy de avisar."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "speaker": "Chispita",
+            "text": "Bueno, sigo. Si te levantas mucho del puesto no pasa nada… pero yo lo voy a saber antes que tú. Chao, chao."
           }
         ]
-      ]
+      }
     },
     "washo": {
       "cooldown": 35,
       "scenes": [
         [
-          {
-            "speaker": "Washo",
-            "text": "Desde aquí se ve todo el ala. Todo. Incluida la cafetera."
-          },
+          {"speaker":"Washo","text":"Desde aquí se ve todo el ala. Todo. Incluida la cafetera."},
           {
             "prompt": "No parpadea. Es incómodo.",
             "options": [
@@ -617,10 +595,7 @@
                   }
                 ]
               },
-              {
-                "label": "Seguir de largo sin decir nada",
-                "reply": "…"
-              }
+              {"label":"Seguir de largo sin decir nada","reply":"…"}
             ]
           }
         ],
@@ -650,10 +625,7 @@
             "mood": "tense",
             "text": "Quieta ahí. Tengo el ángulo, tengo la luz, tengo TODO."
           },
-          {
-            "speaker": "Washo",
-            "text": "Esto va directo a mi carpeta. La carpeta existe. Créeme."
-          }
+          {"speaker":"Washo","text":"Esto va directo a mi carpeta. La carpeta existe. Créeme."}
         ],
         [
           {
@@ -661,21 +633,58 @@
             "mood": "tense",
             "text": "No era penal... pero esto sí. Esto es rojísima directa."
           },
+          {"speaker":"Washo","text":"Yo no acuso: documento. Y acabo de documentarte enterita."}
+        ]
+      ],
+      "escenas": {
+        "$comment": "Escena GUIONIZADA (opts.escena='bienvenida'): el primer día sin puerta en que Washo ronda y aún no lo conoces.",
+        "bienvenida": [
           {
             "speaker": "Washo",
-            "text": "Yo no acuso: documento. Y acabo de documentarte enterita."
-          }
+            "text": "Buenas. Washo. No te levantes, no te levantes. Yo ya vi lo que tenía que ver."
+          },
+          {
+            "speaker": "Washo",
+            "text": "Yo no soy de contar cosas. Soy de que las cosas se sepan. Es una diferencia sutil que a Gabo le encanta."
+          },
+          {
+            "prompt": "Se queda mirando tu pantalla un segundo de más.",
+            "options": [
+              {
+                "label": "«¿Se te ofrece algo?»",
+                "reply": "¿Se te ofrece algo, Washo?",
+                "effect": "suspicion+",
+                "then": [
+                  {
+                    "speaker": "Washo",
+                    "mood": "angry",
+                    "text": "Nada, nada. Interesante tu fondo de pantalla. Muy interesante. Lo voy a comentar."
+                  }
+                ]
+              },
+              {
+                "label": "«¿Viste el partido ayer?»",
+                "reply": "¿Viste el partido ayer? Qué robo, ¿no?",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "Washo",
+                    "mood": "happy",
+                    "text": "No era penal. NO ERA PENAL. Mira, me caes bien. Te doy cinco minutos de ventaja hoy. Luego ya veremos."
+                  }
+                ]
+              }
+            ]
+          },
+          {"speaker":"Washo","text":"Sigo. Desde el fondo se ve todo, ¿sabías? Todo."}
         ]
-      ]
+      }
     },
     "crispo": {
       "cooldown": 35,
       "scenes": [
         [
-          {
-            "speaker": "Crispo",
-            "text": "Esa silla lleva veintidós minutos vacía. La tuya, digo."
-          },
+          {"speaker":"Crispo","text":"Esa silla lleva veintidós minutos vacía. La tuya, digo."},
           {
             "prompt": "No se ha movido del sitio en todo el día.",
             "options": [
@@ -731,10 +740,7 @@
             "mood": "tense",
             "text": "Anotado: «lejos del puesto, otra vez». Con hora. Con testigos. Con lapicero bueno."
           },
-          {
-            "speaker": "Crispo",
-            "text": "No es personal. Es papel."
-          }
+          {"speaker":"Crispo","text":"No es personal. Es papel."}
         ],
         [
           {
@@ -742,10 +748,7 @@
             "mood": "tense",
             "text": "Veintidós minutos. No pregunto dónde estabas: ya lo sé, por eso los anoté."
           },
-          {
-            "speaker": "Crispo",
-            "text": "Gabo va a querer conversar. Él le dice conversar. Yo le digo acta."
-          }
+          {"speaker":"Crispo","text":"Gabo va a querer conversar. Él le dice conversar. Yo le digo acta."}
         ]
       ],
       "escenas": {
@@ -809,18 +812,12 @@
             "speaker": "Giuli",
             "text": "Yo no sé qué se traen César y Manu, y OFICIALMENTE no quiero saber. Extraoficialmente: si necesitas que alguien mire para otro lado, llevo años entrenando esa mirada."
           },
-          {
-            "speaker": "Tú",
-            "text": "¿Y qué pides a cambio?"
-          },
+          {"speaker":"Tú","text":"¿Y qué pides a cambio?"},
           {
             "speaker": "Giuli",
             "text": "Que cuando esto explote —porque va a explotar bonito— yo me entere PRIMERO. El chisme fresco no tiene precio: es mi plan de retiro."
           },
-          {
-            "speaker": "Tú",
-            "text": "Trato hecho."
-          }
+          {"speaker":"Tú","text":"Trato hecho."}
         ],
         [
           {
@@ -842,10 +839,7 @@
                   }
                 ]
               },
-              {
-                "label": "«Ahora no, voy justa de tiempo.»",
-                "reply": "Ahora no, Giuli, voy justa de tiempo."
-              }
+              {"label":"«Ahora no, voy justa de tiempo.»","reply":"Ahora no, Giuli, voy justa de tiempo."}
             ]
           }
         ],
@@ -871,9 +865,7 @@
           {
             "text": "Chisme fino: Gabo pidió una silla ergonómica «de importación». Llegó una silla normal con una etiqueta que dice «ergonomic» pegada con cinta."
           },
-          {
-            "text": "Se sienta como si fuera un trono. Nadie le ha dicho nada. Es más bonito así."
-          }
+          {"text":"Se sienta como si fuera un trono. Nadie le ha dicho nada. Es más bonito así."}
         ]
       ]
     },
@@ -899,10 +891,7 @@
                   }
                 ]
               },
-              {
-                "label": "«Luego, Fran.»",
-                "reply": "Luego, Fran, ahora no puedo."
-              }
+              {"label":"«Luego, Fran.»","reply":"Luego, Fran, ahora no puedo."}
             ]
           }
         ],
@@ -928,9 +917,7 @@
           {
             "text": "Alguien imprimió 200 páginas de memes de Shakira en la impresora buena y ahora hay una investigación interna. Con comité y todo."
           },
-          {
-            "text": "El principal sospechoso es el comité."
-          }
+          {"text":"El principal sospechoso es el comité."}
         ]
       ]
     },
@@ -954,10 +941,7 @@
                     "speaker": "El Parce",
                     "text": "¡Eso es! Al seco. Ahora sonría normal, que si el jefe la ve así de contenta sospecha."
                   },
-                  {
-                    "speaker": "Tú",
-                    "text": "Uf. Esto quema más que la reunión de las tres."
-                  }
+                  {"speaker":"Tú","text":"Uf. Esto quema más que la reunión de las tres."}
                 ]
               },
               {
@@ -1003,32 +987,54 @@
           {
             "text": "Ala parce, ¿le cuento el chisme gordo? En el cajón de Crispo no hay cuadernos. Hay UN cuaderno... con la lista de cuántas veces parpadea cada uno."
           },
-          {
-            "text": "A mí me tiene en 12.400 este mes. Dice que parpadeo «con intención». Vamo a calmarno."
-          }
+          {"text":"A mí me tiene en 12.400 este mes. Dice que parpadeo «con intención». Vamo a calmarno."}
         ]
       ]
     }
   },
   "barks": {
-    "chispita": [
-      "¡Ey! ¿Esa no es tu zona?",
-      "Voy, voy, voy — ¡te vi!",
-      "¡Jefe! ¡JEFE! Mira quién anda por acá.",
-      "Ya tú sabe lo que va a pasar. Corriendo voy a contarlo."
-    ],
-    "washo": [
-      "Desde acá se ve todo, ¿sabías?",
-      "Yo no acuso a nadie. Solo informo.",
-      "Mmm. Interesante. Muy interesante.",
-      "No era penal, pero tengo el clip igual."
-    ],
-    "crispo": [
-      "No me muevo de aquí. Tú tampoco deberías moverte.",
-      "Esa silla lleva veinte minutos vacía.",
-      "Estoy contando. Solo eso. Contando.",
-      "Fue sin querer queriendo que te vi. Pero te vi."
-    ]
+    "chispita": {
+      "pasillo": [
+        "¿Tú qué haces por aquí? No, en serio, lo pregunto para apuntarlo.",
+        "Yo también fingía al principio. Después me ascendieron a vigilar.",
+        "Tranquila, no te estoy mirando. Te estoy OBSERVANDO. Es distinto.",
+        "Si te vas a escapar, avísame, que me gusta llegar la primera."
+      ],
+      "delata": [
+        "¡Ey! ¿Esa no es tu zona?",
+        "Voy, voy, voy — ¡te vi!",
+        "¡Jefe! ¡JEFE! Mira quién anda por acá.",
+        "Ya tú sabe lo que va a pasar. Corriendo voy a contarlo."
+      ]
+    },
+    "washo": {
+      "pasillo": [
+        "Desde acá se ve todo, ¿sabías?",
+        "Mmm. Interesante. Muy interesante.",
+        "No era penal, pero tengo el clip igual.",
+        "Yo no digo nada. Pero lo anoto todo. En una hoja de cálculo.",
+        "¿Café otra vez? Qué bien. Qué bien vives."
+      ],
+      "delata": [
+        "Yo no acuso a nadie. Solo informo.",
+        "VAR. Esto va al VAR.",
+        "Lo vi. Lo vimos todos. Bueno, lo vi yo, que es lo que cuenta."
+      ]
+    },
+    "crispo": {
+      "pasillo": [
+        "No me muevo de aquí. Tú tampoco deberías moverte.",
+        "Esa silla lleva veinte minutos vacía.",
+        "Estoy contando. Solo eso. Contando.",
+        "Yo llevo aquí desde las siete. Lo digo por decir. Por si alguien pregunta.",
+        "En mi época esto se llamaba trabajar. Ahora se llama «cultura»."
+      ],
+      "delata": [
+        "Fue sin querer queriendo que te vi. Pero te vi.",
+        "¡Gabo! Aquí hay alguien que no está en su puesto. Otra vez.",
+        "Lo anoto. Hora, sitio y cara de culpable."
+      ]
+    }
   },
   "teamsMessages": {
     "gabo": [
@@ -1089,24 +1095,16 @@
       }
     ],
     [
-      {
-        "text": "Uy no, ya hablamos mucho. Crispo lleva DOS minutos mirándonos y apuntando. Circula."
-      }
+      {"text":"Uy no, ya hablamos mucho. Crispo lleva DOS minutos mirándonos y apuntando. Circula."}
     ],
     [
-      {
-        "text": "Corte. Viene Chispita y ese no camina: PATRULLA. Luego seguimos."
-      }
+      {"text":"Corte. Viene Chispita y ese no camina: PATRULLA. Luego seguimos."}
     ],
     [
-      {
-        "text": "Tengo una 'reunión'. Las comillas se escuchan, ¿verdad? Bueno. Chau."
-      }
+      {"text":"Tengo una 'reunión'. Las comillas se escuchan, ¿verdad? Bueno. Chau."}
     ],
     [
-      {
-        "text": "Si Gabo pregunta, esto era una daily. Si Crispo pregunta, NUNCA hablamos."
-      }
+      {"text":"Si Gabo pregunta, esto era una daily. Si Crispo pregunta, NUNCA hablamos."}
     ]
   ]
 }

@@ -24,11 +24,6 @@ export const EFFECTS = {
     },
   },
 
-  "time+": {
-    label: "Gana 2 minutos por una buena conversación",
-    run: (game) => game.award(120, "Buena conversación", game.player.position),
-  },
-
   "speed+": {
     label: "Cafeína: te mueves más rápido un rato",
     run: (game) => game.applyPerk("caffeine"),
@@ -42,12 +37,33 @@ export const EFFECTS = {
     },
   },
 
+  // Había DOS entradas "time+" en este objeto: la primera («gana 2 minutos»)
+  // la pisaba esta en silencio, así que el nombre prometía un premio y hacía
+  // lo contrario. Queda una sola, y es la que usa el contenido (Giuli:
+  // «fingir bien hace que el día vuele»).
   "time+": {
     label: "El reloj de la jornada avanza de golpe",
     run: (game) => {
       // Farmear con Giuli finge tan bien que hasta el reloj se lo cree.
       game.timeLeft = Math.max(0, game.timeLeft - 45);
       game.toast("El reloj corre más rápido…");
+    },
+  },
+
+  // LAS ELECCIONES DE LA INTRO TIENEN EFECTO. Las opciones del día 2 («laptop
+  // como escudo» / «prefiero improvisar») guardaban un `flag` que no leía
+  // nadie: una elección sin consecuencia es un botón de «siguiente» con dos
+  // textos. Ahora cada una compra algo distinto para ESA jornada.
+  "laptop-escudo": {
+    label: "La laptop abierta como coartada: te fichan más despacio todo el día",
+    run: (game) => game.ponerCoartada("laptop", 0.8, "Laptop abierta: pareces ocupada"),
+  },
+
+  improvisar: {
+    label: "Sin plan pero fresca: arrancas con más energía",
+    run: (game) => {
+      game.grantEnergy(15, game.player.position);
+      game.toast("Sin plan, pero fresca: +15 de energía");
     },
   },
 

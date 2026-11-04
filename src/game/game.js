@@ -144,6 +144,11 @@ const EGG_TIME_BONUS = 45; // un secreto encontrado vale su buen rato
 const COMBO_WINDOW = 22; // seconds to chain the next activity
 const COMBO_STEP = 0.5; // +0.5x per link
 const COMBO_MAX = 4;
+// BARKS de pasillo (ver _updateBarks): a qué distancia, cada cuánto y
+// cuánto tarda el primero (que no te griten nada más salir del ascensor).
+const BARK_RADIO = 7 * S;
+const BARK_CADA = 28;
+const BARK_PRIMERA = 20;
 const NERVE_NEAR = 11 * S; // boss this close = "nerve" bonus
 const NERVE_BONUS = 0.8;
 const SEEN_NERVE_BONUS = 1.4; // ...and in his cone, which is madness
@@ -170,7 +175,7 @@ const AGUANTE_MAX = 12; // techo: a partir de aquí se banca sola
 const PRETEND_FLAVOR = [
   "Borras unos mails viejos. Se ve productivo.",
   "Cierras diecisiete pestañas de un timeline que no ibas a leer.",
-  "Archivas correos sin abrir. El bandeja de entrada baja de número, que es lo que importa.",
+  "Archivas correos sin abrir. La bandeja de entrada baja de número, que es lo que importa.",
   "Mueves el mouse cada tanto para que la lucecita del chat siga en verde.",
   "Reescribes el mismo asunto de correo tres veces sin mandarlo.",
 ];
@@ -257,8 +262,19 @@ const ENERGY_START = 75; // se entra con sueño, no a tope: hay que ir a por el 
 // Ahora los 75 del arranque dan ~121 s: **la MITAD justa de la jornada**.
 // Sigue sin alcanzar para el día entero —bajar a por el café sigue siendo
 // obligatorio, que es el invariante— pero la primera mitad la eliges tú.
-const ENERGY_DRAIN = 0.62; // por segundo — 75 de energía dan ~121 s de 240
-const ENERGY_DRAIN_PRETEND = 0.95; // fingir cansa MÁS que trabajar, y ese es el chiste
+// Medido con `check:jugable` a 0.62: la energía se quedaba CLAVADA en 100
+// casi toda la jornada y el café llegaba con el tanque lleno («+0 energía»).
+// La causa principal no era el drenaje sino el COMBO (ver _completeActivity):
+// multiplicaba la recarga hasta ×4. Aun así, 0.62 daba dos minutos sin
+// hacer nada; a 0.78, 75 de energía dan ~96 s de 240 — hay que bajar a por
+// el café ANTES de la mitad de la mañana, que es lo que el diseño pide.
+const ENERGY_DRAIN = 0.78; // por segundo — 75 de energía dan ~96 s de 240
+const ENERGY_DRAIN_PRETEND = 1.15; // fingir cansa MÁS que trabajar, y ese es el chiste
+const ENERGY_LOW_WARN = 0.3; // aviso (una vez por jornada) al bajar de aquí
+// El combo ya no multiplica el tanque: cada eslabón suma un pellizco fijo.
+// Con ×(combo + nervio) un snack encadenado pagaba 100 y la jornada entera
+// se jugaba con la energía al tope, o sea sin la mitad del juego.
+const COMBO_ENERGY_STEP = 0.15; // +15 % de recarga por eslabón de combo
 const SLEEP_SECONDS = 4; // lo que tardas en espabilar
 
 /** La primera zona de un tipo (los ascensores, para la salida). */
@@ -304,6 +320,10 @@ export class Game {
     // diálogo — pide un globo y pide una frase.
     onDecir = null,
     guionEscolta = null,
+    // LOS BARKS: la frase suelta de un secuaz (dialogues.json → barks). El
+    // motor pide «dame una de <id>» y no sabe qué dice; engine.js la saca
+    // del JSON sin repetir la anterior.
+    barkDe = null,
   }) {
     this.player = player;
     this.boss = boss;
@@ -320,6 +340,7 @@ export class Game {
     this.onCorte = onCorte;
     this.onHeatAlert = onHeatAlert;
     this.onDecir = onDecir;
+    this.barkDe = barkDe;
     this.guionEscolta = guionEscolta;
     this.hud = hud;
     this.canvas = canvas;
@@ -770,6 +791,16 @@ export class Game {
    * se compense de verdad. El suelo evita que dos papeles te vuelvan
    * invisible: por debajo de eso, esconderse dejaría de tener sentido.
    */
+  /**
+   * Una COARTADA que no se recoge del piso: la pone un efecto de diálogo
+   * (effects.js) y dura la jornada. Entra en el mismo producto que lo que
+   * llevas encima, así que respeta el suelo y el techo de `_camuflaje()`.
+   */
+  ponerCoartada(id, factor, label = null) {
+    this._factorLlevado.set(id, factor);
+    if (label) this.toast(label, 2.5, "ok");
+  }
+
   _camuflaje() {
     let f = 1;
     for (const v of this._factorLlevado.values()) f *= v;
@@ -1044,6 +1075,7 @@ export class Game {
     }
     this._updateCampaignObjectives(dt);
     this._updateBienvenida(dt);
+    this._updateBarks(dt);
     this._updateBossApproach(dt);
     this._updatePaseoAlPuesto(dt);
     this._updateCorreaVuelve(dt);
@@ -1620,6 +1652,7 @@ export class Game {
           this.suspicion + DELATION_JUMP * this.rules.minionSuspicionMul
         );
         this.announce(`¡${(m.displayName ?? "ALGUIEN").toUpperCase()} TE DELATÓ!`, "danger");
+        this._bark(m, "delata", "aviso");
       }
 
       if (this.boss.redAlert) {
@@ -1903,7 +1936,11 @@ export class Game {
     // contrario de lo que tiene que ser. `reward` se queda de suelo por si
     // una escena vieja no declara `energy`. El descaro sigue pagando: el
     // combo y el `nerve` de hacerlo con el jefe cerca multiplican igual.
-    const bruto = (station.energy ?? station.reward ?? 20) * (this.combo + nerve);
+    // NERVIO y COMBO suman sobre 1, no multiplican entre sí: el descaro
+    // (hacerlo con el jefe encima) sigue siendo lo que más paga, y encadenar
+    // escaqueos ayuda, pero ninguno de los dos puede llenar el tanque solo.
+    const bono = 1 + nerve + (this.combo - 1) * COMBO_ENERGY_STEP;
+    const bruto = (station.energy ?? station.reward ?? 20) * bono;
     const gained = this.grantEnergy(bruto, station);
 
     this.combo = Math.min(COMBO_MAX, this.combo + COMBO_STEP);
@@ -1913,7 +1950,8 @@ export class Game {
 
     buzz([12, 40, 18]);
     sfxComplete();
-    this.toast(`${station.label}${nerveLabel} · +${gained} energía`);
+    // «+0 energía» se lee como un fallo; con el tanque lleno se dice eso.
+    this.toast(gained > 0 ? `${station.label}${nerveLabel} · +${gained} energía` : `${station.label}${nerveLabel} · energía al tope`);
     this._actionFlash = {
       icon: station.icon ?? "question",
       label: station.label,
@@ -2968,6 +3006,19 @@ export class Game {
     const gasto = this.player.isPretending ? ENERGY_DRAIN_PRETEND : ENERGY_DRAIN;
     this.energy = Math.max(0, this.energy - gasto * dt);
 
+    // EL AVISO DE RESERVA, una vez por jornada. La placa ya cambia de color,
+    // pero con el jefe detrás nadie mira la esquina: la primera vez que se
+    // baja de la reserva se dice en palabras y se dice QUÉ hacer. Se rearma
+    // al reponer por encima, así que no es un mensaje por frame.
+    if (this.energy <= this.energyMax * ENERGY_LOW_WARN) {
+      if (!this._avisoReserva) {
+        this._avisoReserva = true;
+        this.toast("Te estás quedando sin cuerda: come o toma algo, o te duermes donde estés.", 3, "warn");
+      }
+    } else if (this.energy > this.energyMax * (ENERGY_LOW_WARN + 0.15)) {
+      this._avisoReserva = false;
+    }
+
     if (this.energy <= 0) {
       this.asleepFor = SLEEP_SECONDS;
       this.announce("TE QUEDASTE DORMIDA", "warn");
@@ -3455,6 +3506,37 @@ export class Game {
    * No se teletransporta a nadie: Crispo CAMINA hasta ti (su propio
    * `INVESTIGATE` hacia tu posición) y se va andando cuando termina.
    */
+  /**
+   * UN SECUAZ HABLA SOLO, EN GLOBO. `dialogues.barks` llevaba desde siempre
+   * siendo dato muerto: estaba escrito y no lo decía nadie. Dos momentos:
+   * · «delata»: al cruzar su umbral (el mismo flanco que sube el medidor),
+   *   para que la delación tenga VOZ y no solo un rótulo.
+   * · «pasillo»: al cruzarse contigo de ronda, con la vigilancia baja, cada
+   *   tanto — el piso suena habitado sin que pase nada.
+   * Nunca con la caja abierta (el globo ya se calla solo) ni dos frases a la
+   * vez por persona: UNA frase por cabeza es la regla del globo.
+   */
+  _bark(m, momento, tone = "normal") {
+    if (!this.onDecir || !this.barkDe) return;
+    const texto = this.barkDe(m, momento);
+    if (!texto) return;
+    this.onDecir(m, texto, { clave: m.id ?? m.displayName ?? "secuaz", tone });
+  }
+
+  _updateBarks(dt) {
+    if (this.gameOver || this.worldFrozen) return;
+    for (const m of this.minions) {
+      m._barkEspera = Math.max(0, (m._barkEspera ?? BARK_PRIMERA) - dt);
+      if (m._barkEspera > 0) continue;
+      const d = Math.hypot(m.position.x - this.player.position.x, m.position.z - this.player.position.z);
+      // Cerca, de ronda y sin tenerte fichada: la pulla de pasillo. Con la
+      // vigilancia subiendo ya habla el aro del globo, no hace falta texto.
+      if (d > BARK_RADIO || m.redAlert || m.localHeat >= m.followThreshold * 0.6) continue;
+      m._barkEspera = BARK_CADA + Math.random() * BARK_CADA;
+      this._bark(m, "pasillo");
+    }
+  }
+
   _updateBienvenida(dt) {
     if (!this._esperandoPuesto || this.gameOver) return;
     // LA ESCOLTA CADUCA. Mientras dura, la sospecha no cuenta y el jefe no
@@ -3685,8 +3767,22 @@ export class Game {
     // que te persiga nadie. Camina hasta ti con su propio INVESTIGATE.
     const crispo = this.minions.find((m) => m.id === "crispo") ?? this.minions[0];
     if (!crispo) return;
-    this._presentador = crispo;
-    crispo.distract({ x: this.player.position.x, z: this.player.position.z }, 20);
+    this.presentar(crispo);
+  }
+
+  /**
+   * UN SECUAZ VIENE A PRESENTARSE: camina hasta ti y, al llegar, se juega su
+   * `escenas.bienvenida` (ver _updatePresentacion). El día 1 lo pide la
+   * escolta para Crispo; los días sin puerta lo pide engine.js para el
+   * primero que aún no conozcas — a cada quien se le conoce cuando aparece,
+   * no en un pase de lista contado por otro.
+   */
+  presentar(m) {
+    if (!m || this._presentador) return false;
+    this._presentador = m;
+    this._presentadorPlazo = 25;
+    m.distract({ x: this.player.position.x, z: this.player.position.z }, 20);
+    return true;
   }
 
   /** El diálogo con un NPC cumple su misión "como", si estaba pendiente. */
@@ -3835,6 +3931,17 @@ export class Game {
       // cambia a lo único que importa: correr a un lugar seguro.
       guia: this._guiaSeguida(),
       nearStation: this.nearStation,
+      // El lugar seguro en el que estás (o null): el cartel del mundo lo usa
+      // para decir «FINGIR» en tu puesto cuando no hay nada más que hacer ahí.
+      safeSpotHere: this.currentSafeSpot
+        ? {
+            id: this.currentSafeSpot.id,
+            kind: this.currentSafeSpot.kind,
+            label: this.currentSafeSpot.label ?? null,
+            x: this.currentSafeSpot.x,
+            z: this.currentSafeSpot.z,
+          }
+        : null,
       // El pulso de la actividad en marcha, o null. Va por el MISMO snapshot
       // por frame que todo lo demás: no hay una segunda verdad que se pueda
       // desincronizar del motor.
