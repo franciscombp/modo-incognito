@@ -3520,7 +3520,7 @@ export class Game {
     if (!this.onDecir || !this.barkDe) return;
     const texto = this.barkDe(m, momento);
     if (!texto) return;
-    this.onDecir(m, texto, { clave: m.id ?? m.displayName ?? "secuaz", tone });
+    this.onDecir(m, texto, { clave: m.id ?? m.cast ?? m.displayName ?? "secuaz", tone });
   }
 
   _updateBarks(dt) {
@@ -3534,6 +3534,20 @@ export class Game {
       if (d > BARK_RADIO || m.redAlert || m.localHeat >= m.followThreshold * 0.6) continue;
       m._barkEspera = BARK_CADA + Math.random() * BARK_CADA;
       this._bark(m, "pasillo");
+    }
+    // LOS COMPAÑEROS DE FONDO TAMBIÉN COMENTAN, y más de tarde en tarde: un
+    // figurante que dice algo al pasar es lo que hace que el piso parezca
+    // una oficina y no un decorado. Uno a la vez en todo el piso (`_barkFondo`):
+    // diez cabezas hablando a la vez serían un muro de texto flotando.
+    this._barkFondo = Math.max(0, (this._barkFondo ?? BARK_PRIMERA) - dt);
+    if (this._barkFondo > 0) return;
+    for (const n of this.npcs) {
+      if (n.active === false || n._state === "leaving" || n._state === "gone") continue;
+      const d = Math.hypot(n.position.x - this.player.position.x, n.position.z - this.player.position.z);
+      if (d > BARK_RADIO) continue;
+      this._barkFondo = BARK_CADA * 0.6 + Math.random() * BARK_CADA;
+      this._bark(n, "pasillo");
+      return;
     }
   }
 

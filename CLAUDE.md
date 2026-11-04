@@ -1582,6 +1582,9 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   el MISMO flanco que sube el medidor del jefe, para que la delación tenga voz.
   Una entrada puede ser una lista (vale para los dos) o `{pasillo, delata}`.
   Una frase por cabeza y sin repetir la anterior; el motor no sabe qué dice.
+  Los figurantes de fondo también comentan («pasillo»), pero UNO A LA VEZ en
+  todo el piso (`_barkFondo`): diez cabezas hablando serían un muro de texto.
+  Sin frases propias tiran de `barks.figurantes`; un secuaz nunca.
 - **LAS ELECCIONES DE LA INTRO TIENEN EFECTO.** Las opciones de un `intro`
   de día usan `effect` (registro de `effects.js`), no `flag`: el día 2
   guardaba `escudo`/`improvisa` y no lo leía nadie — una elección sin

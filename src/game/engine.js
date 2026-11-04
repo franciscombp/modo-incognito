@@ -989,13 +989,20 @@ export function createEngine({
       // entrada sea un objeto {delata: [...], pasillo: [...]}; una lista a
       // secas vale para los dos, que es como están escritos los de siempre.
       barkDe: (m, momento) => {
-        const pozo = dialogues.barks?.[m.id] ?? dialogues.barks?.[m.cast] ?? null;
+        // Un figurante sin frases propias tira del pozo común `figurantes`;
+        // un secuaz no, que su voz es suya.
+        const pozo =
+          dialogues.barks?.[m.id] ??
+          dialogues.barks?.[m.cast] ??
+          (m.role === "minion" || m.catches ? null : dialogues.barks?.figurantes) ??
+          null;
         const lista = Array.isArray(pozo) ? pozo : pozo?.[momento] ?? null;
         if (!lista?.length) return null;
-        const ultimo = ultimoBark.get(m.id);
+        const clave = m.id ?? m.cast;
+        const ultimo = ultimoBark.get(clave);
         const candidatos = lista.length > 1 ? lista.filter((t) => t !== ultimo) : lista;
         const texto = candidatos[Math.floor(Math.random() * candidatos.length)];
-        ultimoBark.set(m.id, texto);
+        ultimoBark.set(clave, texto);
         return texto;
       },
       // Y DE DÓNDE SALE LO QUE DICE: del JSON, como todo el diálogo. El motor

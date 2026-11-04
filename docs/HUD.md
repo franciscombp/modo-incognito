@@ -241,7 +241,8 @@ DESPUÉS «echo a andar»: dos cosas pegadas donde tenía que haber una escena.
 ✅ Lo usan la escolta Y los secuaces: `dialogues.barks` se dice en dos
 momentos («pasillo» al cruzarse contigo de ronda, «delata» en el flanco que
 sube el medidor), ver `game.js` → `_updateBarks`. Los figurantes de fondo
-siguen mudos: es el siguiente paso de este canal.
+también comentan al pasar, uno a la vez en todo el piso, del pozo común
+`barks.figurantes` o de sus frases propias.
 
 ### 4.4 Prompt de acción (inf. izq.)
 

@@ -99,8 +99,9 @@ una jornada ANDANDO y con el jefe suelto (`--dia N` para cualquier día).
 
 1. ~~El globo de habla solo lo usa la escolta~~ — `dialogues.barks` ya se
    dice: al cruzarse contigo de ronda («pasillo») y al delatarte («delata»),
-   `game.js` → `_updateBarks` / `_bark`. Falta lo mismo para los figurantes
-   de fondo (`npc.js`), que siguen mudos.
+   `game.js` → `_updateBarks` / `_bark`. Los figurantes de fondo también
+   comentan al pasar, de uno en uno en todo el piso (`barks.figurantes`, o
+   sus frases propias si las tienen).
 2. **Los NPC no se esquivan entre ellos AL PLANIFICAR** (MOTOR §3.6bis 📌) —
    se apartan por separación de cuerpos y ahora se BORDEAN al caminar, pero
    dos que van al mismo sitio siguen negociándolo a empujones en vez de
