@@ -1002,6 +1002,13 @@ esquinas:
   energía es lo que te hace falta para llegar a las seis.
 - **Inf. der. · el nombre de zona**, texto pelado que sale al entrar y se va
   solo.
+- **Sobre el objeto · EL CARTEL** (`ui/worldPrompt.js`): qué hace ESPACIO
+  aquí. Cubre también lo que no es una estación: **FINGIR** en tu puesto (la
+  única acción del juego que no tenía cartel) y **«Falta: el café»** con la
+  `pista` del objeto, en vez de un «MANTÉN ESPACIO» que no hacía nada. Y el
+  botón táctil dice lo mismo (`touchControls.setAccion` ← `etiquetaAccion`,
+  leído del snapshot): HABLAR, FINGIR, TOMAR CAFÉ… «USAR / FINGIR» fijo
+  obligaba a mapear el dedo con el cartel.
 - **Inf. centro · LA ACCIÓN EN PRIMER PLANO** (`.inc-action`): la tarjeta del
   gesto y su cuenta atrás. Comparte banda con la tira del pulso (que baja a
   `52px` para no pisarla) y con la píldora de mandos, que **le cede el sitio**
@@ -1046,6 +1053,14 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   activan TODAS las misiones elegibles a la vez, no una. La cadena dice QUÉ
   hacer, nunca CÓMO ni CUÁNDO: con una sola misión activa el piso se vuelve un
   pasillo y el sigilo muere.
+- **Y SE REPARTE POR LA SEMANA con `desde`** (el primer día en que una
+  misión puede salir). Sin eso la temporada entera cabía en un lunes —medido
+  con `check:jugable`: 13/13 con 111 s de sobra— y la nota AAA del día 1
+  saltaba el martes y el miércoles SIN JUGARLOS: quien mejor jugaba era quien
+  nunca veía el cruce de la avenida ni al jefe apretando. La nota es relativa
+  al `desde` más alto de las únicas: AAA es cerrar la temporada ese día (el
+  miércoles en la 1), AA el siguiente, A por antigüedad. `check:contenido`
+  vigila que nada requiera algo que sale más tarde que ella.
 - **Qués y Cómos.** `tipo: "que"` se hace sola; `tipo: "como"` exige hablar
   con otro personaje. La nota los mira POR SEPARADO — puedes cumplir todo tu
   trabajo y fallar por no hablar con nadie, que es el chiste entero.
@@ -1101,7 +1116,12 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
     jornada NO se puede terminar sin reponer**, y por eso todos los días
     hay que bajar a por un café.
   Cumplir te compra DÍA, escaquearte te compra AGUANTE, y no se puede vivir
-  de una sola de las dos cosas. Ojo con los TRES campos de una actividad,
+  de una sola de las dos cosas. **El COMBO ya no multiplica la recarga**
+  (`COMBO_ENERGY_STEP`, +15 % por eslabón, sumado al nervio): a ×4 un snack
+  encadenado pagaba 100 y la energía vivía al tope — medido, no bajó de 60 en
+  toda una jornada, y el café llegaba con el tanque lleno («+0 energía»).
+  Con el tanque lleno la tarea dice «energía al tope», y al bajar de la
+  reserva (30 %) se avisa UNA vez en palabras. Ojo con los TRES campos de una actividad,
   que se confunden solos: **`time` es lo que TARDA** en hacerse, **`energy`
   es la ENERGÍA que DA**, y **`reward` es el reloj que daba antes** — se
   queda de suelo por si una escena no declara `energy`. Son campos aparte a
@@ -1555,6 +1575,28 @@ siempre. El diseño completo está en [`docs/CAMPANA.md`](docs/CAMPANA.md).
   mejor», se pierde la escalada: en ronda a tope, la caza solo puede cambiar
   de tono. El degradado a lo largo del haz es OTRA cosa y vive en el alfa por
   vértice (`CONE_ALPHA_CORE`); la opacidad del material es el mando global.
+- **LOS SECUACES HABLAN SOLOS, EN GLOBO** (`dialogues.barks`, antes dato
+  muerto). Dos momentos, pedidos por el motor por nombre (`barkDe(m,
+  momento)`): «pasillo» al cruzarse contigo de ronda con la vigilancia baja,
+  cada medio minuto largo y nunca nada más salir del ascensor; y «delata» en
+  el MISMO flanco que sube el medidor del jefe, para que la delación tenga voz.
+  Una entrada puede ser una lista (vale para los dos) o `{pasillo, delata}`.
+  Una frase por cabeza y sin repetir la anterior; el motor no sabe qué dice.
+  Los figurantes de fondo también comentan («pasillo»), pero UNO A LA VEZ en
+  todo el piso (`_barkFondo`): diez cabezas hablando serían un muro de texto.
+  Sin frases propias tiran de `barks.figurantes`; un secuaz nunca.
+- **LAS ELECCIONES DE LA INTRO TIENEN EFECTO.** Las opciones de un `intro`
+  de día usan `effect` (registro de `effects.js`), no `flag`: el día 2
+  guardaba `escudo`/`improvisa` y no lo leía nadie — una elección sin
+  consecuencia es un «siguiente» con dos textos. `laptop-escudo` pone una
+  coartada de jornada (`game.ponerCoartada`), `improvisar` da energía. Y ojo:
+  `EFFECTS` tenía DOS claves `"time+"` y la segunda pisaba a la primera en
+  silencio.
+- **A CADA SECUAZ SE LE CONOCE CUANDO APARECE, también sin puerta.** El día
+  1 Crispo viene a presentarse al llegar a tu puesto; los días sin `gate`,
+  `programarPresentacion` manda al primer secuaz de la ronda que aún no
+  conozcas (flag `bienvenida:<id>`) y que TENGA `escenas.bienvenida`. Sin
+  escena no hay paseo: la presentación es la escena.
 - **HAY DOS CANALES PARA HABLAR, y confundirlos rompió la apertura.** La
   CAJA (`ui/dialogue.js`) es modal y PAUSA la partida: correcta para una
   conversación, imposible para lo que se dice EN MARCHA. El GLOBO

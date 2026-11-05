@@ -47,11 +47,11 @@
     {
       "prompt": "Sin distracciones disponibles, ¿cómo lo juegas?",
       "options": [
-        {"label":"Pegada a las paredes","reply":"Pegada a las paredes y a las plantas.","flag":"sigilo"},
+        {"label":"Pegada a las paredes","reply":"Pegada a las paredes y a las plantas.","effect":"laptop-escudo"},
         {
           "label": "A toda velocidad",
           "reply": "A toda velocidad. Que me alcance si puede.",
-          "flag": "temeraria"
+          "effect": "improvisar"
         }
       ]
     }

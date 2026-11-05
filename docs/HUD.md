@@ -10,7 +10,7 @@ lo que falta. Escribe encima, tacha, contesta las preguntas del final.
 | §4.1 La placa de identidad | ✅ | Cara VIVA (no retrato estático), rombos de amonestación y medidor de ENERGÍA, fundidos en una pieza. **Ya NO lleva un medidor de sospecha** — se sacó de la placa y se movió al mundo (ver nota) |
 | §4.2 El reloj al centro | ✅ | Se conservó tal cual estaba |
 | §4.3 Nombre de zona (inf. der.) | ✅ | Sale al entrar y se va solo |
-| §4.4 Prompt de acción (inf. izq.) | ◻︎ | Sigue solo el botón táctil |
+| §4.4 Prompt de acción | ✅ | Sobre el objeto (`worldPrompt.js`), con FINGIR y «falta: X»; el botón táctil es contextual |
 | §4.7 La acción en PRIMER PLANO | ✅ | `.inc-action`: tarjeta del gesto (carril + zona) y cuenta atrás, en la banda baja. La tira del pulso baja a `52px` y la píldora de mandos le cede el sitio (`body.inc-acting`). Lo vigila `npm run check:gesto` |
 | §4.5 Menú de pausa | ◻︎ parcial | **La LEYENDA DE MANDOS ya está** y es permanente (`src/ui/controls.js`). Las pestañas siguen pendientes: hoy son pantallas sueltas |
 | §4.6 El bisel como lenguaje de formas | ◻︎ parcial | La placa y las filas ya lo llevan; falta el token `--cut` común |
@@ -238,14 +238,19 @@ DESPUÉS «echo a andar»: dos cosas pegadas donde tenía que haber una escena.
 - El jefe tiene tono propio (filo de aviso, el mismo idioma que su halo): es
   el único cuya frase puede costarte la jornada.
 
-📌 Hoy solo lo usa la escolta. `dialogues.barks` lleva desde siempre siendo
-dato muerto y es contenido casi gratis para este canal.
+✅ Lo usan la escolta Y los secuaces: `dialogues.barks` se dice en dos
+momentos («pasillo» al cruzarse contigo de ronda, «delata» en el flanco que
+sube el medidor), ver `game.js` → `_updateBarks`. Los figurantes de fondo
+también comentan al pasar, uno a la vez en todo el piso, del pozo común
+`barks.figurantes` o de sus frases propias.
 
 ### 4.4 Prompt de acción (inf. izq.)
 
-Hoy tenemos el botón táctil. Falta el equivalente de teclado: **glifo de
-tecla + icono de lo que hace**, contextual. La referencia lo pone abajo a la
-izquierda y ahí es donde no estorba.
+Resuelto de otra forma: el cartel vive **sobre el objeto** (`ui/worldPrompt.js`)
+y no en la esquina, con la tecla, el icono y lo que hace. Cubre también FINGIR
+en tu puesto y «Falta: el café» con la pista de dónde conseguirlo. Y el botón
+táctil dice lo mismo que el cartel (`touchControls.setAccion`): HABLAR, FINGIR,
+TOMAR CAFÉ… en vez de «USAR / FINGIR» fijo.
 
 ### 4.5 Menú de pausa
 

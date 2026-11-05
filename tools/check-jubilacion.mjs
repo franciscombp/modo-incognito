@@ -40,6 +40,12 @@ async function boot() {
   await p.waitForFunction(() => !!window.__game.engine.game, null, { timeout: 90000 });
 }
 
+// EL DÍA EN QUE LA TEMPORADA PUEDE CERRARSE. Las misiones llevan `desde`
+// (campaign.js): las del arco salen el martes y el miércoles, así que en el
+// día 1 la cadena no se vacía nunca y no habría ascenso que probar. Se
+// arranca en el primer día de cierre, que es además el de la nota AAA.
+const DIA_CIERRE = 3;
+
 /** Completa TODA la temporada por la cadena: únicas, qués y cómos. */
 const completarTemporada = `(() => {
   const camp = window.__game.engine.campaign;
@@ -54,7 +60,7 @@ const completarTemporada = `(() => {
 await boot();
 const bloqueada = await p.evaluate(`(() => {
   const { engine } = window.__game;
-  engine.save.campaign = { temporada: 5, dia: 1, unicas: [] };
+  engine.save.campaign = { temporada: 5, dia: ${DIA_CIERRE}, unicas: [] };
   ${completarTemporada};
   const r = engine.campaign.endDay({ win: true, libretaCompleta: false });
   return {
@@ -77,7 +83,7 @@ assert(
 // ── 2 · Con la libreta llena, el mismo ascenso JUBILA ──
 const jubilada = await p.evaluate(`(() => {
   const { engine } = window.__game;
-  engine.save.campaign = { temporada: 5, dia: 1, unicas: [] };
+  engine.save.campaign = { temporada: 5, dia: ${DIA_CIERRE}, unicas: [] };
   ${completarTemporada};
   const r = engine.campaign.endDay({ win: true, libretaCompleta: true });
   return {
@@ -103,7 +109,7 @@ await p.evaluate(async () => {
   const res = await fetch("/data/libreta.json");
   const lib = await res.json();
   for (const pista of lib.pistas ?? []) engine.save.addPista(pista.id);
-  engine.save.campaign = { temporada: 5, dia: 1, unicas: [] };
+  engine.save.campaign = { temporada: 5, dia: 3 /* = DIA_CIERRE; aquí es una función real, no una plantilla */, unicas: [] };
 });
 await p.evaluate(`(() => {
   ${completarTemporada};

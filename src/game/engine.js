@@ -83,6 +83,7 @@ export function createEngine({
   const hud = createHud(app);
   const guides = createGuides(app, camera.camera);
   const minimap = createMinimap(app);
+  const ultimoBark = new Map(); // id del secuaz → última frase dicha
   const worldPrompt = createWorldPrompt(app, camera.camera, {
     isTouch: matchMedia("(pointer: coarse)").matches,
   });
@@ -889,6 +890,27 @@ export function createEngine({
 
     await dialogue.play(withSprites(day.intro ?? []), ctx);
     if (!menuPaused) game.setPaused(false);
+    programarPresentacion(game);
+  }
+
+  /**
+   * LOS DÍAS SIN PUERTA TAMBIÉN PRESENTAN. El día 1 Crispo viene a
+   * presentarse al llegar a tu puesto; el martes y el miércoles, Chispita y
+   * Washo se conocían «de choque» — un secuaz nuevo siguiéndote sin que
+   * nadie dijera quién era. Ahora el primero de la ronda al que aún no
+   * conozcas viene a presentarse a los pocos segundos de empezar, UNA vez en
+   * toda la carrera (flag `bienvenida:<id>`). Si no tiene escena escrita, no
+   * viene: la presentación es la escena, no el paseo.
+   */
+  function programarPresentacion(g) {
+    if (!g || g.gate) return;
+    const nuevo = (g.minions ?? []).find(
+      (m) => !save.getFlag(`bienvenida:${m.id}`) && dialogues.encounters[m.id]?.escenas?.bienvenida
+    );
+    if (!nuevo) return;
+    setTimeout(() => {
+      if (game === g && !g.gameOver && !g.paused) g.presentar(nuevo);
+    }, 9000);
   }
 
   /**
@@ -962,6 +984,27 @@ export function createEngine({
       // (ui/speechBubble.js). Es lo que permite que una escena —la escolta de
       // apertura— pase ANDANDO en vez de con el mundo congelado.
       onDecir: (quien, texto, opts) => globos.decir(quien, texto, opts),
+      // LOS BARKS salen de dialogues.json → barks[<id del secuaz>], sin
+      // repetir el último. `momento` ("delata" | "pasillo") permite que una
+      // entrada sea un objeto {delata: [...], pasillo: [...]}; una lista a
+      // secas vale para los dos, que es como están escritos los de siempre.
+      barkDe: (m, momento) => {
+        // Un figurante sin frases propias tira del pozo común `figurantes`;
+        // un secuaz no, que su voz es suya.
+        const pozo =
+          dialogues.barks?.[m.id] ??
+          dialogues.barks?.[m.cast] ??
+          (m.role === "minion" || m.catches ? null : dialogues.barks?.figurantes) ??
+          null;
+        const lista = Array.isArray(pozo) ? pozo : pozo?.[momento] ?? null;
+        if (!lista?.length) return null;
+        const clave = m.id ?? m.cast;
+        const ultimo = ultimoBark.get(clave);
+        const candidatos = lista.length > 1 ? lista.filter((t) => t !== ultimo) : lista;
+        const texto = candidatos[Math.floor(Math.random() * candidatos.length)];
+        ultimoBark.set(clave, texto);
+        return texto;
+      },
       // Y DE DÓNDE SALE LO QUE DICE: del JSON, como todo el diálogo. El motor
       // pide «dame la frase n de la escolta» y no sabe qué dice.
       guionEscolta: (tramo, i) => {
@@ -1176,6 +1219,7 @@ export function createEngine({
     // contra el turno que tocara.
     if (opts?.escena && encounter.escenas?.[opts.escena]) {
       scene = encounter.escenas[opts.escena];
+      if (opts.escena === "bienvenida") save.setFlag(`bienvenida:${npc.cast}`, 1);
     } else if (opts?.caught && encounter.caughtScenes?.length) {
       // Te ATRAPARON: el interrogatorio tiene su propio pozo, que rota para
       // siempre (es castigo, no charla). Antes reciclaba las escenas de

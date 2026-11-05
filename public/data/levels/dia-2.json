@@ -63,7 +63,7 @@
       "text": "Y sigo dándole vueltas a lo de ayer: un proyecto del que se habla en voz baja y no está en ningún tablero."
     },
     {
-      "speaker": "Compañera",
+      "speaker": "Enriquetta",
       "text": "Regla no escrita: si caminas con una laptop abierta, nadie te pregunta nada."
     },
     {
@@ -72,12 +72,12 @@
         {
           "label": "«Anotado.»",
           "reply": "Anotado. Laptop como escudo.",
-          "flag": "escudo"
+          "effect": "laptop-escudo"
         },
         {
           "label": "«Prefiero improvisar.»",
           "reply": "Prefiero improvisar.",
-          "flag": "improvisa"
+          "effect": "improvisar"
         }
       ]
     }

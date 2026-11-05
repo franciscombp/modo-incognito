@@ -23,7 +23,9 @@
     "Tokens de género: una línea puede escribir {masculino|femenino} — p.ej.",
     "\"hazte {el ocupado|la ocupada}\" — y el motor elige la mitad según el",
     "género del PERSONAJE ELEGIDO (characters3d.json → gender). Sin género,",
-    "gana la primera mitad. Ver genderize() en src/game/dialogue.js."
+    "gana la primera mitad. Ver genderize() en src/game/dialogue.js.",
+    "barks[<id del secuaz>]: frases sueltas en GLOBO (sin pausa). O una lista (vale para todo) o {pasillo: [...], delata: [...]}: 'pasillo' al cruzarse contigo de ronda; 'delata' al cruzar su umbral y subirle el medidor al jefe. Las engancha engine.js → barkDe.",
+    "barks.figurantes: el pozo COMÚN de los compañeros de fondo sin frases propias (ninguno es secuaz). Uno solo habla a la vez en todo el piso."
   ],
   "cast": {
     "manu": {
@@ -593,7 +595,54 @@
             "text": "Esto va al canal de Gabo con tres signos de exclamación. Mínimo."
           }
         ]
-      ]
+      ],
+      "escenas": {
+        "$comment": "Escena GUIONIZADA (opts.escena='bienvenida'): la pide engine.js el primer día sin puerta en que Chispita ronda y aún no la conoces.",
+        "bienvenida": [
+          {
+            "speaker": "Chispita",
+            "mood": "happy",
+            "text": "¡Hola, hola, HOLA! Tú eres {el nuevo|la nueva}, ¿no? Yo soy Chispita. Lo sé todo. No es presumir, es describir."
+          },
+          {
+            "speaker": "Chispita",
+            "text": "Gabo me pidió que «acompañe tu incorporación». Traducido: que te siga. Pero con cariño, ¿eh? Con muchísimo cariño."
+          },
+          {
+            "prompt": "Saca el teléfono sin disimular.",
+            "options": [
+              {
+                "label": "«¿Me estás grabando?»",
+                "reply": "¿Me estás grabando?",
+                "effect": "suspicion+",
+                "then": [
+                  {
+                    "speaker": "Chispita",
+                    "mood": "angry",
+                    "text": "¡Qué va! Es para el grupo. El grupo donde no estás. Vamo a calmarno, ¿sí?"
+                  }
+                ]
+              },
+              {
+                "label": "«Encantada, Chispita.»",
+                "reply": "Encantada. Si ves algo, me avisas, ¿va?",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "Chispita",
+                    "mood": "happy",
+                    "text": "¡Ay, qué mona! Te aviso a ti, se lo aviso a Gabo, se lo aviso a todo el mundo. Soy muy de avisar."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "speaker": "Chispita",
+            "text": "Bueno, sigo. Si te levantas mucho del puesto no pasa nada… pero yo lo voy a saber antes que tú. Chao, chao."
+          }
+        ]
+      }
     },
     "washo": {
       "cooldown": 35,
@@ -666,7 +715,53 @@
             "text": "Yo no acuso: documento. Y acabo de documentarte enterita."
           }
         ]
-      ]
+      ],
+      "escenas": {
+        "$comment": "Escena GUIONIZADA (opts.escena='bienvenida'): el primer día sin puerta en que Washo ronda y aún no lo conoces.",
+        "bienvenida": [
+          {
+            "speaker": "Washo",
+            "text": "Buenas. Washo. No te levantes, no te levantes. Yo ya vi lo que tenía que ver."
+          },
+          {
+            "speaker": "Washo",
+            "text": "Yo no soy de contar cosas. Soy de que las cosas se sepan. Es una diferencia sutil que a Gabo le encanta."
+          },
+          {
+            "prompt": "Se queda mirando tu pantalla un segundo de más.",
+            "options": [
+              {
+                "label": "«¿Se te ofrece algo?»",
+                "reply": "¿Se te ofrece algo, Washo?",
+                "effect": "suspicion+",
+                "then": [
+                  {
+                    "speaker": "Washo",
+                    "mood": "angry",
+                    "text": "Nada, nada. Interesante tu fondo de pantalla. Muy interesante. Lo voy a comentar."
+                  }
+                ]
+              },
+              {
+                "label": "«¿Viste el partido ayer?»",
+                "reply": "¿Viste el partido ayer? Qué robo, ¿no?",
+                "effect": "suspicion-",
+                "then": [
+                  {
+                    "speaker": "Washo",
+                    "mood": "happy",
+                    "text": "No era penal. NO ERA PENAL. Mira, me caes bien. Te doy cinco minutos de ventaja hoy. Luego ya veremos."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "speaker": "Washo",
+            "text": "Sigo. Desde el fondo se ve todo, ¿sabías? Todo."
+          }
+        ]
+      }
     },
     "crispo": {
       "cooldown": 35,
@@ -1011,24 +1106,69 @@
     }
   },
   "barks": {
-    "chispita": [
-      "¡Ey! ¿Esa no es tu zona?",
-      "Voy, voy, voy — ¡te vi!",
-      "¡Jefe! ¡JEFE! Mira quién anda por acá.",
-      "Ya tú sabe lo que va a pasar. Corriendo voy a contarlo."
+    "chispita": {
+      "pasillo": [
+        "¿Tú qué haces por aquí? No, en serio, lo pregunto para apuntarlo.",
+        "Yo también fingía al principio. Después me ascendieron a vigilar.",
+        "Tranquila, no te estoy mirando. Te estoy OBSERVANDO. Es distinto.",
+        "Si te vas a escapar, avísame, que me gusta llegar la primera."
+      ],
+      "delata": [
+        "¡Ey! ¿Esa no es tu zona?",
+        "Voy, voy, voy — ¡te vi!",
+        "¡Jefe! ¡JEFE! Mira quién anda por acá.",
+        "Ya tú sabe lo que va a pasar. Corriendo voy a contarlo."
+      ]
+    },
+    "washo": {
+      "pasillo": [
+        "Desde acá se ve todo, ¿sabías?",
+        "Mmm. Interesante. Muy interesante.",
+        "No era penal, pero tengo el clip igual.",
+        "Yo no digo nada. Pero lo anoto todo. En una hoja de cálculo.",
+        "¿Café otra vez? Qué bien. Qué bien vives."
+      ],
+      "delata": [
+        "Yo no acuso a nadie. Solo informo.",
+        "VAR. Esto va al VAR.",
+        "Lo vi. Lo vimos todos. Bueno, lo vi yo, que es lo que cuenta."
+      ]
+    },
+    "crispo": {
+      "pasillo": [
+        "No me muevo de aquí. Tú tampoco deberías moverte.",
+        "Esa silla lleva veinte minutos vacía.",
+        "Estoy contando. Solo eso. Contando.",
+        "Yo llevo aquí desde las siete. Lo digo por decir. Por si alguien pregunta.",
+        "En mi época esto se llamaba trabajar. Ahora se llama «cultura»."
+      ],
+      "delata": [
+        "Fue sin querer queriendo que te vi. Pero te vi.",
+        "¡Gabo! Aquí hay alguien que no está en su puesto. Otra vez.",
+        "Lo anoto. Hora, sitio y cara de culpable."
+      ]
+    },
+    "figurantes": [
+      "¿Alguien sabe si la reunión de las diez sigue en pie? Pregunto para no ir.",
+      "Llevo tres días con «revisando comentarios» en el estado. Funciona.",
+      "Si Gabo pregunta, estoy en una llamada. Siempre estoy en una llamada.",
+      "¿Tú también recibiste el correo de «cultura de familia»? Qué miedo.",
+      "La máquina de café hace un ruido nuevo. Yo no he sido.",
+      "Me pidieron «una cosita rápida» el lunes. Es jueves en mi corazón.",
+      "¿Viste el partido? No, yo tampoco. Pero hago como que sí."
     ],
-    "washo": [
-      "Desde acá se ve todo, ¿sabías?",
-      "Yo no acuso a nadie. Solo informo.",
-      "Mmm. Interesante. Muy interesante.",
-      "No era penal, pero tengo el clip igual."
-    ],
-    "crispo": [
-      "No me muevo de aquí. Tú tampoco deberías moverte.",
-      "Esa silla lleva veinte minutos vacía.",
-      "Estoy contando. Solo eso. Contando.",
-      "Fue sin querer queriendo que te vi. Pero te vi."
-    ]
+    "parce": {
+      "pasillo": [
+        "Café, parce. Del bueno. Pero primero me respondes unas cositas.",
+        "Yo no vendo nada. Yo ayudo. Que es distinto."
+      ]
+    },
+    "enriquetta": {
+      "pasillo": [
+        "Yo aplaudo en todas las reuniones. Así nadie me pregunta nada.",
+        "¿Has visto mi grapadora? Es roja. Es MÍA."
+      ]
+    }
   },
   "teamsMessages": {
     "gabo": [

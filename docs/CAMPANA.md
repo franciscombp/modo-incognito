@@ -12,7 +12,8 @@ encima, tacha, contesta las preguntas.
 | §3.2 Qués y Cómos | ✅ | campo `tipo` en el JSON; el HUD los pinta ámbar / cian |
 | §3.3 Recurrencia `unica` / `diaria` | ✅ | `campaign.js`; `por-temporada` sigue sin existir |
 | §3.4 Forma del dato | ✅ | `public/data/campaign/temporada-1.json` (tal cual la propuesta) |
-| §5.2 Calificación AAA/AA/A/B/C/Nivelación | ✅ | `campaign.js` → `endDay()`; la nota sale en el panel de resultado |
+| §5.2 Calificación AAA/AA/A/B/C/Nivelación | ✅ | `campaign.js` → `endDay()`; la nota sale en el panel de resultado. **La nota es RELATIVA al primer día en que la temporada puede cerrarse** (el `desde` más alto de las únicas): AAA = cerrar ese mismo día, AA = el siguiente, A = después. «Todo en el día 1» ya no existe, porque la cadena se reparte por la semana |
+| §3.5 Reparto por días (`desde`) | ✅ | campo `desde` en la misión (1 si falta): el primer día de la temporada en que puede salir. En la T1 el arco César → Manu → Giuli y la siesta salen el martes; la ventana y el kickoff fantasma, el miércoles. Sin esto la temporada cabía en un lunes y el AAA saltaba los otros dos días sin jugarlos. `check:contenido` vigila que nada requiera algo posterior |
 | §7.2 Tres amonestaciones → RRHH | ✅ | `src/ui/hrCourse.js`, enganchado en `engine.js` → `finishDay` |
 | §9 Guardado por progreso de TAREAS | ✅ | una `unica` se persiste en el ACTO, no al cerrar el día |
 | §5.1 Salto de temporada con AAA | ✅ lógica | no hay temporadas 2–5 que escribir todavía |
@@ -180,9 +181,9 @@ Propuesta, para que el AAA no sea binario:
 
 | Nota | Cómo se saca |
 |---|---|
-| **AAA** | Todos los Qués **y** todos los Cómos, en el día 1 |
-| **AA** | Todo, en 2–3 días |
-| **A** | Todo, en 4–5 días (el ascenso por antigüedad) |
+| **AAA** | Todos los Qués **y** todos los Cómos, el primer día en que la temporada PUEDE cerrarse (el `desde` más alto; el miércoles en la T1) |
+| **AA** | Todo, al día siguiente de ese |
+| **A** | Todo, más tarde (el ascenso por antigüedad) |
 | **B** | Solo los Qués — cumpliste pero no hablas con nadie |
 | **C** | Solo los Cómos — muy simpática, cero trabajo |
 | **Nivelación** | Ni una cosa ni la otra |

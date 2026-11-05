@@ -47,7 +47,18 @@ export function createCampaign({ save, data }) {
   function elegible(m, hechas) {
     if (hechas.has(m.id) && m.recurrencia === "unica") return false;
     if (hoy.has(m.id)) return false; // una diaria hecha hoy no reaparece hoy
+    // `desde`: el primer DÍA de la temporada en que la misión puede salir.
+    // Sin esto, la cadena entera cabía en un lunes (medido: 13/13 con casi
+    // dos minutos de sobra) y la nota AAA saltaba la temporada en el acto —
+    // quien mejor jugaba era quien NUNCA veía el martes ni el miércoles,
+    // que es donde están el cruce de la avenida y el jefe que aprieta.
+    if ((m.desde ?? 1) > persisted().dia) return false;
     return (m.requiere ?? []).every((r) => hechas.has(r));
+  }
+
+  /** El primer día en que la temporada PUEDE cerrarse: el `desde` más alto. */
+  function diaDeCierre() {
+    return misiones.reduce((d, m) => (m.recurrencia === "unica" ? Math.max(d, m.desde ?? 1) : d), 1);
   }
 
   return {
@@ -138,6 +149,10 @@ export function createCampaign({ save, data }) {
         const yaConsumida =
           m.recurrencia === "unica" && c.unicas.includes(m.id) && !hoy.has(m.id);
         if (yaConsumida) return false;
+        // Lo que aún no SALE (`desde` > hoy) no cuenta en la nota del día: si
+        // no, el lunes se evaluaba con las misiones del martes como
+        // pendientes y la evaluación decía 6/7 con todo lo del día hecho.
+        if ((m.desde ?? 1) > c.dia) return false;
         return (m.requiere ?? []).every((r) => hechas.has(r));
       });
       const ques = delDia.filter((m) => m.tipo === "que");
@@ -146,12 +161,17 @@ export function createCampaign({ save, data }) {
       const comosOk = comos.every((m) => hechas.has(m.id));
       const temporadaCompleta = this.unicasPendientes().length === 0 && quesOk && comosOk;
 
+      // LA NOTA ES RELATIVA AL PRIMER DÍA EN QUE SE PUEDE CERRAR. Con las
+      // misiones repartidas por `desde`, «todo el día 1» ya no existe: AAA
+      // es cerrar la temporada el primer día posible (el miércoles en la
+      // temporada 1), AA el siguiente, y A es la antigüedad de siempre.
+      const cierre = diaDeCierre();
       let nota, detalle, ascenso = false;
-      if (temporadaCompleta && c.dia === 1) {
+      if (temporadaCompleta && c.dia <= cierre) {
         nota = "AAA";
         detalle = "Alto desempeño. Pasas directo a la siguiente temporada.";
         ascenso = true;
-      } else if (temporadaCompleta && c.dia <= 3) {
+      } else if (temporadaCompleta && c.dia <= cierre + 1) {
         nota = "AA";
         detalle = "Buen ritmo. Asciendes con méritos (casi).";
         ascenso = true;
@@ -219,7 +239,13 @@ export function createCampaign({ save, data }) {
         jubilacion,
         jubilacionBloqueada,
         rango: this.rango,
-        rangoSiguiente: data?.rangoSiguiente ?? null,
+        // El rango siguiente sale del JSON solo en SU temporada; después,
+        // de la escalera. Si no, en la temporada 2 la evaluación firmaba
+        // «Ascenso: Junior → Junior».
+        rangoSiguiente:
+          data?.rangoSiguiente && (data?.numero ?? 1) === c.temporada
+            ? data.rangoSiguiente
+            : RANGOS[Math.min(c.temporada, RANGOS.length - 1)],
         dia: c.dia,
         temporada: c.temporada,
         // LOS DOS EJES, POR SEPARADO. Es el chiste central de la evaluación

@@ -34,7 +34,7 @@ await p.waitForTimeout(300);
 await p.click("text=Ajustes");
 await p.waitForTimeout(400);
 await p.screenshot({ path: "shots/menu-settings-game.png" });
-await p.click(".px-tab:nth-child(2)");
+await p.click(".inc-menu-tab:nth-child(2)");
 await p.waitForTimeout(400);
 await p.screenshot({ path: "shots/menu-settings-camera.png" });
 console.log("settings ok");
