@@ -38,7 +38,24 @@ redes distintas).
 | `sim.js` | La partida, pura y autoritativa: roles, tareas, matar, reportar, juntas, votos, fin. Sin DOM — se prueba desde node |
 | `bots.js` | Los bots. Solo saben lo que ven; el soplón mata cuando nadie mira; la Célula reporta, acusa con lo que vio, defiende y vota |
 | `net.js` | WebRTC con señalización a mano (oferta en el `#` de la URL, respuesta comprimida) y BroadcastChannel para pestañas |
-| `main.js` | Interfaz, niebla de visión, HUD, junta, sala |
+| `main.js` | Interfaz, niebla de visión, HUD, junta, sala. Y el RELOJ del anfitrión (ver abajo) |
+
+## El reloj del anfitrión va a tiempo real, se vea o no
+
+El anfitrión ES el servidor: si su reloj se frena, la partida va a cámara
+lenta para todos. Pasaba de dos maneras, y las dos sin un solo error:
+
+- **Con la pestaña oculta** (copiando la invitación, por ejemplo), el
+  navegador frena los `setInterval` a un tic por segundo.
+- **En un equipo que tarda en pintar**, cada cuadro lento del 3D se comía
+  tics.
+
+Y como cada tic daba UN paso con el dt recortado a 0,1 s, el tiempo perdido
+no volvía: medido en la prueba de tres navegadores, la partida iba al 55–70 %
+del tiempo real. Ahora los tics los marca un **Worker** (`relojDeFondo`, que
+no sufre el freno de la pestaña oculta) y se simula a **paso fijo
+recuperando el tiempo que falte**, con tope de 2 s. `check:impostor-red` lo
+mide (tiene que salir entre el 85 % y el 115 %).
 
 ## Pruebas
 

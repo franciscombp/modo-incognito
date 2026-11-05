@@ -1922,6 +1922,13 @@ Detalle en [`impostor/README.md`](impostor/README.md). Cuatro cosas:
   empujando una mesa en una de cada tres partidas, y eso solo se ve con los
   muebles montados — por eso `check:impostor-red` juega partidas de bots
   DENTRO del navegador además de las de node.
+- **El reloj del anfitrión va a tiempo real, se vea o no su pestaña**
+  (`relojDeFondo` en `main.js`: tics de un Worker y paso fijo que recupera lo
+  perdido). Con `setInterval` y el dt recortado, una pestaña oculta o un
+  equipo lento ponían la partida a cámara lenta para todos (55–70 % medido).
+  `check:impostor-red` mide el ritmo. Y si una prueba coloca a alguien en el
+  anfitrión, que espere a que su ENTRADA llegue a cero: el anfitrión aplica la
+  última que le llegó hasta que llega la siguiente.
 - `siteRoot()` sabe que `impostor/` cuelga UNA carpeta por debajo; si mueves
   el spin-off, cámbialo ahí o no cargará ni un JSON.
 

@@ -73,33 +73,83 @@ try {
     await p.waitForFunction(() => window.__soplon.app.vista?.fase === "juego", null, { timeout: 30000 })
       .catch(() => fallos.push(`${n} no recibe la partida`));
   }
+  // EL RELOJ DEL ANFITRIÓN VA A TIEMPO REAL. Simulaba un paso por tic con
+  // el dt recortado a 0,1 s, así que cada tic que llegaba tarde (una pestaña
+  // cargada, o una OCULTA, que el navegador frena a ~1 tic por segundo) se
+  // perdía: medido aquí, la partida iba al 59–70 % de la velocidad real, y
+  // con la pestaña oculta habría ido al 10 % para todos los jugadores.
+  // Se mide justo DESPUÉS de cada tic (cuando el anfitrión pide su propia
+  // vista), que es cuando ya no queda tiempo pendiente: una ventana a ciegas
+  // pillaba ráfagas de recuperación a medias y daba números sin sentido.
+  const ritmo = await ana.evaluate(async () => {
+    const s = window.__soplon.host.sim;
+    const marcas = [];
+    const orig = s.vistaPara;
+    s.vistaPara = (id) => {
+      if (id === "h") marcas.push([performance.now(), s.estado.t]);
+      return orig(id);
+    };
+    await new Promise((r) => setTimeout(r, 4000));
+    s.vistaPara = orig;
+    const [w0, t0] = marcas[0], [w1, t1] = marcas[marcas.length - 1];
+    return (t1 - t0) / ((w1 - w0) / 1000);
+  });
+  console.log(`la partida del anfitrión corre al ${Math.round(ritmo * 100)} % del tiempo real`);
+  if (ritmo < 0.85 || ritmo > 1.15) fallos.push(`la partida del anfitrión no va a tiempo real (${Math.round(ritmo * 100)} %)`);
+
   const idBeto = await beto.evaluate(() => window.__soplon.app.miId);
   const antes = await ana.evaluate((id) => { const j = window.__soplon.host.sim.porId(id); return { x: j.x, z: j.z }; }, idBeto);
   await beto.waitForTimeout(3500); // que se vaya el cartel del rol
   await beto.keyboard.down("KeyA");
   await beto.waitForTimeout(900);
   await beto.keyboard.up("KeyA");
+  // QUIETO EN EL ANFITRIÓN, no en el teclado de Beto. El anfitrión aplica
+  // la última entrada que le llegó hasta que llega la siguiente, así que
+  // durante un tic más Beto sigue andando con la A puesta. Sin esperar esto,
+  // colocarlo en la campana (abajo) duraba lo que tardaba esa entrada vieja
+  // en sacarlo del radio —a 4,2 u/s, medio segundo basta— y su E llegaba
+  // ya fuera: la junta «no llegaba» en cuatro de cada diez pasadas.
+  await ana.waitForFunction((id) => {
+    const e = window.__soplon.host.sim.porId(id)?.entrada;
+    return e && !e.mx && !e.mz;
+  }, idBeto, { timeout: 5000 }).catch(() => fallos.push("el anfitrión no ve a Beto soltar la tecla"));
   const despues = await ana.evaluate((id) => { const j = window.__soplon.host.sim.porId(id); return { x: j.x, z: j.z }; }, idBeto);
   const movido = Math.hypot(despues.x - antes.x, despues.z - antes.z);
   console.log(`Beto anduvo ${movido.toFixed(2)} u en el piso del anfitrión`);
   if (movido < 1) fallos.push(`las teclas de Beto no mueven su muñeco en el anfitrión (${movido.toFixed(2)} u)`);
 
-  // vuelve a la campana y la toca con E
-  await beto.keyboard.down("KeyD");
-  await beto.waitForTimeout(900);
-  await beto.keyboard.up("KeyD");
-  await beto.waitForFunction(() => window.__soplon.app.vista?.yo?.puedeCampana, null, { timeout: 3000 })
-    .catch(() => fallos.push("Beto no llega a la campana tras volver"));
+  // A LA CAMPANA, Y LA TOCA CON E. Que las teclas mueven a Beto ya se midió
+  // justo arriba; aquí la pregunta es otra —su E llega al anfitrión y la
+  // junta le llega a Cris por la red—, así que se le COLOCA en la campana
+  // desde el anfitrión, como montaje. Volver andando desde la prueba medía
+  // la latencia de la máquina: la vista de Beto llega un tic tarde y su
+  // «suelto la tecla» también, así que con la CPU justa cruzaba el radio y
+  // seguía resbalando metro y medio. Antes acertaba solo porque la partida
+  // iba a cámara lenta (ver el ritmo, más arriba).
+  await ana.evaluate((id) => {
+    const { sim } = window.__soplon.host;
+    const { campana } = window.__soplon.app.mapa;
+    const j = sim.porId(id);
+    j.x = campana.x;
+    j.z = campana.z;
+  }, idBeto);
+  await beto.waitForFunction(() => window.__soplon.app.vista?.yo?.puedeCampana, null, { timeout: 4000 })
+    .catch(() => fallos.push("Beto no tiene la campana a mano estando encima"));
   await beto.keyboard.press("KeyE");
-  await cris.waitForSelector("#junta:not([hidden])", { timeout: 5000 })
+  // 15 s y no 5: la junta se ENSEÑA en el bucle de pintado de Cris, y con
+  // tres navegadores pintando el 3D por software ese bucle va a uno o dos
+  // cuadros por segundo. Medido: el anfitrión la abre en ~1 s, la vista de
+  // Cris la trae a los 1,6–2,6 s y su pantalla la enseña a los 3,9–4,9 s —
+  // justo en la raya de los 5 s, o sea una prueba a cara o cruz.
+  await cris.waitForSelector("#junta:not([hidden])", { timeout: 15000 })
     .catch(() => fallos.push("la junta no le llega a Cris"));
 
   await cris.fill("#junta-texto", "Yo digo que fue Beto");
   await cris.press("#junta-texto", "Enter");
-  await ana.waitForFunction(() => window.__soplon.host.sim.estado.junta?.chat.some((m) => m.texto.includes("fue Beto")), null, { timeout: 5000 })
+  await ana.waitForFunction(() => window.__soplon.host.sim.estado.junta?.chat.some((m) => m.texto.includes("fue Beto")), null, { timeout: 15000 })
     .catch(() => fallos.push("lo que escribe Cris no llega a la junta"));
   await cris.click("#btn-saltar");
-  await ana.waitForFunction(() => window.__soplon.host.sim.estado.junta?.votos?.[[...window.__soplon.host.invitados].find(([, i]) => i.nombre === "Cris")[0]] === "nadie", null, { timeout: 5000 })
+  await ana.waitForFunction(() => window.__soplon.host.sim.estado.junta?.votos?.[[...window.__soplon.host.invitados].find(([, i]) => i.nombre === "Cris")[0]] === "nadie", null, { timeout: 15000 })
     .catch(() => fallos.push("el voto de Cris no llega"));
   await ana.screenshot({ path: "test-results/impostor-junta.png" }).catch(() => {});
 

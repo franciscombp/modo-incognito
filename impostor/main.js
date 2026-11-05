@@ -122,18 +122,33 @@ function empezarPartida() {
   difundir({ t: "empieza" });
   entrarEnJuego();
   let antes = performance.now();
-  clearInterval(host.reloj);
-  // setInterval y no rAF: el anfitrión es el servidor y tiene que seguir
-  // simulando aunque no esté pintando (el rAF se para con la pestaña oculta).
-  host.reloj = setInterval(() => {
+  let pendiente = 0;
+  pararReloj(host.reloj);
+  // EL RELOJ DEL SERVIDOR NO PUEDE DEPENDER DE QUE LA PESTAÑA SE VEA. Con
+  // rAF se paraba al ocultarla, y con `setInterval` tampoco basta: en una
+  // pestaña de fondo el navegador lo frena a un tic cada uno o dos segundos.
+  // Con un paso por tic y el dt recortado, la partida iba a cámara lenta para
+  // TODOS. Y lo mismo con la pestaña a la vista en un equipo que tarda en
+  // pintar: cada cuadro lento del 3D se comía tics, y el recorte se comía el
+  // tiempo (medido en la prueba de tres navegadores: 59–70 % del tiempo real).
+  // Así que los tics los marca un WORKER (`relojDeFondo`), que no sufre el
+  // freno de la pestaña oculta, y aquí se simula a PASO FIJO recuperando lo
+  // que falte: el reloj de la partida es el de la pared. Con tope, para que
+  // volver de una suspensión no sea una avalancha de pasos.
+  const PASO = 1 / HZ;
+  const MAX_RECUPERAR = 2;
+  host.reloj = relojDeFondo(() => {
     const ahora = performance.now();
-    const dt = Math.min(0.1, (ahora - antes) / 1000);
+    pendiente = Math.min(MAX_RECUPERAR, pendiente + (ahora - antes) / 1000);
     antes = ahora;
     const sim = host.sim;
     if (!sim) return;
     sim.entrada("h", entradaLocal());
-    for (const b of host.bots) b.pensar(dt);
-    sim.paso(dt);
+    while (pendiente >= PASO) {
+      pendiente -= PASO;
+      for (const b of host.bots) b.pensar(PASO);
+      sim.paso(PASO);
+    }
     app.vista = sim.vistaPara("h");
     for (const [id, { con }] of host.invitados) {
       if (sim.porId(id)) con.enviar({ t: "vista", p: app.partida, v: sim.vistaPara(id) });
@@ -141,8 +156,37 @@ function empezarPartida() {
   }, 1000 / HZ);
 }
 
+/**
+ * Un `setInterval` que sigue a su ritmo con la pestaña oculta: los tics los
+ * marca un Worker y llegan como mensajes, que el navegador no frena como a
+ * los temporizadores de una pestaña de fondo. Sin Worker (o si no se puede
+ * crear), cae al `setInterval` de siempre. Devuelve lo que `pararReloj` para.
+ */
+function relojDeFondo(fn, ms) {
+  try {
+    const codigo = `setInterval(() => postMessage(0), ${ms});`;
+    const url = URL.createObjectURL(new Blob([codigo], { type: "text/javascript" }));
+    const w = new Worker(url);
+    w.onmessage = fn;
+    // La URL se suelta al PARAR, no aquí: el Worker descarga su script de
+    // forma asíncrona, y revocarla en la línea siguiente lo deja sin cargar
+    // en algunos navegadores — un reloj que no da ni un tic.
+    return { worker: w, url };
+  } catch {
+    return { intervalo: setInterval(fn, ms) };
+  }
+}
+
+function pararReloj(r) {
+  if (!r) return;
+  r.worker?.terminate();
+  if (r.url) URL.revokeObjectURL(r.url);
+  if (r.intervalo != null) clearInterval(r.intervalo);
+}
+
 function volverASala() {
-  clearInterval(host.reloj);
+  pararReloj(host.reloj);
+  host.reloj = null;
   host.sim = null;
   host.bots = [];
   app.vista = null;
