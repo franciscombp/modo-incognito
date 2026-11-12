@@ -85,12 +85,23 @@ try {
   await beto.bringToFront();
   // 1,5 s y no menos: con tres navegadores pintando 3D por software la
   // máquina de pruebas va muy cargada y los mensajes llegan a trompicones
+  // Lo que prueba la RED es que el mando llega: mientras Beto sostiene la
+  // tecla, el anfitrión tiene que tener su entrada hacia la derecha. Cuánto
+  // avanza el carro depende de con quién choque, así que se informa pero
+  // solo se exige que se mueva algo.
+  await ana.evaluate((id) => {
+    window.__mandoBeto = 0;
+    const sim = window.__chocones.host.sim;
+    window.__sondaBeto = setInterval(() => { window.__mandoBeto = Math.max(window.__mandoBeto, sim.porId(id).entrada.mx); }, 20);
+  }, ids.Beto);
   await beto.keyboard.down("KeyD");
   await beto.waitForTimeout(1500);
   await beto.keyboard.up("KeyD");
+  const mando = await ana.evaluate(() => { clearInterval(window.__sondaBeto); return window.__mandoBeto; });
   const despues = await ana.evaluate((id) => ({ ...window.__chocones.host.sim.porId(id) }), ids.Beto);
   const movido = Math.hypot(despues.x - antes.x, despues.z - antes.z);
-  check(movido > 1.5 || !despues.vivo, "las teclas de Beto mueven SU carro en la partida del anfitrión", `${movido.toFixed(2)} m`);
+  check(mando > 0.9, "la tecla de Beto llega como SU mando a la partida del anfitrión", `mx ${mando.toFixed(2)}`);
+  check(movido > 0.3 || !despues.vivo, "y su carro se mueve en la pista del anfitrión", `${movido.toFixed(2)} m`);
 
   // Cris: turbo con el teclado, en una ronda EN JUEGO y con su carro vivo
   // (fuera de la ronda el invitado no manda mando, y una ronda puede haber
