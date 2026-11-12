@@ -1999,6 +1999,25 @@ building obligatorio» de Gabo. Te echan de una pista redonda a golpes; el
 - **Pinta su propia pista**, no el piso: `Character3D` y las recetas sí
   salen del motor (cada personaje va sentado en su carro), así que una
   receta que cambie llega sola.
+- **Detrás de los menús corre una partida de bots de verdad** (`vistaDemo`
+  en `main.js`): la misma `sim.js`, local, con la cámara orbitando. Es el
+  tutorial que no hay que leer. No viaja por la red y `pintar` la distingue
+  por `vista.demo` (sin etiquetas, sin podio).
+- **Los efectos salen de los EVENTOS de la vista** (`escena3d.js`): choque →
+  chispas, aplastón y sacudida de cámara; KO → humo; moneda → destellos;
+  estrella y podio → confeti. Las partículas son tres `Points` de hueco fijo
+  (`crearParticulas`): emitir no reserva memoria. Al empezar otra partida el
+  contador de eventos vuelve a uno: `pintar` y el HUD lo detectan porque el
+  `reloj` de la vista retrocede — sin eso, la segunda partida no tenía
+  efectos hasta superar el número de la primera.
+- **Un carro se identifica por id + cara + color**, no solo por id: `bot0`
+  puede ser otro personaje en la partida siguiente y se quedaba el anterior.
+- **Las tarjetas del HUD van en orden FIJO** (no se reordenan por puntos: con
+  ocho carros en pista, una tarjeta que salta de sitio no se
+  encuentra). Llevan la foto del personaje (`charshot.js`), que es null hasta
+  que carga su `.glb`: la firma de la tarjeta incluye si ya hay foto.
+- Ojo con los nombres de clase: la piel hereda la de El Soplón, donde el
+  desplegable de personaje es `select.cara` — la foto se llama `.retrato`.
 - `siteRoot()` sabe que `chocones/` cuelga una carpeta por debajo, igual que
   `impostor/`.
 - `npm run check:chocones` juega partidas de bots en node (terminan, se

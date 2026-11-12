@@ -463,7 +463,13 @@ function pintarSalaInvitado(enJuego) {
 function entrarEnJuego() {
   app.enJuego = true;
   hud.firmaGrande = "";
+  hud.firmaMarcador = "";
   hud.ultimoEvento = 0;
+  hud.reloj = 0;
+  hud.vivoYo = true;
+  hud.fueraHasta = 0;
+  hud.estrellas.clear();
+  $("#avisos").replaceChildren();
   $("#pantalla").hidden = true;
   $("#hud").hidden = false;
 }
@@ -474,72 +480,137 @@ function salirDelJuego() {
 }
 
 function avisar(texto) {
-  const d = el("div", {}, texto);
+  const d = el("div", {}, ...[].concat(texto));
   $("#avisos").append(d);
   setTimeout(() => d.remove(), 4000);
   while ($("#avisos").children.length > 5) $("#avisos").firstChild.remove();
 }
 
-const hud = { firmaGrande: "", firmaMarcador: "", firmaPodio: "", ultimoEvento: 0, cita: "" };
+const hud = { firmaGrande: "", firmaMarcador: "", firmaPodio: "", ultimoEvento: 0, reloj: 0, cita: "", estrellas: new Map(), vivoYo: true, fueraHasta: 0 };
 
-function grande(texto, sub = "", pop = true) {
-  const firma = `${texto}|${sub}`;
+function grande(texto, sub = "", tono = "") {
+  const firma = `${texto}|${sub}|${tono}`;
   if (firma === hud.firmaGrande) return;
   hud.firmaGrande = firma;
   const t = $("#grande .texto");
   t.textContent = texto;
+  t.dataset.tono = tono;
   t.classList.remove("pop");
-  if (pop && texto) { void t.offsetWidth; t.classList.add("pop"); }
+  if (texto) { void t.offsetWidth; t.classList.add("pop"); }
   $("#grande .sub").textContent = sub;
+  $("#grande").classList.toggle("con-estrella", tono === "estrella");
+}
+
+/** Un numerito que sube desde el carro de alguien («+1», «+2», «¡FUERA!»). */
+function popup(id, texto, clase = "") {
+  const p = esc?.posCarro(id);
+  if (!p) return;
+  const d = el("div", { className: `popup ${clase}` }, texto);
+  d.style.left = `${p.x}px`;
+  d.style.top = `${p.y + 30}px`;
+  $("#popups").append(d);
+  setTimeout(() => d.remove(), 1100);
+}
+
+const retratos = new Map();
+/** La cara de alguien para su tarjeta; null mientras su cuerpo no haya cargado. */
+function retratoDe(cara) {
+  if (retratos.has(cara)) return retratos.get(cara);
+  let url = null;
+  try { url = esc?.retrato(cara) ?? null; } catch { /* sin retrato: se queda el color */ }
+  if (url) retratos.set(cara, url);
+  return url;
+}
+function caraDe(j) {
+  const url = retratoDe(j.cara);
+  const c = el("span", { className: "retrato" });
+  c.style.setProperty("--color", j.color);
+  if (url) c.style.backgroundImage = `url(${url})`;
+  return c;
 }
 
 function pintarHud(v) {
-  // marcador: solo se rehace cuando cambia algo que se lee
-  const firma = v.jugadores.map((j) => `${j.id}${j.estrellas}${j.monedas}${j.vivo}`).join();
+  // partida nueva: los eventos vuelven a contarse desde uno
+  if (v.reloj < hud.reloj) { hud.ultimoEvento = 0; hud.estrellas.clear(); hud.vivoYo = true; }
+  hud.reloj = v.reloj;
+  const enRonda = v.fase === "ronda";
+  const porId = new Map(v.jugadores.map((j) => [j.id, j]));
+  const nombreCon = (id) => {
+    const j = porId.get(id);
+    const b = el("b", {}, j?.nombre ?? "?");
+    b.style.color = j?.color ?? "";
+    return b;
+  };
+
+  // LAS TARJETAS: en orden fijo (no bailan), con cara, estrellas y monedas
+  const firma = v.jugadores.map((j) => `${j.id}${j.estrellas}${j.monedas}${j.vivo}${retratoDe(j.cara) ? 1 : 0}`).join();
   if (firma !== hud.firmaMarcador) {
     hud.firmaMarcador = firma;
-    const orden = [...v.jugadores].sort((a, b) => b.estrellas - a.estrellas || b.monedas - a.monedas);
-    $("#marcador").replaceChildren(...orden.map((j) => el("div", { className: `ficha${j.vivo ? "" : " fuera"}${j.id === v.yo?.id ? " yo" : ""}` },
-      el("span", { className: "punto", style: `background:${j.color}` }),
-      j.nombre,
-      el("span", { className: "estrellas" }, "★".repeat(j.estrellas) || "·"),
-      el("span", { className: "monedas" }, el("span", { className: "moneda" }), String(j.monedas)),
-    )));
+    $("#marcador").replaceChildren(...v.jugadores.map((j) => {
+      const antes = hud.estrellas.get(j.id) ?? j.estrellas;
+      const slots = el("span", { className: "slots" });
+      for (let i = 0; i < v.estrellasParaGanar; i++) {
+        slots.append(el("i", { className: i < j.estrellas ? (i >= antes ? "on nueva" : "on") : "" }));
+      }
+      const f = el("div", { className: `ficha${j.vivo ? "" : " fuera"}${j.id === v.yo?.id ? " yo" : ""}` },
+        caraDe(j),
+        el("div", { className: "datos" }, el("b", {}, j.id === v.yo?.id ? `${j.nombre} · tú` : j.nombre), slots),
+        el("span", { className: "monedas" }, el("span", { className: "moneda" }), String(j.monedas)),
+      );
+      f.style.setProperty("--color", j.color);
+      return f;
+    }));
+    for (const j of v.jugadores) hud.estrellas.set(j.id, j.estrellas);
   }
 
-  // ronda y tiempo
-  const enRonda = v.fase === "ronda";
-  $("#ronda span").textContent = v.fase === "podio" ? "Resultado final" : `Ronda ${v.ronda}/${v.rondasMax} · primero a ${v.estrellasParaGanar} estrellas`;
-  const barra = $("#ronda .barra");
-  barra.querySelector("i").style.width = `${enRonda ? Math.max(0, 100 - (v.tRonda / v.tLimite) * 100) : 100}%`;
-  barra.classList.toggle("encoge", enRonda && v.radio < v.radioInicial - 0.01);
+  // el reloj de la ronda
+  const quedan = Math.max(0, Math.ceil(v.tLimite - v.tRonda));
+  const reloj = $("#reloj");
+  setTexto(reloj.querySelector("b"), enRonda ? String(quedan) : "");
+  setTexto(reloj.querySelector("span"), `Ronda ${v.ronda} de ${v.rondasMax}`);
+  reloj.classList.toggle("apura", enRonda && quedan <= 10);
+  const encoge = enRonda && v.radio < v.radioInicial - 0.01;
+  $("#alerta").hidden = !encoge;
 
-  // turbo
+  // el turbo: un anillo que se llena
   const b = $("#btn-turbo");
-  const listo = !!v.yo?.turboListo && v.yo?.vivo;
-  b.classList.toggle("listo", listo && enRonda);
-  b.querySelector("i").style.height = `${v.yo ? (1 - Math.min(1, v.yo.turboEspera / v.yo.turboTotal)) * 100 : 0}%`;
+  const listo = !!v.yo?.turboListo && v.yo?.vivo && enRonda;
+  b.classList.toggle("listo", listo);
+  b.style.setProperty("--p", v.yo ? String(Math.round((1 - Math.min(1, v.yo.turboEspera / v.yo.turboTotal)) * 100)) : "0");
+
+  // la viñeta: se enrojece cuando MI carro se acerca al filo
+  const yo = v.yo ? porId.get(v.yo.id) : null;
+  const margen = yo && yo.vivo && enRonda ? v.radio - Math.hypot(yo.x, yo.z) : 9;
+  const ahora = performance.now();
+  if (yo && hud.vivoYo && !yo.vivo) hud.fueraHasta = ahora + 1300;
+  if (yo) hud.vivoYo = yo.vivo;
+  const fuera = ahora < hud.fueraHasta;
+  $("#vineta").style.opacity = fuera ? "1" : String(Math.max(0, Math.min(0.85, (2.6 - margen) / 2.6)));
 
   // el cartel grande
-  const nombre = (id) => v.jugadores.find((j) => j.id === id)?.nombre ?? "";
   if (v.fase === "intro") {
     const n = Math.ceil(v.tIntro - v.t);
     if (v.t < 0.1 || !hud.cita) hud.cita = azar(GABO.intro);
-    grande(n > 0 ? String(n) : "¡YA!", v.t < 1.6 ? `Ronda ${v.ronda} · ${hud.cita}` : "");
-  } else if (v.fase === "ronda") {
-    grande(v.t < 0.9 ? "¡YA!" : "", v.yo && !v.yo.vivo ? "Te echaron. Mira cómo se pelean los demás." : "", v.t < 0.1);
+    grande(n > 0 ? String(n) : "¡YA!", v.t < 1.8 ? hud.cita : "", n > 0 ? `n${n}` : "ya");
+  } else if (enRonda) {
+    if (fuera) grande("¡FUERA!", "", "fuera");
+    else grande(v.t < 0.9 ? "¡YA!" : "", "", "ya");
   } else if (v.fase === "finRonda") {
     if (v.t < 0.1 || !hud.citaEstrella) hud.citaEstrella = azar(GABO.estrella);
     const tu = v.ganadorRonda === v.yo?.id;
-    grande(tu ? "¡TU ESTRELLA!" : `¡${nombre(v.ganadorRonda).toUpperCase()}!`, `Se lleva la estrella · ${hud.citaEstrella}`);
+    grande(tu ? "¡TU ESTRELLA!" : `¡${(porId.get(v.ganadorRonda)?.nombre ?? "").toUpperCase()}!`, hud.citaEstrella, "estrella");
   } else {
-    grande("", "", false);
+    grande("");
   }
+  $("#espectador").hidden = !(enRonda && yo && !yo.vivo && !fuera);
 
-  // los KO, en la esquina
+  // los eventos nuevos: avisos de KO y numeritos sobre los carros
   for (const e of v.eventos) {
     if (e.n <= hud.ultimoEvento) continue;
-    if (e.tipo === "ko") avisar(e.texto);
+    if (e.tipo === "ko") {
+      avisar(e.por ? [nombreCon(e.por), " echó a ", nombreCon(e.id)] : [nombreCon(e.id), " se cayó solo"]);
+      if (e.por) popup(e.por, "+2", "oro");
+    } else if (e.tipo === "moneda") popup(e.id, "+1", "oro");
   }
   hud.ultimoEvento = Math.max(hud.ultimoEvento, ...v.eventos.map((e) => e.n), 0);
 
@@ -548,32 +619,62 @@ function pintarHud(v) {
   podio.hidden = v.fase !== "podio";
   $("#hud").classList.toggle("en-podio", v.fase === "podio");
   if (v.fase === "podio") {
-    const firmaP = `${app.partida}|${v.podio.join()}`;
+    const firmaP = `${app.partida}|${v.podio.join()}|${v.podio.map((id) => (retratoDe(porId.get(id).cara) ? 1 : 0)).join("")}`;
     if (firmaP !== hud.firmaPodio) {
       hud.firmaPodio = firmaP;
-      const ganador = v.jugadores.find((j) => j.id === v.podio[0]);
+      const ganador = porId.get(v.podio[0]);
       const botones = app.papel === "anfitrion"
         ? el("div", { className: "fila" },
             el("button", { className: "primario", onclick: () => { volverASala(); empezarPartida(); } }, "Otra partida"),
             el("button", { onclick: volverASala }, "A la sala"))
         : el("p", { className: "cita" }, "Esperando a que el anfitrión decida…");
       podio.replaceChildren(
+        el("small", {}, "Resultado final"),
         el("h2", {}, ganador.id === v.yo?.id ? "¡Ganaste el team building!" : `¡${ganador.nombre} gana!`),
         el("p", { className: "cita" }, azar(GABO.podio)),
         el("ol", {}, ...v.podio.map((id, i) => {
-          const j = v.jugadores.find((x) => x.id === id);
-          return el("li", {},
+          const j = porId.get(id);
+          const slots = el("span", { className: "slots" });
+          for (let k = 0; k < j.estrellas; k++) slots.append(el("i", { className: "on" }));
+          return el("li", { className: j.id === v.yo?.id ? "yo" : "" },
             el("span", { className: "pos" }, `${i + 1}º`),
-            el("span", { className: "punto", style: `background:${j.color}` }),
-            j.nombre + (j.id === v.yo?.id ? " (tú)" : ""),
-            el("span", { className: "estrellas", style: "color:var(--estrella)" }, `★ ${j.estrellas}`),
-            el("span", { className: "monedas", style: "color:var(--oro)" }, `${j.monedas} mon.`),
+            caraDe(j),
+            el("b", {}, j.nombre + (j.id === v.yo?.id ? " · tú" : "")),
+            slots,
+            el("span", { className: "monedas" }, el("span", { className: "moneda" }), String(j.monedas)),
           );
         })),
         botones,
       );
     }
   }
+}
+
+function setTexto(n, t) { if (n.textContent !== t) n.textContent = t; }
+
+/* ====================== el escaparate del menú ====================== */
+// Detrás de los menús no hay una pista vacía: hay una partida de bots de
+// verdad, la misma `sim.js`, corriendo en bucle. Es el mejor tutorial — se ve
+// de qué va el juego antes de leer una línea — y no viaja por la red.
+const demo = { sim: null, bots: [], pendiente: 0 };
+function vistaDemo(dt) {
+  if (!demo.sim || (demo.sim.terminada && demo.pendiente > 6)) {
+    const rng = rngDe(Date.now() & 0xffffffff);
+    const caras = [...CARAS].sort(() => rng() - 0.5).slice(0, 5);
+    const jugadores = caras.map(([cara, nombre], i) => ({ id: `demo${i}`, nombre, cara, bot: true }));
+    demo.sim = crearPartida({ jugadores, semilla: Date.now() & 0xffffffff, estrellasParaGanar: 2, rondasMax: 3 });
+    demo.bots = jugadores.map((j) => crearBot(demo.sim, j.id, rng));
+    demo.pendiente = 0;
+  }
+  const PASO = 1 / HZ;
+  demo.pendiente += dt;
+  if (demo.sim.terminada) return { ...demo.sim.vistaPara(null), demo: true };
+  while (demo.pendiente >= PASO) {
+    demo.pendiente -= PASO;
+    for (const b of demo.bots) b.pensar(PASO);
+    demo.sim.paso(PASO);
+  }
+  return { ...demo.sim.vistaPara(null), demo: true };
 }
 
 let esc = null; // escena3d.js, cuando ha cargado
@@ -583,7 +684,7 @@ function bucle(ahora) {
   const dt = Math.min(0.1, (ahora - antes) / 1000);
   antes = ahora;
   const v = app.enJuego ? app.vista : null;
-  esc?.pintar(v, dt);
+  esc?.pintar(v ?? (esc && !app.enJuego ? vistaDemo(dt) : null), dt);
   if (v) pintarHud(v);
   requestAnimationFrame(bucle);
 }
