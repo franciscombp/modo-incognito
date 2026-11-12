@@ -1,0 +1,171 @@
+/*
+ * LOS CHOCONES · piel propia (sale de la de El Soplón), y a propósito NO carga design-system.css.
+ * Es un spin-off: compartir hoja con el juego grande haría que un id genérico
+ * de aquí se coma una regla de allí (ya pasó con los builders, ver CLAUDE.md).
+ * Los colores viven solo en este bloque; lo demás lee los tokens.
+ */
+:root {
+  --fondo: #071119;
+  --suelo: #12232f;
+  --zona: #1a3242;
+  --macizo: #050a0f;
+  --tinta: #e7f1f5;
+  --tinta-suave: #8aa4b1;
+  --linea: rgba(231, 241, 245, 0.14);
+  --acento: #2dd4bf;
+  --tarea: #f5b041;
+  --peligro: #ef4444;
+  --oro: #facc15;
+  --estrella: #fde047;
+  --velo: rgba(4, 10, 15, 0.86);
+  --sombra: 0 2px 0 rgba(0, 0, 0, 0.75);
+  --mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+/* Sin zoom por doble toque: tocar rápido el mismo botón ampliaba la página.
+ * `manipulation` quita solo ese gesto y deja el pellizco (accesibilidad).
+ * :where(*) pesa cero, así que el lienzo, el stick y el velo de abajo
+ * (touch-action: none) le ganan sin tocarlos. */
+:where(*) { touch-action: manipulation; }
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--fondo);
+  color: var(--tinta);
+  font-family: var(--sans);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+canvas#mundo { position: fixed; inset: 0; width: 100vw; height: 100vh; display: block; touch-action: none; }
+
+button {
+  font: 600 15px var(--sans);
+  color: var(--tinta);
+  background: transparent;
+  border: 1px solid var(--linea);
+  border-radius: 4px;
+  padding: 10px 16px;
+  cursor: pointer;
+  text-shadow: var(--sombra);
+}
+button:hover:not(:disabled), button:focus-visible { background: linear-gradient(90deg, rgba(45, 212, 191, 0.22), transparent); outline: none; }
+button.primario { color: var(--acento); border-color: var(--acento); }
+button:disabled { opacity: 0.35; cursor: default; }
+input, textarea {
+  font: 14px var(--mono);
+  color: var(--tinta);
+  background: rgba(255, 255, 255, 0.04);
+  border: 0;
+  border-bottom: 1px solid var(--linea);
+  padding: 8px 6px;
+  width: 100%;
+}
+textarea { resize: none; height: 64px; word-break: break-all; }
+input:focus, textarea:focus { outline: none; border-bottom-color: var(--acento); }
+
+select {
+  font: 600 15px var(--sans);
+  color: var(--tinta);
+  background: rgba(255, 255, 255, 0.04);
+  border: 0;
+  border-bottom: 1px solid var(--linea);
+  padding: 8px 6px;
+}
+select option { background: var(--fondo); }
+
+/* ---------------- sobre el 3D: niebla, nombres, flechas ---------------- */
+#etiquetas { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
+.etiqueta {
+  position: absolute; left: 0; top: 0;
+  font: 700 13px var(--sans); white-space: nowrap;
+  text-shadow: var(--sombra), 0 0 6px rgba(0, 0, 0, 0.8);
+}
+.etiqueta[hidden] { display: none; }
+
+/* ---------------- pantallas de menú ---------------- */
+#pantalla {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--velo);
+  overflow: auto;
+  padding: 24px 16px;
+}
+#pantalla[hidden] { display: none; }
+.menu { width: min(560px, 100%); display: grid; gap: 14px; }
+.menu h1 { font: 800 clamp(32px, 7vw, 56px)/1 var(--sans); margin: 0; letter-spacing: -0.02em; text-shadow: var(--sombra); }
+.menu h1 small { display: block; font: 500 13px var(--mono); color: var(--acento); letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 8px; }
+.menu h2 { font: 700 13px var(--mono); color: var(--tinta-suave); text-transform: uppercase; letter-spacing: 0.14em; margin: 14px 0 0; padding-bottom: 6px; border-bottom: 1px solid var(--linea); }
+.menu p { margin: 0; color: var(--tinta-suave); line-height: 1.45; font-size: 14px; }
+.menu .fila { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.menu .fila > * { flex: 1 1 auto; }
+.lista { list-style: none; margin: 0; padding: 0; }
+.lista li { display: flex; gap: 10px; align-items: center; padding: 8px 2px; border-bottom: 1px solid var(--linea); font-size: 15px; }
+.lista li .etq { margin-left: auto; font: 12px var(--mono); color: var(--tinta-suave); }
+.punto { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.5); }
+.invitacion { display: grid; gap: 6px; padding: 10px 0; border-bottom: 1px solid var(--linea); }
+.estado { font: 12px var(--mono); color: var(--tarea); }
+.estado.ok { color: var(--acento); }
+.error { color: var(--peligro); font: 13px var(--mono); }
+
+.etiqueta { border-bottom: 3px solid var(--color, var(--acento)); padding-bottom: 1px; }
+.etiqueta.yo { color: var(--estrella); }
+
+/* ---------------- el HUD de la feria ---------------- */
+#hud[hidden] { display: none; }
+#hud { position: fixed; inset: 0; pointer-events: none; text-shadow: var(--sombra); }
+#marcador { position: absolute; top: 10px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; gap: 4px 14px; justify-content: center; }
+#marcador .ficha { display: flex; align-items: center; gap: 6px; font: 700 13px var(--sans); padding: 3px 0; border-bottom: 2px solid var(--linea); }
+#marcador .ficha.fuera { opacity: 0.4; }
+#marcador .ficha.yo { border-bottom-color: var(--estrella); }
+#marcador .estrellas { color: var(--estrella); font-family: var(--mono); letter-spacing: 1px; }
+#marcador .monedas { color: var(--oro); font: 600 12px var(--mono); display: flex; align-items: center; gap: 3px; }
+.moneda { width: 10px; height: 10px; border-radius: 50%; background: var(--oro); box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.3); display: inline-block; }
+#ronda { position: absolute; top: 52px; left: 50%; transform: translateX(-50%); text-align: center; font: 11px var(--mono); color: var(--tinta-suave); letter-spacing: 0.12em; text-transform: uppercase; width: min(360px, 70vw); }
+#ronda .barra { height: 6px; margin-top: 4px; background: rgba(255, 255, 255, 0.08); }
+#ronda .barra i { display: block; height: 100%; width: 0; background: var(--tarea); }
+#ronda .barra.encoge i { background: var(--peligro); }
+#grande { position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%); text-align: center; width: min(900px, 92vw); }
+#grande .texto { font: 900 clamp(40px, 11vw, 120px)/1 var(--sans); color: var(--estrella); letter-spacing: -0.02em; text-shadow: 0 4px 0 rgba(0, 0, 0, 0.75); }
+#grande .texto.pop { animation: pop 0.45s cubic-bezier(0.2, 1.6, 0.4, 1); }
+#grande .sub { margin-top: 10px; font: 600 clamp(14px, 2.6vw, 20px) var(--sans); color: var(--tinta); }
+@keyframes pop { from { transform: scale(0.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+#avisos { position: absolute; left: 14px; bottom: 16px; display: grid; gap: 4px; }
+#avisos div { font: 600 13px var(--sans); padding: 3px 0; border-bottom: 1px solid var(--linea); animation: aviso 4s forwards; }
+@keyframes aviso { 0% { opacity: 0; transform: translateX(-8px); } 8%, 80% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+#stick { position: absolute; left: 0; bottom: 0; width: 50%; height: 60%; pointer-events: auto; touch-action: none; }
+#stick .base, #stick .pomo { position: absolute; border-radius: 50%; display: none; }
+#stick .base { width: 120px; height: 120px; margin: -60px 0 0 -60px; border: 1px solid var(--linea); }
+#stick .pomo { width: 50px; height: 50px; margin: -25px 0 0 -25px; background: rgba(231, 241, 245, 0.25); }
+#stick.activo .base, #stick.activo .pomo { display: block; }
+#btn-turbo {
+  position: absolute; right: 20px; bottom: 20px; width: 92px; height: 92px; border-radius: 50%;
+  pointer-events: auto; touch-action: none; overflow: hidden;
+  font: 900 13px var(--mono); letter-spacing: 0.08em; color: var(--tarea); border: 2px solid var(--tarea);
+  background: rgba(0, 0, 0, 0.35);
+}
+#btn-turbo i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: rgba(245, 176, 65, 0.25); }
+#btn-turbo span { position: relative; }
+#btn-turbo.listo { color: var(--fondo); background: var(--tarea); text-shadow: none; }
+#teclas { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); font: 11px var(--mono); color: var(--tinta-suave); }
+@media (pointer: coarse) { #teclas { display: none; } }
+@media (pointer: fine) { #btn-turbo { width: 74px; height: 74px; } }
+
+/* ---------------- el podio ---------------- */
+#podio { position: fixed; right: 0; top: 0; bottom: 0; width: min(420px, 100%); display: grid; align-content: center; gap: 12px; padding: 24px 20px; background: linear-gradient(270deg, var(--velo), transparent); }
+#podio[hidden] { display: none; }
+#podio h2 { margin: 0; font: 900 30px var(--sans); color: var(--estrella); text-shadow: var(--sombra); }
+#podio .cita { color: var(--tinta-suave); font-style: italic; margin: 0; }
+#podio ol { list-style: none; margin: 0; padding: 0; }
+#podio li { display: grid; grid-template-columns: 34px 14px 1fr auto auto; gap: 10px; align-items: center; padding: 8px 2px; border-bottom: 1px solid var(--linea); font: 600 15px var(--sans); }
+#podio li .pos { font: 900 18px var(--mono); color: var(--tinta-suave); }
+#podio li:first-child .pos { color: var(--estrella); }
+#podio .fila { display: flex; gap: 8px; flex-wrap: wrap; }
+#podio .fila > * { flex: 1 1 auto; }
+#hud.en-podio #marcador, #hud.en-podio #ronda, #hud.en-podio #btn-turbo, #hud.en-podio #stick { display: none; }
+/* sin cartel grande (te echaron), el aviso baja: la pelea sigue en el centro */
+#grande .texto:empty + .sub { margin-top: 44vh; color: var(--tinta-suave); }

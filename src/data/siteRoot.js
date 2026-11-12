@@ -13,6 +13,7 @@
 // cuelga de un dominio propio o de `usuario.github.io/repo/`.
 export function siteRoot() {
   // El spin-off (`impostor/index.html`) vive UNA carpeta por debajo.
-  if (location.pathname.includes("/impostor/")) return "../";
+  // Los dos spin-offs (`impostor/` y `chocones/`) viven UNA carpeta por debajo.
+  if (location.pathname.includes("/impostor/") || location.pathname.includes("/chocones/")) return "../";
   return location.pathname.includes("/creador/") ? "../../" : "./";
 }

@@ -1974,6 +1974,43 @@ Detalle en [`impostor/README.md`](impostor/README.md). Cuatro cosas:
 - `siteRoot()` sabe que `impostor/` cuelga UNA carpeta por debajo; si mueves
   el spin-off, cámbialo ahí o no cargará ni un JSON.
 
+## El otro spin-off: LOS CHOCONES (`chocones/`)
+
+Carritos chocones al estilo de los minijuegos de Mario Party: el «team
+building obligatorio» de Gabo. Te echan de una pista redonda a golpes; el
+último dentro se lleva la ESTRELLA y quien junta tres gana. Detalle en
+[`chocones/README.md`](chocones/README.md). Lo que hay que saber:
+
+- **Es el MISMO montaje que El Soplón, a propósito.** `chocones/sim.js` es
+  pura y autoritativa (sin DOM, sin reloj, con `rngDe`), el anfitrión es el
+  servidor a paso fijo con el reloj en un Worker, y la red ES
+  `impostor/net.js`, no una copia: solo se le añadió el parámetro `juego`
+  al canal de pestañas para que una sala de un spin-off no conteste a la del
+  otro. Si tocas `net.js`, corre los dos `check:*-red`.
+- **El turbo se GUARDA hasta que sale** (`turboPendiente` en `main.js`). La
+  partida lo cuenta en el flanco de pulsar y el mando viaja 20 veces por
+  segundo: un toque rápido entre dos envíos se perdía entero. Lo cazó la
+  prueba de red y en un teléfono lento pasaba jugando.
+- **Un carro FUERA se queda quieto.** Seguía con su inercia para siempre y
+  viajaba en cada vista a cientos de metros.
+- **La cámara se calcula para que quepa la pista** (`posicionQueEncuadra`):
+  con una distancia fija, en un teléfono 20:9 el fondo de la pista quedaba
+  debajo del marcador y los carros de esa zona no se veían.
+- **Pinta su propia pista**, no el piso: `Character3D` y las recetas sí
+  salen del motor (cada personaje va sentado en su carro), así que una
+  receta que cambie llega sola.
+- `siteRoot()` sabe que `chocones/` cuelga una carpeta por debajo, igual que
+  `impostor/`.
+- `npm run check:chocones` juega partidas de bots en node (terminan, se
+  deciden a golpes y no por tiempo, no hay ventaja de salida, no hay NaN).
+  `npm run check:chocones-red` junta tres navegadores (pestaña + WebRTC con
+  enlace y código), conduce con teclas de verdad, compara la vista del
+  invitado con la del anfitrión TIC A TIC (el reloj de la partida viaja en
+  cada vista) y prueba revancha y desconexión. Ojo al escribir pruebas de
+  red aquí: con tres navegadores pintando 3D por software, el dibujado de
+  las pestañas va a trompicones, así que se graba lo que ENVÍA el anfitrión
+  y lo que RECIBE el invitado por el canal, no lo que se ve en un cuadro.
+
 ### Rendimiento: dónde se iba el cuadro
 
 `npm run perf` mide el coste por cuadro de una jornada en marcha (lógica y

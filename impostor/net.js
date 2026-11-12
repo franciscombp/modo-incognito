@@ -130,9 +130,13 @@ export async function responderInvitacion(codigoOferta) {
 
 const idAzar = () => Math.random().toString(36).slice(2, 10);
 
-/** ANFITRIÓN · escucha pestañas que pidan entrar a `sala`. */
-export function abrirSalaPestanas(sala, alConectar) {
-  const bc = new BroadcastChannel(`impostor:${sala}`);
+/**
+ * ANFITRIÓN · escucha pestañas que pidan entrar a `sala`.
+ * `juego` separa los canales de cada spin-off (lo comparten El Soplón y Los
+ * Chocones): sin él, una sala «abc12» de uno contestaría a las del otro.
+ */
+export function abrirSalaPestanas(sala, alConectar, juego = "impostor") {
+  const bc = new BroadcastChannel(`${juego}:${sala}`);
   const conexiones = new Map();
   bc.addEventListener("message", (e) => {
     const { de, a, m } = e.data ?? {};
@@ -159,8 +163,8 @@ export function abrirSalaPestanas(sala, alConectar) {
 }
 
 /** INVITADO · entra por pestaña a la sala (si nadie contesta, no pasa nada). */
-export function unirsePestana(sala) {
-  const bc = new BroadcastChannel(`impostor:${sala}`);
+export function unirsePestana(sala, juego = "impostor") {
+  const bc = new BroadcastChannel(`${juego}:${sala}`);
   const yo = idAzar();
   const oyentes = new Set(), cierres = new Set();
   bc.addEventListener("message", (e) => {

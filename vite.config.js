@@ -37,6 +37,7 @@ export default defineConfig({
         // El spin-off multijugador (Among Us en el piso). Página aparte, no
         // importa nada del motor 3D: solo lee el mismo piso7.json.
         impostor: resolve(import.meta.dirname, "impostor/index.html"),
+        chocones: resolve(import.meta.dirname, "chocones/index.html"),
       },
       // Las librerías van en su propio trozo. Three.js y Tone.js no cambian
       // entre publicaciones y el juego sí cambia en cada push: pegados en el
